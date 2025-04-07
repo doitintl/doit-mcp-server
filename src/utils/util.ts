@@ -63,20 +63,45 @@ export function handleGeneralError(
 }
 
 /**
+ * Helper function to append customer context to URL if available
+ * @param baseUrl The base URL to append parameters to
+ * @returns URL with maxResults and optional customerContext parameters
+ */
+export function appendUrlParameters(baseUrl: string): string {
+  // Check if the URL already has query parameters
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  let url = `${baseUrl}${separator}maxResults=20`;
+  const customerContext = process.env.CUSTOMER_CONTEXT;
+
+  if (customerContext) {
+    url += `&customerContext=${customerContext}`;
+  }
+
+  return url;
+}
+
+/**
  * Helper function for making DoiT API requests
  * @param url The API endpoint URL
  * @param token The authentication token
+ * @param appendParams Whether to append URL parameters (maxResults and customerContext)
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
   url: string,
-  token: string
+  token: string,
+  appendParams: boolean = true
 ): Promise<T | null> {
   const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
     Accept: "application/json",
   };
+
+  // Apply appendUrlParameters functionality if requested
+  if (appendParams) {
+    url = appendUrlParameters(url);
+  }
 
   try {
     const response = await fetch(url, { headers });
@@ -88,20 +113,4 @@ export async function makeDoitRequest<T>(
     console.error("Error making DoiT API request:", error);
     return null;
   }
-}
-
-/**
- * Helper function to append customer context to URL if available
- * @param baseUrl The base URL to append parameters to
- * @returns URL with maxResults and optional customerContext parameters
- */
-export function appendUrlParameters(baseUrl: string): string {
-  let url = `${baseUrl}?maxResults=20`;
-  const customerContext = process.env.CUSTOMER_CONTEXT;
-
-  if (customerContext) {
-    url += `&customerContext=${customerContext}`;
-  }
-
-  return url;
 }
