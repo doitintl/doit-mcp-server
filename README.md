@@ -1,4 +1,4 @@
-# doit-mcp-server
+# MCP Server for DoiT API
 
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
 
