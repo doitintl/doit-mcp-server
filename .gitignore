@@ -1,73 +1,58 @@
-# Node.js
+# Dependency directories
 node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-package-lock.json
-yarn.lock
-.npm/
-.yarn/
+jspm_packages/
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-venv/
-.venv/
-ENV/
+# TypeScript cache
+*.tsbuildinfo
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment variables
+# Environment files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# IDE
+# Build output
+dist/
+build/
+lib/
+out/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Coverage directory used by testing tools
+coverage/
+.nyc_output/
+
+# IDE / Editor specific files
 .idea/
 .vscode/
 *.swp
 *.swo
 .DS_Store
-.history/
 
-# Build artifacts
-/dist
-/build
-/out
+# Cache directories
+.npm
+.eslintcache
+.yarn-cache
 
-# Dependency directories
-/jspm_packages
-/bower_components
+# Optional REPL history
+.node_repl_history
 
-# Coverage directory
-/coverage
-/.nyc_output
+# Package lock files (uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
 
-# Misc
-.DS_Store
-Thumbs.db 
+# Debug files
+.debug
+*.debug
+
+# Secret files
+*.pem
+*.key 
