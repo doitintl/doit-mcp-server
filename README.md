@@ -2,6 +2,12 @@
 
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
 
+
+
+https://github.com/user-attachments/assets/2eacc19c-4dbf-44a5-bef2-3d9afc9005c6
+
+
+
 ## Requirements
 
 - Node.js v18 or higher
@@ -23,8 +29,7 @@ To manually configure the MCP server for Claude Desktop App, add the following t
       "command": "npx",
       "args": ["-y", "@doitintl/doit-mcp-server"],
       "env": {
-        "DOIT_API_KEY": "your_doit_api_key",
-        "CUSTOMER_CONTEXT": "your_customer_context"
+        "DOIT_API_KEY": "your_doit_api_key"
       }
     }
   }
@@ -54,13 +59,11 @@ If you have the latest version (v0.47 and above) of Cursor, you can create an `m
     "DoiT": {
       "command": "npx",
       "args": [
-        "mcprunner",
         "DOIT_API_KEY=your_doit_api_key",
-        "CUSTOMER_CONTEXT=your_customer_context",
         "--",
         "npx",
         "-y",
-        "doit-mcp-server"
+        "@doitintl/doit-mcp-server"
       ]
     }
   }
