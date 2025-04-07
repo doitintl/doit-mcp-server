@@ -6,7 +6,6 @@ import {
   handleGeneralError,
   makeDoitRequest,
   DOIT_API_BASE,
-  appendUrlParameters,
 } from "../utils/util.js";
 
 // Define known platforms enum
@@ -19,9 +18,22 @@ export enum KnownIssuePlatforms {
   OpenAI = "open-ai",
 }
 
+// Valid filter keys for cloud incidents
+export enum CloudIncidentFilterKeys {
+  Platform = "platform",
+  Status = "status",
+  Product = "product",
+}
+
 // Schema definitions
 export const CloudIncidentsArgumentsSchema = z.object({
   platform: z.nativeEnum(KnownIssuePlatforms).optional(),
+  filter: z
+    .string()
+    .optional()
+    .describe(
+      "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active'"
+    ),
 });
 
 export const CloudIncidentArgumentsSchema = z.object({
@@ -36,6 +48,10 @@ export interface CloudIncident {
   product: string;
   title: string;
   status: string;
+  summary?: string;
+  description?: string;
+  symptoms?: string;
+  workaround?: string;
 }
 
 export interface CloudIncidentsResponse {
@@ -53,6 +69,11 @@ export const cloudIncidentsTool = {
         type: "string",
         description: "platform name",
         enum: Object.values(KnownIssuePlatforms),
+      },
+      filter: {
+        type: "string",
+        description:
+          "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active' or 'platform:google-cloud|platform:amazon-web-services'",
       },
     },
   },
@@ -80,11 +101,15 @@ export function formatCloudIncident(incident: CloudIncident): string {
   return [
     `ID: ${incident.id}`,
     `Platform: ${incident.platform}`,
-    `Product: ${incident.product}`,
+    `Product: ${incident.product || "N/A"}`,
     `Title: ${incident.title}`,
     `Status: ${incident.status}`,
     `Created: ${createDate}`,
-    "---",
+    incident.summary ? `Summary: ${incident.summary}` : null,
+    incident.description ? `Description: ${incident.description}` : null,
+    incident.symptoms ? `Symptoms: ${incident.symptoms}` : null,
+    incident.workaround ? `Workaround: ${incident.workaround}` : null,
+    "-----------",
   ]
     .filter(Boolean)
     .join("\n");
@@ -93,10 +118,15 @@ export function formatCloudIncident(incident: CloudIncident): string {
 // Handle cloud incidents request
 export async function handleCloudIncidentsRequest(args: any, token: string) {
   try {
-    const { platform } = CloudIncidentsArgumentsSchema.parse(args);
+    const { platform, filter } = CloudIncidentsArgumentsSchema.parse(args);
 
+    // Start with the base URL
     let incidentsUrl = `${DOIT_API_BASE}/core/v1/cloudincidents`;
-    incidentsUrl = appendUrlParameters(incidentsUrl);
+
+    // Add filter parameter if provided
+    if (filter) {
+      incidentsUrl += `?filter=${encodeURIComponent(filter)}`;
+    }
 
     try {
       const incidentsData = await makeDoitRequest<CloudIncidentsResponse>(
@@ -110,8 +140,8 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
 
       let incidents = incidentsData.incidents || [];
 
-      // Filter by platform if specified
-      if (platform) {
+      // Filter by platform if specified and not already filtered by the API
+      if (platform && !filter?.includes(`platform:${platform}`)) {
         incidents = incidents.filter(
           (incident) =>
             incident.platform.toLowerCase() === platform.toLowerCase()
@@ -129,9 +159,17 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
       const formattedIncidents = incidents
         .map(formatCloudIncident)
         .slice(0, 20);
-      const incidentsText = platform
-        ? `Cloud incidents for ${platform}:\n\n${formattedIncidents.join("\n")}`
-        : `Cloud incidents:\n\n${formattedIncidents.join("\n")}`;
+
+      // Create a descriptive message that includes filter information if provided
+      let incidentsText = "Cloud incidents";
+      if (platform) {
+        incidentsText += ` for ${platform}`;
+      }
+      if (filter) {
+        incidentsText += ` (filtered by: ${filter})`;
+      }
+
+      incidentsText += `:\n\n${formattedIncidents.join("\n")}`;
 
       return createSuccessResponse(incidentsText);
     } catch (error) {
@@ -153,7 +191,12 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
     let incidentUrl = `${DOIT_API_BASE}/core/v1/cloudincidents/${id}`;
 
     try {
-      const incident = await makeDoitRequest<CloudIncident>(incidentUrl, token);
+      // Explicitly set appendParams to true to ensure URL parameters are added
+      const incident = await makeDoitRequest<CloudIncident>(
+        incidentUrl,
+        token,
+        true
+      );
 
       if (!incident) {
         return createErrorResponse(
