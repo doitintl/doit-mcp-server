@@ -56,3 +56,6 @@ coverage/
 # Secret files
 *.pem
 *.key 
+
+.vscode/
+*.code-workspace

@@ -2,11 +2,7 @@
 
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
 
-
-
 https://github.com/user-attachments/assets/2eacc19c-4dbf-44a5-bef2-3d9afc9005c6
-
-
 
 ## Requirements
 
@@ -107,6 +103,7 @@ This MCP server provides the following tools:
 - `get_cloud_incident`: Get details about a specific cloud incident by ID
 - `get_anomalies`: Retrieve anomalies detected in cloud resources
 - `get_anomaly`: Get details about a specific anomaly by ID
+- `list_reports`: Lists Cloud Analytics reports that your account has access to
 
 ## Environment Variables
 
