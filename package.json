@@ -1,5 +1,5 @@
 {
-  "name": "doit-mcp-server",
+  "name": "@doitintl/doit-mcp-server",
   "version": "0.1.1",
   "description": "DoiT official MCP Server",
   "keywords": [
