@@ -23,7 +23,7 @@ To manually configure the MCP server for Claude Desktop App, add the following t
   "mcpServers": {
     "doit_mcp_server": {
       "command": "npx",
-      "args": ["-y", "@doitintl/doit-mcp-server"],
+      "args": ["-y", "@doitintl/doit-mcp-server@latest"],
       "env": {
         "DOIT_API_KEY": "your_doit_api_key"
       }
@@ -42,7 +42,7 @@ Make sure to replace the environment variables with your actual values:
 For Cursor IDE, you can install this MCP server with the following command in your project:
 
 ```bash
-env DOIT_API_KEY=[KEY] npx -y @doitintl/doit-mcp-server
+env DOIT_API_KEY=[KEY] npx -y @doitintl/doit-mcp-server@latest
 ```
 
 Don't forget to replace the `env` values in that command with your actual values.
@@ -59,7 +59,7 @@ If you have the latest version (v0.47 and above) of Cursor, you can create an `m
         "--",
         "npx",
         "-y",
-        "@doitintl/doit-mcp-server"
+        "@doitintl/doit-mcp-server@latest"
       ]
     }
   }
