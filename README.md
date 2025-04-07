@@ -104,6 +104,7 @@ This MCP server provides the following tools:
 - `get_anomalies`: Retrieve anomalies detected in cloud resources
 - `get_anomaly`: Get details about a specific anomaly by ID
 - `list_reports`: Lists Cloud Analytics reports that your account has access to
+- `validate_user`: Validates the current API user and returns domain and email information
 
 ## Environment Variables
 

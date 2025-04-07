@@ -22,6 +22,10 @@ import {
 } from "./tools/anomalies.js";
 import { reportsTool, handleReportsRequest } from "./tools/reports.js";
 import {
+  validateUserTool,
+  handleValidateUserRequest,
+} from "./tools/validateUser.js";
+import {
   createErrorResponse,
   formatZodError,
   handleGeneralError,
@@ -51,6 +55,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       anomaliesTool,
       anomalyTool,
       reportsTool,
+      validateUserTool,
     ],
   };
 });
@@ -75,6 +80,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return await handleAnomalyRequest(args, token);
       case "list_reports":
         return await handleReportsRequest(args, token);
+      case "validate_user":
+        return await handleValidateUserRequest(args, token);
       default:
         return createErrorResponse(`Unknown tool: ${name}`);
     }
