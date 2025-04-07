@@ -20,6 +20,7 @@ import {
   handleAnomaliesRequest,
   handleAnomalyRequest,
 } from "./tools/anomalies.js";
+import { reportsTool, handleReportsRequest } from "./tools/reports.js";
 import {
   createErrorResponse,
   formatZodError,
@@ -44,7 +45,13 @@ const server = new Server(
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: [cloudIncidentsTool, cloudIncidentTool, anomaliesTool, anomalyTool],
+    tools: [
+      cloudIncidentsTool,
+      cloudIncidentTool,
+      anomaliesTool,
+      anomalyTool,
+      reportsTool,
+    ],
   };
 });
 
@@ -66,6 +73,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return await handleAnomaliesRequest(args, token);
       case "get_anomaly":
         return await handleAnomalyRequest(args, token);
+      case "list_reports":
+        return await handleReportsRequest(args, token);
       default:
         return createErrorResponse(`Unknown tool: ${name}`);
     }
