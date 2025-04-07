@@ -25,6 +25,8 @@ import {
   validateUserTool,
   handleValidateUserRequest,
 } from "./tools/validateUser.js";
+import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
+import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import {
   createErrorResponse,
   formatZodError,
@@ -56,6 +58,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       anomalyTool,
       reportsTool,
       validateUserTool,
+      dimensionsTool,
+      dimensionTool,
     ],
   };
 });
@@ -82,6 +86,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return await handleReportsRequest(args, token);
       case "validate_user":
         return await handleValidateUserRequest(args, token);
+      case "list_dimensions":
+        return await handleDimensionsRequest(args, token);
+      case "get_dimension":
+        return await handleDimensionRequest(args, token);
       default:
         return createErrorResponse(`Unknown tool: ${name}`);
     }
