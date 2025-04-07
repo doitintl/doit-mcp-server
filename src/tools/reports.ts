@@ -10,7 +10,12 @@ import {
 
 // Schema definitions
 export const ReportsArgumentsSchema = z.object({
-  // No required parameters based on the API documentation
+  filter: z
+    .string()
+    .optional()
+    .describe(
+      "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'"
+    ),
 });
 
 // Interfaces
@@ -35,7 +40,13 @@ export const reportsTool = {
   description: "Lists Cloud Analytics reports that your account has access to",
   inputSchema: {
     type: "object",
-    properties: {},
+    properties: {
+      filter: {
+        type: "string",
+        description:
+          "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'",
+      },
+    },
   },
 };
 
@@ -59,11 +70,16 @@ export function formatReport(report: Report): string {
 // Handle the reports request
 export async function handleReportsRequest(args: any, token: string) {
   try {
-    // Validate arguments (though there are none required for this endpoint)
-    ReportsArgumentsSchema.parse(args);
+    // Validate arguments
+    const { filter } = ReportsArgumentsSchema.parse(args);
 
     // Create API URL
-    const reportsUrl = `${DOIT_API_BASE}/analytics/v1/reports`;
+    let reportsUrl = `${DOIT_API_BASE}/analytics/v1/reports`;
+
+    // Add filter parameter if provided
+    if (filter) {
+      reportsUrl += `?filter=${encodeURIComponent(filter)}`;
+    }
 
     try {
       const reportsData = await makeDoitRequest<ReportsResponse>(
@@ -84,7 +100,12 @@ export async function handleReportsRequest(args: any, token: string) {
 
       const formattedReports = reports.map(formatReport);
 
-      let reportsText = `Found ${rowCount} reports:`;
+      // Create a descriptive message that includes filter information if provided
+      let reportsText = `Found ${rowCount} reports`;
+      if (filter) {
+        reportsText += ` (filtered by: ${filter})`;
+      }
+      reportsText += `:`;
       reportsText += `\n\n${formattedReports.join("\n")}`;
 
       return createSuccessResponse(reportsText);
