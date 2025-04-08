@@ -363,13 +363,15 @@ export function formatQueryResult(queryResult: QueryResult): string {
     .map((field) => `${field.name} (${field.type})`)
     .join(", ");
 
-  return [
+  const results = [
     `Query Results:`,
     `Schema: ${schemaInfo}`,
     `Cache Hit: ${cacheHit}`,
     `Rows (${rows.length} total):`,
     rows,
   ].join("\n");
+
+  return results;
 }
 
 // Handle the reports request
@@ -449,9 +451,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
 
       if (!queryResponse || !queryResponse.result || queryResponse?.error) {
         return createErrorResponse(
-          `Failed to run query or empty result received - ${JSON.stringify(
-            queryResponse
-          )}`
+          `Failed to run query, use the tool dimensions to get the list of dimensions and their types.`
         );
       }
 
