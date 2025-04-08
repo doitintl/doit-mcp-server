@@ -131,7 +131,8 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
     try {
       const incidentsData = await makeDoitRequest<CloudIncidentsResponse>(
         incidentsUrl,
-        token
+        token,
+        { method: "GET" }
       );
 
       if (!incidentsData) {
@@ -195,7 +196,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
       const incident = await makeDoitRequest<CloudIncident>(
         incidentUrl,
         token,
-        true
+        { method: "GET", appendParams: true }
       );
 
       if (!incident) {

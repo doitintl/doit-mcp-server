@@ -112,7 +112,7 @@ export async function handleDimensionRequest(args: any, token: string) {
       const dimensionData = await makeDoitRequest<DimensionResponse>(
         dimensionUrl,
         token,
-        true
+        { method: "GET", appendParams: true }
       );
 
       if (!dimensionData) {
