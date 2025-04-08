@@ -7,7 +7,6 @@ startCommand:
     type: object
     required:
       - doitApiKey
-      - customerContext
     properties:
       doitApiKey:
         type: string
