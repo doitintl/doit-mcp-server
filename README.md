@@ -1,4 +1,5 @@
 # DoiT MCP Server
+
 [![smithery badge](https://smithery.ai/badge/@doitintl/doit-mcp-server)](https://smithery.ai/server/@doitintl/doit-mcp-server)
 
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
@@ -114,6 +115,7 @@ This MCP server provides the following tools:
 - `get_anomaly`: Get details about a specific anomaly by ID
 - `list_reports`: Lists Cloud Analytics reports that your account has access to
 - `run_query`: Runs a report query with the specified configuration without persisting it
+- `get_report_results`: Get the results of a specific report by ID
 - `validate_user`: Validates the current API user and returns domain and email information
 - `list_dimensions`: Lists Cloud Analytics dimensions that your account has access to
 - `get_dimension`: Get a specific Cloud Analytics dimension by type and ID
