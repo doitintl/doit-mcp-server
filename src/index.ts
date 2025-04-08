@@ -25,6 +25,8 @@ import {
   runQueryTool,
   handleReportsRequest,
   handleRunQueryRequest,
+  getReportResultsTool,
+  handleGetReportResultsRequest,
 } from "./tools/reports.js";
 import {
   validateUserTool,
@@ -63,6 +65,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       anomalyTool,
       reportsTool,
       runQueryTool,
+      getReportResultsTool,
       validateUserTool,
       dimensionsTool,
       dimensionTool,
@@ -92,6 +95,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return await handleReportsRequest(args, token);
       case "run_query":
         return await handleRunQueryRequest(args, token);
+      case "get_report_results":
+        return await handleGetReportResultsRequest(args, token);
       case "validate_user":
         return await handleValidateUserRequest(args, token);
       case "list_dimensions":

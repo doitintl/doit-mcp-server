@@ -70,7 +70,7 @@ export function handleGeneralError(
 export function appendUrlParameters(baseUrl: string): string {
   // Check if the URL already has query parameters
   const separator = baseUrl.includes("?") ? "&" : "?";
-  let url = `${baseUrl}${separator}maxResults=20`;
+  let url = `${baseUrl}${separator}`;
   const customerContext = process.env.CUSTOMER_CONTEXT;
 
   if (customerContext) {

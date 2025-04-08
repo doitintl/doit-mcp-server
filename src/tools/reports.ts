@@ -27,6 +27,11 @@ export const RunQueryArgumentsSchema = z.object({
     ),
 });
 
+// Get Report Results Schema Definition
+export const GetReportResultsArgumentsSchema = z.object({
+  id: z.string().describe("The ID of the report to retrieve results for"),
+});
+
 // Interfaces
 export interface Report {
   id: string;
@@ -57,6 +62,30 @@ export interface QueryResponse {
   error?: string;
 }
 
+// Get Report Results Interface
+export interface ReportResultSchema {
+  name: string;
+  type: string;
+}
+
+export interface ReportResult {
+  schema: ReportResultSchema[];
+  mlFeatures?: string[];
+  rows: Array<Array<any>>;
+  forecastRows?: Array<Array<any>>;
+}
+
+export interface GetReportResultsResponse {
+  id: string;
+  reportName: string;
+  owner: string;
+  type: string;
+  createTime: number;
+  updateTime: number;
+  urlUI: string;
+  result: ReportResult;
+}
+
 // Tool metadata
 export const reportsTool = {
   name: "list_reports",
@@ -67,7 +96,7 @@ export const reportsTool = {
       filter: {
         type: "string",
         description:
-          "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'",
+          "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Possible filter keys: reportName, owner, type, updateTime, use the filter property only if you know for sure the value is a valid filter key, do not guess it.",
       },
     },
   },
@@ -337,6 +366,21 @@ export const runQueryTool = {
   },
 };
 
+export const getReportResultsTool = {
+  name: "get_report_results",
+  description: "Get the results of a specific report by ID",
+  inputSchema: {
+    type: "object",
+    properties: {
+      id: {
+        type: "string",
+        description: "The ID of the report to retrieve results for",
+      },
+    },
+    required: ["id"],
+  },
+};
+
 // Format a report for display
 export function formatReport(report: Report): string {
   const createDate = new Date(report.createTime).toLocaleString();
@@ -363,13 +407,15 @@ export function formatQueryResult(queryResult: QueryResult): string {
     .map((field) => `${field.name} (${field.type})`)
     .join(", ");
 
-  return [
+  const results = [
     `Query Results:`,
     `Schema: ${schemaInfo}`,
     `Cache Hit: ${cacheHit}`,
     `Rows (${rows.length} total):`,
     rows,
   ].join("\n");
+
+  return results;
 }
 
 // Handle the reports request
@@ -449,9 +495,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
 
       if (!queryResponse || !queryResponse.result || queryResponse?.error) {
         return createErrorResponse(
-          `Failed to run query or empty result received - ${JSON.stringify(
-            queryResponse
-          )}`
+          `Failed to run query, use the tool dimensions to get the list of dimensions and their types.`
         );
       }
 
@@ -466,5 +510,77 @@ export async function handleRunQueryRequest(args: any, token: string) {
       return createErrorResponse(formatZodError(error));
     }
     return handleGeneralError(error, "handling run query request");
+  }
+}
+
+// Format report results for display
+export function formatReportResults(report: GetReportResultsResponse): string {
+  const createDate = new Date(report.createTime).toLocaleString();
+  const updateDate = new Date(report.updateTime).toLocaleString();
+  const schemaInfo = report.result.schema
+    .map((field) => `${field.name} (${field.type})`)
+    .join(", ");
+
+  const mlFeatures = report.result.mlFeatures
+    ? `\nML Features: ${report.result.mlFeatures.join(", ")}`
+    : "";
+
+  return [
+    `Report Details:`,
+    `ID: ${report.id}`,
+    `Name: ${report.reportName}`,
+    `Owner: ${report.owner}`,
+    `Type: ${report.type}`,
+    `Created: ${createDate}`,
+    `Updated: ${updateDate}`,
+    `URL: ${report.urlUI}`,
+    `\nResults:`,
+    `Schema: ${schemaInfo}`,
+    mlFeatures,
+    `Rows: ${report.result.rows.length}`,
+    report.result.forecastRows
+      ? `Forecast Rows: ${report.result.forecastRows.length}`
+      : "",
+    "-----------",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+// Handle get report results request
+export async function handleGetReportResultsRequest(args: any, token: string) {
+  try {
+    // Validate arguments
+    const { id } = GetReportResultsArgumentsSchema.parse(args);
+
+    // Create API URL
+    const reportUrl = `${DOIT_API_BASE}/analytics/v1/reports/${encodeURIComponent(
+      id
+    )}`;
+
+    try {
+      const reportData = await makeDoitRequest<GetReportResultsResponse>(
+        reportUrl,
+        token,
+        { method: "GET" }
+      );
+
+      if (!reportData) {
+        return createErrorResponse("Failed to retrieve report results");
+      }
+
+      const formattedResult = formatReportResults(reportData);
+      return createSuccessResponse(formattedResult);
+    } catch (error) {
+      return handleGeneralError(
+        error,
+        "making DoiT API request for report results"
+      );
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createErrorResponse(formatZodError(error));
+    }
+    return handleGeneralError(error, "handling get report results request");
   }
 }
