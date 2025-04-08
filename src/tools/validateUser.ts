@@ -42,7 +42,7 @@ export async function handleValidateUserRequest(args: any, token: string) {
       const userData = await makeDoitRequest<ValidateUserResponse>(
         validateUrl,
         token,
-        true
+        { method: "GET", appendParams: true }
       );
 
       if (!userData) {

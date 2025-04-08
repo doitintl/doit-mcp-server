@@ -130,7 +130,8 @@ export async function handleAnomaliesRequest(args: any, token: string) {
     try {
       const anomaliesData = await makeDoitRequest<AnomaliesResponse>(
         anomaliesUrl,
-        token
+        token,
+        { method: "GET" }
       );
 
       if (!anomaliesData) {
@@ -181,11 +182,10 @@ export async function handleAnomalyRequest(args: any, token: string) {
 
     try {
       // Explicitly set appendParams to true to ensure URL parameters are added
-      const anomalyData = await makeDoitRequest<Anomaly>(
-        anomalyUrl,
-        token,
-        true
-      );
+      const anomalyData = await makeDoitRequest<Anomaly>(anomalyUrl, token, {
+        method: "GET",
+        appendParams: true,
+      });
 
       if (!anomalyData) {
         return createErrorResponse(`Failed to retrieve anomaly with ID: ${id}`);

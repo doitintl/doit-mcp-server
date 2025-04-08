@@ -84,33 +84,52 @@ export function appendUrlParameters(baseUrl: string): string {
  * Helper function for making DoiT API requests
  * @param url The API endpoint URL
  * @param token The authentication token
- * @param appendParams Whether to append URL parameters (maxResults and customerContext)
+ * @param options Additional request options
+ * @param options.method HTTP method (GET, POST, etc.)
+ * @param options.body Request body for POST/PUT requests
+ * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
   url: string,
   token: string,
-  appendParams: boolean = true
+  options: {
+    method?: string;
+    body?: any;
+    appendParams?: boolean;
+  } = {}
 ): Promise<T | null> {
+  const { method = "GET", body = undefined, appendParams = true } = options;
+
   const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
     Accept: "application/json",
   };
 
-  // Apply appendUrlParameters functionality if requested
   if (appendParams) {
     url = appendUrlParameters(url);
   }
 
   try {
-    const response = await fetch(url, { headers });
+    const requestOptions: RequestInit = {
+      method,
+      headers,
+    };
+
+    // Add body for non-GET requests if provided
+    if (method !== "GET" && body !== undefined) {
+      requestOptions.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, requestOptions);
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return (await response.json()) as T;
   } catch (error) {
-    console.error("Error making DoiT API request:", error);
+    console.error(`Error making DoiT API ${method} request:`, error);
     return null;
   }
 }
