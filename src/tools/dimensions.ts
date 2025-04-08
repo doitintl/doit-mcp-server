@@ -14,7 +14,7 @@ export const DimensionsArgumentsSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. use label or key only if you know the value of the dimension, do not guess it."
+      "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty."
     ),
 });
 
@@ -34,14 +34,14 @@ export interface DimensionsResponse {
 export const dimensionsTool = {
   name: "list_dimensions",
   description:
-    "Lists Cloud Analytics dimensions that your account has access to. Use this tool to get the dimensions that you can use in the run_query tool. use the filter parameter to filter the dimensions by type, label, key. use label or key only if you know the value of the dimension, do not guess it.",
+    "Lists Cloud Analytics dimensions that your account has access to. Use this tool to get the dimensions that you can use in the run_query tool.",
   inputSchema: {
     type: "object",
     properties: {
       filter: {
         type: "string",
-        description:
-          "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key.",
+        description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. 
+          use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty.`,
       },
     },
   },
@@ -86,7 +86,9 @@ export async function handleDimensionsRequest(args: any, token: string) {
       const rowCount = dimensionsData.rowCount || 0;
 
       if (dimensions.length === 0) {
-        return createErrorResponse("No dimensions found");
+        return createErrorResponse(
+          "No dimensions found, please check the filter parameter, try without filter if you don't know the exact value of the key"
+        );
       }
 
       const formattedDimensions = dimensions.map(formatDimension);
