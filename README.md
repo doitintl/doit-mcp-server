@@ -44,7 +44,7 @@ To manually configure the MCP server for Claude Desktop App, add the following t
 Make sure to replace the environment variables with your actual values:
 
 - `DOIT_API_KEY`: Your DoiT API key with appropriate permissions
-- `CUSTOMER_CONTEXT`: Your customer context identifier
+- `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
 
 ### Cursor
 
@@ -121,4 +121,4 @@ This MCP server provides the following tools:
 ## Environment Variables
 
 - `DOIT_API_KEY`: Your DoiT API key (required)
-- `CUSTOMER_CONTEXT`: Your customer context identifier (required)
+- `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
