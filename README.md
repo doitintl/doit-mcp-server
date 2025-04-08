@@ -1,4 +1,5 @@
 # DoiT MCP Server
+[![smithery badge](https://smithery.ai/badge/@doitintl/doit-mcp-server)](https://smithery.ai/server/@doitintl/doit-mcp-server)
 
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
 
@@ -13,6 +14,14 @@ https://github.com/user-attachments/assets/2eacc19c-4dbf-44a5-bef2-3d9afc9005c6
 ## Installation
 
 There are several ways to install and configure the MCP server:
+
+### Installing via Smithery
+
+To install doit-mcp-server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@doitintl/doit-mcp-server):
+
+```bash
+npx -y @smithery/cli install @doitintl/doit-mcp-server --client claude
+```
 
 ### Claude Desktop App
 
