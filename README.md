@@ -51,7 +51,13 @@ Make sure to replace the environment variables with your actual values:
 
 ### Cursor
 
-For Cursor IDE, you can install this MCP server with the following command in your project:
+For Cursor IDE, you can install this MCP server using Smithery (recommended):
+
+```bash
+npx -y @smithery/cli install @doitintl/doit-mcp-server --client cursor
+```
+
+Or manually with the following command in your project:
 
 ```bash
 env DOIT_API_KEY=[KEY] npx -y @doitintl/doit-mcp-server@latest
