@@ -1,6 +1,7 @@
 # DoiT MCP Server
 
 [![smithery badge](https://smithery.ai/badge/@doitintl/doit-mcp-server)](https://smithery.ai/server/@doitintl/doit-mcp-server)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
 
