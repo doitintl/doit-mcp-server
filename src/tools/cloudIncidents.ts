@@ -34,6 +34,12 @@ export const CloudIncidentsArgumentsSchema = z.object({
     .describe(
       "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active'"
     ),
+  pageToken: z
+    .string()
+    .optional()
+    .describe(
+      "Token for pagination. Use this to get the next page of results."
+    ),
 });
 
 export const CloudIncidentArgumentsSchema = z.object({
@@ -55,6 +61,7 @@ export interface CloudIncident {
 }
 
 export interface CloudIncidentsResponse {
+  pageToken: any;
   incidents: CloudIncident[];
 }
 
@@ -74,6 +81,11 @@ export const cloudIncidentsTool = {
         type: "string",
         description:
           "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active' or 'platform:google-cloud|platform:amazon-web-services'",
+      },
+      pageToken: {
+        type: "string",
+        description:
+          "Token for pagination. Use this to get the next page of results.",
       },
     },
   },
@@ -118,14 +130,21 @@ export function formatCloudIncident(incident: CloudIncident): string {
 // Handle cloud incidents request
 export async function handleCloudIncidentsRequest(args: any, token: string) {
   try {
-    const { platform, filter } = CloudIncidentsArgumentsSchema.parse(args);
+    const { platform, filter, pageToken } =
+      CloudIncidentsArgumentsSchema.parse(args);
 
-    // Start with the base URL
-    let incidentsUrl = `${DOIT_API_BASE}/core/v1/cloudincidents`;
-
-    // Add filter parameter if provided
+    // Create API URL with query parameters
+    const params = new URLSearchParams();
     if (filter) {
-      incidentsUrl += `?filter=${encodeURIComponent(filter)}`;
+      params.append("filter", filter);
+    }
+    if (pageToken) {
+      params.append("pageToken", pageToken);
+    }
+
+    let incidentsUrl = `${DOIT_API_BASE}/core/v1/cloudincidents`;
+    if (params.toString()) {
+      incidentsUrl += `?${params.toString()}`;
     }
 
     try {
@@ -157,9 +176,7 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
         );
       }
 
-      const formattedIncidents = incidents
-        .map(formatCloudIncident)
-        .slice(0, 20);
+      const formattedIncidents = incidents.map(formatCloudIncident);
 
       // Create a descriptive message that includes filter information if provided
       let incidentsText = "Cloud incidents";
@@ -170,7 +187,9 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
         incidentsText += ` (filtered by: ${filter})`;
       }
 
-      incidentsText += `:\n\n${formattedIncidents.join("\n")}`;
+      incidentsText += `:\n\n${formattedIncidents.join("\n")} \n\n${
+        incidentsData.pageToken ? `Page token: ${incidentsData.pageToken}` : ""
+      }`;
 
       return createSuccessResponse(incidentsText);
     } catch (error) {

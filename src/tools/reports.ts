@@ -16,6 +16,12 @@ export const ReportsArgumentsSchema = z.object({
     .describe(
       "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'"
     ),
+  pageToken: z
+    .string()
+    .optional()
+    .describe(
+      "Token for pagination. Use this to get the next page of results."
+    ),
 });
 
 // Run Query Schema Definition
@@ -47,6 +53,7 @@ export interface Report {
 }
 
 export interface ReportsResponse {
+  pageToken: any;
   rowCount: number;
   reports: Report[];
 }
@@ -100,6 +107,11 @@ export const reportsTool = {
         type: "string",
         description:
           "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Possible filter keys: reportName, owner, type, updateTime, use the filter property only if you know for sure the value is a valid filter key, do not guess it.",
+      },
+      pageToken: {
+        type: "string",
+        description:
+          "Token for pagination. Use this to get the next page of results.",
       },
     },
   },
@@ -425,14 +437,20 @@ export function formatQueryResult(queryResult: QueryResult): string {
 export async function handleReportsRequest(args: any, token: string) {
   try {
     // Validate arguments
-    const { filter } = ReportsArgumentsSchema.parse(args);
+    const { filter, pageToken } = ReportsArgumentsSchema.parse(args);
 
-    // Create API URL
-    let reportsUrl = `${DOIT_API_BASE}/analytics/v1/reports`;
-
-    // Add filter parameter if provided
+    // Create API URL with query parameters
+    const params = new URLSearchParams();
     if (filter) {
-      reportsUrl += `?filter=${encodeURIComponent(filter)}`;
+      params.append("filter", filter);
+    }
+    if (pageToken) {
+      params.append("pageToken", pageToken);
+    }
+
+    let reportsUrl = `${DOIT_API_BASE}/analytics/v1/reports`;
+    if (params.toString()) {
+      reportsUrl += `?${params.toString()}`;
     }
 
     try {
@@ -463,7 +481,9 @@ export async function handleReportsRequest(args: any, token: string) {
         reportsText += ` (filtered by: ${filter})`;
       }
       reportsText += `:`;
-      reportsText += `\n\n${formattedReports.join("\n")}`;
+      reportsText += `\n\n${formattedReports.join("\n")} \n\n${
+        reportsData.pageToken ? `Page token: ${reportsData.pageToken}` : ""
+      }`;
 
       return createSuccessResponse(reportsText);
     } catch (error) {
