@@ -5,7 +5,8 @@
 
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
 
-https://github.com/user-attachments/assets/2eacc19c-4dbf-44a5-bef2-3d9afc9005c6
+![top-services](https://github.com/user-attachments/assets/749dd237-3021-439d-b447-64605393389d)
+
 
 ## Requirements
 
