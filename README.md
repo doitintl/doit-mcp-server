@@ -128,6 +128,27 @@ This MCP server provides the following tools:
 - `list_dimensions`: Lists Cloud Analytics dimensions that your account has access to
 - `get_dimension`: Get a specific Cloud Analytics dimension by type and ID
 
+## Usage Examples
+
+Here are some common queries you can ask using the DoiT MCP server:
+
+### Cost Analysis and Savings
+
+- "What are my Flexsave savings?" - This will analyze your Flexsave cost optimization savings across your cloud accounts.
+- "What are my top 3 AWS services by cost?" - This will run a Cloud Analytics query to identify your highest-spending AWS services.
+
+### Reports and Analytics
+
+- "List all my available reports" - This will show all Cloud Analytics reports you have access to.
+- "Show me the results of my 'Monthly Cost Overview' report" - This will fetch and display results from a specific report.
+
+### Anomaly Detection
+
+- "What are my recent GCP anomalies?" - This will show recent cost or usage anomalies detected in your Google Cloud Platform accounts.
+- "Show me details about anomaly ABC123" - This will provide detailed information about a specific anomaly.
+
+These examples demonstrate basic usage patterns. You can combine and modify these queries based on your needs. The MCP server will interpret your natural language queries and use the appropriate tools to fetch the requested information.
+
 ## Environment Variables
 
 - `DOIT_API_KEY`: Your DoiT API key (required)
