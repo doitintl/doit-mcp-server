@@ -14,9 +14,11 @@ https://github.com/user-attachments/assets/2eacc19c-4dbf-44a5-bef2-3d9afc9005c6
 
 ## Installation
 
+To get your DoiT API key, visit the [API key section in your DoiT profile](https://help.doit.com/docs/general/profile#api-key).
+
 There are several ways to install and configure the MCP server:
 
-### Installing via Smithery
+### Installing via Smithery (Recommended)
 
 To install doit-mcp-server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@doitintl/doit-mcp-server):
 
