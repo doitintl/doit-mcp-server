@@ -32,6 +32,9 @@ export const GetReportResultsArgumentsSchema = z.object({
   id: z.string().describe("The ID of the report to retrieve results for"),
 });
 
+const createDocumentPrompt =
+  "**IMPORTANT**: Create a prompt that generates a document analyzing report results and summarizing the data. The document should be formatted for easy conversion to a downloadable PDF. Do not include any code or client-side implementation.";
+
 // Interfaces
 export interface Report {
   id: string;
@@ -415,7 +418,7 @@ export function formatQueryResult(queryResult: QueryResult): string {
     rows,
   ].join("\n");
 
-  return results;
+  return results + `\n\n${createDocumentPrompt}`;
 }
 
 // Handle the reports request
@@ -440,7 +443,9 @@ export async function handleReportsRequest(args: any, token: string) {
       );
 
       if (!reportsData) {
-        return createErrorResponse("Failed to retrieve reports data");
+        return createErrorResponse(
+          "Failed to retrieve reports data, please check the filter parameter, try without filter if you don't know the exact value of the key"
+        );
       }
 
       const reports = reportsData.reports || [];
@@ -525,7 +530,7 @@ export function formatReportResults(report: GetReportResultsResponse): string {
     ? `\nML Features: ${report.result.mlFeatures.join(", ")}`
     : "";
 
-  return [
+  const reportResults = [
     `Report Details:`,
     `ID: ${report.id}`,
     `Name: ${report.reportName}`,
@@ -537,14 +542,18 @@ export function formatReportResults(report: GetReportResultsResponse): string {
     `\nResults:`,
     `Schema: ${schemaInfo}`,
     mlFeatures,
-    `Rows: ${report.result.rows.length}`,
+    `Rows: ${report.result.rows.map((row) => row.join(", ")).join("\n")}`,
     report.result.forecastRows
-      ? `Forecast Rows: ${report.result.forecastRows.length}`
+      ? `Forecast Rows: ${report.result.forecastRows
+          .map((row) => row.join(", "))
+          .join("\n")}`
       : "",
     "-----------",
   ]
     .filter(Boolean)
-    .join("\n");
+    .join(`\n\n`);
+
+  return reportResults + `\n\n${createDocumentPrompt}`;
 }
 
 // Handle get report results request
