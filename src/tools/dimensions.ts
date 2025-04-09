@@ -16,6 +16,12 @@ export const DimensionsArgumentsSchema = z.object({
     .describe(
       "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty."
     ),
+  pageToken: z
+    .string()
+    .optional()
+    .describe(
+      "Token for pagination. Use this to get the next page of results."
+    ),
 });
 
 // Interfaces
@@ -26,6 +32,7 @@ export interface Dimension {
 }
 
 export interface DimensionsResponse {
+  pageToken: any;
   rowCount: number;
   dimensions: Dimension[];
 }
@@ -42,6 +49,11 @@ export const dimensionsTool = {
         type: "string",
         description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. 
           use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty.`,
+      },
+      pageToken: {
+        type: "string",
+        description:
+          "Token for pagination. Use this to get the next page of results.",
       },
     },
   },
@@ -61,14 +73,20 @@ export function formatDimension(dimension: Dimension): string {
 export async function handleDimensionsRequest(args: any, token: string) {
   try {
     // Validate arguments
-    const { filter } = DimensionsArgumentsSchema.parse(args);
+    const { filter, pageToken } = DimensionsArgumentsSchema.parse(args);
 
-    // Create API URL
-    let dimensionsUrl = `${DOIT_API_BASE}/analytics/v1/dimensions`;
-
-    // Add filter parameter if provided
+    // Create API URL with query parameters
+    const params = new URLSearchParams();
     if (filter) {
-      dimensionsUrl += `?filter=${encodeURIComponent(filter)}`;
+      params.append("filter", filter);
+    }
+    if (pageToken) {
+      params.append("pageToken", pageToken);
+    }
+
+    let dimensionsUrl = `${DOIT_API_BASE}/analytics/v1/dimensions`;
+    if (params.toString()) {
+      dimensionsUrl += `?${params.toString()}`;
     }
 
     try {
@@ -99,7 +117,11 @@ export async function handleDimensionsRequest(args: any, token: string) {
         dimensionsText += ` (filtered by: ${filter})`;
       }
       dimensionsText += `:`;
-      dimensionsText += `\n\n${formattedDimensions.join("\n")}`;
+      dimensionsText += `\n\n${formattedDimensions.join("\n")} \n\n${
+        dimensionsData.pageToken
+          ? `Page token: ${dimensionsData.pageToken}`
+          : ""
+      }`;
 
       return createSuccessResponse(dimensionsText);
     } catch (error) {
