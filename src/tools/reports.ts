@@ -39,7 +39,7 @@ export const GetReportResultsArgumentsSchema = z.object({
 });
 
 const createDocumentPrompt =
-  "**IMPORTANT**: Create a prompt that generates a document analyzing report results and summarizing the data. The document should be formatted for easy conversion to a downloadable PDF. Do not include any code or client-side implementation.";
+  "**IMPORTANT**: Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)";
 
 // Interfaces
 export interface Report {
@@ -430,7 +430,7 @@ export function formatQueryResult(queryResult: QueryResult): string {
     rows,
   ].join("\n");
 
-  return results + `\n\n${createDocumentPrompt}`;
+  return results;
 }
 
 // Handle the reports request
