@@ -5,6 +5,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import * as dotenv from "dotenv";
@@ -40,6 +42,11 @@ import {
   handleGeneralError,
 } from "./utils/util.js";
 
+import {
+  aws_global_resource_id,
+  gcp_global_resource_id,
+} from "./utils/filterFields.js";
+
 dotenv.config();
 
 // Create server instance
@@ -51,6 +58,8 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      prompts: {},
+      resources: {},
     },
   }
 );
@@ -70,6 +79,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       dimensionsTool,
       dimensionTool,
     ],
+  };
+});
+
+// Handle prompts listing
+server.setRequestHandler(ListPromptsRequestSchema, async () => {
+  return {
+    prompts: [
+      `Filter fields explanation: ${gcp_global_resource_id}\n\n ${aws_global_resource_id}\n\n`,
+      `Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)`,
+      `Before running a query, always check the filter fields explanation and dimensions.`,
+      `Do not generate code, only a document.`,
+    ],
+  };
+});
+
+// Handle resources listing
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [],
   };
 });
 

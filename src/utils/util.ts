@@ -70,10 +70,17 @@ export function handleGeneralError(
 export function appendUrlParameters(baseUrl: string): string {
   // Check if the URL already has query parameters
   const separator = baseUrl.includes("?") ? "&" : "?";
-  let url = `${baseUrl}${separator}maxResults=40`;
+  let url = baseUrl;
+
+  // Only add maxResults if it's not already in the URL
+  if (!baseUrl.includes("maxResults=")) {
+    url += `${separator}maxResults=40`;
+  }
+
   const customerContext = process.env.CUSTOMER_CONTEXT;
 
   if (customerContext) {
+    // Use & as separator since we know the URL now has parameters
     url += `&customerContext=${customerContext}`;
   }
 
