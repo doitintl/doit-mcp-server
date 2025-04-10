@@ -30,7 +30,7 @@ npx -y @smithery/cli install @doitintl/doit-mcp-server --client claude
 
 ### Claude Desktop App
 
-To manually configure the MCP server for Claude Desktop App, add the following to your `claude_desktop_config.json` file (typically located in your user directory):
+To manually configure the MCP server for Claude Desktop App, add the following to your `claude_desktop_config.json` file or through "Settings" as described [here](https://modelcontextprotocol.io/quickstart/user#2-add-the-filesystem-mcp-server):
 
 ```json
 {
@@ -119,16 +119,16 @@ node dist/index.js
 
 This MCP server provides the following tools:
 
-- `get_cloud_incidents`: Retrieve cloud incidents from various platforms
-- `get_cloud_incident`: Get details about a specific cloud incident by ID
-- `get_anomalies`: Retrieve anomalies detected in cloud resources
-- `get_anomaly`: Get details about a specific anomaly by ID
+- [`get_cloud_incidents`](https://developer.doit.com/reference/listknownissues): Retrieve cloud incidents from various platforms
+- [`get_cloud_incident`](https://developer.doit.com/reference/getknownissue): Get details about a specific cloud incident by ID
+- [`get_anomalies`](https://developer.doit.com/reference/listanomalies): Retrieve anomalies detected in cloud resources
+- [`get_anomaly`](https://developer.doit.com/reference/getanomaly): Get details about a specific anomaly by ID
 - `list_reports`: Lists Cloud Analytics reports that your account has access to
-- `run_query`: Runs a report query with the specified configuration without persisting it
-- `get_report_results`: Get the results of a specific report by ID
-- `validate_user`: Validates the current API user and returns domain and email information
-- `list_dimensions`: Lists Cloud Analytics dimensions that your account has access to
-- `get_dimension`: Get a specific Cloud Analytics dimension by type and ID
+- [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
+- [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID
+- [`validate_user`](https://developer.doit.com/reference/validate): Validates the current API user and returns domain and email information
+- [`list_dimensions`](https://developer.doit.com/reference/listdimensions): Lists Cloud Analytics dimensions that your account has access to
+- [`get_dimension`](https://developer.doit.com/reference/getdimensions): Get a specific Cloud Analytics dimension by type and ID
 
 ## Usage Examples
 
