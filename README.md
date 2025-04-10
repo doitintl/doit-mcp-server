@@ -51,6 +51,8 @@ Make sure to replace the environment variables with your actual values:
 - `DOIT_API_KEY`: Your DoiT API key with appropriate permissions
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
 
+NOTE: you need to [restart Claude for Desktop](https://modelcontextprotocol.io/quickstart/user#3-restart-claude) after updating the configuration for changes to take effect.
+
 ### Cursor
 
 For Cursor IDE, you can install this MCP server using Smithery (recommended):
