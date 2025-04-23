@@ -25,7 +25,7 @@ There are several ways to install and configure the MCP server:
 To install doit-mcp-server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@doitintl/doit-mcp-server):
 
 ```bash
-npx -y @smithery/cli install @doitintl/doit-mcp-server --client claude
+npx -y @smithery/cli@latest install @doitintl/doit-mcp-server --client claude
 ```
 
 ### Claude Desktop App
@@ -58,7 +58,7 @@ NOTE: you need to [restart Claude for Desktop](https://modelcontextprotocol.io/q
 For Cursor IDE, you can install this MCP server using Smithery (recommended):
 
 ```bash
-npx -y @smithery/cli install @doitintl/doit-mcp-server --client cursor
+npx -y @smithery/cli@latest install @doitintl/doit-mcp-server --client cursor
 ```
 
 Or manually with the following command in your project:
