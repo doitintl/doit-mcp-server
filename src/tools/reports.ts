@@ -366,6 +366,24 @@ export const runQueryTool = {
               },
             },
           },
+          customTimeRange: {
+            type: "object",
+            description: "Required when the time range is set to 'custom'",
+            properties: {
+              from: {
+                type: "string",
+                format: "date-time",
+                description:
+                  "The start timestamp in RFC3339 format (e.g., 2024-03-10T23:00:00Z)",
+              },
+              to: {
+                type: "string",
+                format: "date-time",
+                description:
+                  "The end timestamp in RFC3339 format (e.g., 2024-03-12T23:00:00Z)",
+              },
+            },
+          },
         },
       },
     },
@@ -514,7 +532,9 @@ export async function handleRunQueryRequest(args: any, token: string) {
         return createErrorResponse(
           `Failed to run query. Try one of the following:
   1. Use 'list_dimensions' with a filter like 'filter:type:fixed' to get relevant dimensions
-  2. Check the specific error from the API: ${queryResponse?.error || "Unknown error"}
+  2. Check the specific error from the API: ${
+    queryResponse?.error || "Unknown error"
+  }
   3. For a cost report, you need at least: metric, timeRange, and dataSource fields`
         );
       }
