@@ -41,7 +41,7 @@ export interface DimensionsResponse {
 export const dimensionsTool = {
   name: "list_dimensions",
   description:
-    "Lists Cloud Analytics dimensions that your account has access to. Use this tool to get the dimensions that you can use in the run_query tool.",
+    "Lists Cloud Analytics dimensions that your account has access to. Use this tool to get the dimensions that you can use in the run_query tool. Use filter to narrow down the results.",
   inputSchema: {
     type: "object",
     properties: {

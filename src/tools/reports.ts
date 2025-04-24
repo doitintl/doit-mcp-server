@@ -121,7 +121,16 @@ export const runQueryTool = {
   name: "run_query",
   description: `Runs a report query with the specified configuration without persisting it. 
     Fields that are not populated will use their default values if needed.
-    Use the dimension tool before running the query to get the list of dimensions and their types.`,
+    Use the dimension tool before running the query to get the list of dimensions and their types.    
+    Example for cost report:
+    {
+      "config": {
+        "dataSource": "billing",
+        "metric": {"type": "basic", "value": "cost"},
+        "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": true},
+        "group": [{"id": "service_description", "type": "fixed", "limit": {"metric": {"type": "basic", "value": "cost"}, "sort": "desc", "value": 10}}]
+      }
+    }`,
   inputSchema: {
     type: "object",
     properties: {
