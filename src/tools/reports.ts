@@ -121,7 +121,8 @@ export const runQueryTool = {
   name: "run_query",
   description: `Runs a report query with the specified configuration without persisting it. 
     Fields that are not populated will use their default values if needed.
-    Use the dimension tool before running the query to get the list of dimensions and their types.    
+    Use the dimension tool before running the query to get the list of dimensions and their types.
+    If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
     Example for cost report:
     {
       "config": {
@@ -365,24 +366,6 @@ export const runQueryTool = {
               },
             },
           },
-          customTimeRange: {
-            type: "object",
-            description: "Required when the time range is set to 'custom'",
-            properties: {
-              from: {
-                type: "string",
-                format: "date-time",
-                description:
-                  "The start timestamp in RFC3339 format (e.g., 2024-03-10T23:00:00Z)",
-              },
-              to: {
-                type: "string",
-                format: "date-time",
-                description:
-                  "The end timestamp in RFC3339 format (e.g., 2024-03-12T23:00:00Z)",
-              },
-            },
-          },
         },
       },
     },
@@ -529,7 +512,10 @@ export async function handleRunQueryRequest(args: any, token: string) {
 
       if (!queryResponse || !queryResponse.result || queryResponse?.error) {
         return createErrorResponse(
-          `Failed to run query, use the tool dimensions to get the list of dimensions and their types.`
+          `Failed to run query. Try one of the following:
+  1. Use 'list_dimensions' with a filter like 'filter:type:fixed' to get relevant dimensions
+  2. Check the specific error from the API: ${queryResponse?.error || "Unknown error"}
+  3. For a cost report, you need at least: metric, timeRange, and dataSource fields`
         );
       }
 
