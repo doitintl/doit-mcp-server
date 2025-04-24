@@ -86,10 +86,37 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(ListPromptsRequestSchema, async () => {
   return {
     prompts: [
-      `Filter fields explanation: ${gcp_global_resource_id}\n\n ${aws_global_resource_id}\n\n`,
-      `Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)`,
-      `Before running a query, always check the filter fields explanation and dimensions.`,
-      `Do not generate code, only a document.`,
+      {
+        text: `Filter fields explanation: ${gcp_global_resource_id}\n\n ${aws_global_resource_id}\n\n`,
+        name: "Filter Fields Reference"
+      },
+      {
+        text: `Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)`,
+        name: "Report Display Instructions"
+      },
+      {
+        text: `Before running a query, always check the filter fields explanation and dimensions.`,
+        name: "Query Best Practice"
+      },
+      {
+        text: `Do not generate code, only a document.`,
+        name: "Document Output Reminder"
+      },
+      {
+        text: `To create a cost report, first check if you need specific dimensions with:
+list_dimensions(filter: "type:fixed")
+
+Then run a query like:
+run_query({
+  config: {
+    dataSource: "billing",
+    metric: { type: "basic", value: "cost" },
+    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },
+    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]
+  }
+})`,
+        name: "Cost Report Example"
+      }
     ],
   };
 });
