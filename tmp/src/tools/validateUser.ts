@@ -9,7 +9,7 @@ import {
 } from "../utils/util.js";
 
 // Schema definition
-export const ValidateUserArgumentsSchema = {};
+export const ValidateUserArgumentsSchema = z.object({});
 
 // Interfaces
 export interface ValidateUserResponse {
@@ -29,12 +29,11 @@ export const validateUserTool = {
 };
 
 // Handle validate user request
-export async function handleValidateUserRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleValidateUserRequest(args: any, token: string) {
   try {
+    // Validate arguments (no arguments required for this endpoint)
+    ValidateUserArgumentsSchema.parse(args);
+
     // Set up the URL for the validate endpoint
     const validateUrl = `${DOIT_API_BASE}/auth/v1/validate`;
 
@@ -43,7 +42,7 @@ export async function handleValidateUserRequest(
       const userData = await makeDoitRequest<ValidateUserResponse>(
         validateUrl,
         token,
-        { method: "GET", appendParams: true, customerContext }
+        { method: "GET", appendParams: true }
       );
 
       if (!userData) {

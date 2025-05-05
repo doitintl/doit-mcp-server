@@ -9,7 +9,7 @@ import {
 } from "../utils/util.js";
 
 // Schema definitions
-export const DimensionsArgumentsSchema = {
+export const DimensionsArgumentsSchema = z.object({
   filter: z
     .string()
     .optional()
@@ -22,7 +22,7 @@ export const DimensionsArgumentsSchema = {
     .describe(
       "Token for pagination. Use this to get the next page of results."
     ),
-};
+});
 
 // Interfaces
 export interface Dimension {
@@ -37,6 +37,28 @@ export interface DimensionsResponse {
   dimensions: Dimension[];
 }
 
+// Tool metadata
+export const dimensionsTool = {
+  name: "list_dimensions",
+  description:
+    "Lists Cloud Analytics dimensions that your account has access to. Use this tool to get the dimensions that you can use in the run_query tool. Use filter to narrow down the results.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      filter: {
+        type: "string",
+        description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. 
+          use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty.`,
+      },
+      pageToken: {
+        type: "string",
+        description:
+          "Token for pagination. Use this to get the next page of results.",
+      },
+    },
+  },
+};
+
 // Format a dimension for display
 export function formatDimension(dimension: Dimension): string {
   return [
@@ -48,14 +70,10 @@ export function formatDimension(dimension: Dimension): string {
 }
 
 // Handle the dimensions request
-export async function handleDimensionsRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleDimensionsRequest(args: any, token: string) {
   try {
     // Validate arguments
-    const { filter, pageToken } = args;
+    const { filter, pageToken } = DimensionsArgumentsSchema.parse(args);
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
@@ -77,7 +95,7 @@ export async function handleDimensionsRequest(
       const dimensionsData = await makeDoitRequest<DimensionsResponse>(
         dimensionsUrl,
         token,
-        { method: "GET", customerContext }
+        { method: "GET" }
       );
 
       if (!dimensionsData) {

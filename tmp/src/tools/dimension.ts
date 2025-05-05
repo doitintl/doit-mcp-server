@@ -9,7 +9,7 @@ import {
 } from "../utils/util.js";
 
 // Schema definitions
-export const DimensionArgumentsSchema = {
+export const DimensionArgumentsSchema = z.object({
   type: z
     .enum([
       "datetime",
@@ -26,7 +26,7 @@ export const DimensionArgumentsSchema = {
     ])
     .describe("Dimension type"),
   id: z.string().describe("Dimension id"),
-};
+});
 
 // Interfaces
 export interface DimensionValue {
@@ -39,6 +39,39 @@ export interface DimensionResponse {
   type: string;
   values?: DimensionValue[];
 }
+
+// Tool metadata
+export const dimensionTool = {
+  name: "get_dimension",
+  description: "Get a specific Cloud Analytics dimension by type and ID",
+  inputSchema: {
+    type: "object",
+    properties: {
+      type: {
+        type: "string",
+        enum: [
+          "datetime",
+          "fixed",
+          "optional",
+          "label",
+          "tag",
+          "project_label",
+          "system_label",
+          "attribution",
+          "attribution_group",
+          "gke",
+          "gke_label",
+        ],
+        description: "Dimension type",
+      },
+      id: {
+        type: "string",
+        description: "Dimension id",
+      },
+    },
+    required: ["type", "id"],
+  },
+};
 
 // Format the dimension values if they exist
 function formatDimensionValues(values?: DimensionValue[]): string {
@@ -65,14 +98,10 @@ export function formatDimension(dimension: DimensionResponse): string {
 }
 
 // Handle the dimension request
-export async function handleDimensionRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleDimensionRequest(args: any, token: string) {
   try {
     // Validate arguments
-    const { type, id } = args;
+    const { type, id } = DimensionArgumentsSchema.parse(args);
 
     // Create API URL for retrieving a specific dimension
     const dimensionUrl = `${DOIT_API_BASE}/analytics/v1/dimension?type=${encodeURIComponent(
@@ -83,7 +112,7 @@ export async function handleDimensionRequest(
       const dimensionData = await makeDoitRequest<DimensionResponse>(
         dimensionUrl,
         token,
-        { method: "GET", appendParams: true, customerContext }
+        { method: "GET", appendParams: true }
       );
 
       if (!dimensionData) {

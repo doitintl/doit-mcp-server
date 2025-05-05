@@ -9,7 +9,7 @@ import {
 } from "../utils/util.js";
 
 // Schema definitions
-export const ReportsArgumentsSchema = {
+export const ReportsArgumentsSchema = z.object({
   filter: z
     .string()
     .optional()
@@ -22,163 +22,21 @@ export const ReportsArgumentsSchema = {
     .describe(
       "Token for pagination. Use this to get the next page of results."
     ),
-};
+});
 
 // Run Query Schema Definition
-export const RunQueryArgumentsSchema = {
-  config: z.object({
-    metric: z
-      .object({
-        type: z.enum(["basic", "custom", "extended"]),
-        value: z.string(),
-      })
-      .optional(),
-    metricFilter: z
-      .object({
-        metric: z.object({
-          type: z.enum(["basic", "custom", "extended"]),
-          value: z.string(),
-        }),
-        operator: z.enum(["gt", "lt", "lte", "gte", "b", "nb", "e", "ne"]),
-        values: z.array(z.number()),
-      })
-      .optional(),
-    aggregation: z
-      .enum(["total", "percent_total", "percent_col", "percent_row"])
-      .optional(),
-    timeInterval: z
-      .enum([
-        "hour",
-        "day",
-        "dayCumSum",
-        "week",
-        "isoweek",
-        "month",
-        "quarter",
-        "year",
-        "week_day",
-      ])
-      .optional(),
-    dimensions: z
-      .array(
-        z.object({
-          id: z.string(),
-          type: z.string(),
-        })
-      )
-      .optional(),
-    timeRange: z
-      .object({
-        amount: z.number().optional(),
-        includeCurrent: z.boolean().optional(),
-        mode: z.enum(["last", "latest", "custom"]),
-        unit: z.enum(["day", "week", "month", "quarter", "year"]),
-      })
-      .optional(),
-    includePromotionalCredits: z.boolean().optional(),
-    includeSubtotals: z.boolean().optional(),
-    filters: z
-      .array(
-        z.object({
-          id: z.string(),
-          type: z.enum([
-            "datetime",
-            "fixed",
-            "optional",
-            "label",
-            "tag",
-            "project_label",
-            "system_label",
-            "attribution",
-            "attribution_group",
-            "gke",
-            "gke_label",
-          ]),
-          inverse: z.boolean().optional(),
-          values: z.array(z.string()),
-        })
-      )
-      .optional(),
-    group: z
-      .array(
-        z.object({
-          id: z.string(),
-          type: z.string(),
-          limit: z
-            .object({
-              metric: z.object({
-                type: z.string(),
-                value: z.string(),
-              }),
-              sort: z.string(),
-              value: z.number(),
-            })
-            .optional(),
-        })
-      )
-      .optional(),
-    layout: z
-      .enum([
-        "column_chart",
-        "stacked_column_chart",
-        "bar_chart",
-        "stacked_bar_chart",
-        "line_chart",
-        "spline_chart",
-        "area_chart",
-        "area_spline_chart",
-        "stacked_area_chart",
-        "treemap_chart",
-        "table",
-        "table_heatmap",
-        "table_row_heatmap",
-        "table_col_heatmap",
-        "csv_export",
-        "sheets_export",
-      ])
-      .optional(),
-    displayValues: z
-      .enum([
-        "actuals_only",
-        "absolute_change",
-        "percentage_change",
-        "absolute_and_percentage",
-      ])
-      .optional(),
-    currency: z.string().optional(),
-    dataSource: z.enum(["billing", "bqlens", "billing_datahub"]).optional(),
-    splits: z
-      .array(
-        z.object({
-          id: z.string(),
-          type: z.string(),
-          includeOrigin: z.boolean().optional(),
-          mode: z.enum(["even", "custom", "proportional"]).optional(),
-          targets: z
-            .array(
-              z.object({
-                id: z.string(),
-                type: z.string(),
-                value: z.number(),
-              })
-            )
-            .optional(),
-        })
-      )
-      .optional(),
-    customTimeRange: z
-      .object({
-        from: z.string(),
-        to: z.string(),
-      })
-      .optional(),
-  }),
-};
+export const RunQueryArgumentsSchema = z.object({
+  config: z
+    .record(z.any())
+    .describe(
+      "The configuration for the query, including dimensions, metrics, filters, etc."
+    ),
+});
 
 // Get Report Results Schema Definition
-export const GetReportResultsArgumentsSchema = {
+export const GetReportResultsArgumentsSchema = z.object({
   id: z.string().describe("The ID of the report to retrieve results for"),
-};
+});
 
 const createDocumentPrompt =
   "**IMPORTANT**: Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)";
@@ -586,14 +444,10 @@ export function formatQueryResult(queryResult: QueryResult): string {
 }
 
 // Handle the reports request
-export async function handleReportsRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleReportsRequest(args: any, token: string) {
   try {
     // Validate arguments
-    const { filter, pageToken } = args;
+    const { filter, pageToken } = ReportsArgumentsSchema.parse(args);
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
@@ -613,7 +467,7 @@ export async function handleReportsRequest(
       const reportsData = await makeDoitRequest<ReportsResponse>(
         reportsUrl,
         token,
-        { method: "GET", customerContext }
+        { method: "GET" }
       );
 
       if (!reportsData) {
@@ -654,14 +508,10 @@ export async function handleReportsRequest(
 }
 
 // Handle the run query request
-export async function handleRunQueryRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleRunQueryRequest(args: any, token: string) {
   try {
     // Validate arguments
-    const { config } = args;
+    const { config } = RunQueryArgumentsSchema.parse(args);
 
     // Create API URL for the query endpoint
     const queryUrl = `${DOIT_API_BASE}/analytics/v1/reports/query`;
@@ -675,7 +525,6 @@ export async function handleRunQueryRequest(
           method: "POST",
           body: { config },
           appendParams: true,
-          customerContext,
         }
       );
 
@@ -743,14 +592,10 @@ export function formatReportResults(report: GetReportResultsResponse): string {
 }
 
 // Handle get report results request
-export async function handleGetReportResultsRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleGetReportResultsRequest(args: any, token: string) {
   try {
     // Validate arguments
-    const { id } = args;
+    const { id } = GetReportResultsArgumentsSchema.parse(args);
 
     // Create API URL
     const reportUrl = `${DOIT_API_BASE}/analytics/v1/reports/${encodeURIComponent(
@@ -761,7 +606,7 @@ export async function handleGetReportResultsRequest(
       const reportData = await makeDoitRequest<GetReportResultsResponse>(
         reportUrl,
         token,
-        { method: "GET", customerContext }
+        { method: "GET" }
       );
 
       if (!reportData) {
