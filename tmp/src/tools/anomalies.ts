@@ -9,7 +9,7 @@ import {
 } from "../utils/util.js";
 
 // Schema definitions
-export const AnomaliesArgumentsSchema = {
+export const AnomaliesArgumentsSchema = z.object({
   filter: z
     .string()
     .optional()
@@ -22,11 +22,11 @@ export const AnomaliesArgumentsSchema = {
     .describe(
       "Token for pagination. Use this to get the next page of results."
     ),
-};
+});
 
-export const AnomalyArgumentsSchema = {
+export const AnomalyArgumentsSchema = z.object({
   id: z.string(),
-};
+});
 
 // Interfaces
 export interface SKU {
@@ -57,6 +57,42 @@ export interface AnomaliesResponse {
   anomalies: Anomaly[];
 }
 
+// Tool metadata
+export const anomaliesTool = {
+  name: "get_anomalies",
+  description: "List anomalies detected in cloud costs",
+  inputSchema: {
+    type: "object",
+    properties: {
+      filter: {
+        type: "string",
+        description:
+          "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND.",
+      },
+      pageToken: {
+        type: "string",
+        description:
+          "Token for pagination. Use this to get the next page of results.",
+      },
+    },
+  },
+};
+
+export const anomalyTool = {
+  name: "get_anomaly",
+  description: "Get a specific anomaly by ID",
+  inputSchema: {
+    type: "object",
+    properties: {
+      id: {
+        type: "string",
+        description: "anomaly ID",
+      },
+    },
+    required: ["id"],
+  },
+};
+
 // Format anomaly data
 export function formatAnomaly(anomaly: Anomaly): string {
   const startDate = new Date(anomaly.startTime).toLocaleString();
@@ -66,8 +102,8 @@ export function formatAnomaly(anomaly: Anomaly): string {
 
   // Format the top SKUs
   const skusFormatted = anomaly.top3SKUs
-    ?.map((sku) => `\n    - ${sku.name}: $${sku.cost.toFixed(2)}`)
-    ?.join("");
+    .map((sku) => `\n    - ${sku.name}: $${sku.cost.toFixed(2)}`)
+    .join("");
 
   return [
     anomaly.id ? `ID: ${anomaly.id}` : null,
@@ -90,13 +126,9 @@ export function formatAnomaly(anomaly: Anomaly): string {
 }
 
 // Handle anomalies request
-export async function handleAnomaliesRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleAnomaliesRequest(args: any, token: string) {
   try {
-    const { filter, pageToken } = args;
+    const { filter, pageToken } = AnomaliesArgumentsSchema.parse(args);
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
@@ -116,7 +148,7 @@ export async function handleAnomaliesRequest(
       const anomaliesData = await makeDoitRequest<AnomaliesResponse>(
         anomaliesUrl,
         token,
-        { method: "GET", customerContext: customerContext }
+        { method: "GET" }
       );
 
       if (!anomaliesData) {
@@ -154,13 +186,9 @@ export async function handleAnomaliesRequest(
 }
 
 // Handle specific anomaly request
-export async function handleAnomalyRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleAnomalyRequest(args: any, token: string) {
   try {
-    const { id } = args;
+    const { id } = AnomalyArgumentsSchema.parse(args);
 
     let anomalyUrl = `${DOIT_API_BASE}/anomalies/v1/${id}`;
 
@@ -169,7 +197,6 @@ export async function handleAnomalyRequest(
       const anomalyData = await makeDoitRequest<Anomaly>(anomalyUrl, token, {
         method: "GET",
         appendParams: true,
-        customerContext: customerContext,
       });
 
       if (!anomalyData) {

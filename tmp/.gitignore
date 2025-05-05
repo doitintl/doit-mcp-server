@@ -59,8 +59,3 @@ coverage/
 
 .vscode/
 *.code-workspace
-
-
-# wrangler files
-.wrangler
-.dev.vars*

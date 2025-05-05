@@ -67,10 +67,7 @@ export function handleGeneralError(
  * @param baseUrl The base URL to append parameters to
  * @returns URL with maxResults and optional customerContext parameters
  */
-export function appendUrlParameters(
-  baseUrl: string,
-  customerContext: string
-): string {
+export function appendUrlParameters(baseUrl: string): string {
   // Check if the URL already has query parameters
   const separator = baseUrl.includes("?") ? "&" : "?";
   let url = baseUrl;
@@ -80,7 +77,9 @@ export function appendUrlParameters(
     url += `${separator}maxResults=40`;
   }
 
-  if (customerContext && customerContext.length > 0) {
+  const customerContext = process.env.CUSTOMER_CONTEXT;
+
+  if (customerContext) {
     // Use & as separator since we know the URL now has parameters
     url += `&customerContext=${customerContext}`;
   }
@@ -105,24 +104,18 @@ export async function makeDoitRequest<T>(
     method?: string;
     body?: any;
     appendParams?: boolean;
-    customerContext?: string;
   } = {}
 ): Promise<T | null> {
-  const {
-    method = "GET",
-    body = undefined,
-    appendParams = true,
-    customerContext = "",
-  } = options;
+  const { method = "GET", body = undefined, appendParams = true } = options;
 
   const headers = {
-    Authorization: token,
+    Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
     Accept: "application/json",
   };
 
   if (appendParams) {
-    url = appendUrlParameters(url, customerContext);
+    url = appendUrlParameters(url);
   }
 
   try {

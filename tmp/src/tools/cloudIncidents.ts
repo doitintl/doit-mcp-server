@@ -26,7 +26,7 @@ export enum CloudIncidentFilterKeys {
 }
 
 // Schema definitions
-export const CloudIncidentsArgumentsSchema = {
+export const CloudIncidentsArgumentsSchema = z.object({
   platform: z.nativeEnum(KnownIssuePlatforms).optional(),
   filter: z
     .string()
@@ -40,11 +40,11 @@ export const CloudIncidentsArgumentsSchema = {
     .describe(
       "Token for pagination. Use this to get the next page of results."
     ),
-};
+});
 
-export const CloudIncidentArgumentsSchema = {
+export const CloudIncidentArgumentsSchema = z.object({
   id: z.string(),
-};
+});
 
 // Interfaces
 export interface CloudIncident {
@@ -64,6 +64,47 @@ export interface CloudIncidentsResponse {
   pageToken: any;
   incidents: CloudIncident[];
 }
+
+// Tool metadata
+export const cloudIncidentsTool = {
+  name: "get_cloud_incidents",
+  description: "Get cloud incidents",
+  inputSchema: {
+    type: "object",
+    properties: {
+      platform: {
+        type: "string",
+        description: "platform name",
+        enum: Object.values(KnownIssuePlatforms),
+      },
+      filter: {
+        type: "string",
+        description:
+          "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active' or 'platform:google-cloud|platform:amazon-web-services'",
+      },
+      pageToken: {
+        type: "string",
+        description:
+          "Token for pagination. Use this to get the next page of results.",
+      },
+    },
+  },
+};
+
+export const cloudIncidentTool = {
+  name: "get_cloud_incident",
+  description: "Get a specific cloud incident by ID",
+  inputSchema: {
+    type: "object",
+    properties: {
+      id: {
+        type: "string",
+        description: "incident ID",
+      },
+    },
+    required: ["id"],
+  },
+};
 
 // Format cloud incident data
 export function formatCloudIncident(incident: CloudIncident): string {
@@ -87,13 +128,10 @@ export function formatCloudIncident(incident: CloudIncident): string {
 }
 
 // Handle cloud incidents request
-export async function handleCloudIncidentsRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleCloudIncidentsRequest(args: any, token: string) {
   try {
-    const { platform, filter, pageToken } = args;
+    const { platform, filter, pageToken } =
+      CloudIncidentsArgumentsSchema.parse(args);
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
@@ -113,7 +151,7 @@ export async function handleCloudIncidentsRequest(
       const incidentsData = await makeDoitRequest<CloudIncidentsResponse>(
         incidentsUrl,
         token,
-        { method: "GET", customerContext: customerContext }
+        { method: "GET" }
       );
 
       if (!incidentsData) {
@@ -166,13 +204,9 @@ export async function handleCloudIncidentsRequest(
 }
 
 // Handle specific cloud incident request
-export async function handleCloudIncidentRequest(
-  args: any,
-  token: string,
-  customerContext: string
-) {
+export async function handleCloudIncidentRequest(args: any, token: string) {
   try {
-    const { id } = args;
+    const { id } = CloudIncidentArgumentsSchema.parse(args);
 
     let incidentUrl = `${DOIT_API_BASE}/core/v1/cloudincidents/${id}`;
 
@@ -181,7 +215,7 @@ export async function handleCloudIncidentRequest(
       const incident = await makeDoitRequest<CloudIncident>(
         incidentUrl,
         token,
-        { method: "GET", appendParams: true, customerContext: customerContext }
+        { method: "GET", appendParams: true }
       );
 
       if (!incident) {
