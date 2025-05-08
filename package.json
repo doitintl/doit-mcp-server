@@ -20,5 +20,6 @@
     "agents": "^0.0.65",
     "react": "^19.1.0",
     "zod": "^3.24.2"
-  }
+  },
+  "packageManager": "yarn@4.9.1"
 }
