@@ -7,12 +7,10 @@ DoiT MCP Server provides access to the DoiT API. This server enables LLMs like C
 
 ![top-services](https://github.com/user-attachments/assets/749dd237-3021-439d-b447-64605393389d)
 
-
 ## Requirements
 
 - Node.js v18 or higher
 - DoiT API key with appropriate permissions
-- Customer context identifier (for customer-specific data)
 
 ## Installation
 
