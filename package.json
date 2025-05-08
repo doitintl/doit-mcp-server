@@ -1,5 +1,5 @@
 {
-  "name": "remote-mcp-server-authless",
+  "name": "doit-mcp-server",
   "version": "0.0.0",
   "private": true,
   "scripts": {
