@@ -161,7 +161,9 @@ export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
 
-    const authHeader = request.headers.get("authorization");
+    const authHeader =
+      request.headers.get("authorization") ||
+      request.headers.get("Authorization");
     if (!authHeader) {
       return new Response("Unauthorized", { status: 401 });
     }
