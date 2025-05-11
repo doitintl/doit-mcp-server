@@ -199,7 +199,7 @@ export default {
       customerContext,
     };
 
-    if (url.pathname === "/sse" || url.pathname === "/sse/message") {
+    if (url.pathname.includes("/sse") || url.pathname === "/sse/message") {
       // @ts-ignore
       return withCors(await DoitMCP.serveSSE("/sse").fetch(request, env, ctx));
     }
