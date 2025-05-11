@@ -164,14 +164,18 @@ export default {
     const authHeader =
       request.headers.get("authorization") ||
       request.headers.get("Authorization");
-    if (!authHeader) {
+
+    const tokenFromEnv = env.DOIT_API_KEY;
+    if (!authHeader && !tokenFromEnv) {
       return new Response("Unauthorized", { status: 401 });
     }
+
+    const token = authHeader || tokenFromEnv;
 
     const customerContext = url.searchParams.get("customerContext");
 
     ctx.props = {
-      bearerToken: authHeader,
+      bearerToken: token,
       customerContext,
     };
 
