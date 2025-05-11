@@ -157,9 +157,28 @@ export class DoitMCP extends McpAgent<Env, Props> {
   }
 }
 
+// Define CORS headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+function withCors(response: Response) {
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  return response;
+}
+
 export default {
-  fetch(request: Request, env: Env, ctx: ExecutionContext) {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
+
+    // Handle preflight OPTIONS request
+    if (request.method === "OPTIONS") {
+      return withCors(new Response(null, { status: 204 }));
+    }
 
     const authHeader =
       request.headers.get("authorization") ||
@@ -168,7 +187,7 @@ export default {
     const tokenFromEnv = env.DOIT_API_KEY;
     const tokenFromQuery = url.searchParams.get("key");
     if (!authHeader && !tokenFromEnv && !tokenFromQuery) {
-      return new Response("Unauthorized", { status: 401 });
+      return withCors(new Response("Unauthorized", { status: 401 }));
     }
 
     const token = authHeader || tokenFromEnv || tokenFromQuery;
@@ -182,14 +201,14 @@ export default {
 
     if (url.pathname === "/sse" || url.pathname === "/sse/message") {
       // @ts-ignore
-      return DoitMCP.serveSSE("/sse").fetch(request, env, ctx);
+      return withCors(await DoitMCP.serveSSE("/sse").fetch(request, env, ctx));
     }
 
     if (url.pathname === "/mcp") {
       // @ts-ignore
-      return DoitMCP.serve("/mcp").fetch(request, env, ctx);
+      return withCors(await DoitMCP.serve("/mcp").fetch(request, env, ctx));
     }
 
-    return new Response("Not found", { status: 404 });
+    return withCors(new Response("Not found", { status: 404 }));
   },
 };
