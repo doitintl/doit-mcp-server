@@ -166,11 +166,12 @@ export default {
       request.headers.get("Authorization");
 
     const tokenFromEnv = env.DOIT_API_KEY;
-    if (!authHeader && !tokenFromEnv) {
+    const tokenFromQuery = url.searchParams.get("key");
+    if (!authHeader && !tokenFromEnv && !tokenFromQuery) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const token = authHeader || tokenFromEnv;
+    const token = authHeader || tokenFromEnv || tokenFromQuery;
 
     const customerContext = url.searchParams.get("customerContext");
 
