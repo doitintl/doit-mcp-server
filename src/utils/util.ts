@@ -1,12 +1,27 @@
 // Constants
 export const DOIT_API_BASE = "https://api.doit.com";
 
+// Response type definition
+export type McpResponse = {
+  content: Array<
+    | { type: "text"; text: string }
+    | { type: "image"; data: string; mimeType: string }
+    | { type: "audio"; data: string; mimeType: string }
+    | {
+        type: "resource";
+        resource:
+          | { text: string; uri: string; mimeType?: string }
+          | { uri: string; blob: string; mimeType?: string };
+      }
+  >;
+};
+
 /**
  * Creates a standardized error response
  * @param message Error message to display to the user
  * @returns Formatted error response object
  */
-export function createErrorResponse(message: string) {
+export function createErrorResponse(message: string): McpResponse {
   return {
     content: [
       {
@@ -22,7 +37,7 @@ export function createErrorResponse(message: string) {
  * @param text Content text to display to the user
  * @returns Formatted success response object
  */
-export function createSuccessResponse(text: string) {
+export function createSuccessResponse(text: string): McpResponse {
   return {
     content: [
       {
