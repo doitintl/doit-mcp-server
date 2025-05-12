@@ -177,6 +177,7 @@ export default {
 
     // Handle preflight OPTIONS request
     if (request.method === "OPTIONS") {
+      console.error("OPTIONS request");
       return withCors(new Response(null, { status: 204 }));
     }
 
@@ -187,11 +188,11 @@ export default {
     const tokenFromEnv = env.DOIT_API_KEY;
     const tokenFromQuery = url.searchParams.get("key");
     if (!authHeader && !tokenFromEnv && !tokenFromQuery) {
+      console.error("Unauthorized");
       return withCors(new Response("Unauthorized", { status: 401 }));
     }
 
     const token = authHeader || tokenFromEnv || tokenFromQuery;
-
     const customerContext = url.searchParams.get("customerContext");
 
     ctx.props = {
