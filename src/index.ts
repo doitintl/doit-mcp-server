@@ -44,6 +44,10 @@ export class DoitMCP extends McpAgent<Env, Props> {
   server = new McpServer({
     name: "Doit MCP",
     version: "1.0.0",
+    capabilities: {
+      resources: {},
+      prompts: {},
+    },
   });
 
   async init() {
@@ -161,7 +165,8 @@ export class DoitMCP extends McpAgent<Env, Props> {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, customer-context",
 };
 
 function withCors(response: Response) {
@@ -174,6 +179,7 @@ function withCors(response: Response) {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
+    console.log("request", request);
 
     // Handle preflight OPTIONS request
     if (request.method === "OPTIONS") {
@@ -184,13 +190,10 @@ export default {
     const authHeader =
       request.headers.get("authorization") ||
       request.headers.get("Authorization");
+    console.log("authHeader", authHeader);
 
     const tokenFromEnv = env.DOIT_API_KEY;
     const tokenFromQuery = url.searchParams.get("key");
-    if (!authHeader && !tokenFromEnv && !tokenFromQuery) {
-      console.error("Unauthorized");
-      return withCors(new Response("Unauthorized", { status: 401 }));
-    }
 
     const token = authHeader || tokenFromEnv || tokenFromQuery;
     const customerContext = url.searchParams.get("customerContext");
@@ -200,12 +203,13 @@ export default {
       customerContext,
     };
 
-    if (url.pathname.includes("/sse") || url.pathname === "/sse/message") {
+    if (url.pathname === "/sse" || url.pathname === "/sse/message") {
+      console.log("url.pathname", url.pathname);
       // @ts-ignore
       return withCors(await DoitMCP.serveSSE("/sse").fetch(request, env, ctx));
     }
 
-    if (url.pathname === "/mcp") {
+    if (url.pathname.includes("/mcp")) {
       // @ts-ignore
       return withCors(await DoitMCP.serve("/mcp").fetch(request, env, ctx));
     }
