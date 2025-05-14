@@ -7,7 +7,6 @@ DoiT MCP Server provides access to the DoiT API. This server enables LLMs like C
 
 ![top-services](https://github.com/user-attachments/assets/749dd237-3021-439d-b447-64605393389d)
 
-
 ## Requirements
 
 - Node.js v18 or higher
@@ -37,7 +36,7 @@ To manually configure the MCP server for Claude Desktop App, add the following t
   "mcpServers": {
     "doit_mcp_server": {
       "command": "npx",
-      "args": ["-y", "@doitintl/doit-mcp-server@latest"],
+      "args": ["-y", "@doitintl-org/doit-mcp-server@latest"],
       "env": {
         "DOIT_API_KEY": "your_doit_api_key"
       }
