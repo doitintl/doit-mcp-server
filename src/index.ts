@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
+  InitializeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import * as dotenv from "dotenv";
@@ -88,19 +89,19 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => {
     prompts: [
       {
         text: `Filter fields explanation: ${gcp_global_resource_id}\n\n ${aws_global_resource_id}\n\n`,
-        name: "Filter Fields Reference"
+        name: "Filter Fields Reference",
       },
       {
         text: `Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)`,
-        name: "Report Display Instructions"
+        name: "Report Display Instructions",
       },
       {
         text: `Before running a query, always check the filter fields explanation and dimensions.`,
-        name: "Query Best Practice"
+        name: "Query Best Practice",
       },
       {
         text: `Do not generate code, only a document.`,
-        name: "Document Output Reminder"
+        name: "Document Output Reminder",
       },
       {
         text: `To create a cost report, first check if you need specific dimensions with:
@@ -115,8 +116,8 @@ run_query({
     group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]
   }
 })`,
-        name: "Cost Report Example"
-      }
+        name: "Cost Report Example",
+      },
     ],
   };
 });
@@ -167,6 +168,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
     return handleGeneralError(error, "handling tool request");
   }
+});
+
+// Handle initialize method
+server.setRequestHandler(InitializeRequestSchema, async (request) => {
+  return {
+    protocolVersion: request?.params?.protocolVersion || "2024-11-05",
+    serverInfo: {
+      name: "doit-mcp-server",
+      version: "1.0.0",
+    },
+    capabilities: server["_capabilities"] || {},
+  };
 });
 
 // Start the server
