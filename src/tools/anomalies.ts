@@ -55,6 +55,7 @@ export interface Anomaly {
 export interface AnomaliesResponse {
   rowCount: number;
   anomalies: Anomaly[];
+  pageToken: string;
 }
 
 // Tool metadata
@@ -132,15 +133,16 @@ export async function handleAnomaliesRequest(args: any, token: string) {
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
-    if (filter) {
+    if (filter && filter.length > 1) {
       params.append("filter", filter);
     }
-    if (pageToken) {
+    if (pageToken && pageToken.length > 1) {
       params.append("pageToken", pageToken);
     }
-    params.append("maxResults", "14");
+    params.append("maxResults", "24");
 
     let anomaliesUrl = `${DOIT_API_BASE}/anomalies/v1`;
+
     if (params.toString()) {
       anomaliesUrl += `?${params.toString()}`;
     }
@@ -163,15 +165,35 @@ export async function handleAnomaliesRequest(args: any, token: string) {
         return createErrorResponse("No anomalies found");
       }
 
-      const formattedAnomalies = anomalies.map(formatAnomaly);
+      // Map anomalies to the required format
+      const formattedAnomalies = anomalies.map((anomaly) => ({
+        id: anomaly.id || null,
+        billingAccount: anomaly.billingAccount || "",
+        attribution: anomaly.attribution || "",
+        costOfAnomaly: anomaly.costOfAnomaly,
+        platform: anomaly.platform || "",
+        scope: anomaly.scope || "",
+        serviceName: anomaly.serviceName || "",
+        top3SKUs:
+          anomaly.top3SKUs && anomaly.top3SKUs.length > 0
+            ? anomaly.top3SKUs
+            : null,
+        severityLevel: anomaly.severityLevel || "",
+        timeFrame: anomaly.timeFrame || "",
+        startTime: anomaly.startTime,
+        status: anomaly.status || null,
+        endTime: anomaly.endTime || null,
+        acknowledged: anomaly.acknowledged,
+      }));
 
-      // Create a descriptive message that includes filter information if provided
       let anomaliesText = `Found ${rowCount} anomalies`;
       if (filter) {
         anomaliesText += ` (filtered by: ${filter})`;
       }
-      anomaliesText += `:\n\n${formattedAnomalies.join("\n")} \n\n${
-        pageToken ? `Page token: ${pageToken}` : ""
+      anomaliesText += `:\n\n${formattedAnomalies
+        .map((a) => JSON.stringify(a, null, 2))
+        .join("\n")}\n\n${
+        anomaliesData.pageToken ? `Page token: ${anomaliesData.pageToken}` : ""
       }`;
 
       return createSuccessResponse(anomaliesText);
