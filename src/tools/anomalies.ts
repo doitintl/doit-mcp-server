@@ -180,9 +180,13 @@ export async function handleAnomaliesRequest(args: any, token: string) {
             : null,
         severityLevel: anomaly.severityLevel || "",
         timeFrame: anomaly.timeFrame || "",
-        startTime: anomaly.startTime,
+        startTime: anomaly.startTime
+          ? new Date(anomaly.startTime).toISOString()
+          : null,
         status: anomaly.status || null,
-        endTime: anomaly.endTime || null,
+        endTime: anomaly.endTime
+          ? new Date(anomaly.endTime).toISOString()
+          : null,
         acknowledged: anomaly.acknowledged,
       }));
 
