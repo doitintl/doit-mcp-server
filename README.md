@@ -36,7 +36,7 @@ To manually configure the MCP server for Claude Desktop App, add the following t
   "mcpServers": {
     "doit_mcp_server": {
       "command": "npx",
-      "args": ["-y", "@doitintl-org/doit-mcp-server@latest"],
+      "args": ["-y", "@doitintl/doit-mcp-server@latest"],
       "env": {
         "DOIT_API_KEY": "your_doit_api_key"
       }
