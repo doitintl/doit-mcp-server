@@ -232,12 +232,12 @@ describe("CallToolRequestSchema Handler", () => {
     });
   });
 
-  it("should route to the correct tool handler for list_cloud_incidents", async () => {
+  it("should route to the correct tool handler for get_cloud_incidents", async () => {
     const callToolHandler = setRequestHandlerMock.mock.calls.find(
       (call) => call[0] === CallToolRequestSchema
     )?.[1];
     const args = { filter: "status:open" };
-    const request = mockRequest("list_cloud_incidents", args);
+    const request = mockRequest("get_cloud_incidents", args);
 
     await callToolHandler(request);
 
@@ -401,7 +401,7 @@ describe("CallToolRequestSchema Handler", () => {
       (call) => call[0] === CallToolRequestSchema
     )?.[1];
     const args = { invalid: "args" };
-    const request = mockRequest("list_cloud_incidents", args);
+    const request = mockRequest("get_cloud_incidents", args);
 
     // Mock the tool handler to throw a real ZodError
     (indexModule.handleCloudIncidentsRequest as any).mockImplementation(() => {
@@ -430,7 +430,7 @@ describe("CallToolRequestSchema Handler", () => {
       (call) => call[0] === CallToolRequestSchema
     )?.[1];
     const args = {};
-    const request = mockRequest("list_cloud_incidents", args);
+    const request = mockRequest("get_cloud_incidents", args);
 
     // Mock the tool handler to throw a general error
     (indexModule.handleCloudIncidentsRequest as any).mockImplementation(() => {
