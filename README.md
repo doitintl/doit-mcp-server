@@ -1,6 +1,5 @@
 # DoiT MCP Server
 
-[![smithery badge](https://smithery.ai/badge/@doitintl/doit-mcp-server)](https://smithery.ai/server/@doitintl/doit-mcp-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
@@ -18,14 +17,6 @@ DoiT MCP Server provides access to the DoiT API. This server enables LLMs like C
 To get your DoiT API key, visit the [API key section in your DoiT profile](https://help.doit.com/docs/general/profile#api-key).
 
 There are several ways to install and configure the MCP server:
-
-### Installing via Smithery (Recommended)
-
-To install doit-mcp-server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@doitintl/doit-mcp-server):
-
-```bash
-npx -y @smithery/cli@latest install @doitintl/doit-mcp-server --client claude
-```
 
 ### Claude Desktop App
 
@@ -53,12 +44,6 @@ Make sure to replace the environment variables with your actual values:
 NOTE: you need to [restart Claude for Desktop](https://modelcontextprotocol.io/quickstart/user#3-restart-claude) after updating the configuration for changes to take effect.
 
 ### Cursor
-
-For Cursor IDE, you can install this MCP server using Smithery (recommended):
-
-```bash
-npx -y @smithery/cli@latest install @doitintl/doit-mcp-server --client cursor
-```
 
 Or manually with the following command in your project:
 
