@@ -10,10 +10,11 @@
     "resolveJsonModule": true,
     "declaration": true,
     "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "types": ["vitest/globals"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"],
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"
