@@ -123,6 +123,10 @@ function createServer() {
           text: `Use the list_dimensions tool to explore available dimensions. Select dimensions that best match your reporting needs. Combine multiple dimensions for more granular analysis, and always review the filter fields reference for optimal filtering.`,
           name: "Dimension Usage Guidance",
         },
+        {
+          text: `Before creating a ticket, ask the user if the ticket body is clear and if they want to add more details.`,
+          name: "Create Ticket",
+        },
       ],
     };
   });
