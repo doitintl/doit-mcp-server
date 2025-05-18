@@ -139,16 +139,4 @@ These examples demonstrate basic usage patterns. You can combine and modify thes
 - `DOIT_API_KEY`: Your DoiT API key (required)
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
 
-## Deployment to npm
 
-To deploy a new version to npm and automatically bump the version, use the following script:
-
-```
-// Deploys to npm and bumps the version. Usage: npm run deploy
-```
-
-For example, to bump the patch version and deploy:
-
-```
-npm run deploy
-```
