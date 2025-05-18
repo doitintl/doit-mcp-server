@@ -106,6 +106,8 @@ This MCP server provides the following tools:
 - [`validate_user`](https://developer.doit.com/reference/validate): Validates the current API user and returns domain and email information
 - [`list_dimensions`](https://developer.doit.com/reference/listdimensions): Lists Cloud Analytics dimensions that your account has access to
 - [`get_dimension`](https://developer.doit.com/reference/getdimensions): Get a specific Cloud Analytics dimension by type and ID
+- [`list_tickets`](https://developer.doit.com/reference/listtickets): List support tickets from DoiT using the support API
+- [`create_ticket`](https://developer.doit.com/reference/createticket): Create a new support ticket in DoiT using the support API
 
 ## Usage Examples
 
@@ -132,5 +134,3 @@ These examples demonstrate basic usage patterns. You can combine and modify thes
 
 - `DOIT_API_KEY`: Your DoiT API key (required)
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
-
-
