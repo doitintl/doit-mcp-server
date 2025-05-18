@@ -108,6 +108,8 @@ This MCP server provides the following tools:
 - [`get_dimension`](https://developer.doit.com/reference/getdimensions): Get a specific Cloud Analytics dimension by type and ID
 - [`list_tickets`](https://developer.doit.com/reference/listtickets): List support tickets from DoiT using the support API
 - [`create_ticket`](https://developer.doit.com/reference/createticket): Create a new support ticket in DoiT using the support API
+- [`list_invoices`](https://developer.doit.com/reference/listinvoices): List all current and historical invoices for your organization from the DoiT API
+- [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
 
 ## Usage Examples
 
@@ -127,6 +129,11 @@ Here are some common queries you can ask using the DoiT MCP server:
 
 - "What are my recent GCP anomalies?" - This will show recent cost or usage anomalies detected in your Google Cloud Platform accounts.
 - "Show me details about anomaly ABC123" - This will provide detailed information about a specific anomaly.
+
+### Invoices
+
+- "List all my invoices" - This will show all current and historical invoices for your organization.
+- "Show me details for invoice INV-2024-001" - This will provide full details for a specific invoice, including line items and payment status.
 
 These examples demonstrate basic usage patterns. You can combine and modify these queries based on your needs. The MCP server will interpret your natural language queries and use the appropriate tools to fetch the requested information.
 
