@@ -53,6 +53,12 @@ import {
   createTicketTool,
   handleCreateTicketRequest,
 } from "./tools/tickets.js";
+import {
+  listInvoicesTool,
+  handleListInvoicesRequest,
+  getInvoiceTool,
+  handleGetInvoiceRequest,
+} from "./tools/invoices.js";
 
 dotenv.config();
 
@@ -87,6 +93,8 @@ function createServer() {
         dimensionTool,
         listTicketsTool,
         createTicketTool,
+        listInvoicesTool,
+        getInvoiceTool,
       ],
     };
   });
@@ -172,6 +180,10 @@ function createServer() {
           return await handleListTicketsRequest(args, token);
         case "create_ticket":
           return await handleCreateTicketRequest(args, token);
+        case "list_invoices":
+          return await handleListInvoicesRequest(args, token);
+        case "get_invoice":
+          return await handleGetInvoiceRequest(args, token);
         default:
           return createErrorResponse(`Unknown tool: ${name}`);
       }

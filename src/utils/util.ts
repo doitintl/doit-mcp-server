@@ -140,3 +140,13 @@ export async function makeDoitRequest<T>(
     return null;
   }
 }
+
+/**
+ * Formats a timestamp (number) as a human-readable date string
+ * @param timestamp The timestamp in milliseconds
+ * @returns Formatted date string (e.g., '2024-04-27')
+ */
+export function formatDate(timestamp: number): string {
+  if (!timestamp) return "";
+  return new Date(timestamp).toISOString().split("T")[0];
+}
