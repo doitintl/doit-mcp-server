@@ -93,7 +93,7 @@ function createServer() {
         },
         {
           text: `Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)`,
-          name: "Report Display Instructions",
+          name: "Generate Report Document",
         },
         {
           text: `Before running a query, always check the filter fields explanation and dimensions.`,
@@ -104,8 +104,16 @@ function createServer() {
           name: "Document Output Reminder",
         },
         {
-          text: `To create a cost report, first check if you need specific dimensions with:\nlist_dimensions(filter: "type:fixed")\n\nThen run a query like:\nrun_query({\n  config: {\n    dataSource: "billing",\n    metric: { type: "basic", value: "cost" },\n    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },\n    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]\n  }\n})`,
-          name: "Cost Report Example",
+          text: `To create a cost report, first check if you need specific dimensions with:\nlist_dimensions(filter: "type:fixed")\n\nThen check if there is similar reports with list_reports and get_report_results. when you understand the structure Then run a query like:\nrun_query({\n  config: {\n    dataSource: "billing",\n    metric: { type: "basic", value: "cost" },\n    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },\n    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]\n  }\n})`,
+          name: "Generate Report Command",
+        },
+        {
+          text: `Create a document (Artifacts) with a table to display the list of anomalies. Include the following columns: ID, Type, Status, Severity, Created At, and Description. Add insights and recommendations if available. (Do not generate code, only a document)`,
+          name: "Generate Anomalies Document",
+        },
+        {
+          text: `Use the list_dimensions tool to explore available dimensions. Select dimensions that best match your reporting needs. Combine multiple dimensions for more granular analysis, and always review the filter fields reference for optimal filtering.`,
+          name: "Dimension Usage Guidance",
         },
       ],
     };
