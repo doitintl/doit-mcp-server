@@ -45,12 +45,6 @@ NOTE: you need to [restart Claude for Desktop](https://modelcontextprotocol.io/q
 
 ### Cursor
 
-Or manually with the following command in your project:
-
-```bash
-env DOIT_API_KEY=[KEY] npx -y @doitintl/doit-mcp-server@latest
-```
-
 Don't forget to replace the `env` values in that command with your actual values.
 
 If you have the latest version (v0.47 and above) of Cursor, you can create an `mcp.json` file in your project root:
