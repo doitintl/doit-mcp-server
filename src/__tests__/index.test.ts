@@ -66,6 +66,20 @@ vi.mock("../tools/tickets.js", () => ({
   handleListTicketsRequest: vi.fn(),
   handleCreateTicketRequest: vi.fn(),
 }));
+vi.mock("../tools/invoices.ts", () => ({
+  listInvoicesTool: {
+    name: "list_invoices",
+    description:
+      "List all current and historical invoices for your organization from the DoiT API.",
+  },
+  getInvoiceTool: {
+    name: "get_invoice",
+    description:
+      "Retrieve the full details of an invoice specified by the invoice number from the DoiT API.",
+  },
+  handleListInvoicesRequest: vi.fn(),
+  handleGetInvoiceRequest: vi.fn(),
+}));
 vi.mock("../utils/util.js", async () => {
   const actual = await vi.importActual("../utils/util.js");
   return {
@@ -199,6 +213,16 @@ describe("ListToolsRequestSchema Handler", () => {
           name: "create_ticket",
           description:
             "Create a new support ticket in DoiT using the support API.",
+        },
+        {
+          name: "list_invoices",
+          description:
+            "List all current and historical invoices for your organization from the DoiT API.",
+        },
+        {
+          name: "get_invoice",
+          description:
+            "Retrieve the full details of an invoice specified by the invoice number from the DoiT API.",
         },
       ],
     });
@@ -442,6 +466,30 @@ describe("CallToolRequestSchema Handler", () => {
     );
   });
 
+  it("should route to the correct tool handler for list_invoices", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = { pageToken: "next-page-token" };
+    const request = mockRequest("list_invoices", args);
+
+    await callToolHandler(request);
+
+    expect(handleListInvoicesRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
+  it("should route to the correct tool handler for get_invoice", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = { id: "invoice-123" };
+    const request = mockRequest("get_invoice", args);
+
+    await callToolHandler(request);
+
+    expect(handleGetInvoiceRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
   it("should return Unknown tool error for unknown tool names", async () => {
     const callToolHandler = setRequestHandlerMock.mock.calls.find(
       (call) => call[0] === CallToolRequestSchema
@@ -541,4 +589,5 @@ describe("InitializeRequestSchema Handler", () => {
 });
 
 const indexModule = await import("../index.js");
-const { createServer } = indexModule;
+const { createServer, handleListInvoicesRequest, handleGetInvoiceRequest } =
+  indexModule;
