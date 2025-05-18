@@ -47,6 +47,12 @@ import {
   aws_global_resource_id,
   gcp_global_resource_id,
 } from "./utils/filterFields.js";
+import {
+  listTicketsTool,
+  handleListTicketsRequest,
+  createTicketTool,
+  handleCreateTicketRequest,
+} from "./tools/tickets.js";
 
 dotenv.config();
 
@@ -79,6 +85,8 @@ function createServer() {
         validateUserTool,
         dimensionsTool,
         dimensionTool,
+        listTicketsTool,
+        createTicketTool,
       ],
     };
   });
@@ -156,6 +164,10 @@ function createServer() {
           return await handleDimensionsRequest(args, token);
         case "get_dimension":
           return await handleDimensionRequest(args, token);
+        case "list_tickets":
+          return await handleListTicketsRequest(args, token);
+        case "create_ticket":
+          return await handleCreateTicketRequest(args, token);
         default:
           return createErrorResponse(`Unknown tool: ${name}`);
       }
@@ -219,6 +231,8 @@ export {
   handleValidateUserRequest,
   handleDimensionsRequest,
   handleDimensionRequest,
+  handleListTicketsRequest,
+  handleCreateTicketRequest,
   createErrorResponse,
   formatZodError,
   handleGeneralError,

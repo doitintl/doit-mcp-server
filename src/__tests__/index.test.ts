@@ -54,6 +54,18 @@ vi.mock("../tools/dimension.js", () => ({
   dimensionTool: { name: "get_dimension", description: "Get a dimension" },
   handleDimensionRequest: vi.fn(),
 }));
+vi.mock("../tools/tickets.js", () => ({
+  listTicketsTool: {
+    name: "list_tickets",
+    description: "List support tickets from DoiT using the support API.",
+  },
+  createTicketTool: {
+    name: "create_ticket",
+    description: "Create a new support ticket in DoiT using the support API.",
+  },
+  handleListTicketsRequest: vi.fn(),
+  handleCreateTicketRequest: vi.fn(),
+}));
 vi.mock("../utils/util.js", async () => {
   const actual = await vi.importActual("../utils/util.js");
   return {
@@ -179,6 +191,15 @@ describe("ListToolsRequestSchema Handler", () => {
         { name: "validate_user", description: "Validate user" },
         { name: "list_dimensions", description: "List dimensions" },
         { name: "get_dimension", description: "Get a dimension" },
+        {
+          name: "list_tickets",
+          description: "List support tickets from DoiT using the support API.",
+        },
+        {
+          name: "create_ticket",
+          description:
+            "Create a new support ticket in DoiT using the support API.",
+        },
       ],
     });
   });
@@ -377,6 +398,45 @@ describe("CallToolRequestSchema Handler", () => {
     await callToolHandler(request);
 
     expect(indexModule.handleDimensionRequest).toHaveBeenCalledWith(
+      args,
+      "fake-token"
+    );
+  });
+
+  it("should route to the correct tool handler for list_tickets", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = { pageSize: 5 };
+    const request = mockRequest("list_tickets", args);
+
+    await callToolHandler(request);
+
+    expect(indexModule.handleListTicketsRequest).toHaveBeenCalledWith(
+      args,
+      "fake-token"
+    );
+  });
+
+  it("should route to the correct tool handler for create_ticket", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = {
+      ticket: {
+        body: "Help!",
+        created: "2024-06-01T12:00:00Z",
+        platform: "doit",
+        product: "test-product",
+        severity: "normal",
+        subject: "Test ticket",
+      },
+    };
+    const request = mockRequest("create_ticket", args);
+
+    await callToolHandler(request);
+
+    expect(indexModule.handleCreateTicketRequest).toHaveBeenCalledWith(
       args,
       "fake-token"
     );
