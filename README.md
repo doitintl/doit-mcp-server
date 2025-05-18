@@ -144,11 +144,11 @@ These examples demonstrate basic usage patterns. You can combine and modify thes
 To deploy a new version to npm and automatically bump the version, use the following script:
 
 ```
-// Deploys to npm and bumps the version. Usage: npm run deploy -- [patch|minor|major]
+// Deploys to npm and bumps the version. Usage: npm run deploy
 ```
 
 For example, to bump the patch version and deploy:
 
 ```
-npm run deploy -- patch
+npm run deploy
 ```
