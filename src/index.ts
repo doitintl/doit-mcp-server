@@ -140,7 +140,7 @@ function createServer() {
           name: "Generate Invoice Details Document",
         },
         {
-          text: `Tools results should use the Document artifact type if possible.`,
+          text: `Tools results should use the Document artifact type if possible. You must never use the code artifact type or to analyze the results of a tool with code/javascript.`,
           name: "DoiT MCP Server tools output",
         },
       ],
