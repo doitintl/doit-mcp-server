@@ -18,5 +18,8 @@ RUN yarn build
 # Expose the default port (if the server uses one, otherwise remove or adjust accordingly)
 EXPOSE 3000
 
+RUN chown -R 1000:1000 /app
+USER 1000
+
 # Run the MCP server
 CMD [ "node", "dist/index.js" ]
