@@ -51,23 +51,6 @@ export const listInvoicesTool = {
       },
     },
   },
-  outputSchema: z.object({
-    invoices: z.array(
-      z.object({
-        id: z.string(),
-        invoiceDate: z.number(),
-        platform: z.string(),
-        dueDate: z.number(),
-        status: z.string(),
-        totalAmount: z.number(),
-        balanceAmount: z.number(),
-        currency: z.string(),
-        url: z.string(),
-      })
-    ),
-    pageToken: z.string().optional(),
-    rowCount: z.number(),
-  }),
 };
 
 // Handler for the tool
@@ -117,27 +100,6 @@ export const getInvoiceTool = {
     },
     required: ["id"],
   },
-  outputSchema: z.object({
-    id: z.string(),
-    invoiceDate: z.number(),
-    platform: z.string(),
-    dueDate: z.number(),
-    status: z.string(),
-    totalAmount: z.number(),
-    balanceAmount: z.number(),
-    currency: z.string(),
-    url: z.string(),
-    lineItems: z.array(
-      z.object({
-        currency: z.string(),
-        description: z.string(),
-        details: z.string(),
-        price: z.number(),
-        qty: z.number(),
-        type: z.string(),
-      })
-    ),
-  }),
 };
 
 // Handler for the tool

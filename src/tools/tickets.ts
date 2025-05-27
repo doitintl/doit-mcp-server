@@ -53,25 +53,6 @@ export const listTicketsTool = {
       },
     },
   },
-  outputSchema: z.object({
-    pageToken: z.string().optional(),
-    rowCount: z.number(),
-    tickets: z.array(
-      z.object({
-        createTime: z.number(),
-        id: z.number(),
-        is_public: z.boolean(),
-        platform: z.string(),
-        product: z.string(),
-        requester: z.string(),
-        severity: z.string(),
-        status: z.string(),
-        subject: z.string(),
-        updateTime: z.number(),
-        urlUI: z.string(),
-      })
-    ),
-  }),
 };
 
 // Handler for the tool
@@ -145,17 +126,6 @@ export const createTicketTool = {
     },
     required: ["ticket"],
   },
-  outputSchema: z.object({
-    created: z.number(),
-    id: z.number(),
-    platform: z.string(),
-    product: z.string(),
-    requester: z.string(),
-    severity: z.string(),
-    status: z.string(),
-    subject: z.string(),
-    urlUI: z.string(),
-  }),
 };
 
 // Handler for creating a ticket
