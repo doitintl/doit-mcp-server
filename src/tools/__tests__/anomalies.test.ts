@@ -116,7 +116,7 @@ Top SKUs:
     });
 
     it("should call makeDoitRequest with correct parameters and return success response", async () => {
-      const mockArgs = { filter: "platform:gcp", pageToken: "next-page" };
+      const mockArgs = { pageToken: "next-page" };
       const mockApiResponse = {
         rowCount: 1,
         anomalies: [
@@ -144,14 +144,14 @@ Top SKUs:
       const response = await handleAnomaliesRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/anomalies/v1?filter=platform%3Agcp&pageToken=next-page&maxResults=24",
+        "https://api.doit.com/anomalies/v1?pageToken=next-page&maxResults=32",
         mockToken,
         {
           method: "GET",
         }
       );
       expect(createSuccessResponse).toHaveBeenCalledWith(
-        expect.stringContaining("Found 1 anomalies (filtered by: platform:gcp)")
+        expect.stringContaining("Found 1 anomalies")
       );
       expect(response).toEqual({
         content: [
@@ -161,7 +161,7 @@ Top SKUs:
     });
 
     it("should handle no anomalies found", async () => {
-      const mockArgs = { filter: "platform:aws" };
+      const mockArgs = {};
       const mockApiResponse = {
         rowCount: 0,
         anomalies: [],
@@ -172,7 +172,7 @@ Top SKUs:
       const response = await handleAnomaliesRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/anomalies/v1?filter=platform%3Aaws&maxResults=24",
+        "https://api.doit.com/anomalies/v1?maxResults=32",
         mockToken,
         {
           method: "GET",
@@ -191,7 +191,7 @@ Top SKUs:
       const response = await handleAnomaliesRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/anomalies/v1?maxResults=24",
+        "https://api.doit.com/anomalies/v1?maxResults=32",
         mockToken,
         { method: "GET" }
       );
@@ -200,22 +200,6 @@ Top SKUs:
       );
       expect(response).toEqual({
         content: [{ type: "text", text: "Failed to retrieve anomalies data" }],
-      });
-    });
-
-    it("should handle ZodError for invalid arguments", async () => {
-      const mockArgs = { filter: 123 }; // Invalid filter type
-      const response = await handleAnomaliesRequest(mockArgs, mockToken);
-
-      expect(formatZodError).toHaveBeenCalled();
-      expect(createErrorResponse).toHaveBeenCalled();
-      expect(response).toEqual({
-        content: [
-          {
-            type: "text",
-            text: expect.stringContaining("Formatted Zod Error:"),
-          },
-        ],
       });
     });
 
@@ -234,6 +218,23 @@ Top SKUs:
       expect(response).toEqual({
         content: [
           { type: "text", text: "General Error: making DoiT API request" },
+        ],
+      });
+    });
+
+    it("should handle ZodError for invalid arguments", async () => {
+      const mockArgs = { pageToken: 123 }; // Invalid argument type for Zod
+      const response = await handleAnomaliesRequest(mockArgs, mockToken);
+
+      expect(createErrorResponse).toHaveBeenCalledWith(
+        expect.stringContaining("Formatted Zod Error:")
+      );
+      expect(response).toEqual({
+        content: [
+          {
+            type: "text",
+            text: expect.stringContaining("Formatted Zod Error:"),
+          },
         ],
       });
     });
