@@ -126,7 +126,7 @@ export async function handleAnomaliesRequest(args: any, token: string) {
     if (pageToken && pageToken.length > 1) {
       params.append("pageToken", pageToken);
     }
-    params.append("maxResults", "32");
+    params.append("maxResults", "20");
 
     let anomaliesUrl = `${DOIT_API_BASE}/anomalies/v1`;
 
