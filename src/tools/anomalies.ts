@@ -10,12 +10,6 @@ import {
 
 // Schema definitions
 export const AnomaliesArgumentsSchema = z.object({
-  filter: z
-    .string()
-    .optional()
-    .describe(
-      "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND."
-    ),
   pageToken: z
     .string()
     .optional()
@@ -65,11 +59,6 @@ export const anomaliesTool = {
   inputSchema: {
     type: "object",
     properties: {
-      filter: {
-        type: "string",
-        description:
-          "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND.",
-      },
       pageToken: {
         type: "string",
         description:
@@ -129,17 +118,15 @@ export function formatAnomaly(anomaly: Anomaly): string {
 // Handle anomalies request
 export async function handleAnomaliesRequest(args: any, token: string) {
   try {
-    const { filter, pageToken } = AnomaliesArgumentsSchema.parse(args);
+    const { pageToken } = AnomaliesArgumentsSchema.parse(args);
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
-    if (filter && filter.length > 1) {
-      params.append("filter", filter);
-    }
+
     if (pageToken && pageToken.length > 1) {
       params.append("pageToken", pageToken);
     }
-    params.append("maxResults", "24");
+    params.append("maxResults", "32");
 
     let anomaliesUrl = `${DOIT_API_BASE}/anomalies/v1`;
 
@@ -191,9 +178,7 @@ export async function handleAnomaliesRequest(args: any, token: string) {
       }));
 
       let anomaliesText = `Found ${rowCount} anomalies`;
-      if (filter) {
-        anomaliesText += ` (filtered by: ${filter})`;
-      }
+
       anomaliesText += `:\n\n${formattedAnomalies
         .map((a) => JSON.stringify(a, null, 2))
         .join("\n")}\n\n${
