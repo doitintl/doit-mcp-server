@@ -144,7 +144,7 @@ Top SKUs:
       const response = await handleAnomaliesRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/anomalies/v1?pageToken=next-page&maxResults=32",
+        "https://api.doit.com/anomalies/v1?pageToken=next-page&maxResults=20",
         mockToken,
         {
           method: "GET",
@@ -172,7 +172,7 @@ Top SKUs:
       const response = await handleAnomaliesRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/anomalies/v1?maxResults=32",
+        "https://api.doit.com/anomalies/v1?maxResults=20",
         mockToken,
         {
           method: "GET",
@@ -191,7 +191,7 @@ Top SKUs:
       const response = await handleAnomaliesRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/anomalies/v1?maxResults=32",
+        "https://api.doit.com/anomalies/v1?maxResults=20",
         mockToken,
         { method: "GET" }
       );
