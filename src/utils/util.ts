@@ -129,6 +129,9 @@ export async function makeDoitRequest<T>(
       requestOptions.body = JSON.stringify(body);
     }
 
+    // add mcp params to the url
+    url += `&mcp=true`;
+
     const response = await fetch(url, requestOptions);
 
     if (!response.ok) {
