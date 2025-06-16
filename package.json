@@ -18,7 +18,11 @@
     "build": "tsc && shx chmod +x dist/*.js",
     "watch": "tsc --watch",
     "test": "vitest run",
-    "deploy": "yarn build && npm publish --access public"
+    "deploy": "yarn build && npm publish --access public",
+    "start": "node dist/index.js",
+    "start:stdio": "node dist/index.js --transport stdio",
+    "start:sse": "node dist/index.js --transport sse --port 3000",
+    "start:sse:custom": "node dist/index.js --transport sse --port 8080 --host 0.0.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.3",

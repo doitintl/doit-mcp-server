@@ -88,6 +88,22 @@ export function appendUrlParameters(baseUrl: string): string {
 }
 
 /**
+ * Helper function to remove Bearer prefix from token if it exists
+ * @param token The token string that may or may not have "Bearer " prefix
+ * @returns The token string without the "Bearer " prefix
+ */
+export function removeBearerFromToken(token: string): string {
+  if (!token) return token;
+
+  const bearerPrefix = "Bearer ";
+  if (token.startsWith(bearerPrefix)) {
+    return token.substring(bearerPrefix.length);
+  }
+
+  return token;
+}
+
+/**
  * Helper function for making DoiT API requests
  * @param url The API endpoint URL
  * @param token The authentication token
@@ -109,7 +125,7 @@ export async function makeDoitRequest<T>(
   const { method = "GET", body = undefined, appendParams = true } = options;
 
   const headers = {
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${removeBearerFromToken(token)}`,
     "Content-Type": "application/json",
     Accept: "application/json",
   };
