@@ -479,6 +479,186 @@ if (
   });
 }
 
+// Cloudflare Workers export
+export default {
+  async fetch(request: Request, env: any, ctx: any): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Handle CORS preflight
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers":
+            "Content-Type, Authorization, X-Session-ID",
+        },
+      });
+    }
+
+    // Health check
+    if (url.pathname === "/health") {
+      return new Response(
+        JSON.stringify({ status: "ok", transport: "cloudflare-workers" }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    // SSE endpoint
+    if (url.pathname === "/sse") {
+      const sessionId = crypto.randomUUID();
+      const customerId = url.searchParams.get("customerContext");
+
+      if (customerId) {
+        env.CUSTOMER_CONTEXT = customerId;
+      }
+
+      const stream = new ReadableStream({
+        start(controller) {
+          // Send endpoint info
+          controller.enqueue(new TextEncoder().encode(`event: endpoint\n`));
+          controller.enqueue(
+            new TextEncoder().encode(
+              `data: ${url.origin}/message?sessionId=${sessionId}\n\n`
+            )
+          );
+
+          // Keep-alive ping
+          const interval = setInterval(() => {
+            try {
+              controller.enqueue(new TextEncoder().encode(`event: ping\n`));
+              controller.enqueue(
+                new TextEncoder().encode(`data: ${Date.now()}\n\n`)
+              );
+            } catch (e) {
+              clearInterval(interval);
+            }
+          }, 15000);
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+
+    // Message endpoint
+    if (url.pathname === "/message" && request.method === "POST") {
+      const authHeader = request.headers.get("authorization");
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32001,
+              message: "Unauthorized: Missing API key in Authorization header",
+            },
+            id: null,
+          }),
+          {
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          }
+        );
+      }
+
+      try {
+        const message = await request.json();
+        let response: any = null;
+
+        if (message.method === "initialize") {
+          response = {
+            protocolVersion: message?.params?.protocolVersion || "2024-11-05",
+            serverInfo: {
+              name: "doit-mcp-server",
+              version: "1.0.0",
+            },
+            capabilities: {
+              tools: {},
+              prompts: {},
+              resources: {},
+            },
+          };
+        } else if (message.method === "tools/list") {
+          response = {
+            tools: getTools(),
+          };
+        } else if (message.method === "tools/call") {
+          const { name, arguments: args } = message.params;
+          const token = authHeader;
+
+          try {
+            response = await handleToolCall(name, args, token);
+          } catch (error) {
+            if (error instanceof z.ZodError) {
+              response = createErrorResponse(formatZodError(error));
+            } else {
+              response = handleGeneralError(error, "handling tool request");
+            }
+          }
+        } else if (message.method === "prompts/list") {
+          response = {
+            prompts: getPrompts(),
+          };
+        } else if (message.method === "resources/list") {
+          response = {
+            resources: [],
+          };
+        }
+
+        if (response) {
+          const jsonrpcResponse = {
+            jsonrpc: "2.0",
+            id: message.id,
+            result: response,
+          };
+          return new Response(JSON.stringify(jsonrpcResponse), {
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          });
+        }
+
+        return new Response(null, { status: 202 });
+      } catch (error) {
+        const errorResponse = {
+          jsonrpc: "2.0",
+          id: null,
+          error: {
+            code: -32603,
+            message: error instanceof Error ? error.message : "Internal error",
+          },
+        };
+
+        return new Response(JSON.stringify(errorResponse), {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      }
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+};
+
 export {
   server,
   main,
