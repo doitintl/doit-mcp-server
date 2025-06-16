@@ -2,7 +2,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![NPM Version](https://img.shields.io/npm/v/%40doitintl%2Fdoit-mcp-server?registry_uri=https%3A%2F%2Fregistry.npmjs.com%2F%40doitintl%2Fdoit-mcp-server)
 
-
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
 
 ![top-services](https://github.com/user-attachments/assets/749dd237-3021-439d-b447-64605393389d)
@@ -89,9 +88,68 @@ yarn build
 
 5. **Run the server**
 
+The server supports two transport modes:
+
+**STDIO Transport (Default)** - For local usage with MCP clients:
+
 ```bash
 node dist/index.js
+# or explicitly
+node dist/index.js --transport stdio
 ```
+
+**HTTP/SSE Transport** - For remote access via HTTP with Server-Sent Events:
+
+```bash
+# Run on default port 3000
+node dist/index.js --transport sse
+
+# Run on custom port and host
+node dist/index.js --transport sse --port 8080 --host 0.0.0.0
+```
+
+**NPM Scripts:**
+
+```bash
+# STDIO mode (default)
+yarn start:stdio
+
+# SSE mode on port 3000
+yarn start:sse
+
+# SSE mode with custom settings
+yarn start:sse:custom
+```
+
+## Transport Modes
+
+### STDIO Transport
+
+The STDIO transport is the default mode and is designed for local usage with MCP clients like Claude Desktop. It communicates through standard input/output streams and is ideal for:
+
+- Local integrations on the same machine
+- Security-sensitive operations (no network exposure)
+- Single-client scenarios
+- Command-line tools and IDE extensions
+
+### HTTP/SSE Transport
+
+The HTTP/SSE (Server-Sent Events) transport enables remote access to the MCP server over HTTP. This mode is useful for:
+
+- Remote access across networks
+- Multi-client scenarios where multiple users need access
+- Web-based integrations
+- Centralized deployment scenarios
+
+**Current Status**: The SSE transport is partially implemented. The SSE connection establishment works, but the message handling requires additional development to resolve TypeScript compatibility issues with Express route handlers.
+
+When using HTTP/SSE transport:
+
+- **SSE Endpoint**: `http://localhost:3000/sse` (establishes the connection) ✅ Working
+- **Message Endpoint**: `http://localhost:3000/message` (sends commands) ⚠️ Development needed
+- **Health Check**: `http://localhost:3000/health` (server status) ✅ Working
+
+For now, please use the STDIO transport for full functionality.
 
 ## Tools
 
