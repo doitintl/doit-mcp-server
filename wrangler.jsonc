@@ -5,8 +5,5 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "NODE_ENV": "production"
-  },
-  "build": {
-    "format": "modules"
   }
 }
