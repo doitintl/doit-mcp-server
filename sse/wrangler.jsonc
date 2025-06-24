@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sse",
+  "name": "doit-mcp-server",
   "main": "src/index.ts",
   "compatibility_date": "2025-03-10",
   "compatibility_flags": ["nodejs_compat"],
@@ -12,15 +12,6 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["DoitMCP"]
-    },
-    {
-      "tag": "v2",
-      "renamed_classes": [
-        {
-          "from": "MyMCP",
-          "to": "DoitMCP"
-        }
-      ]
     }
   ],
   "durable_objects": {
