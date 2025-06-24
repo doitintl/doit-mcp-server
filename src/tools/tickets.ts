@@ -128,6 +128,23 @@ export const createTicketTool = {
   },
 };
 
+// Arguments schema for creating a ticket
+export const CreateTicketArgumentsSchema = z.object({
+  ticket: z.object({
+    body: z.string(),
+    created: z.string(),
+    platform: z.enum([
+      "doit",
+      "google_cloud_platform",
+      "amazon_web_services",
+      "microsoft_azure",
+    ]),
+    product: z.string(),
+    severity: z.enum(["low", "normal", "high", "urgent"]),
+    subject: z.string(),
+  }),
+});
+
 // Handler for creating a ticket
 export async function handleCreateTicketRequest(args: any, token: string) {
   try {
