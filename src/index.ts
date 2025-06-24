@@ -42,6 +42,7 @@ import {
   formatZodError,
   handleGeneralError,
 } from "./utils/util.js";
+import { executeToolHandler } from "./utils/toolsHandler.js";
 
 import { prompts } from "./utils/prompts.js";
 import {
@@ -121,45 +122,7 @@ function createServer() {
       return createErrorResponse("Unauthorized");
     }
 
-    try {
-      switch (name) {
-        case "get_cloud_incidents":
-          return await handleCloudIncidentsRequest(args, token);
-        case "get_cloud_incident":
-          return await handleCloudIncidentRequest(args, token);
-        case "get_anomalies":
-          return await handleAnomaliesRequest(args, token);
-        case "get_anomaly":
-          return await handleAnomalyRequest(args, token);
-        case "list_reports":
-          return await handleReportsRequest(args, token);
-        case "run_query":
-          return await handleRunQueryRequest(args, token);
-        case "get_report_results":
-          return await handleGetReportResultsRequest(args, token);
-        case "validate_user":
-          return await handleValidateUserRequest(args, token);
-        case "list_dimensions":
-          return await handleDimensionsRequest(args, token);
-        case "get_dimension":
-          return await handleDimensionRequest(args, token);
-        case "list_tickets":
-          return await handleListTicketsRequest(args, token);
-        case "create_ticket":
-          return await handleCreateTicketRequest(args, token);
-        case "list_invoices":
-          return await handleListInvoicesRequest(args, token);
-        case "get_invoice":
-          return await handleGetInvoiceRequest(args, token);
-        default:
-          return createErrorResponse(`Unknown tool: ${name}`);
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return createErrorResponse(formatZodError(error));
-      }
-      return handleGeneralError(error, "handling tool request");
-    }
+    return await executeToolHandler(name, args, token);
   });
 
   // Handle initialize method

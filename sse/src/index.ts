@@ -1,28 +1,20 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 
 // Import DoiT tool handlers
 import {
-  handleCloudIncidentsRequest,
-  handleCloudIncidentRequest,
   CloudIncidentsArgumentsSchema,
   CloudIncidentArgumentsSchema,
   cloudIncidentTool,
   cloudIncidentsTool,
 } from "../../src/tools/cloudIncidents.js";
 import {
-  handleAnomaliesRequest,
-  handleAnomalyRequest,
   AnomaliesArgumentsSchema,
   AnomalyArgumentsSchema,
   anomaliesTool,
   anomalyTool,
 } from "../../src/tools/anomalies.js";
 import {
-  handleReportsRequest,
-  handleRunQueryRequest,
-  handleGetReportResultsRequest,
   ReportsArgumentsSchema,
   RunQueryArgumentsSchema,
   GetReportResultsArgumentsSchema,
@@ -31,42 +23,31 @@ import {
   getReportResultsTool,
 } from "../../src/tools/reports.js";
 import {
-  handleValidateUserRequest,
   ValidateUserArgumentsSchema,
   validateUserTool,
 } from "../../src/tools/validateUser.js";
 import {
-  handleDimensionsRequest,
   DimensionsArgumentsSchema,
   dimensionsTool,
 } from "../../src/tools/dimensions.js";
 import {
-  handleDimensionRequest,
   DimensionArgumentsSchema,
   dimensionTool,
 } from "../../src/tools/dimension.js";
 import {
-  handleListTicketsRequest,
-  handleCreateTicketRequest,
   ListTicketsArgumentsSchema,
   CreateTicketArgumentsSchema,
   listTicketsTool,
   createTicketTool,
 } from "../../src/tools/tickets.js";
 import {
-  handleListInvoicesRequest,
-  handleGetInvoiceRequest,
   ListInvoicesArgumentsSchema,
   GetInvoiceArgumentsSchema,
   listInvoicesTool,
   getInvoiceTool,
 } from "../../src/tools/invoices.js";
-import {
-  createErrorResponse,
-  formatZodError,
-  handleGeneralError,
-  zodSchemaToMcpTool,
-} from "../../src/utils/util.js";
+import { zodSchemaToMcpTool } from "../../src/utils/util.js";
+import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { prompts } from "../../src/utils/prompts.js";
 
 type Props = {
@@ -168,21 +149,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       cloudIncidentsTool.description,
       zodSchemaToMcpTool(CloudIncidentsArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleCloudIncidentsRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling cloud incidents request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          cloudIncidentsTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -191,21 +164,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       cloudIncidentTool.description,
       zodSchemaToMcpTool(CloudIncidentArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleCloudIncidentRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling cloud incident request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          cloudIncidentTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -215,21 +180,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       anomaliesTool.description,
       zodSchemaToMcpTool(AnomaliesArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleAnomaliesRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling anomalies request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          anomaliesTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -238,21 +195,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       anomalyTool.description,
       zodSchemaToMcpTool(AnomalyArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleAnomalyRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling anomaly request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          anomalyTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -262,21 +211,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       reportsTool.description,
       zodSchemaToMcpTool(ReportsArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleReportsRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling reports request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          reportsTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -285,21 +226,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       runQueryTool.description,
       zodSchemaToMcpTool(RunQueryArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleRunQueryRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling run query request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          runQueryTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -308,21 +241,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       getReportResultsTool.description,
       zodSchemaToMcpTool(GetReportResultsArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleGetReportResultsRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling get report results request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          getReportResultsTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -332,21 +257,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       validateUserTool.description,
       zodSchemaToMcpTool(ValidateUserArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleValidateUserRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling validate user request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          validateUserTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -356,21 +273,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       dimensionsTool.description,
       zodSchemaToMcpTool(DimensionsArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleDimensionsRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling dimensions request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          dimensionsTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -379,21 +288,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       dimensionTool.description,
       zodSchemaToMcpTool(DimensionArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleDimensionRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling dimension request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          dimensionTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -403,21 +304,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       listTicketsTool.description,
       zodSchemaToMcpTool(ListTicketsArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleListTicketsRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling list tickets request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          listTicketsTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -426,21 +319,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       createTicketTool.description,
       zodSchemaToMcpTool(CreateTicketArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleCreateTicketRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling create ticket request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          createTicketTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -450,21 +335,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       listInvoicesTool.description,
       zodSchemaToMcpTool(ListInvoicesArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleListInvoicesRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling list invoices request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          listInvoicesTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
 
@@ -473,21 +350,13 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
       getInvoiceTool.description,
       zodSchemaToMcpTool(GetInvoiceArgumentsSchema),
       async (args) => {
-        try {
-          const token = this.getToken();
-          const result = await handleGetInvoiceRequest(args, token);
-          return convertToMcpResponse(result);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const errorResult = createErrorResponse(formatZodError(error));
-            return convertToMcpResponse(errorResult);
-          }
-          const errorResult = handleGeneralError(
-            error,
-            "handling get invoice request"
-          );
-          return convertToMcpResponse(errorResult);
-        }
+        const token = this.getToken();
+        return await executeToolHandler(
+          getInvoiceTool.name,
+          args,
+          token,
+          convertToMcpResponse
+        );
       }
     );
   }
