@@ -123,6 +123,29 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     return this.props.bearerToken;
   }
 
+  // Generic callback factory for tools
+  private createToolCallback(toolName: string) {
+    return async (args: any) => {
+      const token = this.getToken();
+      return await executeToolHandler(
+        toolName,
+        args,
+        token,
+        convertToMcpResponse
+      );
+    };
+  }
+
+  // Generic tool registration helper
+  private registerTool(tool: any, schema: any) {
+    (this.server.tool as any)(
+      tool.name,
+      tool.description,
+      zodSchemaToMcpTool(schema),
+      this.createToolCallback(tool.name)
+    );
+  }
+
   async init() {
     if (this.props.customerContext) {
       process.env.CUSTOMER_CONTEXT = this.props.customerContext;
@@ -144,221 +167,32 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     });
 
     // Cloud Incidents tools
-    this.server.tool(
-      cloudIncidentsTool.name,
-      cloudIncidentsTool.description,
-      zodSchemaToMcpTool(CloudIncidentsArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          cloudIncidentsTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
-
-    this.server.tool(
-      cloudIncidentTool.name,
-      cloudIncidentTool.description,
-      zodSchemaToMcpTool(CloudIncidentArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          cloudIncidentTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
+    this.registerTool(cloudIncidentsTool, CloudIncidentsArgumentsSchema);
+    this.registerTool(cloudIncidentTool, CloudIncidentArgumentsSchema);
 
     // Anomalies tools
-    this.server.tool(
-      anomaliesTool.name,
-      anomaliesTool.description,
-      zodSchemaToMcpTool(AnomaliesArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          anomaliesTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
-
-    this.server.tool(
-      anomalyTool.name,
-      anomalyTool.description,
-      zodSchemaToMcpTool(AnomalyArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          anomalyTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
+    this.registerTool(anomaliesTool, AnomaliesArgumentsSchema);
+    this.registerTool(anomalyTool, AnomalyArgumentsSchema);
 
     // Reports tools
-    this.server.tool(
-      reportsTool.name,
-      reportsTool.description,
-      zodSchemaToMcpTool(ReportsArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          reportsTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
-
-    this.server.tool(
-      runQueryTool.name,
-      runQueryTool.description,
-      zodSchemaToMcpTool(RunQueryArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          runQueryTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
-
-    this.server.tool(
-      getReportResultsTool.name,
-      getReportResultsTool.description,
-      zodSchemaToMcpTool(GetReportResultsArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          getReportResultsTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
+    this.registerTool(reportsTool, ReportsArgumentsSchema);
+    this.registerTool(runQueryTool, RunQueryArgumentsSchema);
+    this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
 
     // Validation tool
-    this.server.tool(
-      validateUserTool.name,
-      validateUserTool.description,
-      zodSchemaToMcpTool(ValidateUserArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          validateUserTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
+    this.registerTool(validateUserTool, ValidateUserArgumentsSchema);
 
     // Dimensions tools
-    this.server.tool(
-      dimensionsTool.name,
-      dimensionsTool.description,
-      zodSchemaToMcpTool(DimensionsArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          dimensionsTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
-
-    this.server.tool(
-      dimensionTool.name,
-      dimensionTool.description,
-      zodSchemaToMcpTool(DimensionArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          dimensionTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
+    this.registerTool(dimensionsTool, DimensionsArgumentsSchema);
+    this.registerTool(dimensionTool, DimensionArgumentsSchema);
 
     // Tickets tools
-    this.server.tool(
-      listTicketsTool.name,
-      listTicketsTool.description,
-      zodSchemaToMcpTool(ListTicketsArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          listTicketsTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
-
-    this.server.tool(
-      createTicketTool.name,
-      createTicketTool.description,
-      zodSchemaToMcpTool(CreateTicketArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          createTicketTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
+    this.registerTool(listTicketsTool, ListTicketsArgumentsSchema);
+    this.registerTool(createTicketTool, CreateTicketArgumentsSchema);
 
     // Invoices tools
-    this.server.tool(
-      listInvoicesTool.name,
-      listInvoicesTool.description,
-      zodSchemaToMcpTool(ListInvoicesArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          listInvoicesTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
-
-    this.server.tool(
-      getInvoiceTool.name,
-      getInvoiceTool.description,
-      zodSchemaToMcpTool(GetInvoiceArgumentsSchema),
-      async (args) => {
-        const token = this.getToken();
-        return await executeToolHandler(
-          getInvoiceTool.name,
-          args,
-          token,
-          convertToMcpResponse
-        );
-      }
-    );
+    this.registerTool(listInvoicesTool, ListInvoicesArgumentsSchema);
+    this.registerTool(getInvoiceTool, GetInvoiceArgumentsSchema);
   }
 }
 
