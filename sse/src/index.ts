@@ -8,12 +8,16 @@ import {
   handleCloudIncidentRequest,
   CloudIncidentsArgumentsSchema,
   CloudIncidentArgumentsSchema,
+  cloudIncidentTool,
+  cloudIncidentsTool,
 } from "../../src/tools/cloudIncidents.js";
 import {
   handleAnomaliesRequest,
   handleAnomalyRequest,
   AnomaliesArgumentsSchema,
   AnomalyArgumentsSchema,
+  anomaliesTool,
+  anomalyTool,
 } from "../../src/tools/anomalies.js";
 import {
   handleReportsRequest,
@@ -22,30 +26,40 @@ import {
   ReportsArgumentsSchema,
   RunQueryArgumentsSchema,
   GetReportResultsArgumentsSchema,
+  reportsTool,
+  runQueryTool,
+  getReportResultsTool,
 } from "../../src/tools/reports.js";
 import {
   handleValidateUserRequest,
   ValidateUserArgumentsSchema,
+  validateUserTool,
 } from "../../src/tools/validateUser.js";
 import {
   handleDimensionsRequest,
   DimensionsArgumentsSchema,
+  dimensionsTool,
 } from "../../src/tools/dimensions.js";
 import {
   handleDimensionRequest,
   DimensionArgumentsSchema,
+  dimensionTool,
 } from "../../src/tools/dimension.js";
 import {
   handleListTicketsRequest,
   handleCreateTicketRequest,
   ListTicketsArgumentsSchema,
   CreateTicketArgumentsSchema,
+  listTicketsTool,
+  createTicketTool,
 } from "../../src/tools/tickets.js";
 import {
   handleListInvoicesRequest,
   handleGetInvoiceRequest,
   ListInvoicesArgumentsSchema,
   GetInvoiceArgumentsSchema,
+  listInvoicesTool,
+  getInvoiceTool,
 } from "../../src/tools/invoices.js";
 import {
   createErrorResponse,
@@ -134,7 +148,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
 
     // Cloud Incidents tools
     this.server.tool(
-      "get_cloud_incidents",
+      cloudIncidentsTool.name,
+      cloudIncidentsTool.description,
       zodSchemaToMcpTool(CloudIncidentsArgumentsSchema),
       async (args) => {
         try {
@@ -156,7 +171,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     );
 
     this.server.tool(
-      "get_cloud_incident",
+      cloudIncidentTool.name,
+      cloudIncidentTool.description,
       zodSchemaToMcpTool(CloudIncidentArgumentsSchema),
       async (args) => {
         try {
@@ -179,7 +195,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
 
     // Anomalies tools
     this.server.tool(
-      "get_anomalies",
+      anomaliesTool.name,
+      anomaliesTool.description,
       zodSchemaToMcpTool(AnomaliesArgumentsSchema),
       async (args) => {
         try {
@@ -201,7 +218,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     );
 
     this.server.tool(
-      "get_anomaly",
+      anomalyTool.name,
+      anomalyTool.description,
       zodSchemaToMcpTool(AnomalyArgumentsSchema),
       async (args) => {
         try {
@@ -224,7 +242,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
 
     // Reports tools
     this.server.tool(
-      "list_reports",
+      reportsTool.name,
+      reportsTool.description,
       zodSchemaToMcpTool(ReportsArgumentsSchema),
       async (args) => {
         try {
@@ -246,7 +265,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     );
 
     this.server.tool(
-      "run_query",
+      runQueryTool.name,
+      runQueryTool.description,
       zodSchemaToMcpTool(RunQueryArgumentsSchema),
       async (args) => {
         try {
@@ -268,7 +288,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     );
 
     this.server.tool(
-      "get_report_results",
+      getReportResultsTool.name,
+      getReportResultsTool.description,
       zodSchemaToMcpTool(GetReportResultsArgumentsSchema),
       async (args) => {
         try {
@@ -291,7 +312,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
 
     // Validation tool
     this.server.tool(
-      "validate_user",
+      validateUserTool.name,
+      validateUserTool.description,
       zodSchemaToMcpTool(ValidateUserArgumentsSchema),
       async (args) => {
         try {
@@ -314,7 +336,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
 
     // Dimensions tools
     this.server.tool(
-      "list_dimensions",
+      dimensionsTool.name,
+      dimensionsTool.description,
       zodSchemaToMcpTool(DimensionsArgumentsSchema),
       async (args) => {
         try {
@@ -336,7 +359,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     );
 
     this.server.tool(
-      "get_dimension",
+      dimensionTool.name,
+      dimensionTool.description,
       zodSchemaToMcpTool(DimensionArgumentsSchema),
       async (args) => {
         try {
@@ -359,7 +383,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
 
     // Tickets tools
     this.server.tool(
-      "list_tickets",
+      listTicketsTool.name,
+      listTicketsTool.description,
       zodSchemaToMcpTool(ListTicketsArgumentsSchema),
       async (args) => {
         try {
@@ -381,7 +406,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     );
 
     this.server.tool(
-      "create_ticket",
+      createTicketTool.name,
+      createTicketTool.description,
       zodSchemaToMcpTool(CreateTicketArgumentsSchema),
       async (args) => {
         try {
@@ -404,7 +430,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
 
     // Invoices tools
     this.server.tool(
-      "list_invoices",
+      listInvoicesTool.name,
+      listInvoicesTool.description,
       zodSchemaToMcpTool(ListInvoicesArgumentsSchema),
       async (args) => {
         try {
@@ -426,7 +453,8 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     );
 
     this.server.tool(
-      "get_invoice",
+      getInvoiceTool.name,
+      getInvoiceTool.description,
       zodSchemaToMcpTool(GetInvoiceArgumentsSchema),
       async (args) => {
         try {
