@@ -67,6 +67,7 @@ import {
   handleGeneralError,
   zodSchemaToMcpTool,
 } from "../../src/utils/util.js";
+import { prompts } from "../../src/utils/prompts.js";
 
 type Props = {
   bearerToken: string;
@@ -145,6 +146,21 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
     if (this.props.customerContext) {
       process.env.CUSTOMER_CONTEXT = this.props.customerContext;
     }
+
+    // Register prompts
+    prompts.forEach((prompt) => {
+      this.server.prompt(prompt.name, prompt.description, async () => ({
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: prompt.text,
+            },
+          },
+        ],
+      }));
+    });
 
     // Cloud Incidents tools
     this.server.tool(
