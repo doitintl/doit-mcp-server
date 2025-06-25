@@ -1,5 +1,18 @@
+import { z } from "zod";
+
 // Constants
 export const DOIT_API_BASE = "https://api.doit.com";
+
+/**
+ * Generic function to convert a zod schema to MCP server tool format
+ * @param schema The zod schema object (e.g., z.object({ ... }))
+ * @returns Object with zod schema properties ready for MCP server tool
+ */
+export function zodSchemaToMcpTool<T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+) {
+  return schema.shape;
+}
 
 /**
  * Creates a standardized error response
