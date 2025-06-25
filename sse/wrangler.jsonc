@@ -8,7 +8,12 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-03-10",
   "compatibility_flags": ["nodejs_compat"],
-  // "routes": ["mcp.doit.com/*"],
+  "routes": [
+    {
+      "pattern": "mcp.doit.com/*",
+      "zone_name": "doit.com"
+    }
+  ],
   "migrations": [
     {
       "tag": "v1",
