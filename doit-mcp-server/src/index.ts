@@ -48,6 +48,10 @@ import {
   listInvoicesTool,
   getInvoiceTool,
 } from "../../src/tools/invoices.js";
+import {
+  ChangeCustomerArgumentsSchema,
+  changeCustomerTool,
+} from "../../src/tools/changeCustomer.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -76,10 +80,37 @@ export class DoitMCPAgent extends McpAgent {
     return this.props.apiKey as string;
   }
 
+  // Persist props to Durable Object storage
+  private async saveProps(): Promise<void> {
+    if (this.ctx?.storage) {
+      await this.ctx.storage.put("persistedProps", {
+        customerContext: this.props.customerContext,
+        lastUpdated: Date.now(),
+      });
+    }
+  }
+
+  // Load props from Durable Object storage
+  private async loadPersistedProps(): Promise<void> {
+    if (this.ctx?.storage) {
+      const persistedProps = await this.ctx.storage.get<{
+        apiKey: string;
+        customerContext: string;
+        lastUpdated: number;
+      }>("persistedProps");
+      if (persistedProps) {
+        console.log("Loading persisted props:", persistedProps);
+        // Update props with persisted values
+        this.props.customerContext = persistedProps.customerContext;
+      }
+    }
+  }
+
   // Generic callback factory for tools
   private createToolCallback(toolName: string) {
     return async (args: any) => {
       const token = this.getToken();
+
       const argsWithCustomerContext = {
         ...args,
         customerContext: this.props.customerContext,
@@ -90,6 +121,32 @@ export class DoitMCPAgent extends McpAgent {
         token,
         convertToMcpResponse
       );
+    };
+  }
+
+  // Special callback for changeCustomer tool
+  private createChangeCustomerCallback() {
+    return async (args: any) => {
+      const token = this.getToken();
+      const { handleChangeCustomerRequest } = await import(
+        "../../src/tools/changeCustomer.js"
+      );
+
+      // Create update function to modify the customer context
+      const updateCustomerContext = async (newContext: string) => {
+        this.props.customerContext = newContext;
+
+        // Persist the updated props
+        await this.saveProps();
+      };
+
+      const response = await handleChangeCustomerRequest(
+        args,
+        token,
+        updateCustomerContext
+      );
+
+      return convertToMcpResponse(response);
     };
   }
 
@@ -105,6 +162,16 @@ export class DoitMCPAgent extends McpAgent {
 
   async init() {
     console.log("Initializing Doit MCP Agent", this.props.customerContext);
+
+    // Load persisted props first
+    await this.loadPersistedProps();
+
+    console.log("After loading persisted props:", this.props.customerContext);
+
+    // Save current props if they exist (for initial OAuth setup)
+    if (this.props.apiKey && this.props.customerContext) {
+      await this.saveProps();
+    }
 
     // Register prompts
     prompts.forEach((prompt) => {
@@ -148,6 +215,16 @@ export class DoitMCPAgent extends McpAgent {
     // Invoices tools
     this.registerTool(listInvoicesTool, ListInvoicesArgumentsSchema);
     this.registerTool(getInvoiceTool, GetInvoiceArgumentsSchema);
+
+    // Change Customer tool (requires special handling)
+    if (this.props.isDoitUser === "true") {
+      (this.server.tool as any)(
+        changeCustomerTool.name,
+        changeCustomerTool.description,
+        zodSchemaToMcpTool(ChangeCustomerArgumentsSchema),
+        this.createChangeCustomerCallback()
+      );
+    }
   }
 }
 

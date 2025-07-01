@@ -297,7 +297,7 @@ export const parseApproveFormBody = async (body: {
   const action = body.action as string;
   const apiKey = body.apiKey as string;
   const customerContext = body.customerContext as string;
-
+  const isDoitUser = body.isDoitUser as string;
   let oauthReqInfo: AuthRequest | null = null;
   try {
     oauthReqInfo = JSON.parse(body.oauthReqInfo as string) as AuthRequest;
@@ -305,7 +305,7 @@ export const parseApproveFormBody = async (body: {
     oauthReqInfo = null;
   }
 
-  return { action, oauthReqInfo, apiKey, customerContext };
+  return { action, oauthReqInfo, apiKey, customerContext, isDoitUser };
 };
 
 export const renderCustomerContextScreen = async (
@@ -335,7 +335,7 @@ export const renderCustomerContextScreen = async (
           value="${JSON.stringify(oauthReqInfo)}"
         />
         <input type="hidden" name="apiKey" value="${apiKey}" />
-        <input type="hidden" name="action" value="approve" />
+        <input type="hidden" name="isDoitUser" value="true" />
         <input
           type="text"
           name="customerContext"

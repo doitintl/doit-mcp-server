@@ -69,7 +69,7 @@ app.get("/authorize", async (c) => {
 
 // Reusable approve handler function
 async function handleApprove(c: any) {
-  const { action, oauthReqInfo, apiKey, customerContext } =
+  const { action, oauthReqInfo, apiKey, customerContext, isDoitUser } =
     await parseApproveFormBody(await c.req.parseBody());
 
   if (!oauthReqInfo) {
@@ -88,6 +88,7 @@ async function handleApprove(c: any) {
     props: {
       apiKey,
       customerContext,
+      isDoitUser,
     },
   });
 
