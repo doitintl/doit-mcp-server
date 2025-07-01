@@ -58,11 +58,14 @@ export const listTicketsTool = {
 // Handler for the tool
 export async function handleListTicketsRequest(args: any, token: string) {
   try {
+    const { customerContext } = args;
     const params = new URLSearchParams();
     if (args.pageToken) params.append("pageToken", args.pageToken);
     if (args.pageSize) params.append("pageSize", args.pageSize.toString());
     const url = `https://api.doit.com/support/v1/tickets?${params.toString()}`;
-    const data = await makeDoitRequest<TicketsResponse>(url, token);
+    const data = await makeDoitRequest<TicketsResponse>(url, token, {
+      customerContext,
+    });
     if (!data) {
       return createErrorResponse("Failed to fetch tickets: No data returned");
     }
@@ -148,10 +151,12 @@ export const CreateTicketArgumentsSchema = z.object({
 // Handler for creating a ticket
 export async function handleCreateTicketRequest(args: any, token: string) {
   try {
+    const { customerContext } = args;
     const url = `https://api.doit.com/support/v1/tickets`;
     const response = await makeDoitRequest(url, token, {
       method: "POST",
       body: { ticket: args.ticket },
+      customerContext,
     });
     if (!response) {
       return createErrorResponse("Failed to create ticket: No data returned");

@@ -1,5 +1,7 @@
+import app from "./app";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 // Import DoiT tool handlers
 import {
@@ -46,34 +48,11 @@ import {
   listInvoicesTool,
   getInvoiceTool,
 } from "../../src/tools/invoices.js";
-import { zodSchemaToMcpTool } from "../../src/utils/util.js";
+
+import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
+import { zodSchemaToMcpTool } from "../../src/utils/util.js";
 import { prompts } from "../../src/utils/prompts.js";
-
-type Props = {
-  bearerToken: string;
-  customerContext: string | null;
-};
-
-type State = null;
-
-// Define CORS options
-const corsOptions = {
-  origin: "*", // Allow all origins - adjust as needed for security
-  methods: "GET, POST, PUT, DELETE, OPTIONS",
-  headers: "Content-Type, Authorization, X-Requested-With",
-  maxAge: 86400, // 24 hours
-};
-
-// Helper function to create CORS headers
-function getCorsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": corsOptions.origin,
-    "Access-Control-Allow-Methods": corsOptions.methods,
-    "Access-Control-Allow-Headers": corsOptions.headers,
-    "Access-Control-Max-Age": corsOptions.maxAge.toString(),
-  };
-}
 
 // Helper function to convert DoiT handler response to MCP format
 function convertToMcpResponse(doitResponse: any) {
@@ -86,50 +65,28 @@ function convertToMcpResponse(doitResponse: any) {
   };
 }
 
-// Helper function to extract token from request
-function getTokenFromRequest(request: Request): string {
-  const authHeader = request.headers.get("Authorization");
-  if (authHeader) {
-    // Handle different authorization header formats
-    if (authHeader.startsWith("Bearer ")) {
-      return authHeader.substring(7);
-    } else if (authHeader.startsWith("Token ")) {
-      return authHeader.substring(6);
-    } else {
-      // Assume the entire header value is the token
-      return authHeader;
-    }
-  }
-
-  // Fallback to environment variable
-  const envToken = process.env.DOIT_API_KEY;
-  if (!envToken) {
-    throw new Error(
-      "getTokenFromRequest - No DoiT API token found. Please provide Authorization header or set DOIT_API_KEY environment variable."
-    );
-  }
-  return envToken;
-}
-
-// Define our MCP agent with DoiT tools
-export class DoitMCP extends McpAgent<Env, State, Props> {
+export class DoitMCPAgent extends McpAgent {
   server = new McpServer({
-    name: "DoiT MCP Server",
+    name: "Doit",
     version: "1.0.0",
   });
 
   // Helper method to get the current token
   private getToken(): string {
-    return this.props.bearerToken;
+    return this.props.apiKey as string;
   }
 
   // Generic callback factory for tools
   private createToolCallback(toolName: string) {
     return async (args: any) => {
       const token = this.getToken();
+      const argsWithCustomerContext = {
+        ...args,
+        customerContext: this.props.customerContext,
+      };
       return await executeToolHandler(
         toolName,
-        args,
+        argsWithCustomerContext,
         token,
         convertToMcpResponse
       );
@@ -147,9 +104,7 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
   }
 
   async init() {
-    if (this.props.customerContext) {
-      process.env.CUSTOMER_CONTEXT = this.props.customerContext;
-    }
+    console.log("Initializing Doit MCP Agent", this.props.customerContext);
 
     // Register prompts
     prompts.forEach((prompt) => {
@@ -196,46 +151,25 @@ export class DoitMCP extends McpAgent<Env, State, Props> {
   }
 }
 
-export default {
-  fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    const url = new URL(request.url);
+async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
+  const { pathname } = new URL(req.url);
 
-    // Handle preflight OPTIONS requests
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: getCorsHeaders(),
-      });
-    }
+  if (pathname === "/sse" || pathname === "/sse/message") {
+    return DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
+  }
+  if (pathname === "/mcp") {
+    return DoitMCPAgent.serve("/mcp").fetch(req, env, ctx);
+  }
+  return new Response("Not found", { status: 404 });
+}
 
-    // Extract token from request and set it in environment variable
-    try {
-      const token = getTokenFromRequest(request);
-      ctx.props = {
-        bearerToken: token,
-        customerContext: url.searchParams.get("customerContext") || null,
-      };
-    } catch (error) {
-      return new Response(JSON.stringify({ error: (error as Error).message }), {
-        status: 401,
-        headers: {
-          "Content-Type": "application/json",
-          ...getCorsHeaders(),
-        },
-      });
-    }
-
-    if (url.pathname === "/sse" || url.pathname === "/sse/message") {
-      return DoitMCP.serveSSE("/sse", { corsOptions }).fetch(request, env, ctx);
-    }
-
-    if (url.pathname === "/mcp") {
-      return DoitMCP.serve("/mcp", { corsOptions }).fetch(request, env, ctx);
-    }
-
-    return new Response("Not found", {
-      status: 404,
-      headers: getCorsHeaders(),
-    });
-  },
-};
+// Export the OAuth handler as the default
+export default new OAuthProvider({
+  apiHandler: { fetch: handleMcpRequest as any },
+  apiRoute: ["/sse", "/mcp"],
+  // @ts-expect-error
+  defaultHandler: app,
+  authorizeEndpoint: "/authorize",
+  tokenEndpoint: "/token",
+  clientRegistrationEndpoint: "/register",
+});

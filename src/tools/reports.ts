@@ -448,6 +448,7 @@ export async function handleReportsRequest(args: any, token: string) {
   try {
     // Validate arguments
     const { filter, pageToken } = ReportsArgumentsSchema.parse(args);
+    const { customerContext } = args;
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
@@ -467,7 +468,7 @@ export async function handleReportsRequest(args: any, token: string) {
       const reportsData = await makeDoitRequest<ReportsResponse>(
         reportsUrl,
         token,
-        { method: "GET" }
+        { method: "GET", customerContext }
       );
 
       if (!reportsData) {
@@ -512,7 +513,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
   try {
     // Validate arguments
     const { config } = RunQueryArgumentsSchema.parse(args);
-
+    const { customerContext } = args;
     // Create API URL for the query endpoint
     const queryUrl = `${DOIT_API_BASE}/analytics/v1/reports/query`;
 
@@ -525,6 +526,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
           method: "POST",
           body: { config },
           appendParams: true,
+          customerContext,
         }
       );
 
@@ -596,7 +598,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
   try {
     // Validate arguments
     const { id } = GetReportResultsArgumentsSchema.parse(args);
-
+    const { customerContext } = args;
     // Create API URL
     const reportUrl = `${DOIT_API_BASE}/analytics/v1/reports/${encodeURIComponent(
       id
@@ -606,7 +608,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
       const reportData = await makeDoitRequest<GetReportResultsResponse>(
         reportUrl,
         token,
-        { method: "GET" }
+        { method: "GET", customerContext }
       );
 
       if (!reportData) {

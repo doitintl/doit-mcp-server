@@ -1,3 +1,9 @@
+node_modules
+
+.nx
+.idea
+.vscode
+.zed
 # Logs
 
 logs

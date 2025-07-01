@@ -56,12 +56,15 @@ export const listInvoicesTool = {
 // Handler for the tool
 export async function handleListInvoicesRequest(args: any, token: string) {
   try {
+    const { customerContext } = args;
     const params = new URLSearchParams();
     if (args.pageToken) params.append("pageToken", args.pageToken);
     const url = `https://api.doit.com/billing/v1/invoices${
       params.toString() ? `?${params.toString()}` : ""
     }`;
-    const data = await makeDoitRequest<InvoicesResponse>(url, token);
+    const data = await makeDoitRequest<InvoicesResponse>(url, token, {
+      customerContext,
+    });
     if (!data) {
       return createErrorResponse("Failed to fetch invoices: No data returned");
     }
@@ -105,6 +108,7 @@ export const getInvoiceTool = {
 // Handler for the tool
 export async function handleGetInvoiceRequest(args: any, token: string) {
   try {
+    const { customerContext } = args;
     if (!args.id) {
       return createErrorResponse("Invoice ID is required");
     }
@@ -113,6 +117,7 @@ export async function handleGetInvoiceRequest(args: any, token: string) {
     )}`;
     const data: Invoice | null = await makeDoitRequest<Invoice>(url, token, {
       appendParams: true,
+      customerContext,
     });
     if (!data) {
       return createErrorResponse("Failed to fetch invoice: No data returned");

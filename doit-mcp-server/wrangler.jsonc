@@ -16,20 +16,30 @@
   ],
   "migrations": [
     {
-      "tag": "v1",
-      "new_sqlite_classes": ["DoitMCP"]
+      "new_sqlite_classes": ["DoitMCPAgent"],
+      "tag": "v1"
     }
   ],
   "durable_objects": {
     "bindings": [
       {
-        "class_name": "DoitMCP",
+        "class_name": "DoitMCPAgent",
         "name": "MCP_OBJECT"
       }
     ]
   },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "8e750e0c6acd4129b2b069f648fc3d0b"
+    }
+  ],
   "observability": {
     "enabled": true
+  },
+  "assets": {
+    "directory": "./static/",
+    "binding": "ASSETS"
   }
   /**
    * Smart Placement
