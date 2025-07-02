@@ -5,6 +5,7 @@ import {
   formatZodError,
   handleGeneralError,
 } from "../utils/util.js";
+import { handleValidateUserRequest } from "./validateUser.js";
 
 // Schema definition
 export const ChangeCustomerArgumentsSchema = z.object({
@@ -57,14 +58,20 @@ export async function handleChangeCustomerRequest(
       await updateCustomerContext(newContext);
     }
 
+    // Verify that the new context is valid
+    const newCustomerDomain = await handleValidateUserRequest(
+      { customerContext: newContext }, // Validate doers
+      token
+    );
+
+    const domain = newCustomerDomain.content[0].text.split("Domain: ")[1];
+
     // Create response
     const response: ChangeCustomerResponse = {
       success: true,
       previousContext,
       newContext,
-      message: `Customer context successfully changed${
-        previousContext ? ` from '${previousContext}'` : ""
-      } to '${newContext}'`,
+      message: `Customer context successfully changed to '${domain}'`,
     };
 
     return createSuccessResponse(response.message);
