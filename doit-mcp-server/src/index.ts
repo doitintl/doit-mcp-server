@@ -83,25 +83,20 @@ export class DoitMCPAgent extends McpAgent {
   // Persist props to Durable Object storage
   private async saveProps(): Promise<void> {
     if (this.ctx?.storage) {
-      await this.ctx.storage.put("persistedProps", {
-        customerContext: this.props.customerContext,
-        lastUpdated: Date.now(),
-      });
+      await this.ctx.storage.put("persistedProps", this.props.customerContext);
     }
   }
 
   // Load props from Durable Object storage
   private async loadPersistedProps(): Promise<void> {
     if (this.ctx?.storage) {
-      const persistedProps = await this.ctx.storage.get<{
-        apiKey: string;
-        customerContext: string;
-        lastUpdated: number;
-      }>("persistedProps");
+      const persistedProps = await this.ctx.storage.get<string>(
+        "persistedProps"
+      );
       if (persistedProps) {
         console.log("Loading persisted props:", persistedProps);
         // Update props with persisted values
-        this.props.customerContext = persistedProps.customerContext;
+        this.props.customerContext = persistedProps;
       }
     }
   }
