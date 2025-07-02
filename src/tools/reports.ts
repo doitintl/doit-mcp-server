@@ -121,6 +121,7 @@ export const runQueryTool = {
   name: "run_query",
   description: `Runs a report query with the specified configuration without persisting it. 
     Fields that are not populated will use their default values if needed.
+    You must use the 'limit' field to limit the number of rows in the report, maximum is 25.
     Use the dimension tool before running the query to get the list of dimensions and their types.
     If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
     Example for cost report:
