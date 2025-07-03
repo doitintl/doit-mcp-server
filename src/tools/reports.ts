@@ -215,6 +215,21 @@ export const runQueryTool = {
               },
             },
           },
+          sortDimensions: {
+            type: "string",
+            enum: ['asc', 'desc'],
+            description: "Sort order for dimensions (asc or desc)",
+          },
+          advancedAnalysis: {
+            type: "object",
+            description: "Advanced analysis configuration",
+            properties: {
+              forecast: { type: "boolean" },
+              notTrending: { type: "boolean" },
+              trendingDown: { type: "boolean" },
+              trendingUp: { type: "boolean" }
+            },
+          },
           timeRange: {
             type: "object",
             description: "The time range for the report",
@@ -269,6 +284,11 @@ export const runQueryTool = {
                   items: { type: "string" },
                   description: "Values to filter on",
                 },
+                mode: {
+                  type: "string",
+                  enum: ['contains', 'is', 'is not', 'starts withs', 'does not contain', 'matches regex', 'does not match regex'],
+                  description: "Filter mode (contains, is, is not, starts with, does not contain, matches regex, does not match regex)",
+                }
               },
             },
           },
@@ -297,6 +317,11 @@ export const runQueryTool = {
                 },
               },
             },
+          },
+          sortGroups: {
+            type: "string",
+            enum: ['asc', 'desc'],
+            description: "Sor order for groups (asc or desc)"
           },
           layout: {
             type: "string",
