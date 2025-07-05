@@ -128,29 +128,16 @@ app.post("/customer-context", async (c) => {
       );
     }
 
-    if (!payload.DoitEmployee) {
-      // request validation for non-doit employees
-      const validatePromise = await handleValidateUserRequest({}, apiKey);
-      const result = validatePromise.content[0].text;
+    const doitEmployeeContext = payload.DoitEmployee
+      ? {
+          customerContext: "EE8CtpzYiKp0dVAESVrB",
+        }
+      : {};
 
-      if (!result.toLowerCase().includes(payload.sub)) {
-        return await renderAuthorizationRejection(
-          c,
-          oauthReqInfo?.redirectUri || "/"
-        );
-      }
-
-      return await handleApprove(c);
-    }
-
-    // request validation for doit employees
     const validatePromise = await handleValidateUserRequest(
-      {
-        customerContext: "EE8CtpzYiKp0dVAESVrB",
-      },
+      doitEmployeeContext,
       apiKey
     );
-
     const result = validatePromise.content[0].text;
 
     if (!result.toLowerCase().includes(payload.sub)) {
@@ -158,6 +145,11 @@ app.post("/customer-context", async (c) => {
         c,
         oauthReqInfo?.redirectUri || "/"
       );
+    }
+
+    if (!payload.DoitEmployee) {
+      // request validation for non-doit employees
+      return await handleApprove(c);
     }
 
     const content = await renderCustomerContextScreen(

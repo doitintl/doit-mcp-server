@@ -66,13 +66,21 @@ export class ContextStorage extends DurableObject {
   }
 
   async saveContext(customerContext: string): Promise<void> {
-    console.log("Saving customer context:", customerContext, this.ctx.id);
+    console.log(
+      "Saving customer context:",
+      customerContext,
+      this.ctx.id.toString().slice(-6)
+    );
     await this.ctx.storage.put("customerContext", customerContext);
   }
 
   async loadContext(): Promise<string | null> {
     const context = await this.ctx.storage.get<string>("customerContext");
-    console.log("Loaded customer context:", context, this.ctx.id);
+    console.log(
+      "Loaded customer context:",
+      context,
+      this.ctx.id.toString().slice(-6)
+    );
     return context || null;
   }
 }

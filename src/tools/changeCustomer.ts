@@ -15,8 +15,6 @@ export const ChangeCustomerArgumentsSchema = z.object({
 // Interfaces
 export interface ChangeCustomerResponse {
   success: boolean;
-  previousContext?: string;
-  newContext: string;
   message: string;
 }
 
@@ -53,24 +51,28 @@ export async function handleChangeCustomerRequest(
 
     const previousContext = args.customerContext;
 
-    // Update the customer context if callback is provided
-    if (updateCustomerContext) {
-      await updateCustomerContext(newContext);
-    }
-
     // Verify that the new context is valid
     const newCustomerDomain = await handleValidateUserRequest(
       { customerContext: newContext }, // Validate doers
       token
     );
 
+    if (newCustomerDomain.content[0].text.toLowerCase().includes("failed")) {
+      return createErrorResponse(
+        "Customer context is invalid. Please try again with a valid customer id."
+      );
+    }
+
+    // Update the customer context if callback is provided
+    if (updateCustomerContext) {
+      await updateCustomerContext(newContext);
+    }
+
     const domain = newCustomerDomain.content[0].text.split("Domain: ")[1];
 
     // Create response
     const response: ChangeCustomerResponse = {
       success: true,
-      previousContext,
-      newContext,
       message: `Customer context successfully changed to '${domain}'`,
     };
 
