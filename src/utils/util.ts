@@ -138,7 +138,6 @@ export async function makeDoitRequest<T>(
 
   if (appendParams) {
     url = appendUrlParameters(url, customerContext);
-    console.log("url", url);
   }
 
   try {
@@ -155,6 +154,12 @@ export async function makeDoitRequest<T>(
     // add mcp params to the url
     url += `&mcp=true`;
 
+    if (!process.env.CUSTOMER_CONTEXT) {
+      // request from the sse server
+      url += `&sse=true`;
+    }
+
+    console.log("url", url);
     const response = await fetch(url, requestOptions);
 
     if (!response.ok) {
