@@ -18,6 +18,10 @@
     {
       "new_sqlite_classes": ["DoitMCPAgent"],
       "tag": "v1"
+    },
+    {
+      "new_sqlite_classes": ["ContextStorage"],
+      "tag": "v2"
     }
   ],
   "durable_objects": {
@@ -25,6 +29,10 @@
       {
         "class_name": "DoitMCPAgent",
         "name": "MCP_OBJECT"
+      },
+      {
+        "class_name": "ContextStorage",
+        "name": "CONTEXT_STORAGE"
       }
     ]
   },

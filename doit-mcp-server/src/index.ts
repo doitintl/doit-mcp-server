@@ -2,6 +2,7 @@ import app from "./app";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { DurableObject } from "cloudflare:workers";
 
 // Import DoiT tool handlers
 import {
@@ -58,6 +59,24 @@ import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
 import { prompts } from "../../src/utils/prompts.js";
 
+// Context Storage Durable Object
+export class ContextStorage extends DurableObject {
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+  }
+
+  async saveContext(customerContext: string): Promise<void> {
+    console.log("Saving customer context:", customerContext, this.ctx.id);
+    await this.ctx.storage.put("customerContext", customerContext);
+  }
+
+  async loadContext(): Promise<string | null> {
+    const context = await this.ctx.storage.get<string>("customerContext");
+    console.log("Loaded customer context:", context, this.ctx.id);
+    return context || null;
+  }
+}
+
 // Helper function to convert DoiT handler response to MCP format
 function convertToMcpResponse(doitResponse: any) {
   if (doitResponse.content && Array.isArray(doitResponse.content)) {
@@ -80,35 +99,44 @@ export class DoitMCPAgent extends McpAgent {
     return this.props.apiKey as string;
   }
 
-  // Persist props to Durable Object storage
+  // Persist props to Context Storage Durable Object
   private async saveProps(): Promise<void> {
-    if (this.ctx?.storage) {
-      await this.ctx.storage.put("persistedProps", this.props.customerContext);
+    const env = this.env as Env;
+    const apiKey = this.props.apiKey as string;
+    const customerContext = this.props.customerContext as string;
+    if (apiKey && env?.CONTEXT_STORAGE) {
+      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
+      const contextStorage = env.CONTEXT_STORAGE.get(id);
+      await contextStorage.saveContext(customerContext);
     }
   }
 
-  // Load props from Durable Object storage
-  private async loadPersistedProps(): Promise<void> {
-    if (this.ctx?.storage) {
-      const persistedProps = await this.ctx.storage.get<string>(
-        "persistedProps"
-      );
+  // Load props from Context Storage Durable Object
+  private async loadPersistedProps(): Promise<string | null> {
+    const env = this.env as Env;
+    const apiKey = this.props.apiKey as string;
+    if (apiKey && env?.CONTEXT_STORAGE) {
+      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
+      const contextStorage = env.CONTEXT_STORAGE.get(id);
+      const persistedProps = await contextStorage.loadContext();
       if (persistedProps) {
-        console.log("Loading persisted props:", persistedProps);
         // Update props with persisted values
         this.props.customerContext = persistedProps;
+        return persistedProps;
       }
     }
+    return (this.props.customerContext as string) || null;
   }
 
   // Generic callback factory for tools
   private createToolCallback(toolName: string) {
     return async (args: any) => {
       const token = this.getToken();
+      const customerContext = await this.loadPersistedProps();
 
       const argsWithCustomerContext = {
         ...args,
-        customerContext: this.props.customerContext,
+        customerContext,
       };
       return await executeToolHandler(
         toolName,
