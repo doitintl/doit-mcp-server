@@ -176,3 +176,42 @@ export function formatDate(timestamp: number): string {
   if (!timestamp) return "";
   return new Date(timestamp).toISOString().split("T")[0];
 }
+
+/**
+ * Decodes a JWT token without validation
+ * @param token The JWT token string
+ * @returns The decoded JWT object containing header, payload, and signature
+ */
+export function decodeJWT(token: string): {
+  header: any;
+  payload: any;
+  signature: string;
+} | null {
+  try {
+    // Split the token into its three parts
+    const parts = token.split(".");
+
+    if (parts.length !== 3) {
+      console.error("Invalid JWT format: token must have 3 parts");
+      return null;
+    }
+
+    // Decode header (first part)
+    const header = JSON.parse(atob(parts[0]));
+
+    // Decode payload (second part)
+    const payload = JSON.parse(atob(parts[1]));
+
+    // Keep signature as is (third part)
+    const signature = parts[2];
+
+    return {
+      header,
+      payload,
+      signature,
+    };
+  } catch (error) {
+    console.error("Error decoding JWT:", error);
+    return null;
+  }
+}

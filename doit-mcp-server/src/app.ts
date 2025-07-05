@@ -11,6 +11,7 @@ import {
 } from "./utils";
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { handleValidateUserRequest } from "../../src/tools/validateUser";
+import { decodeJWT } from "../../src/utils/util";
 
 export type Bindings = Env & {
   OAUTH_PROVIDER: OAuthHelpers;
@@ -100,65 +101,78 @@ async function handleApprove(c: any) {
   );
 }
 
+// Helper function to render authorization rejection response
+async function renderAuthorizationRejection(c: any, redirectUri: string) {
+  return c.html(
+    layout(
+      await renderAuthorizationRejectedContent(redirectUri),
+      "DoiT MCP Remote - Authorization Status"
+    )
+  );
+}
+
 app.post("/customer-context", async (c) => {
   const { action, oauthReqInfo, apiKey } = await parseApproveFormBody(
     await c.req.parseBody()
   );
 
-  let isDoitUser = false;
-  const validatePromises = [
-    handleValidateUserRequest({}, apiKey),
-    handleValidateUserRequest(
-      { customerContext: "EE8CtpzYiKp0dVAESVrB" }, // Validate doers
-      apiKey
-    ),
-  ];
+  try {
+    const jwtInfo = decodeJWT(apiKey);
+    const payload = jwtInfo?.payload;
 
-  return Promise.allSettled(validatePromises)
-    .then(async (results) => {
-      let allFailed = true;
-      for (const res of results) {
-        if (res.status === "fulfilled") {
-          const result = res.value;
-          if (result.content[0].text.includes("Domain: doit.com")) {
-            isDoitUser = true;
-          }
-          if (!result.content[0].text.includes("Failed")) {
-            allFailed = false;
-          }
-        }
-      }
-      if (allFailed) {
-        return c.html(
-          layout(
-            await renderAuthorizationRejectedContent(
-              oauthReqInfo?.redirectUri || "/"
-            ),
-            "MCP Remote Auth Demo - Authorization Status"
-          )
+    if (!jwtInfo || !payload) {
+      // If the JWT is invalid, reject the authorization request
+      return await renderAuthorizationRejection(
+        c,
+        oauthReqInfo?.redirectUri || "/"
+      );
+    }
+
+    if (!payload.DoitEmployee) {
+      // request validation for non-doit employees
+      const validatePromise = await handleValidateUserRequest({}, apiKey);
+      const result = validatePromise.content[0].text;
+
+      if (!result.toLowerCase().includes(payload.sub)) {
+        return await renderAuthorizationRejection(
+          c,
+          oauthReqInfo?.redirectUri || "/"
         );
       }
-      if (!isDoitUser) {
-        // Forward to approve logic
-        return await handleApprove(c);
-      }
-      const content = await renderCustomerContextScreen(
-        action,
-        oauthReqInfo,
-        apiKey
+
+      return await handleApprove(c);
+    }
+
+    // request validation for doit employees
+    const validatePromise = await handleValidateUserRequest(
+      {
+        customerContext: "EE8CtpzYiKp0dVAESVrB",
+      },
+      apiKey
+    );
+
+    const result = validatePromise.content[0].text;
+
+    if (!result.toLowerCase().includes(payload.sub)) {
+      return await renderAuthorizationRejection(
+        c,
+        oauthReqInfo?.redirectUri || "/"
       );
-      return c.html(layout(content, "DoiT MCP Remote - Customer Context"));
-    })
-    .catch(async (error) => {
-      return c.html(
-        layout(
-          await renderAuthorizationRejectedContent(
-            oauthReqInfo?.redirectUri || "/"
-          ),
-          "MCP Remote Auth Demo - Authorization Status"
-        )
-      );
-    });
+    }
+
+    const content = await renderCustomerContextScreen(
+      action,
+      oauthReqInfo,
+      apiKey
+    );
+    return c.html(layout(content, "DoiT MCP Remote - Customer Context"));
+  } catch (error) {
+    console.error("Error decoding JWT:", error);
+    return await renderAuthorizationRejection(
+      c,
+      oauthReqInfo?.redirectUri || "/"
+    );
+  }
 });
 
 // The /authorize page has a form that will POST to /approve
