@@ -57,6 +57,12 @@ import {
   getInvoiceTool,
   handleGetInvoiceRequest,
 } from "./tools/invoices.js";
+import {
+  listAllocationsTool,
+  handleListAllocationsRequest,
+  getAllocationTool,
+  handleGetAllocationRequest,
+} from "./tools/allocations.js";
 
 dotenv.config();
 
@@ -93,6 +99,8 @@ function createServer() {
         createTicketTool,
         listInvoicesTool,
         getInvoiceTool,
+        listAllocationsTool,
+        getAllocationTool,
       ],
     };
   });
@@ -184,4 +192,6 @@ export {
   handleGeneralError,
   handleListInvoicesRequest,
   handleGetInvoiceRequest,
+  handleListAllocationsRequest,
+  handleGetAllocationRequest,
 };

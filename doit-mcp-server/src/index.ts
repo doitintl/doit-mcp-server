@@ -50,6 +50,12 @@ import {
   getInvoiceTool,
 } from "../../src/tools/invoices.js";
 import {
+  ListAllocationsArgumentsSchema,
+  GetAllocationArgumentsSchema,
+  listAllocationsTool,
+  getAllocationTool,
+} from "../../src/tools/allocations.js";
+import {
   ChangeCustomerArgumentsSchema,
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
@@ -249,6 +255,10 @@ export class DoitMCPAgent extends McpAgent {
     // Invoices tools
     this.registerTool(listInvoicesTool, ListInvoicesArgumentsSchema);
     this.registerTool(getInvoiceTool, GetInvoiceArgumentsSchema);
+
+    // Allocations tools
+    this.registerTool(listAllocationsTool, ListAllocationsArgumentsSchema);
+    this.registerTool(getAllocationTool, GetAllocationArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
