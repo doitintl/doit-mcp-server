@@ -261,11 +261,16 @@ export const renderApproveContent = async (
       <a
         href="${redirectUrl}"
         class="inline-block py-2 px-4 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-colors"
+        id="return-home-link"
+        style="display: none;"
       >
         Return to Home
       </a>
       ${raw(`
 				<script>
+					setTimeout(() => {
+						document.getElementById('return-home-link').style.display = 'inline-block';
+					}, 1400);
 					setTimeout(() => {
 						window.location.href = "${redirectUrl}";
 					}, 2000);

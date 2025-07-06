@@ -71,6 +71,7 @@ export class ContextStorage extends DurableObject {
       customerContext,
       this.ctx.id.toString().slice(-6)
     );
+
     await this.ctx.storage.put("customerContext", customerContext);
   }
 
@@ -140,7 +141,9 @@ export class DoitMCPAgent extends McpAgent {
   private createToolCallback(toolName: string) {
     return async (args: any) => {
       const token = this.getToken();
-      const customerContext = await this.loadPersistedProps();
+      const persistedCustomerContext = await this.loadPersistedProps();
+      const customerContext =
+        persistedCustomerContext || (this.props.customerContext as string);
 
       const argsWithCustomerContext = {
         ...args,
@@ -271,8 +274,22 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
   return new Response("Not found", { status: 404 });
 }
 
-// Export the OAuth handler as the default
-export default new OAuthProvider({
+// Helper function to extract token from Authorization header
+function extractTokenFromAuthHeader(authHeader: string): string | null {
+  if (!authHeader) return null;
+
+  // Support both "Bearer <token>" and just "<token>" formats
+  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (bearerMatch) {
+    return bearerMatch[1];
+  }
+
+  // If no Bearer prefix, assume the whole header is the token
+  return authHeader;
+}
+
+// Create the OAuth provider instance
+const oauthProvider = new OAuthProvider({
   apiHandler: { fetch: handleMcpRequest as any },
   apiRoute: ["/sse", "/mcp"],
   // @ts-expect-error
@@ -280,4 +297,65 @@ export default new OAuthProvider({
   authorizeEndpoint: "/authorize",
   tokenEndpoint: "/token",
   clientRegistrationEndpoint: "/register",
+  accessTokenTTL: 1000 * 60 * 60 * 24 * 24, // 24 days (2,073,600,000 - within 32-bit range)
+  tokenExchangeCallback: async ({ grantType, props }) => {
+    console.log("tokenExchangeCallback", grantType, props);
+    if (grantType === "refresh_token" || grantType === "authorization_code") {
+      return {
+        newProps: {
+          ...props,
+          customerContext: props.customerContext,
+          apiKey: props.apiKey,
+          isDoitUser: props.isDoitUser,
+        },
+      };
+    }
+  },
 });
+
+// Main request handler that checks for Authorization header
+async function handleRequest(
+  req: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response> {
+  const url = new URL(req.url);
+  const authHeader = req.headers.get("Authorization");
+
+  // Check if this is an API route and has Authorization header
+  if (
+    (url.pathname === "/sse" ||
+      url.pathname === "/sse/message" ||
+      url.pathname === "/mcp") &&
+    authHeader
+  ) {
+    const token = extractTokenFromAuthHeader(authHeader);
+    const customerContext = url.searchParams.get("customerContext") || "";
+
+    if (token && customerContext) {
+      console.log("Using Authorization header for authentication");
+
+      ctx.props = {
+        ...ctx.props,
+        apiKey: token,
+        customerContext: customerContext,
+      };
+
+      // Handle the request directly with the modified request
+      if (url.pathname === "/sse" || url.pathname === "/sse/message") {
+        return DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
+      }
+      if (url.pathname === "/mcp") {
+        return DoitMCPAgent.serve("/mcp").fetch(req, env, ctx);
+      }
+    }
+  }
+
+  // If no Authorization header or not an API route, use the OAuth provider
+  return oauthProvider.fetch(req, env, ctx);
+}
+
+// Export the main handler as the default
+export default {
+  fetch: handleRequest,
+};
