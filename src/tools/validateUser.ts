@@ -52,7 +52,7 @@ export async function handleValidateUserRequest(args: any, token: string) {
 
       // Format the response
       const formattedResponse = `User validation successful:
-Domain: ${userData.domain}
+Domain: ${userData.domain} (the domain of the user, make it bold)
 Email: ${userData.email}`;
 
       return createSuccessResponse(formattedResponse);
