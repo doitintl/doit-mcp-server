@@ -84,7 +84,7 @@ export async function handleDimensionsRequest(args: any, token: string) {
       params.append("pageToken", pageToken);
     }
 
-    params.append("maxResults", "300");
+    params.append("maxResults", "200");
 
     let dimensionsUrl = `${DOIT_API_BASE}/analytics/v1/dimensions`;
     if (params.toString()) {

@@ -34,6 +34,7 @@ import {
   handleListAllocationsRequest,
   handleGetAllocationRequest,
 } from "../tools/allocations.js";
+import { handleListAssetsRequest } from "../tools/assets.js";
 
 /**
  * Executes a tool handler with proper error handling
@@ -100,6 +101,9 @@ export async function executeToolHandler(
         break;
       case "get_allocation":
         result = await handleGetAllocationRequest(args, token);
+        break;
+      case "list_assets":
+        result = await handleListAssetsRequest(args, token);
         break;
       default:
         return createErrorResponse(`Unknown tool: ${toolName}`);

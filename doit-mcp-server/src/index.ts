@@ -56,6 +56,10 @@ import {
   getAllocationTool,
 } from "../../src/tools/allocations.js";
 import {
+  ListAssetsArgumentsSchema,
+  listAssetsTool,
+} from "../../src/tools/assets.js";
+import {
   ChangeCustomerArgumentsSchema,
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
@@ -259,6 +263,9 @@ export class DoitMCPAgent extends McpAgent {
     // Allocations tools
     this.registerTool(listAllocationsTool, ListAllocationsArgumentsSchema);
     this.registerTool(getAllocationTool, GetAllocationArgumentsSchema);
+
+    // Assets tools
+    this.registerTool(listAssetsTool, ListAssetsArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {

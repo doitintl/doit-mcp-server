@@ -63,6 +63,7 @@ import {
   getAllocationTool,
   handleGetAllocationRequest,
 } from "./tools/allocations.js";
+import { listAssetsTool, handleListAssetsRequest } from "./tools/assets.js";
 
 dotenv.config();
 
@@ -101,6 +102,7 @@ function createServer() {
         getInvoiceTool,
         listAllocationsTool,
         getAllocationTool,
+        listAssetsTool,
       ],
     };
   });
@@ -194,4 +196,5 @@ export {
   handleGetInvoiceRequest,
   handleListAllocationsRequest,
   handleGetAllocationRequest,
+  handleListAssetsRequest,
 };

@@ -93,6 +93,15 @@ vi.mock("../tools/allocations.js", () => ({
   handleListAllocationsRequest: vi.fn(),
   handleGetAllocationRequest: vi.fn(),
 }));
+
+vi.mock("../tools/assets.js", () => ({
+  listAssetsTool: {
+    name: "list_assets",
+    description:
+      "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
+  },
+  handleListAssetsRequest: vi.fn(),
+}));
 vi.mock("../utils/util.js", async () => {
   const actual = await vi.importActual("../utils/util.js");
   return {
@@ -245,6 +254,11 @@ describe("ListToolsRequestSchema Handler", () => {
         {
           name: "get_allocation",
           description: "Get a specific allocation by ID from the DoiT API",
+        },
+        {
+          name: "list_assets",
+          description:
+            "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
         },
       ],
     });
@@ -539,6 +553,18 @@ describe("CallToolRequestSchema Handler", () => {
     expect(handleGetAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
   });
 
+  it("should route to the correct tool handler for list_assets", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = { pageToken: "next-page" };
+    const request = mockRequest("list_assets", args);
+
+    await callToolHandler(request);
+
+    expect(handleListAssetsRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
   it("should return Unknown tool error for unknown tool names", async () => {
     const callToolHandler = setRequestHandlerMock.mock.calls.find(
       (call) => call[0] === CallToolRequestSchema
@@ -644,4 +670,5 @@ const {
   handleGetInvoiceRequest,
   handleListAllocationsRequest,
   handleGetAllocationRequest,
+  handleListAssetsRequest,
 } = indexModule;
