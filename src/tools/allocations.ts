@@ -79,8 +79,8 @@ export interface AllocationsResponse {
 // Tool metadata
 export const listAllocationsTool = {
   name: "list_allocations",
-  description:
-    "List allocations that your account has access to from the DoiT API",
+  description: `List allocations for the report or run_query configuration that your account has access to from the DoiT API.
+    Allocations in the DoiT Cloud Intelligence Platform are a powerful feature that allows you to group and attribute cloud costs to specific business units, teams, projects, or any other logical grouping relevant to your organization.`,
   inputSchema: {
     type: "object",
     properties: {

@@ -17,7 +17,7 @@ export const prompts = [
   {
     name: "Query Best Practice",
     description: "Best practice reminder for running queries",
-    text: `Before running a query, always check the filter fields explanation and dimensions.`,
+    text: `Before running a query, always check the filter fields explanation dimensions and allocations.`,
   },
   {
     name: "Document Output Reminder",
@@ -27,7 +27,7 @@ export const prompts = [
   {
     name: "Generate Report Command",
     description: "Template for generating cost reports",
-    text: `To create a cost report, first check if you need specific dimensions with:\nlist_dimensions(filter: "type:fixed")\n\nThen check if there is similar reports with list_reports and get_report_results. when you understand the structure Then run a query like:\nrun_query({\n  config: {\n    dataSource: "billing",\n    metric: { type: "basic", value: "cost" },\n    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },\n    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]\n  }\n})`,
+    text: `To create a cost report, first check if you need specific dimensions with:\nlist_dimensions(filter: "type:fixed") and allocations with list_allocations(filter: "type:fixed")\n\nThen check if there is similar reports with list_reports and get_report_results. when you understand the structure Then run a query like:\nrun_query({\n  config: {\n    dataSource: "billing",\n    metric: { type: "basic", value: "cost" },\n    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },\n    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]\n  }\n})`,
   },
   {
     name: "Generate Anomalies Document",
@@ -50,8 +50,8 @@ export const prompts = [
     text: `Create a document (Artifacts) with a table to display invoice details. Include the following columns: Invoice ID, Invoice Date, Due Date, Status, Total Amount, Balance Amount, Currency, and URL. For line items, create a separate table with columns: Description, Details, Price, Quantity, Type, and Currency. Add any relevant payment status or due date alerts. (Do not generate code, only a document)`,
   },
   {
-    name: "DoiT MCP Server tools output",
-    description: "Guidance for tool output formatting",
-    text: `Tools results should use the Document artifact type if possible. You must never use the code artifact type or to analyze the results of a tool with code/javascript.`,
+    name: "Allocations Usage Guidance",
+    description: "Guidance for using allocations effectively",
+    text: `Use the list_allocations tool to explore available allocations. Select allocations that best match your reporting needs, and always review the filter fields reference for optimal filtering.`,
   },
 ];
