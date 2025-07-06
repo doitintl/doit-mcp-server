@@ -25,6 +25,18 @@ vi.mock("../../utils/util.js", () => ({
   })),
 }));
 
+// Mock the validateUser function
+vi.mock("../validateUser.js", () => ({
+  handleValidateUserRequest: vi.fn(() => ({
+    content: [
+      {
+        type: "text",
+        text: "User validation successful:\nDomain: example.com (the domain of the user, make it bold)\nEmail: user@example.com",
+      },
+    ],
+  })),
+}));
+
 describe("changeCustomer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,7 +86,7 @@ describe("changeCustomer", () => {
 
       expect(updateCallback).toHaveBeenCalledWith(newContext);
       expect(createSuccessResponse).toHaveBeenCalledWith(
-        "Customer context successfully changed from 'old-customer' to 'new-customer-123'"
+        "Customer context successfully changed to 'example.com (the domain of the user, make it bold)\nEmail: user@example.com'"
       );
     });
 
@@ -92,7 +104,7 @@ describe("changeCustomer", () => {
 
       expect(updateCallback).toHaveBeenCalledWith(newContext);
       expect(createSuccessResponse).toHaveBeenCalledWith(
-        "Customer context successfully changed to 'new-customer-123'"
+        "Customer context successfully changed to 'example.com (the domain of the user, make it bold)\nEmail: user@example.com'"
       );
     });
 
@@ -109,7 +121,7 @@ describe("changeCustomer", () => {
       );
 
       expect(createSuccessResponse).toHaveBeenCalledWith(
-        "Customer context successfully changed from 'old-customer' to 'new-customer-123'"
+        "Customer context successfully changed to 'example.com (the domain of the user, make it bold)\nEmail: user@example.com'"
       );
     });
 

@@ -67,9 +67,9 @@ Type: fixed
       const response = await handleDimensionsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/dimensions?filter=type%3Afixed&pageToken=next-page&maxResults=60",
+        "https://api.doit.com/analytics/v1/dimensions?filter=type%3Afixed&pageToken=next-page&maxResults=300",
         mockToken,
-        { method: "GET" }
+        { method: "GET", customerContext: undefined }
       );
       expect(createSuccessResponse).toHaveBeenCalledWith(
         expect.stringContaining("Found 1 dimensions (filtered by: type:fixed)")
@@ -93,9 +93,9 @@ Type: fixed
       const response = await handleDimensionsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/dimensions?filter=type%3Ainvalid&maxResults=60",
+        "https://api.doit.com/analytics/v1/dimensions?filter=type%3Ainvalid&maxResults=300",
         mockToken,
-        { method: "GET" }
+        { method: "GET", customerContext: undefined }
       );
       expect(createErrorResponse).toHaveBeenCalledWith(
         "No dimensions found, please check the filter parameter, try without filter if you don't know the exact value of the key"
@@ -117,9 +117,9 @@ Type: fixed
       const response = await handleDimensionsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/dimensions?maxResults=60",
+        "https://api.doit.com/analytics/v1/dimensions?maxResults=300",
         mockToken,
-        { method: "GET" }
+        { method: "GET", customerContext: undefined }
       );
       expect(createErrorResponse).toHaveBeenCalledWith(
         "Failed to retrieve dimensions data"
