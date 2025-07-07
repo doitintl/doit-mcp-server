@@ -54,4 +54,9 @@ export const prompts = [
     description: "Guidance for using allocations effectively",
     text: `Use the list_allocations tool to explore available allocations. Select allocations that best match your reporting needs, and always review the filter fields reference for optimal filtering.`,
   },
+  {
+    name: "Allow Artifacts",
+    description: "Allow document artifacts in the response",
+    text: `Allow only document artifacts in the response.`,
+  },
 ];
