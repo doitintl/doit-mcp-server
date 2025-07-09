@@ -152,7 +152,7 @@ export const layout = (
         <div
           class="container mx-auto px-4 py-4 flex justify-between items-center"
         >
-          <img src="/img/doit-logo.svg" alt="DoiT MCP" class="h-8" />
+          <img src="/doit/doit-logo.svg" alt="DoiT MCP" class="h-8" />
         </div>
       </header>
       <main class="container mx-auto px-4 pb-12 flex-grow">${content}</main>
@@ -270,7 +270,7 @@ export const renderApproveContent = async (
 				<script>
 					setTimeout(() => {
 						document.getElementById('return-home-link').style.display = 'inline-block';
-					}, 1400);
+					}, 3000);
 					setTimeout(() => {
 						window.location.href = "${redirectUrl}";
 					}, 2000);
