@@ -15,6 +15,7 @@ import { decodeJWT } from "../../src/utils/util";
 
 export type Bindings = Env & {
   OAUTH_PROVIDER: OAuthHelpers;
+  OAUTH_KV: KVNamespace;
 };
 
 const app = new Hono<{
@@ -74,8 +75,15 @@ async function handleApprove(c: any) {
     await parseApproveFormBody(await c.req.parseBody());
 
   if (!oauthReqInfo) {
-    return c.html("INVALID LOGIN", 401);
+    // Add WWW-Authenticate header with resource_metadata
+    const url = new URL(c.req.url);
+    const base = url.origin;
+    return c.html("INVALID LOGIN", 401, {
+      "WWW-Authenticate": `Bearer resource_metadata=\"${base}/.well-known/oauth-authorization-server\"`,
+    });
   }
+
+  const jwtInfo = decodeJWT(apiKey);
 
   // The user must be successfully logged in and have approved the scopes, so we
   // can complete the authorization request
@@ -83,7 +91,7 @@ async function handleApprove(c: any) {
     request: oauthReqInfo,
     userId: apiKey,
     metadata: {
-      label: "User label",
+      label: jwtInfo?.payload?.sub || "User label",
     },
     scope: oauthReqInfo.scope,
     props: {
@@ -171,5 +179,20 @@ app.post("/customer-context", async (c) => {
 // This endpoint is responsible for validating any login information and
 // then completing the authorization request with the OAUTH_PROVIDER
 app.post("/approve", handleApprove);
+
+// Add /.well-known/oauth-authorization-server endpoint
+app.get("/.well-known/oauth-authorization-server", (c) => {
+  // Extract base URL (protocol + host)
+  const url = new URL(c.req.url);
+  const base = url.origin;
+  return c.json({
+    issuer: base,
+    authorization_endpoint: `${base}/authorize`,
+    token_endpoint: `${base}/token`,
+    registration_endpoint: `${base}/register`,
+    scopes_supported: ["*"],
+    code_challenge_methods_supported: ["S256"],
+  });
+});
 
 export default app;
