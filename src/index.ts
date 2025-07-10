@@ -42,11 +42,9 @@ import {
   formatZodError,
   handleGeneralError,
 } from "./utils/util.js";
+import { executeToolHandler } from "./utils/toolsHandler.js";
 
-import {
-  aws_global_resource_id,
-  gcp_global_resource_id,
-} from "./utils/filterFields.js";
+import { prompts } from "./utils/prompts.js";
 import {
   listTicketsTool,
   handleListTicketsRequest,
@@ -59,6 +57,13 @@ import {
   getInvoiceTool,
   handleGetInvoiceRequest,
 } from "./tools/invoices.js";
+import {
+  listAllocationsTool,
+  handleListAllocationsRequest,
+  getAllocationTool,
+  handleGetAllocationRequest,
+} from "./tools/allocations.js";
+import { listAssetsTool, handleListAssetsRequest } from "./tools/assets.js";
 
 dotenv.config();
 
@@ -95,6 +100,9 @@ function createServer() {
         createTicketTool,
         listInvoicesTool,
         getInvoiceTool,
+        listAllocationsTool,
+        getAllocationTool,
+        listAssetsTool,
       ],
     };
   });
@@ -102,48 +110,10 @@ function createServer() {
   // Handle prompts listing
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
     return {
-      prompts: [
-        {
-          text: `Filter fields explanation: ${gcp_global_resource_id}\n\n ${aws_global_resource_id}\n\n`,
-          name: "Filter Fields Reference",
-        },
-        {
-          text: `Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)`,
-          name: "Generate Report Document",
-        },
-        {
-          text: `Before running a query, always check the filter fields explanation and dimensions.`,
-          name: "Query Best Practice",
-        },
-        {
-          text: `Do not generate code, only a document.`,
-          name: "Document Output Reminder",
-        },
-        {
-          text: `To create a cost report, first check if you need specific dimensions with:\nlist_dimensions(filter: "type:fixed")\n\nThen check if there is similar reports with list_reports and get_report_results. when you understand the structure Then run a query like:\nrun_query({\n  config: {\n    dataSource: "billing",\n    metric: { type: "basic", value: "cost" },\n    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },\n    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]\n  }\n})`,
-          name: "Generate Report Command",
-        },
-        {
-          text: `Create a document (Artifacts) with a table to display the list of anomalies. Include the following columns: ID, Type, Status, Severity, Created At, and Description. Add insights and recommendations if available. (Do not generate code, only a document)`,
-          name: "Generate Anomalies Document",
-        },
-        {
-          text: `Use the list_dimensions tool to explore available dimensions. Select dimensions that best match your reporting needs. Combine multiple dimensions for more granular analysis, and always review the filter fields reference for optimal filtering.`,
-          name: "Dimension Usage Guidance",
-        },
-        {
-          text: `Before creating a ticket, ask the user if the ticket body is clear and if they want to add more details.`,
-          name: "Create Ticket",
-        },
-        {
-          text: `Create a document (Artifacts) with a table to display invoice details. Include the following columns: Invoice ID, Invoice Date, Due Date, Status, Total Amount, Balance Amount, Currency, and URL. For line items, create a separate table with columns: Description, Details, Price, Quantity, Type, and Currency. Add any relevant payment status or due date alerts. (Do not generate code, only a document)`,
-          name: "Generate Invoice Details Document",
-        },
-        {
-          text: `Tools results should use the Document artifact type if possible. You must never use the code artifact type or to analyze the results of a tool with code/javascript.`,
-          name: "DoiT MCP Server tools output",
-        },
-      ],
+      prompts: prompts.map((prompt) => ({
+        text: prompt.text,
+        name: prompt.name,
+      })),
     };
   });
 
@@ -162,45 +132,7 @@ function createServer() {
       return createErrorResponse("Unauthorized");
     }
 
-    try {
-      switch (name) {
-        case "get_cloud_incidents":
-          return await handleCloudIncidentsRequest(args, token);
-        case "get_cloud_incident":
-          return await handleCloudIncidentRequest(args, token);
-        case "get_anomalies":
-          return await handleAnomaliesRequest(args, token);
-        case "get_anomaly":
-          return await handleAnomalyRequest(args, token);
-        case "list_reports":
-          return await handleReportsRequest(args, token);
-        case "run_query":
-          return await handleRunQueryRequest(args, token);
-        case "get_report_results":
-          return await handleGetReportResultsRequest(args, token);
-        case "validate_user":
-          return await handleValidateUserRequest(args, token);
-        case "list_dimensions":
-          return await handleDimensionsRequest(args, token);
-        case "get_dimension":
-          return await handleDimensionRequest(args, token);
-        case "list_tickets":
-          return await handleListTicketsRequest(args, token);
-        case "create_ticket":
-          return await handleCreateTicketRequest(args, token);
-        case "list_invoices":
-          return await handleListInvoicesRequest(args, token);
-        case "get_invoice":
-          return await handleGetInvoiceRequest(args, token);
-        default:
-          return createErrorResponse(`Unknown tool: ${name}`);
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return createErrorResponse(formatZodError(error));
-      }
-      return handleGeneralError(error, "handling tool request");
-    }
+    return await executeToolHandler(name, args, token);
   });
 
   // Handle initialize method
@@ -262,4 +194,7 @@ export {
   handleGeneralError,
   handleListInvoicesRequest,
   handleGetInvoiceRequest,
+  handleListAllocationsRequest,
+  handleGetAllocationRequest,
+  handleListAssetsRequest,
 };

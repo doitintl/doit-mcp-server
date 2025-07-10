@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { formatDimension, handleDimensionsRequest } from "../dimensions.js";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { handleListAssetsRequest, formatAsset } from "../assets.js";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -24,25 +24,31 @@ vi.mock("../../utils/util.js", () => ({
   DOIT_API_BASE: "https://api.doit.com",
 }));
 
-describe("dimensions", () => {
-  describe("formatDimension", () => {
-    it("should format a dimension object correctly", () => {
-      const mockDimension = {
-        id: "service_description",
-        label: "Service Description",
-        type: "fixed",
+describe("assets", () => {
+  describe("formatAsset", () => {
+    it("should format an asset object correctly", () => {
+      const mockAsset = {
+        createTime: 1640995200,
+        id: "asset-123",
+        name: "Test Asset",
+        quantity: 5,
+        type: "billing_account",
+        url: "https://console.cloud.google.com/billing/123",
       };
 
-      const expected = `ID: service_description
-Label: Service Description
-Type: fixed
+      const expected = `ID: asset-123
+Name: Test Asset
+Type: billing_account
+Quantity: 5
+URL: https://console.cloud.google.com/billing/123
+Created: 2022-01-01T00:00:00.000Z
 -----------`;
 
-      expect(formatDimension(mockDimension)).toBe(expected);
+      expect(formatAsset(mockAsset)).toBe(expected);
     });
   });
 
-  describe("handleDimensionsRequest", () => {
+  describe("handleListAssetsRequest", () => {
     const mockToken = "fake-token";
 
     beforeEach(() => {
@@ -50,61 +56,64 @@ Type: fixed
     });
 
     it("should call makeDoitRequest with correct parameters and return success response", async () => {
-      const mockArgs = { filter: "type:fixed", pageToken: "next-page" };
+      const mockArgs = { pageToken: "next-page" };
       const mockApiResponse = {
-        pageToken: "another-page",
-        rowCount: 1,
-        dimensions: [
+        assets: [
           {
-            id: "service_description",
-            label: "Service Description",
-            type: "fixed",
+            createTime: 1640995200,
+            id: "asset-123",
+            name: "Test Asset",
+            quantity: 5,
+            type: "billing_account",
+            url: "https://console.cloud.google.com/billing/123",
           },
         ],
+        pageToken: "another-page",
+        rowCount: 1,
       };
       (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
 
-      const response = await handleDimensionsRequest(mockArgs, mockToken);
+      const response = await handleListAssetsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/dimensions?filter=type%3Afixed&pageToken=next-page&maxResults=200",
+        "https://api.doit.com/billing/v1/assets?pageToken=next-page",
         mockToken,
         { method: "GET", customerContext: undefined }
       );
       expect(createSuccessResponse).toHaveBeenCalledWith(
-        expect.stringContaining("Found 1 dimensions (filtered by: type:fixed)")
+        expect.stringContaining("Found 1 assets:")
       );
       expect(response).toEqual({
         content: [
-          { type: "text", text: expect.stringContaining("Found 1 dimensions") },
+          { type: "text", text: expect.stringContaining("Found 1 assets:") },
         ],
       });
     });
 
-    it("should handle no dimensions found", async () => {
-      const mockArgs = { filter: "type:invalid" };
+    it("should handle no assets found", async () => {
+      const mockArgs = {};
       const mockApiResponse = {
+        assets: [],
         pageToken: "",
         rowCount: 0,
-        dimensions: [],
       };
       (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
 
-      const response = await handleDimensionsRequest(mockArgs, mockToken);
+      const response = await handleListAssetsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/dimensions?filter=type%3Ainvalid&maxResults=200",
+        "https://api.doit.com/billing/v1/assets",
         mockToken,
         { method: "GET", customerContext: undefined }
       );
-      expect(createErrorResponse).toHaveBeenCalledWith(
-        "No dimensions found, please check the filter parameter, try without filter if you don't know the exact value of the key"
+      expect(createSuccessResponse).toHaveBeenCalledWith(
+        "No assets found for this customer context."
       );
       expect(response).toEqual({
         content: [
           {
             type: "text",
-            text: "No dimensions found, please check the filter parameter, try without filter if you don't know the exact value of the key",
+            text: "No assets found for this customer context.",
           },
         ],
       });
@@ -114,24 +123,24 @@ Type: fixed
       const mockArgs = {};
       (makeDoitRequest as vi.Mock).mockResolvedValue(null);
 
-      const response = await handleDimensionsRequest(mockArgs, mockToken);
+      const response = await handleListAssetsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/dimensions?maxResults=200",
+        "https://api.doit.com/billing/v1/assets",
         mockToken,
         { method: "GET", customerContext: undefined }
       );
       expect(createErrorResponse).toHaveBeenCalledWith(
-        "Failed to retrieve dimensions data"
+        "Failed to retrieve assets data"
       );
       expect(response).toEqual({
-        content: [{ type: "text", text: "Failed to retrieve dimensions data" }],
+        content: [{ type: "text", text: "Failed to retrieve assets data" }],
       });
     });
 
     it("should handle ZodError for invalid arguments", async () => {
-      const mockArgs = { filter: 123 }; // Invalid filter type
-      const response = await handleDimensionsRequest(mockArgs, mockToken);
+      const mockArgs = { pageToken: 123 }; // Invalid pageToken type
+      const response = await handleListAssetsRequest(mockArgs, mockToken);
 
       expect(formatZodError).toHaveBeenCalled();
       expect(createErrorResponse).toHaveBeenCalled();
@@ -151,7 +160,7 @@ Type: fixed
         new Error("Network error")
       );
 
-      const response = await handleDimensionsRequest(mockArgs, mockToken);
+      const response = await handleListAssetsRequest(mockArgs, mockToken);
 
       expect(handleGeneralError).toHaveBeenCalledWith(
         expect.any(Error),
@@ -162,6 +171,31 @@ Type: fixed
           { type: "text", text: "General Error: making DoiT API request" },
         ],
       });
+    });
+
+    it("should include page token in response when provided", async () => {
+      const mockArgs = {};
+      const mockApiResponse = {
+        assets: [
+          {
+            createTime: 1640995200,
+            id: "asset-123",
+            name: "Test Asset",
+            quantity: 5,
+            type: "billing_account",
+            url: "https://console.cloud.google.com/billing/123",
+          },
+        ],
+        pageToken: "next-page-token",
+        rowCount: 1,
+      };
+      (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+
+      const response = await handleListAssetsRequest(mockArgs, mockToken);
+
+      expect(createSuccessResponse).toHaveBeenCalledWith(
+        expect.stringContaining("Page token: next-page-token")
+      );
     });
   });
 });

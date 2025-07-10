@@ -48,13 +48,13 @@ describe("validateUser", () => {
         { appendParams: true, method: "GET" }
       );
       expect(createSuccessResponse).toHaveBeenCalledWith(
-        "User validation successful:\nDomain: example.com\nEmail: user@example.com"
+        "User validation successful:\nDomain: example.com (the domain of the user, make it bold)\nEmail: user@example.com"
       );
       expect(response).toEqual({
         content: [
           {
             type: "text",
-            text: "User validation successful:\nDomain: example.com\nEmail: user@example.com",
+            text: "User validation successful:\nDomain: example.com (the domain of the user, make it bold)\nEmail: user@example.com",
           },
         ],
       });

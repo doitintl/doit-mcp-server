@@ -80,6 +80,28 @@ vi.mock("../tools/invoices.ts", () => ({
   handleListInvoicesRequest: vi.fn(),
   handleGetInvoiceRequest: vi.fn(),
 }));
+vi.mock("../tools/allocations.js", () => ({
+  listAllocationsTool: {
+    name: "list_allocations",
+    description:
+      "List allocations that your account has access to from the DoiT API",
+  },
+  getAllocationTool: {
+    name: "get_allocation",
+    description: "Get a specific allocation by ID from the DoiT API",
+  },
+  handleListAllocationsRequest: vi.fn(),
+  handleGetAllocationRequest: vi.fn(),
+}));
+
+vi.mock("../tools/assets.js", () => ({
+  listAssetsTool: {
+    name: "list_assets",
+    description:
+      "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
+  },
+  handleListAssetsRequest: vi.fn(),
+}));
 vi.mock("../utils/util.js", async () => {
   const actual = await vi.importActual("../utils/util.js");
   return {
@@ -223,6 +245,20 @@ describe("ListToolsRequestSchema Handler", () => {
           name: "get_invoice",
           description:
             "Retrieve the full details of an invoice specified by the invoice number from the DoiT API.",
+        },
+        {
+          name: "list_allocations",
+          description:
+            "List allocations that your account has access to from the DoiT API",
+        },
+        {
+          name: "get_allocation",
+          description: "Get a specific allocation by ID from the DoiT API",
+        },
+        {
+          name: "list_assets",
+          description:
+            "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
         },
       ],
     });
@@ -490,6 +526,45 @@ describe("CallToolRequestSchema Handler", () => {
     expect(handleGetInvoiceRequest).toHaveBeenCalledWith(args, "fake-token");
   });
 
+  it("should route to the correct tool handler for list_allocations", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = { pageToken: "next-page-token" };
+    const request = mockRequest("list_allocations", args);
+
+    await callToolHandler(request);
+
+    expect(handleListAllocationsRequest).toHaveBeenCalledWith(
+      args,
+      "fake-token"
+    );
+  });
+
+  it("should route to the correct tool handler for get_allocation", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = { id: "allocation-123" };
+    const request = mockRequest("get_allocation", args);
+
+    await callToolHandler(request);
+
+    expect(handleGetAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
+  it("should route to the correct tool handler for list_assets", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = { pageToken: "next-page" };
+    const request = mockRequest("list_assets", args);
+
+    await callToolHandler(request);
+
+    expect(handleListAssetsRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
   it("should return Unknown tool error for unknown tool names", async () => {
     const callToolHandler = setRequestHandlerMock.mock.calls.find(
       (call) => call[0] === CallToolRequestSchema
@@ -589,5 +664,11 @@ describe("InitializeRequestSchema Handler", () => {
 });
 
 const indexModule = await import("../index.js");
-const { createServer, handleListInvoicesRequest, handleGetInvoiceRequest } =
-  indexModule;
+const {
+  createServer,
+  handleListInvoicesRequest,
+  handleGetInvoiceRequest,
+  handleListAllocationsRequest,
+  handleGetAllocationRequest,
+  handleListAssetsRequest,
+} = indexModule;

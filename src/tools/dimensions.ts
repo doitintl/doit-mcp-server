@@ -74,7 +74,7 @@ export async function handleDimensionsRequest(args: any, token: string) {
   try {
     // Validate arguments
     const { filter, pageToken } = DimensionsArgumentsSchema.parse(args);
-
+    const { customerContext } = args;
     // Create API URL with query parameters
     const params = new URLSearchParams();
     if (filter) {
@@ -84,7 +84,7 @@ export async function handleDimensionsRequest(args: any, token: string) {
       params.append("pageToken", pageToken);
     }
 
-    params.append("maxResults", "60");
+    params.append("maxResults", "200");
 
     let dimensionsUrl = `${DOIT_API_BASE}/analytics/v1/dimensions`;
     if (params.toString()) {
@@ -95,7 +95,7 @@ export async function handleDimensionsRequest(args: any, token: string) {
       const dimensionsData = await makeDoitRequest<DimensionsResponse>(
         dimensionsUrl,
         token,
-        { method: "GET" }
+        { method: "GET", customerContext }
       );
 
       if (!dimensionsData) {
