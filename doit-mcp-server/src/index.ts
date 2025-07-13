@@ -254,7 +254,9 @@ export class DoitMCPAgent extends McpAgent {
 
     // Tickets tools
     this.registerTool(listTicketsTool, ListTicketsArgumentsSchema);
-    this.registerTool(createTicketTool, CreateTicketArgumentsSchema);
+    if (this.props.isDoitUser !== "true") {
+      this.registerTool(createTicketTool, CreateTicketArgumentsSchema);
+    }
 
     // Invoices tools
     this.registerTool(listInvoicesTool, ListInvoicesArgumentsSchema);
