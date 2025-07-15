@@ -1,5 +1,18 @@
+import { z } from "zod";
+
 // Constants
 export const DOIT_API_BASE = "https://api.doit.com";
+
+/**
+ * Generic function to convert a zod schema to MCP server tool format
+ * @param schema The zod schema object (e.g., z.object({ ... }))
+ * @returns Object with zod schema properties ready for MCP server tool
+ */
+export function zodSchemaToMcpTool<T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+) {
+  return schema.shape;
+}
 
 /**
  * Creates a standardized error response
@@ -67,7 +80,10 @@ export function handleGeneralError(
  * @param baseUrl The base URL to append parameters to
  * @returns URL with maxResults and optional customerContext parameters
  */
-export function appendUrlParameters(baseUrl: string): string {
+export function appendUrlParameters(
+  baseUrl: string,
+  customerContextId?: string
+): string {
   // Check if the URL already has query parameters
   const separator = baseUrl.includes("?") ? "&" : "?";
   let url = baseUrl;
@@ -77,7 +93,7 @@ export function appendUrlParameters(baseUrl: string): string {
     url += `${separator}maxResults=40`;
   }
 
-  const customerContext = process.env.CUSTOMER_CONTEXT;
+  const customerContext = customerContextId || process.env.CUSTOMER_CONTEXT;
 
   if (customerContext) {
     // Use & as separator since we know the URL now has parameters
@@ -104,9 +120,15 @@ export async function makeDoitRequest<T>(
     method?: string;
     body?: any;
     appendParams?: boolean;
+    customerContext?: string;
   } = {}
 ): Promise<T | null> {
-  const { method = "GET", body = undefined, appendParams = true } = options;
+  const {
+    method = "GET",
+    body = undefined,
+    appendParams = true,
+    customerContext,
+  } = options;
 
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -115,7 +137,7 @@ export async function makeDoitRequest<T>(
   };
 
   if (appendParams) {
-    url = appendUrlParameters(url);
+    url = appendUrlParameters(url, customerContext);
   }
 
   try {
@@ -132,6 +154,12 @@ export async function makeDoitRequest<T>(
     // add mcp params to the url
     url += `&mcp=true`;
 
+    if (!process.env.CUSTOMER_CONTEXT) {
+      // request from the sse server
+      url += `&sse=true`;
+    }
+
+    console.log("url", url);
     const response = await fetch(url, requestOptions);
 
     if (!response.ok) {
@@ -152,4 +180,43 @@ export async function makeDoitRequest<T>(
 export function formatDate(timestamp: number): string {
   if (!timestamp) return "";
   return new Date(timestamp).toISOString().split("T")[0];
+}
+
+/**
+ * Decodes a JWT token without validation
+ * @param token The JWT token string
+ * @returns The decoded JWT object containing header, payload, and signature
+ */
+export function decodeJWT(token: string): {
+  header: any;
+  payload: any;
+  signature: string;
+} | null {
+  try {
+    // Split the token into its three parts
+    const parts = token.split(".");
+
+    if (parts.length !== 3) {
+      console.error("Invalid JWT format: token must have 3 parts");
+      return null;
+    }
+
+    // Decode header (first part)
+    const header = JSON.parse(atob(parts[0]));
+
+    // Decode payload (second part)
+    const payload = JSON.parse(atob(parts[1]));
+
+    // Keep signature as is (third part)
+    const signature = parts[2];
+
+    return {
+      header,
+      payload,
+      signature,
+    };
+  } catch (error) {
+    console.error("Error decoding JWT:", error);
+    return null;
+  }
 }

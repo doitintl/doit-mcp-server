@@ -44,6 +44,7 @@ export const CloudIncidentsArgumentsSchema = z.object({
 
 export const CloudIncidentArgumentsSchema = z.object({
   id: z.string(),
+  customerContext: z.string().optional(),
 });
 
 // Interfaces
@@ -132,6 +133,7 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
   try {
     const { platform, filter, pageToken } =
       CloudIncidentsArgumentsSchema.parse(args);
+    const { customerContext } = args;
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
@@ -151,7 +153,7 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
       const incidentsData = await makeDoitRequest<CloudIncidentsResponse>(
         incidentsUrl,
         token,
-        { method: "GET" }
+        { method: "GET", customerContext }
       );
 
       if (!incidentsData) {
@@ -206,7 +208,7 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
 // Handle specific cloud incident request
 export async function handleCloudIncidentRequest(args: any, token: string) {
   try {
-    const { id } = CloudIncidentArgumentsSchema.parse(args);
+    const { id, customerContext } = CloudIncidentArgumentsSchema.parse(args);
 
     let incidentUrl = `${DOIT_API_BASE}/core/v1/cloudincidents/${id}`;
 
@@ -215,7 +217,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
       const incident = await makeDoitRequest<CloudIncident>(
         incidentUrl,
         token,
-        { method: "GET", appendParams: true }
+        { method: "GET", appendParams: true, customerContext }
       );
 
       if (!incident) {

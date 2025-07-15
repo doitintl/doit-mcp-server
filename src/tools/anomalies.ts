@@ -119,6 +119,7 @@ export function formatAnomaly(anomaly: Anomaly): string {
 export async function handleAnomaliesRequest(args: any, token: string) {
   try {
     const { pageToken } = AnomaliesArgumentsSchema.parse(args);
+    const { customerContext } = args;
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
@@ -138,7 +139,7 @@ export async function handleAnomaliesRequest(args: any, token: string) {
       const anomaliesData = await makeDoitRequest<AnomaliesResponse>(
         anomaliesUrl,
         token,
-        { method: "GET" }
+        { method: "GET", customerContext }
       );
 
       if (!anomaliesData) {
@@ -201,7 +202,7 @@ export async function handleAnomaliesRequest(args: any, token: string) {
 export async function handleAnomalyRequest(args: any, token: string) {
   try {
     const { id } = AnomalyArgumentsSchema.parse(args);
-
+    const { customerContext } = args;
     let anomalyUrl = `${DOIT_API_BASE}/anomalies/v1/${id}`;
 
     try {
@@ -209,6 +210,7 @@ export async function handleAnomalyRequest(args: any, token: string) {
       const anomalyData = await makeDoitRequest<Anomaly>(anomalyUrl, token, {
         method: "GET",
         appendParams: true,
+        customerContext,
       });
 
       if (!anomalyData) {

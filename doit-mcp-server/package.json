@@ -1,0 +1,28 @@
+{
+  "name": "doit-mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "format": "biome format --write",
+    "lint:fix": "biome lint --fix",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.0.5",
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "agents": "^0.0.95",
+    "hono": "^4.8.2",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.4",
+    "marked": "^15.0.12",
+    "typescript": "^5.8.3",
+    "workers-mcp": "^0.0.13",
+    "wrangler": "^4.21.2"
+  }
+}

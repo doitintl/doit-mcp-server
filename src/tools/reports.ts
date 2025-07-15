@@ -121,7 +121,8 @@ export const runQueryTool = {
   name: "run_query",
   description: `Runs a report query with the specified configuration without persisting it. 
     Fields that are not populated will use their default values if needed.
-    Use the dimension tool before running the query to get the list of dimensions and their types.
+    You must use the 'limit' field to limit the number of rows in the report, maximum is 25.
+    Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
     If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
     Example for cost report:
     {
@@ -448,6 +449,7 @@ export async function handleReportsRequest(args: any, token: string) {
   try {
     // Validate arguments
     const { filter, pageToken } = ReportsArgumentsSchema.parse(args);
+    const { customerContext } = args;
 
     // Create API URL with query parameters
     const params = new URLSearchParams();
@@ -467,7 +469,7 @@ export async function handleReportsRequest(args: any, token: string) {
       const reportsData = await makeDoitRequest<ReportsResponse>(
         reportsUrl,
         token,
-        { method: "GET" }
+        { method: "GET", customerContext }
       );
 
       if (!reportsData) {
@@ -512,7 +514,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
   try {
     // Validate arguments
     const { config } = RunQueryArgumentsSchema.parse(args);
-
+    const { customerContext } = args;
     // Create API URL for the query endpoint
     const queryUrl = `${DOIT_API_BASE}/analytics/v1/reports/query`;
 
@@ -525,13 +527,14 @@ export async function handleRunQueryRequest(args: any, token: string) {
           method: "POST",
           body: { config },
           appendParams: true,
+          customerContext,
         }
       );
 
       if (!queryResponse || !queryResponse.result || queryResponse?.error) {
         return createErrorResponse(
           `Failed to run query. Try one of the following:
-  1. Use 'list_dimensions' with a filter like 'filter:type:fixed' to get relevant dimensions
+  1. Use 'list_dimensions' with a filter like 'filter:type:fixed' to get relevant dimensions or 'list_allocations' to get relevant allocations
   2. Check the specific error from the API: ${
     queryResponse?.error || "Unknown error"
   }
@@ -596,7 +599,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
   try {
     // Validate arguments
     const { id } = GetReportResultsArgumentsSchema.parse(args);
-
+    const { customerContext } = args;
     // Create API URL
     const reportUrl = `${DOIT_API_BASE}/analytics/v1/reports/${encodeURIComponent(
       id
@@ -606,7 +609,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
       const reportData = await makeDoitRequest<GetReportResultsResponse>(
         reportUrl,
         token,
-        { method: "GET" }
+        { method: "GET", customerContext }
       );
 
       if (!reportData) {

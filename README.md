@@ -2,7 +2,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![NPM Version](https://img.shields.io/npm/v/%40doitintl%2Fdoit-mcp-server?registry_uri=https%3A%2F%2Fregistry.npmjs.com%2F%40doitintl%2Fdoit-mcp-server)
 
-
 DoiT MCP Server provides access to the DoiT API. This server enables LLMs like Claude to access DoiT platform data for troubleshooting and analysis.
 
 ![top-services](https://github.com/user-attachments/assets/749dd237-3021-439d-b447-64605393389d)
@@ -11,13 +10,31 @@ DoiT MCP Server provides access to the DoiT API. This server enables LLMs like C
 
 - Node.js v18 or higher
 - DoiT API key with appropriate permissions
-- Customer context identifier (for customer-specific data)
 
 ## Installation
 
 To get your DoiT API key, visit the [API key section in your DoiT profile](https://help.doit.com/docs/general/profile#api-key).
 
 There are several ways to install and configure the MCP server:
+
+### DoiT MCP URL
+
+The DoiT MCP server is available at: https://mcp.doit.com/sse
+
+### Claude Desktop App
+
+```json
+{
+  "mcpServers": {
+    "doit_mcp_server": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp.doit.com/sse"]
+    }
+  }
+}
+```
+
+## STDIO - local server
 
 ### Claude Desktop App
 

@@ -33,6 +33,7 @@ export async function handleValidateUserRequest(args: any, token: string) {
   try {
     // Validate arguments (no arguments required for this endpoint)
     ValidateUserArgumentsSchema.parse(args);
+    const customerContext = args.customerContext;
 
     // Set up the URL for the validate endpoint
     const validateUrl = `${DOIT_API_BASE}/auth/v1/validate`;
@@ -42,7 +43,7 @@ export async function handleValidateUserRequest(args: any, token: string) {
       const userData = await makeDoitRequest<ValidateUserResponse>(
         validateUrl,
         token,
-        { method: "GET", appendParams: true }
+        { method: "GET", appendParams: true, customerContext }
       );
 
       if (!userData) {
@@ -51,7 +52,7 @@ export async function handleValidateUserRequest(args: any, token: string) {
 
       // Format the response
       const formattedResponse = `User validation successful:
-Domain: ${userData.domain}
+Domain: ${userData.domain} (the domain of the user, make it bold)
 Email: ${userData.email}`;
 
       return createSuccessResponse(formattedResponse);
