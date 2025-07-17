@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/doitintl-doit-mcp-server-badge.png)](https://mseep.ai/app/doitintl-doit-mcp-server)
+
 # DoiT MCP Server
 
 [![smithery badge](https://smithery.ai/badge/@doitintl/doit-mcp-server)](https://smithery.ai/server/@doitintl/doit-mcp-server)
