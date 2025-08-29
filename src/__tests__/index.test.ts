@@ -59,12 +59,7 @@ vi.mock("../tools/tickets.js", () => ({
     name: "list_tickets",
     description: "List support tickets from DoiT using the support API.",
   },
-  createTicketTool: {
-    name: "create_ticket",
-    description: "Create a new support ticket in DoiT using the support API.",
-  },
   handleListTicketsRequest: vi.fn(),
-  handleCreateTicketRequest: vi.fn(),
 }));
 vi.mock("../tools/invoices.ts", () => ({
   listInvoicesTool: {
@@ -230,11 +225,6 @@ describe("ListToolsRequestSchema Handler", () => {
         {
           name: "list_tickets",
           description: "List support tickets from DoiT using the support API.",
-        },
-        {
-          name: "create_ticket",
-          description:
-            "Create a new support ticket in DoiT using the support API.",
         },
         {
           name: "list_invoices",
@@ -473,30 +463,6 @@ describe("CallToolRequestSchema Handler", () => {
     await callToolHandler(request);
 
     expect(indexModule.handleListTicketsRequest).toHaveBeenCalledWith(
-      args,
-      "fake-token"
-    );
-  });
-
-  it("should route to the correct tool handler for create_ticket", async () => {
-    const callToolHandler = setRequestHandlerMock.mock.calls.find(
-      (call) => call[0] === CallToolRequestSchema
-    )?.[1];
-    const args = {
-      ticket: {
-        body: "Help!",
-        created: "2024-06-01T12:00:00Z",
-        platform: "doit",
-        product: "test-product",
-        severity: "normal",
-        subject: "Test ticket",
-      },
-    };
-    const request = mockRequest("create_ticket", args);
-
-    await callToolHandler(request);
-
-    expect(indexModule.handleCreateTicketRequest).toHaveBeenCalledWith(
       args,
       "fake-token"
     );

@@ -87,9 +87,6 @@ export async function executeToolHandler(
       case "list_tickets":
         result = await handleListTicketsRequest(args, token);
         break;
-      case "create_ticket":
-        result = await handleCreateTicketRequest(args, token);
-        break;
       case "list_invoices":
         result = await handleListInvoicesRequest(args, token);
         break;
