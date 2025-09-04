@@ -48,7 +48,6 @@ import { prompts } from "./utils/prompts.js";
 import {
   listTicketsTool,
   handleListTicketsRequest,
-  createTicketTool,
   handleCreateTicketRequest,
 } from "./tools/tickets.js";
 import {
@@ -97,7 +96,6 @@ function createServer() {
         dimensionsTool,
         dimensionTool,
         listTicketsTool,
-        createTicketTool,
         listInvoicesTool,
         getInvoiceTool,
         listAllocationsTool,
@@ -188,7 +186,6 @@ export {
   handleDimensionsRequest,
   handleDimensionRequest,
   handleListTicketsRequest,
-  handleCreateTicketRequest,
   createErrorResponse,
   formatZodError,
   handleGeneralError,
