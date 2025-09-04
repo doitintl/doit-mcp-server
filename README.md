@@ -125,7 +125,6 @@ This MCP server provides the following tools:
 - [`list_dimensions`](https://developer.doit.com/reference/listdimensions): Lists Cloud Analytics dimensions that your account has access to
 - [`get_dimension`](https://developer.doit.com/reference/getdimensions): Get a specific Cloud Analytics dimension by type and ID
 - [`list_tickets`](https://developer.doit.com/reference/listtickets): List support tickets from DoiT using the support API
-- [`create_ticket`](https://developer.doit.com/reference/createticket): Create a new support ticket in DoiT using the support API
 - [`list_invoices`](https://developer.doit.com/reference/listinvoices): List all current and historical invoices for your organization from the DoiT API
 - [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
 
