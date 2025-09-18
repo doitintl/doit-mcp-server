@@ -10,6 +10,7 @@ import {
   renderCustomerContextScreen,
 } from "./utils";
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
+import { handleSearch, SearchArgumentsSchema } from "./chatgpt-search";
 import { handleValidateUserRequest } from "../../src/tools/validateUser";
 import { decodeJWT } from "../../src/utils/util";
 
@@ -179,6 +180,79 @@ app.post("/customer-context", async (c) => {
 // This endpoint is responsible for validating any login information and
 // then completing the authorization request with the OAUTH_PROVIDER
 app.post("/approve", handleApprove);
+
+// ChatGPT MCP search endpoint
+app.post("/search", async (c) => {
+  try {
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader) {
+      return c.json({ error: "Authorization header required" }, 401);
+    }
+
+    // Extract token from Bearer header
+    const token = authHeader.replace("Bearer ", "");
+    const body = await c.req.json();
+    
+    // Validate search arguments
+    const args = SearchArgumentsSchema.parse(body);
+    
+    // Get customer context from JWT or request
+    let customerContext = body.customerContext;
+    if (!customerContext) {
+      const jwtInfo = decodeJWT(token);
+      customerContext = jwtInfo?.payload?.DoitEmployee ? "EE8CtpzYiKp0dVAESVrB" : undefined;
+    }
+    
+    const results = await handleSearch(args, token, customerContext);
+    return c.json(results);
+    
+  } catch (error) {
+    console.error("Search endpoint error:", error);
+    return c.json({ 
+      error: "Search failed", 
+      message: error instanceof Error ? error.message : "Unknown error" 
+    }, 500);
+  }
+});
+
+// ChatGPT MCP manifest endpoint
+app.get("/.well-known/mcp-manifest", (c) => {
+  const url = new URL(c.req.url);
+  const base = url.origin;
+  
+  return c.json({
+    name: "DoiT MCP Server",
+    description: "Access DoiT platform data for cloud cost optimization and analytics",
+    version: "1.0.0",
+    actions: [
+      {
+        name: "search",
+        description: "Search across DoiT platform data including reports, anomalies, incidents, and tickets",
+        endpoint: `${base}/search`,
+        method: "POST",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Search query string"
+            },
+            limit: {
+              type: "number",
+              description: "Maximum number of results to return",
+              default: 10
+            }
+          },
+          required: ["query"]
+        }
+      }
+    ],
+    authentication: {
+      type: "bearer",
+      description: "DoiT API key required for authentication"
+    }
+  });
+});
 
 // Add /.well-known/oauth-authorization-server endpoint
 app.get("/.well-known/oauth-authorization-server", (c) => {
