@@ -34,6 +34,24 @@ The DoiT MCP server is available at: https://mcp.doit.com/sse
 }
 ```
 
+### AWS Q CLI
+
+1. Create an API key in the [API section](https://app.doit.com/profile/api) of the DoiT Console.
+2. Note the API key value for the below command.
+3. Run the following command:
+
+```bash
+q mcp-server create --name doit-mcp-server --url https://mcp.doit.com/sse --api-key your_doit_api_key
+```
+
+4. Start q chat by running this command:
+
+```bash
+q chat
+```
+
+5. Ensure that it connects and lists it as doit-mcp-server loaded at the top of the chat session.
+
 ## STDIO - local server
 
 ### Claude Desktop App
