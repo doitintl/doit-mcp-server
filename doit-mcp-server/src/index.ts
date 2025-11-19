@@ -58,6 +58,11 @@ import {
   listAssetsTool,
 } from "../../src/tools/assets.js";
 import {
+  SearchArgumentsSchema,
+  searchTool,
+  handleSearch,
+} from "./chatgpt-search.js";
+import {
   ChangeCustomerArgumentsSchema,
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
@@ -180,6 +185,19 @@ export class DoitMCPAgent extends McpAgent {
     };
   }
 
+  // Special callback for search tool (ChatGPT compatibility)
+  private createSearchCallback() {
+    return async (args: any) => {
+      const token = this.getToken();
+      const persistedCustomerContext = await this.loadPersistedProps();
+      const customerContext =
+        persistedCustomerContext || (this.props.customerContext as string);
+
+      const response = await handleSearch(args, token, customerContext);
+      return convertToMcpResponse(response);
+    };
+  }
+
   // Special callback for changeCustomer tool
   private createChangeCustomerCallback() {
     return async (args: any) => {
@@ -277,6 +295,14 @@ export class DoitMCPAgent extends McpAgent {
 
     // Assets tools
     this.registerTool(listAssetsTool, ListAssetsArgumentsSchema);
+
+    // Search tool (ChatGPT compatibility)
+    (this.server.tool as any)(
+      searchTool.name,
+      searchTool.description,
+      zodSchemaToMcpTool(SearchArgumentsSchema),
+      this.createSearchCallback()
+    );
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
