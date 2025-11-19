@@ -67,6 +67,20 @@ import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
 import { prompts } from "../../src/utils/prompts.js";
 
+const KEEP_ALIVE_INTERVAL_MS = 120_000; // 2 minutes in milliseconds
+
+// Create an MCP ping notification JSON-RPC message
+// This is a notification (no id field) that MCP clients can safely handle.
+const MCP_NOTIFICATIONS_PING = {
+  jsonrpc: "2.0",
+  method: "notifications/ping",
+};
+
+// SSE message to send the MCP ping notification and keep the connection alive.
+const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
+  `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
+);
+
 // Context Storage Durable Object
 export class ContextStorage extends DurableObject {
   constructor(ctx: DurableObjectState, env: Env) {
@@ -276,10 +290,104 @@ export class DoitMCPAgent extends McpAgent {
   }
 }
 
+/**
+ * Helper function to wrap SSE response stream with keep-alive messages,
+ * this is used to keep the connection alive for the client.
+ * Returns a wrapped response whose body stream sends all the messages from the original
+ * response, plus an internal timer to send keep-alive messages at regular intervals.
+ * @param response The original SSE response to wrap
+ * @param keepAliveIntervalMs Optional interval in milliseconds between keep-alive messages
+ */
+function wrapSSEResponseWithKeepAlive(
+  response: Response,
+  keepAliveIntervalMs: number = KEEP_ALIVE_INTERVAL_MS
+): Response {
+  const originalBody = response.body;
+
+  if (!originalBody) {
+    return response;
+  }
+
+  let keepAliveTimer: number | null = null;
+  let isStreamActive = true;
+  let originalReader = originalBody.getReader();
+
+  const transformedStream = new ReadableStream({
+    async start(controller) {
+      // Recursive function to schedule the next keep-alive message
+      const scheduleKeepAlive = () => {
+        if (!isStreamActive) {
+          return;
+        }
+
+        keepAliveTimer = setTimeout(() => {
+          if (!isStreamActive) {
+            return;
+          }
+
+          try {
+            controller.enqueue(SSE_KEEP_ALIVE_MESSAGE);
+            // Schedule the next keep-alive
+            scheduleKeepAlive();
+          } catch (error) {
+            console.error("Error sending MCP ping notification:", error);
+            isStreamActive = false;
+          }
+        }, keepAliveIntervalMs) as unknown as number;
+      };
+
+      // Start the keep-alive cycle
+      scheduleKeepAlive();
+
+      // Forward all messages from the original SSE response
+      try {
+        while (true) {
+          const { done, value } = await originalReader.read();
+          if (done) {
+            break;
+          }
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        console.error("Error reading from original SSE stream:", error);
+        controller.error(error);
+      } finally {
+        // Clean up when the stream ends
+        isStreamActive = false;
+        if (keepAliveTimer !== null) {
+          clearTimeout(keepAliveTimer);
+          keepAliveTimer = null;
+        }
+        controller.close();
+      }
+    },
+    cancel() {
+      // Clean up when the client disconnects
+      isStreamActive = false;
+      if (keepAliveTimer !== null) {
+        clearTimeout(keepAliveTimer);
+        keepAliveTimer = null;
+      }
+      originalReader.cancel();
+    }
+  });
+
+  // Return a new Response with the transformed stream and original headers
+  return new Response(transformedStream, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
+
 async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
   const { pathname } = new URL(req.url);
 
-  if (pathname === "/sse" || pathname === "/sse/message") {
+  if (pathname === "/sse") {
+    const response = await DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
+    return wrapSSEResponseWithKeepAlive(response);
+  }
+  if (pathname === "/sse/message") {
     return DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
   }
   if (pathname === "/mcp") {
@@ -355,9 +463,13 @@ async function handleRequest(
         customerContext: customerContext,
       };
 
-      // Handle the request directly with the modified request
-      if (url.pathname === "/sse" || url.pathname === "/sse/message") {
-        return DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
+      if (url.pathname === "/sse") {
+        // Handle the request directly with the modified request
+        const response = await DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
+        return wrapSSEResponseWithKeepAlive(response);
+      } else if (url.pathname === "/sse/message") {
+        const response = await DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
+        return response;
       }
       if (url.pathname === "/mcp") {
         return DoitMCPAgent.serve("/mcp").fetch(req, env, ctx);
