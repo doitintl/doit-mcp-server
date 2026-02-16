@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   handleListAllocationsRequest,
   handleGetAllocationRequest,
+  handleCreateAllocationRequest,
 } from "../allocations.js";
 import {
   createErrorResponse,
@@ -9,6 +10,7 @@ import {
   formatZodError,
   handleGeneralError,
   makeDoitRequest,
+  DOIT_API_BASE,
 } from "../../utils/util.js";
 
 // Mock the utility functions
@@ -26,6 +28,8 @@ vi.mock("../../utils/util.js", () => ({
   makeDoitRequest: vi.fn(),
   DOIT_API_BASE: "https://api.doit.com",
 }));
+
+const ALLOCATIONS_URL = `${DOIT_API_BASE}/analytics/v1/allocations`;
 
 describe("allocations", () => {
   const mockToken = "fake-token";
@@ -57,7 +61,7 @@ describe("allocations", () => {
       const response = await handleListAllocationsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/allocations?pageToken=next-page",
+        `${ALLOCATIONS_URL}?pageToken=next-page`,
         mockToken,
         {
           method: "GET",
@@ -89,7 +93,7 @@ describe("allocations", () => {
       const response = await handleListAllocationsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/allocations",
+        ALLOCATIONS_URL,
         mockToken,
         {
           method: "GET",
@@ -167,7 +171,7 @@ describe("allocations", () => {
       const response = await handleGetAllocationRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
-        "https://api.doit.com/analytics/v1/allocations/allocation-123",
+        `${ALLOCATIONS_URL}/allocation-123`,
         mockToken,
         {
           method: "GET",
@@ -226,6 +230,137 @@ describe("allocations", () => {
           },
         ],
       });
+    });
+  });
+
+  describe("handleCreateAllocationRequest", () => {
+    const singleRuleArgs = {
+      name: "Prod Web",
+      rule: {
+        components: [
+          { key: "environment", type: "label" as const, values: ["prod"] },
+        ],
+        formula: "A",
+      },
+    };
+
+    const groupArgs = {
+      name: "Shared Infra",
+      rules: [
+        {
+          name: "Team A",
+          components: [
+            { key: "team", type: "label" as const, values: ["team-a"] },
+          ],
+          formula: "A",
+        },
+        {
+          name: "Team B",
+          components: [
+            { key: "team", type: "label" as const, values: ["team-b"] },
+          ],
+          formula: "A",
+        },
+      ],
+      unallocatedCosts: "Other",
+    };
+
+    it("should send rule in body for single-rule allocation", async () => {
+      const mockApiResponse = { id: "alloc-new-1", type: "single" };
+      (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+
+      await handleCreateAllocationRequest(singleRuleArgs, mockToken);
+
+      expect(makeDoitRequest).toHaveBeenCalledWith(
+        ALLOCATIONS_URL,
+        mockToken,
+        {
+          method: "POST",
+          body: {
+            name: "Prod Web",
+            rule: singleRuleArgs.rule,
+          },
+          customerContext: undefined,
+        }
+      );
+      expect(createSuccessResponse).toHaveBeenCalledWith(
+        expect.stringContaining("alloc-new-1")
+      );
+    });
+
+    it("should send rules + unallocatedCosts in body for group allocation", async () => {
+      const mockApiResponse = { id: "alloc-new-2", type: "group" };
+      (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+
+      await handleCreateAllocationRequest(groupArgs, mockToken);
+
+      expect(makeDoitRequest).toHaveBeenCalledWith(
+        ALLOCATIONS_URL,
+        mockToken,
+        {
+          method: "POST",
+          body: {
+            name: "Shared Infra",
+            rules: groupArgs.rules,
+            unallocatedCosts: "Other",
+          },
+          customerContext: undefined,
+        }
+      );
+      expect(createSuccessResponse).toHaveBeenCalledWith(
+        expect.stringContaining("alloc-new-2")
+      );
+    });
+
+    it("should return error when API returns null", async () => {
+      (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+      await handleCreateAllocationRequest(singleRuleArgs, mockToken);
+
+      expect(createErrorResponse).toHaveBeenCalledWith(
+        "Failed to create allocation"
+      );
+    });
+
+    it("should return validation error when both rule and rules are provided", async () => {
+      const invalidArgs = {
+        name: "Bad Allocation",
+        rule: singleRuleArgs.rule,
+        rules: groupArgs.rules,
+        unallocatedCosts: "Other",
+      };
+
+      await handleCreateAllocationRequest(invalidArgs, mockToken);
+
+      expect(createErrorResponse).toHaveBeenCalledWith(
+        expect.stringContaining("Formatted Zod Error")
+      );
+      expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should return validation error when neither rule nor rules is provided", async () => {
+      const invalidArgs = { name: "Bad Allocation" };
+
+      await handleCreateAllocationRequest(invalidArgs, mockToken);
+
+      expect(createErrorResponse).toHaveBeenCalledWith(
+        expect.stringContaining("Formatted Zod Error")
+      );
+      expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should return validation error when rules is provided without unallocatedCosts", async () => {
+      const invalidArgs = {
+        name: "Bad Group",
+        rules: groupArgs.rules,
+      };
+
+      await handleCreateAllocationRequest(invalidArgs, mockToken);
+
+      expect(createErrorResponse).toHaveBeenCalledWith(
+        expect.stringContaining("Formatted Zod Error")
+      );
+      expect(makeDoitRequest).not.toHaveBeenCalled();
     });
   });
 });

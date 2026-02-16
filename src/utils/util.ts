@@ -1,7 +1,28 @@
 import { z } from "zod";
 
-// Constants
-export const DOIT_API_BASE = "https://api.doit.com";
+export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
+
+const DOIT_DEBUG_MODE =
+  process.env.DOIT_DEBUG_MODE?.toLowerCase() === "true" ||
+  process.env.DOIT_DEBUG_MODE === "1";
+
+/**
+ * Logs a message to standard error when DOIT_DEBUG_MODE is enabled.
+ * Standard output may be mixed with MCP server output.
+ * Set environment variable DOIT_DEBUG_MODE=true (or DOIT_DEBUG_MODE=1) to enable.
+ * @param message Message or data to log (will be stringified if not a string)
+ * @param optionalArgs Optional additional arguments (logged after the message, like console.log)
+ */
+export function debugLog(message: unknown, ...optionalArgs: unknown[]): void {
+  if (!DOIT_DEBUG_MODE) return;
+  const text =
+    typeof message === "string" ? message : JSON.stringify(message, null, 2);
+  if (optionalArgs.length > 0) {
+    console.error("[doit-mcp debug]", text, ...optionalArgs);
+  } else {
+    console.error("[doit-mcp debug]", text);
+  }
+}
 
 /**
  * Generic function to convert a zod schema to MCP server tool format
@@ -72,7 +93,11 @@ export function handleGeneralError(
   context: string
 ): ReturnType<typeof createErrorResponse> {
   console.error(`Error ${context}:`, error);
-  return createErrorResponse("An error occurred while processing your request");
+  const message =
+    error instanceof Error ? error.message : String(error);
+  return createErrorResponse(
+    message || "An error occurred while processing your request"
+  );
 }
 
 /**
@@ -149,6 +174,7 @@ export async function makeDoitRequest<T>(
     // Add body for non-GET requests if provided
     if (method !== "GET" && body !== undefined) {
       requestOptions.body = JSON.stringify(body);
+      debugLog("API request body: ", requestOptions.body);
     }
 
     // add mcp params to the url
@@ -159,11 +185,26 @@ export async function makeDoitRequest<T>(
       url += `&sse=true`;
     }
 
-    console.log("url", url);
+    debugLog("API request URL: ", url);
     const response = await fetch(url, requestOptions);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const bodyText = await response.text();
+      let detail = bodyText;
+      try {
+        const parsed = JSON.parse(bodyText);
+        detail =
+          parsed.message ||
+          parsed.error ||
+          (typeof parsed.detail === "string"
+            ? parsed.detail
+            : JSON.stringify(parsed));
+      } catch {
+        // use bodyText as-is
+      }
+      throw new Error(
+        `HTTP ${response.status}: ${detail || response.statusText}`
+      );
     }
     return (await response.json()) as T;
   } catch (error) {

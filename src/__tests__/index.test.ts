@@ -85,8 +85,13 @@ vi.mock("../tools/allocations.js", () => ({
     name: "get_allocation",
     description: "Get a specific allocation by ID from the DoiT API",
   },
+  createAllocationTool: {
+    name: "create_allocation",
+    description: "Create a new allocation in the DoiT Cloud Intelligence Platform",
+  },
   handleListAllocationsRequest: vi.fn(),
   handleGetAllocationRequest: vi.fn(),
+  handleCreateAllocationRequest: vi.fn(),
 }));
 
 vi.mock("../tools/assets.js", () => ({
@@ -244,6 +249,10 @@ describe("ListToolsRequestSchema Handler", () => {
         {
           name: "get_allocation",
           description: "Get a specific allocation by ID from the DoiT API",
+        },
+        {
+          name: "create_allocation",
+          description: "Create a new allocation in the DoiT Cloud Intelligence Platform",
         },
         {
           name: "list_assets",
@@ -519,6 +528,21 @@ describe("CallToolRequestSchema Handler", () => {
     expect(handleGetAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
   });
 
+  it("should route to the correct tool handler for create_allocation", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = {
+      name: "Test Allocation",
+      rule: { components: [{ key: "env", type: "label", values: ["prod"] }] },
+    };
+    const request = mockRequest("create_allocation", args);
+
+    await callToolHandler(request);
+
+    expect(handleCreateAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
   it("should route to the correct tool handler for list_assets", async () => {
     const callToolHandler = setRequestHandlerMock.mock.calls.find(
       (call) => call[0] === CallToolRequestSchema
@@ -636,5 +660,6 @@ const {
   handleGetInvoiceRequest,
   handleListAllocationsRequest,
   handleGetAllocationRequest,
+  handleCreateAllocationRequest,
   handleListAssetsRequest,
 } = indexModule;
