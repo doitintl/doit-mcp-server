@@ -8,6 +8,8 @@ import {
   DOIT_API_BASE,
 } from "../utils/util.js";
 
+export const ALLOCATIONS_URL = `${DOIT_API_BASE}/analytics/v1/allocations`;
+
 // Shared constants for allocation component types and modes
 const ALLOCATION_COMPONENT_TYPES = [
   "datetime",
@@ -88,42 +90,55 @@ const GroupRuleInputSchema = SingleRuleInputSchema.extend({
   id: z.string().optional().describe("Rule ID (for existing rules)"),
 });
 
-export const CreateAllocationArgumentsSchema = z
-  .object({
-    name: z.string().describe("Human-readable name of the allocation"),
-    description: z
-      .string()
-      .optional()
-      .describe("Optional description of the allocation's purpose"),
-    rule: SingleRuleInputSchema.optional().describe(
-      "A single allocation rule that defines one grouping. Provide this for a single-rule allocation. Mutually exclusive with 'rules'"
+// Base object schema shared by create and update allocation
+const AllocationBaseObjectSchema = z.object({
+  name: z.string().describe("Human-readable name of the allocation"),
+  description: z
+    .string()
+    .optional()
+    .describe("Optional description of the allocation's purpose"),
+  rule: SingleRuleInputSchema.optional().describe(
+    "A single allocation rule that defines one grouping. Provide this for a single-rule allocation. Mutually exclusive with 'rules'"
+  ),
+  rules: z
+    .array(GroupRuleInputSchema)
+    .min(2)
+    .optional()
+    .describe(
+      "Ordered list of allocation rules for a group allocation. Must include at least two rules. Mutually exclusive with 'rule'"
     ),
-    rules: z
-      .array(GroupRuleInputSchema)
-      .min(2)
-      .optional()
-      .describe(
-        "Ordered list of allocation rules for a group allocation. Must include at least two rules. Mutually exclusive with 'rule'"
-      ),
-    unallocatedCosts: z
-      .string()
-      .nullable()
-      .optional()
-      .describe(
-        "Custom label for values that do not fit into any allocation rule (required when using 'rules' for group allocations)"
-      ),
-  })
-  .refine((data) => (data.rule && !data.rules) || (!data.rule && data.rules), {
-    message:
-      "Provide either 'rule' (for a single-rule allocation) or 'rules' (for a group allocation), not both",
-  })
-  .refine(
-    (data) => !data.rules || data.unallocatedCosts !== undefined,
-    {
+  unallocatedCosts: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "Custom label for values that do not fit into any allocation rule (required when using 'rules' for group allocations)"
+    ),
+});
+
+const allocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
+  schema
+    .refine((data: any) => (data.rule && !data.rules) || (!data.rule && data.rules), {
       message:
-        "'unallocatedCosts' is required when creating a group allocation with 'rules'",
-    }
-  );
+        "Provide either 'rule' (for a single-rule allocation) or 'rules' (for a group allocation), not both",
+    })
+    .refine(
+      (data: any) => !data.rules || data.unallocatedCosts !== undefined,
+      {
+        message:
+          "'unallocatedCosts' is required when using 'rules' for a group allocation",
+      }
+    );
+
+export const CreateAllocationArgumentsSchema = allocationRefinements(
+  AllocationBaseObjectSchema
+);
+
+export const UpdateAllocationArgumentsSchema = allocationRefinements(
+  AllocationBaseObjectSchema.extend({
+    id: z.string().describe("The ID of the allocation to update"),
+  })
+);
 
 // Interfaces
 export interface AllocationComponent {
@@ -316,6 +331,28 @@ export const createAllocationTool = {
   inputSchema: createAllocationInputSchema,
 };
 
+const updateAllocationInputSchema = {
+  type: "object",
+  properties: {
+    id: {
+      type: "string",
+      description: "The ID of the allocation to update",
+    },
+    ...createAllocationInputSchema.properties,
+  },
+  required: ["id", "name"],
+} as const;
+
+export const updateAllocationTool = {
+  name: "update_allocation",
+  description: `Update an existing allocation in the DoiT Cloud Intelligence Platform.
+    Provide the allocation ID and the updated allocation configuration.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).
+    The 'rule' and 'rules' fields are mutually exclusive.`,
+  inputSchema: updateAllocationInputSchema,
+};
+
 // Handle list allocations request
 export async function handleListAllocationsRequest(args: any, token: string) {
   try {
@@ -328,7 +365,7 @@ export async function handleListAllocationsRequest(args: any, token: string) {
       params.append("pageToken", pageToken);
     }
 
-    let allocationsUrl = `${DOIT_API_BASE}/analytics/v1/allocations`;
+    let allocationsUrl = ALLOCATIONS_URL;
 
     if (params.toString()) {
       allocationsUrl += `?${params.toString()}`;
@@ -389,7 +426,7 @@ export async function handleCreateAllocationRequest(
     const parsed = CreateAllocationArgumentsSchema.parse(args);
     const { customerContext } = args;
 
-    const allocationsUrl = `${DOIT_API_BASE}/analytics/v1/allocations`;
+    const allocationsUrl = ALLOCATIONS_URL;
 
     const requestBody: Record<string, any> = {
       name: parsed.name,
@@ -434,6 +471,62 @@ export async function handleCreateAllocationRequest(
   }
 }
 
+// Handle update allocation request
+export async function handleUpdateAllocationRequest(
+  args: any,
+  token: string
+) {
+  try {
+    const parsed = UpdateAllocationArgumentsSchema.parse(args);
+    const { customerContext } = args;
+
+    const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(
+      parsed.id
+    )}`;
+
+    const requestBody: Record<string, any> = {
+      name: parsed.name,
+    };
+
+    if (parsed.description) {
+      requestBody.description = parsed.description;
+    }
+
+    if (parsed.rules) {
+      requestBody.rules = parsed.rules;
+      requestBody.unallocatedCosts = parsed.unallocatedCosts;
+    } else {
+      requestBody.rule = parsed.rule;
+    }
+
+    try {
+      const responseData = await makeDoitRequest<{
+        id: string;
+        type: string;
+      }>(allocationUrl, token, {
+        method: "PATCH",
+        body: requestBody,
+        customerContext,
+      });
+
+      if (!responseData) {
+        return createErrorResponse(`Failed to update allocation: ${parsed.id}`);
+      }
+
+      return createSuccessResponse(
+        JSON.stringify(responseData, null, 2)
+      );
+    } catch (error) {
+      return handleGeneralError(error, `Error requesting DoiT API to update allocation: ${parsed.id}`);
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createErrorResponse(formatZodError(error));
+    }
+    return handleGeneralError(error, "handling update allocation request");
+  }
+}
+
 // Handle get allocation request
 export async function handleGetAllocationRequest(args: any, token: string) {
   try {
@@ -444,7 +537,7 @@ export async function handleGetAllocationRequest(args: any, token: string) {
       return createErrorResponse("Allocation ID is required");
     }
 
-    const allocationUrl = `${DOIT_API_BASE}/analytics/v1/allocations/${encodeURIComponent(
+    const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(
       id
     )}`;
 

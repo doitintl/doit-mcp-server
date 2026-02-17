@@ -3,6 +3,7 @@ import {
   handleListAllocationsRequest,
   handleGetAllocationRequest,
   handleCreateAllocationRequest,
+  handleUpdateAllocationRequest,
 } from "../allocations.js";
 import {
   createErrorResponse,
@@ -361,6 +362,167 @@ describe("allocations", () => {
         expect.stringContaining("Formatted Zod Error")
       );
       expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handleUpdateAllocationRequest", () => {
+    const singleRuleArgs = {
+      id: "allocation-123",
+      name: "Updated Allocation",
+      rule: {
+        components: [
+          { key: "environment", type: "label" as const, values: ["staging"] },
+        ],
+        formula: "A",
+      },
+    };
+
+    const groupArgs = {
+      id: "allocation-456",
+      name: "Updated Group",
+      rules: [
+        {
+          name: "Team A",
+          components: [
+            { key: "team", type: "label" as const, values: ["team-a"] },
+          ],
+          formula: "A",
+        },
+        {
+          name: "Team B",
+          components: [
+            { key: "team", type: "label" as const, values: ["team-b"] },
+          ],
+          formula: "A",
+        },
+      ],
+      unallocatedCosts: "Other",
+    };
+
+    it("should send PATCH request with rule in body for single-rule allocation", async () => {
+      const mockApiResponse = { id: "allocation-123", type: "single" };
+      (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+
+      await handleUpdateAllocationRequest(singleRuleArgs, mockToken);
+
+      expect(makeDoitRequest).toHaveBeenCalledWith(
+        `${ALLOCATIONS_URL}/allocation-123`,
+        mockToken,
+        {
+          method: "PATCH",
+          body: {
+            name: "Updated Allocation",
+            rule: singleRuleArgs.rule,
+          },
+          customerContext: undefined,
+        }
+      );
+      expect(createSuccessResponse).toHaveBeenCalledWith(
+        expect.stringContaining("allocation-123")
+      );
+    });
+
+    it("should send PATCH request with rules + unallocatedCosts for group allocation", async () => {
+      const mockApiResponse = { id: "allocation-456", type: "group" };
+      (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+
+      await handleUpdateAllocationRequest(groupArgs, mockToken);
+
+      expect(makeDoitRequest).toHaveBeenCalledWith(
+        `${ALLOCATIONS_URL}/allocation-456`,
+        mockToken,
+        {
+          method: "PATCH",
+          body: {
+            name: "Updated Group",
+            rules: groupArgs.rules,
+            unallocatedCosts: "Other",
+          },
+          customerContext: undefined,
+        }
+      );
+      expect(createSuccessResponse).toHaveBeenCalledWith(
+        expect.stringContaining("allocation-456")
+      );
+    });
+
+    it("should include description in body when provided", async () => {
+      const argsWithDesc = {
+        ...singleRuleArgs,
+        description: "Updated description",
+      };
+      const mockApiResponse = { id: "allocation-123", type: "single" };
+      (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+
+      await handleUpdateAllocationRequest(argsWithDesc, mockToken);
+
+      expect(makeDoitRequest).toHaveBeenCalledWith(
+        `${ALLOCATIONS_URL}/allocation-123`,
+        mockToken,
+        {
+          method: "PATCH",
+          body: {
+            name: "Updated Allocation",
+            description: "Updated description",
+            rule: singleRuleArgs.rule,
+          },
+          customerContext: undefined,
+        }
+      );
+    });
+
+    it("should return error when API returns null", async () => {
+      (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+      await handleUpdateAllocationRequest(singleRuleArgs, mockToken);
+
+      expect(createErrorResponse).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to update allocation")
+      );
+    });
+
+    it("should return validation error when id is missing", async () => {
+      const invalidArgs = {
+        name: "No ID",
+        rule: singleRuleArgs.rule,
+      };
+
+      await handleUpdateAllocationRequest(invalidArgs, mockToken);
+
+      expect(createErrorResponse).toHaveBeenCalledWith(
+        expect.stringContaining("Formatted Zod Error")
+      );
+      expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should return validation error when both rule and rules are provided", async () => {
+      const invalidArgs = {
+        id: "allocation-123",
+        name: "Bad Update",
+        rule: singleRuleArgs.rule,
+        rules: groupArgs.rules,
+        unallocatedCosts: "Other",
+      };
+
+      await handleUpdateAllocationRequest(invalidArgs, mockToken);
+
+      expect(createErrorResponse).toHaveBeenCalledWith(
+        expect.stringContaining("Formatted Zod Error")
+      );
+      expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should handle makeDoitRequest throwing an error", async () => {
+      (makeDoitRequest as vi.Mock).mockRejectedValue(
+        new Error("Network error")
+      );
+
+      await handleUpdateAllocationRequest(singleRuleArgs, mockToken);
+
+      expect(handleGeneralError).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.stringContaining("update allocation")
+      );
     });
   });
 });

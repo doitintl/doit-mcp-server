@@ -63,6 +63,8 @@ import {
   handleGetAllocationRequest,
   createAllocationTool,
   handleCreateAllocationRequest,
+  updateAllocationTool,
+  handleUpdateAllocationRequest,
 } from "./tools/allocations.js";
 import { listAssetsTool, handleListAssetsRequest } from "./tools/assets.js";
 
@@ -103,6 +105,7 @@ function createServer() {
         listAllocationsTool,
         getAllocationTool,
         createAllocationTool,
+        updateAllocationTool,
         listAssetsTool,
       ],
     };
@@ -197,5 +200,6 @@ export {
   handleListAllocationsRequest,
   handleGetAllocationRequest,
   handleCreateAllocationRequest,
+  handleUpdateAllocationRequest,
   handleListAssetsRequest,
 };

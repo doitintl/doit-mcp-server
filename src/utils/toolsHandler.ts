@@ -33,6 +33,7 @@ import {
   handleListAllocationsRequest,
   handleGetAllocationRequest,
   handleCreateAllocationRequest,
+  handleUpdateAllocationRequest,
 } from "../tools/allocations.js";
 import { handleListAssetsRequest } from "../tools/assets.js";
 
@@ -101,6 +102,9 @@ export async function executeToolHandler(
         break;
       case "create_allocation":
         result = await handleCreateAllocationRequest(args, token);
+        break;
+      case "update_allocation":
+        result = await handleUpdateAllocationRequest(args, token);
         break;
       case "list_assets":
         result = await handleListAssetsRequest(args, token);

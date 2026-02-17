@@ -89,9 +89,14 @@ vi.mock("../tools/allocations.js", () => ({
     name: "create_allocation",
     description: "Create a new allocation in the DoiT Cloud Intelligence Platform",
   },
+  updateAllocationTool: {
+    name: "update_allocation",
+    description: "Update an existing allocation in the DoiT Cloud Intelligence Platform",
+  },
   handleListAllocationsRequest: vi.fn(),
   handleGetAllocationRequest: vi.fn(),
   handleCreateAllocationRequest: vi.fn(),
+  handleUpdateAllocationRequest: vi.fn(),
 }));
 
 vi.mock("../tools/assets.js", () => ({
@@ -253,6 +258,10 @@ describe("ListToolsRequestSchema Handler", () => {
         {
           name: "create_allocation",
           description: "Create a new allocation in the DoiT Cloud Intelligence Platform",
+        },
+        {
+          name: "update_allocation",
+          description: "Update an existing allocation in the DoiT Cloud Intelligence Platform",
         },
         {
           name: "list_assets",
@@ -543,6 +552,22 @@ describe("CallToolRequestSchema Handler", () => {
     expect(handleCreateAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
   });
 
+  it("should route to the correct tool handler for update_allocation", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = {
+      id: "allocation-123",
+      name: "Updated Allocation",
+      rule: { components: [{ key: "env", type: "label", values: ["staging"] }] },
+    };
+    const request = mockRequest("update_allocation", args);
+
+    await callToolHandler(request);
+
+    expect(handleUpdateAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
   it("should route to the correct tool handler for list_assets", async () => {
     const callToolHandler = setRequestHandlerMock.mock.calls.find(
       (call) => call[0] === CallToolRequestSchema
@@ -661,5 +686,6 @@ const {
   handleListAllocationsRequest,
   handleGetAllocationRequest,
   handleCreateAllocationRequest,
+  handleUpdateAllocationRequest,
   handleListAssetsRequest,
 } = indexModule;

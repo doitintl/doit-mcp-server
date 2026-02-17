@@ -148,6 +148,7 @@ This MCP server provides many tools including the following:
 - [`list_allocations`](https://developer.doit.com/reference/listallocations): List allocations for report or run_query configuration that your account has access to from the DoiT API
 - [`get_allocation`](https://developer.doit.com/reference/getallocation): Get a specific allocation by ID from the DoiT API
 - [`create_allocation`](https://developer.doit.com/reference/createallocation): Create a new allocation in the DoiT Cloud Intelligence Platform (single-rule or group allocations)
+- [`update_allocation`](https://developer.doit.com/reference/updateallocation): Update an existing allocation in the DoiT Cloud Intelligence Platform
 
 
 ## Usage Examples
