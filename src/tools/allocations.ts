@@ -32,6 +32,8 @@ const ALLOCATION_COMPONENT_MODES = [
   "ends_with",
 ] as const;
 
+const GROUP_ALLOCATION_ACTIONS = ["create", "update", "select"] as const;
+
 type AllocationComponentType = (typeof ALLOCATION_COMPONENT_TYPES)[number];
 type AllocationComponentMode = (typeof ALLOCATION_COMPONENT_MODES)[number];
 
@@ -64,7 +66,6 @@ const AllocationComponentSchema = z.object({
     .describe("If true, include resources with no value for this dimension"),
   mode: z
     .enum(ALLOCATION_COMPONENT_MODES)
-    .optional()
     .describe("The matching mode for values. Defaults to 'is'"),
 });
 
@@ -75,7 +76,6 @@ const SingleRuleInputSchema = z.object({
     .describe("Array of allocation components that define this rule"),
   formula: z
     .string()
-    .optional()
     .describe("Logical formula combining components (e.g., 'A AND B')"),
 });
 
@@ -84,19 +84,18 @@ const GroupRuleInputSchema = SingleRuleInputSchema.extend({
   name: z.string().optional().describe("Name of the rule"),
   description: z.string().optional().describe("Description of the rule"),
   action: z
-    .enum(["create"])
-    .optional()
-    .describe("Action for this rule (e.g., 'create')"),
+    .enum(GROUP_ALLOCATION_ACTIONS)
+    .describe("Required action for this rule (e.g., 'create', 'update', 'select')"),
   id: z.string().optional().describe("Rule ID (for existing rules)"),
 });
 
 // Base object schema shared by create and update allocation
-const AllocationBaseObjectSchema = z.object({
+const AllocationBaseMutationSchema = z.object({
   name: z.string().describe("Human-readable name of the allocation"),
   description: z
     .string()
     .optional()
-    .describe("Optional description of the allocation's purpose"),
+    .describe("Description of the allocation's purpose"),
   rule: SingleRuleInputSchema.optional().describe(
     "A single allocation rule that defines one grouping. Provide this for a single-rule allocation. Mutually exclusive with 'rules'"
   ),
@@ -116,6 +115,7 @@ const AllocationBaseObjectSchema = z.object({
     ),
 });
 
+// Refinements for the allocation mutation schemas to apply validations on the input
 const allocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
   schema
     .refine((data: any) => (data.rule && !data.rules) || (!data.rule && data.rules), {
@@ -131,11 +131,13 @@ const allocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
     );
 
 export const CreateAllocationArgumentsSchema = allocationRefinements(
-  AllocationBaseObjectSchema
+  AllocationBaseMutationSchema.extend({
+    description: z.string().describe("Description of the allocation's purpose"),
+  })
 );
 
 export const UpdateAllocationArgumentsSchema = allocationRefinements(
-  AllocationBaseObjectSchema.extend({
+  AllocationBaseMutationSchema.extend({
     id: z.string().describe("The ID of the allocation to update"),
   })
 );
@@ -215,12 +217,14 @@ export const getAllocationTool = {
   },
 };
 
+// Schema for a single allocation component (used within 'components' array) of
+// a single rule or a group rule
 const componentObjectSchema = {
   type: "object",
   properties: {
     key: {
       type: "string",
-      description: "The dimension, label, or tag key",
+      description: "Key of an existing dimension, label, or tag key",
     },
     type: {
       type: "string",
@@ -248,9 +252,10 @@ const componentObjectSchema = {
       description: "The matching mode for values",
     },
   },
-  required: ["key", "type", "values"],
+  required: ["key", "type", "values", "mode"],
 };
 
+// Schema for a single allocation rule (used with 'rule' param)
 const singleRuleObjectSchema = {
   type: "object",
   properties: {
@@ -267,6 +272,7 @@ const singleRuleObjectSchema = {
   },
 };
 
+// Schema for a group allocation rule (used within 'rules' array)
 const groupRuleObjectSchema = {
   type: "object",
   properties: {
@@ -281,16 +287,17 @@ const groupRuleObjectSchema = {
     },
     action: {
       type: "string",
-      enum: ["create"],
-      description: "Action for this rule (e.g., 'create')",
+      enum: [...GROUP_ALLOCATION_ACTIONS],
+      description: "Required action for this rule (e.g., 'create', 'update', 'select')",
     },
     id: {
       type: "string",
-      description: "Rule ID (for existing rules)",
+      description: "Rule ID (for existing rules), required for 'update' and 'select' actions",
     },
   },
 };
 
+// Schema for the input of the create allocation tool
 const createAllocationInputSchema = {
   type: "object",
   properties: {
@@ -300,7 +307,7 @@ const createAllocationInputSchema = {
     },
     description: {
       type: "string",
-      description: "Optional description of the allocation's purpose",
+      description: "Description of the allocation's purpose",
     },
     rule: {
       ...singleRuleObjectSchema,
@@ -319,7 +326,7 @@ const createAllocationInputSchema = {
         "Custom label for values that do not fit into any allocation rule (required when using 'rules' for group allocations)",
     },
   },
-  required: ["name"],
+  required: ["name", "description"],
 } as const;
 
 export const createAllocationTool = {

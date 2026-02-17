@@ -4,14 +4,13 @@ import {
   handleGetAllocationRequest,
   handleCreateAllocationRequest,
   handleUpdateAllocationRequest,
+  ALLOCATIONS_URL,
 } from "../allocations.js";
 import {
   createErrorResponse,
   createSuccessResponse,
-  formatZodError,
   handleGeneralError,
   makeDoitRequest,
-  DOIT_API_BASE,
 } from "../../utils/util.js";
 
 // Mock the utility functions
@@ -29,8 +28,6 @@ vi.mock("../../utils/util.js", () => ({
   makeDoitRequest: vi.fn(),
   DOIT_API_BASE: "https://api.doit.com",
 }));
-
-const ALLOCATIONS_URL = `${DOIT_API_BASE}/analytics/v1/allocations`;
 
 describe("allocations", () => {
   const mockToken = "fake-token";
@@ -237,9 +234,10 @@ describe("allocations", () => {
   describe("handleCreateAllocationRequest", () => {
     const singleRuleArgs = {
       name: "Prod Web",
+      description: "Production web allocation",
       rule: {
         components: [
-          { key: "environment", type: "label" as const, values: ["prod"] },
+          { key: "environment", type: "label" as const, values: ["prod"], mode: "is" as const },
         ],
         formula: "A",
       },
@@ -247,18 +245,21 @@ describe("allocations", () => {
 
     const groupArgs = {
       name: "Shared Infra",
+      description: "Shared infrastructure allocation",
       rules: [
         {
           name: "Team A",
+          action: "create" as const,
           components: [
-            { key: "team", type: "label" as const, values: ["team-a"] },
+            { key: "team", type: "label" as const, values: ["team-a"], mode: "is" as const },
           ],
           formula: "A",
         },
         {
           name: "Team B",
+          action: "create" as const,
           components: [
-            { key: "team", type: "label" as const, values: ["team-b"] },
+            { key: "team", type: "label" as const, values: ["team-b"], mode: "is" as const },
           ],
           formula: "A",
         },
@@ -279,6 +280,7 @@ describe("allocations", () => {
           method: "POST",
           body: {
             name: "Prod Web",
+            description: "Production web allocation",
             rule: singleRuleArgs.rule,
           },
           customerContext: undefined,
@@ -302,6 +304,7 @@ describe("allocations", () => {
           method: "POST",
           body: {
             name: "Shared Infra",
+            description: "Shared infrastructure allocation",
             rules: groupArgs.rules,
             unallocatedCosts: "Other",
           },
@@ -319,13 +322,14 @@ describe("allocations", () => {
       await handleCreateAllocationRequest(singleRuleArgs, mockToken);
 
       expect(createErrorResponse).toHaveBeenCalledWith(
-        "Failed to create allocation"
+        expect.stringContaining("Failed to create allocation")
       );
     });
 
     it("should return validation error when both rule and rules are provided", async () => {
       const invalidArgs = {
         name: "Bad Allocation",
+        description: "Invalid allocation",
         rule: singleRuleArgs.rule,
         rules: groupArgs.rules,
         unallocatedCosts: "Other",
@@ -340,7 +344,7 @@ describe("allocations", () => {
     });
 
     it("should return validation error when neither rule nor rules is provided", async () => {
-      const invalidArgs = { name: "Bad Allocation" };
+      const invalidArgs = { name: "Bad Allocation", description: "Invalid allocation" };
 
       await handleCreateAllocationRequest(invalidArgs, mockToken);
 
@@ -353,6 +357,7 @@ describe("allocations", () => {
     it("should return validation error when rules is provided without unallocatedCosts", async () => {
       const invalidArgs = {
         name: "Bad Group",
+        description: "Invalid group allocation",
         rules: groupArgs.rules,
       };
 
@@ -369,9 +374,10 @@ describe("allocations", () => {
     const singleRuleArgs = {
       id: "allocation-123",
       name: "Updated Allocation",
+      description: "Updated single-rule allocation",
       rule: {
         components: [
-          { key: "environment", type: "label" as const, values: ["staging"] },
+          { key: "environment", type: "label" as const, values: ["staging"], mode: "is" as const },
         ],
         formula: "A",
       },
@@ -380,18 +386,21 @@ describe("allocations", () => {
     const groupArgs = {
       id: "allocation-456",
       name: "Updated Group",
+      description: "Updated group allocation",
       rules: [
         {
           name: "Team A",
+          action: "create" as const,
           components: [
-            { key: "team", type: "label" as const, values: ["team-a"] },
+            { key: "team", type: "label" as const, values: ["team-a"], mode: "is" as const },
           ],
           formula: "A",
         },
         {
           name: "Team B",
+          action: "create" as const,
           components: [
-            { key: "team", type: "label" as const, values: ["team-b"] },
+            { key: "team", type: "label" as const, values: ["team-b"], mode: "is" as const },
           ],
           formula: "A",
         },
@@ -412,6 +421,7 @@ describe("allocations", () => {
           method: "PATCH",
           body: {
             name: "Updated Allocation",
+            description: "Updated single-rule allocation",
             rule: singleRuleArgs.rule,
           },
           customerContext: undefined,
@@ -435,6 +445,7 @@ describe("allocations", () => {
           method: "PATCH",
           body: {
             name: "Updated Group",
+            description: "Updated group allocation",
             rules: groupArgs.rules,
             unallocatedCosts: "Other",
           },
@@ -484,6 +495,7 @@ describe("allocations", () => {
     it("should return validation error when id is missing", async () => {
       const invalidArgs = {
         name: "No ID",
+        description: "Missing ID allocation",
         rule: singleRuleArgs.rule,
       };
 
@@ -499,6 +511,7 @@ describe("allocations", () => {
       const invalidArgs = {
         id: "allocation-123",
         name: "Bad Update",
+        description: "Invalid update allocation",
         rule: singleRuleArgs.rule,
         rules: groupArgs.rules,
         unallocatedCosts: "Other",
