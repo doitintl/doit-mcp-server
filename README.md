@@ -130,7 +130,7 @@ node dist/index.js
 
 ## Tools
 
-This MCP server provides the following tools:
+This MCP server provides many tools including the following:
 
 - [`get_cloud_incidents`](https://developer.doit.com/reference/listknownissues): Retrieve cloud incidents from various platforms
 - [`get_cloud_incident`](https://developer.doit.com/reference/getknownissue): Get details about a specific cloud incident by ID
@@ -145,6 +145,10 @@ This MCP server provides the following tools:
 - [`list_tickets`](https://developer.doit.com/reference/listtickets): List support tickets from DoiT using the support API
 - [`list_invoices`](https://developer.doit.com/reference/listinvoices): List all current and historical invoices for your organization from the DoiT API
 - [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
+- [`list_allocations`](https://developer.doit.com/reference/listallocations): List allocations for report or run_query configuration that your account has access to from the DoiT API
+- [`get_allocation`](https://developer.doit.com/reference/getallocation): Get a specific allocation by ID from the DoiT API
+- [`create_allocation`](https://developer.doit.com/reference/createallocation): Create a new allocation in the DoiT Cloud Intelligence Platform (single-rule or group allocations)
+
 
 ## Usage Examples
 
