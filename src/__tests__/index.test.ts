@@ -87,11 +87,18 @@ vi.mock("../tools/allocations.js", () => ({
   },
   createAllocationTool: {
     name: "create_allocation",
-    description: "Create a new allocation in the DoiT Cloud Intelligence Platform",
+    description: `Create a new allocation via the DoiT API
+    Allocations let you group and segment cloud costs using allocation rules.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).`,
   },
   updateAllocationTool: {
     name: "update_allocation",
-    description: "Update an existing allocation in the DoiT Cloud Intelligence Platform",
+    description: `Update an existing allocation
+    Provide the allocation ID and the updated allocation configuration.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).
+    The 'rule' and 'rules' fields are mutually exclusive.`,
   },
   handleListAllocationsRequest: vi.fn(),
   handleGetAllocationRequest: vi.fn(),
@@ -257,11 +264,18 @@ describe("ListToolsRequestSchema Handler", () => {
         },
         {
           name: "create_allocation",
-          description: "Create a new allocation in the DoiT Cloud Intelligence Platform",
+          description: `Create a new allocation via the DoiT API
+    Allocations let you group and segment cloud costs using allocation rules.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).`,
         },
         {
           name: "update_allocation",
-          description: "Update an existing allocation in the DoiT Cloud Intelligence Platform",
+          description: `Update an existing allocation
+    Provide the allocation ID and the updated allocation configuration.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).
+    The 'rule' and 'rules' fields are mutually exclusive.`,
         },
         {
           name: "list_assets",

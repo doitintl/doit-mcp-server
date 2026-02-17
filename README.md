@@ -147,8 +147,8 @@ This MCP server provides many tools including the following:
 - [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
 - [`list_allocations`](https://developer.doit.com/reference/listallocations): List allocations for report or run_query configuration that your account has access to from the DoiT API
 - [`get_allocation`](https://developer.doit.com/reference/getallocation): Get a specific allocation by ID from the DoiT API
-- [`create_allocation`](https://developer.doit.com/reference/createallocation): Create a new allocation in the DoiT Cloud Intelligence Platform (single-rule or group allocations)
-- [`update_allocation`](https://developer.doit.com/reference/updateallocation): Update an existing allocation in the DoiT Cloud Intelligence Platform
+- [`create_allocation`](https://developer.doit.com/reference/createallocation): Create a new allocation
+- [`update_allocation`](https://developer.doit.com/reference/updateallocation): Update an existing allocation
 
 
 ## Usage Examples
