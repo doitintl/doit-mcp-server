@@ -9,6 +9,7 @@ import {
   InitializeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { SERVER_VERSION } from "../utils/consts.js";
 
 // Mock the SDK and tool handlers
 vi.mock("@modelcontextprotocol/sdk/server/index.js");
@@ -180,7 +181,7 @@ afterEach(() => {
 describe("MCP Server Setup", () => {
   it("should create a Server instance with correct details", () => {
     expect(Server).toHaveBeenCalledWith(
-      { name: "doit-mcp-server", version: "1.0.0" },
+      { name: "doit-mcp-server", version: SERVER_VERSION },
       { capabilities: { tools: {}, prompts: {}, resources: {} } }
     );
   });
@@ -674,7 +675,7 @@ describe("InitializeRequestSchema Handler", () => {
       protocolVersion: "2024-11-05",
       serverInfo: {
         name: "doit-mcp-server",
-        version: "1.0.0",
+        version: SERVER_VERSION,
       },
       capabilities: { tools: {}, prompts: {}, resources: {} },
     });

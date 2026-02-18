@@ -136,13 +136,13 @@ This MCP server provides many tools including the following:
 - [`get_cloud_incident`](https://developer.doit.com/reference/getknownissue): Get details about a specific cloud incident by ID
 - [`get_anomalies`](https://developer.doit.com/reference/listanomalies): Retrieve anomalies detected in cloud resources
 - [`get_anomaly`](https://developer.doit.com/reference/getanomaly): Get details about a specific anomaly by ID
-- `list_reports`: Lists Cloud Analytics reports that your account has access to
+- [`list_reports`](https://developer.doit.com/reference/listreports): Lists Cloud Analytics reports that your account has access to
 - [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
 - [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID
 - [`validate_user`](https://developer.doit.com/reference/validate): Validates the current API user and returns domain and email information
 - [`list_dimensions`](https://developer.doit.com/reference/listdimensions): Lists Cloud Analytics dimensions that your account has access to
 - [`get_dimension`](https://developer.doit.com/reference/getdimensions): Get a specific Cloud Analytics dimension by type and ID
-- [`list_tickets`](https://developer.doit.com/reference/listtickets): List support tickets from DoiT using the support API
+- [`list_tickets`](https://developer.doit.com/reference/idoftickets): List support tickets from DoiT using the support API
 - [`list_invoices`](https://developer.doit.com/reference/listinvoices): List all current and historical invoices for your organization from the DoiT API
 - [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
 - [`list_allocations`](https://developer.doit.com/reference/listallocations): List allocations for report or run_query configuration that your account has access to from the DoiT API

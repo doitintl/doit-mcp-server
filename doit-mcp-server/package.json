@@ -1,6 +1,6 @@
 {
   "name": "doit-mcp-server",
-  "version": "0.0.0",
+  "version": "0.1.35",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
@@ -9,7 +9,8 @@
     "lint:fix": "biome lint --fix",
     "start": "wrangler dev",
     "cf-typegen": "wrangler types",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "compile": "tsc"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.0.5",
