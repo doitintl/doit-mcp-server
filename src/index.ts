@@ -48,7 +48,6 @@ import { prompts } from "./utils/prompts.js";
 import {
   listTicketsTool,
   handleListTicketsRequest,
-  handleCreateTicketRequest,
 } from "./tools/tickets.js";
 import {
   listInvoicesTool,

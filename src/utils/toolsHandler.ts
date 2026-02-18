@@ -5,7 +5,6 @@ import {
   handleGeneralError,
 } from "./util.js";
 
-// Import all tool handlers
 import {
   handleCloudIncidentsRequest,
   handleCloudIncidentRequest,
