@@ -66,6 +66,7 @@ import {
   handleUpdateAllocationRequest,
 } from "./tools/allocations.js";
 import { listAssetsTool, handleListAssetsRequest } from "./tools/assets.js";
+import { SERVER_VERSION } from "./utils/consts.js";
 
 dotenv.config();
 
@@ -73,7 +74,7 @@ function createServer() {
   const server = new Server(
     {
       name: "doit-mcp-server",
-      version: "1.0.0",
+      version: SERVER_VERSION,
     },
     {
       capabilities: {
@@ -144,7 +145,7 @@ function createServer() {
       protocolVersion: request?.params?.protocolVersion || "2024-11-05",
       serverInfo: {
         name: "doit-mcp-server",
-        version: "1.0.0",
+        version: SERVER_VERSION,
       },
       capabilities: server["_capabilities"] || {},
     };

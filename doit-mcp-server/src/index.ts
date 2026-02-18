@@ -3,7 +3,8 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { DurableObject } from "cloudflare:workers";
 
-// Import DoiT tool handlers
+import { SERVER_VERSION } from "../../src/utils/consts.js";
+
 import {
   CloudIncidentsArgumentsSchema,
   CloudIncidentArgumentsSchema,
@@ -125,7 +126,7 @@ function convertToMcpResponse(doitResponse: any) {
 export class DoitMCPAgent extends McpAgent {
   server = new McpServer({
     name: "Doit",
-    version: "1.0.0",
+    version: SERVER_VERSION,
   });
 
   // Helper method to get the current token
