@@ -20,7 +20,13 @@
     "watch": "tsc --watch",
     "test": "vitest run",
     "deploy": "yarn build && npm publish --access public",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --write src/",
+    "format": "biome format src/",
+    "format:fix": "biome format --write src/",
+    "check": "biome check src/",
+    "check:fix": "biome check --write src/"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.3",
@@ -30,6 +36,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22",
