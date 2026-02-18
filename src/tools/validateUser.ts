@@ -2,10 +2,10 @@ import { z } from "zod";
 import {
   createErrorResponse,
   createSuccessResponse,
+  DOIT_API_BASE,
   formatZodError,
   handleGeneralError,
   makeDoitRequest,
-  DOIT_API_BASE,
 } from "../utils/util.js";
 
 // Schema definition

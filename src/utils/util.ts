@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
 

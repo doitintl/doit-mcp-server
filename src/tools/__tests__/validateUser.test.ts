@@ -1,12 +1,11 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { handleValidateUserRequest } from "../validateUser.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createErrorResponse,
   createSuccessResponse,
-  formatZodError,
   handleGeneralError,
   makeDoitRequest,
 } from "../../utils/util.js";
+import { handleValidateUserRequest } from "../validateUser.js";
 
 // Mock the utility functions
 vi.mock("../../utils/util.js", () => ({
@@ -17,7 +16,7 @@ vi.mock("../../utils/util.js", () => ({
     content: [{ type: "text", text }],
   })),
   formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-  handleGeneralError: vi.fn((error, context) => ({
+  handleGeneralError: vi.fn((_error, context) => ({
     content: [{ type: "text", text: `General Error: ${context}` }],
   })),
   makeDoitRequest: vi.fn(),

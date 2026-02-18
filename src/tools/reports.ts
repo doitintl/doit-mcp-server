@@ -2,10 +2,10 @@ import { z } from "zod";
 import {
   createErrorResponse,
   createSuccessResponse,
+  DOIT_API_BASE,
   formatZodError,
   handleGeneralError,
   makeDoitRequest,
-  DOIT_API_BASE,
 } from "../utils/util.js";
 
 // Schema definitions
@@ -616,7 +616,7 @@ export function formatReportResults(report: GetReportResultsResponse): string {
     .filter(Boolean)
     .join(`\n\n`);
 
-  return reportResults + `\n\n${createDocumentPrompt}`;
+  return `${reportResults}\n\n${createDocumentPrompt}`;
 }
 
 // Handle get report results request

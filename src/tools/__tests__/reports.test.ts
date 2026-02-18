@@ -1,12 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import {
-  formatReport,
-  formatQueryResult,
-  handleReportsRequest,
-  handleRunQueryRequest,
-  formatReportResults,
-  handleGetReportResultsRequest,
-} from "../reports.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -14,6 +6,14 @@ import {
   handleGeneralError,
   makeDoitRequest,
 } from "../../utils/util.js";
+import {
+  formatQueryResult,
+  formatReport,
+  formatReportResults,
+  handleGetReportResultsRequest,
+  handleReportsRequest,
+  handleRunQueryRequest,
+} from "../reports.js";
 
 // Mock the utility functions
 vi.mock("../../utils/util.js", () => ({
@@ -24,7 +24,7 @@ vi.mock("../../utils/util.js", () => ({
     content: [{ type: "text", text }],
   })),
   formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-  handleGeneralError: vi.fn((error, context) => ({
+  handleGeneralError: vi.fn((_error, context) => ({
     content: [{ type: "text", text: `General Error: ${context}` }],
   })),
   makeDoitRequest: vi.fn(),
@@ -71,7 +71,7 @@ URL: http://example.com/report/123
         cacheHit: true,
       };
 
-      const expected = `Query Results:
+      const _expected = `Query Results:
 Schema: service (string), cost (number)
 Cache Hit: true
 Rows (2 total):
@@ -106,7 +106,7 @@ Cloud Storage,50`;
         cacheHit: false,
       };
 
-      const expected = `Query Results:
+      const _expected = `Query Results:
 Schema: service (string), cost (number)
 Cache Hit: false
 Rows (0 total):
@@ -151,7 +151,7 @@ Rows (0 total):
         },
       };
 
-      const expected = `Report Details:
+      const _expected = `Report Details:
 ID: report-123
 Name: Cost Overview
 Owner: test@example.com

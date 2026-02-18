@@ -1,17 +1,17 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import {
-  handleListAllocationsRequest,
-  handleGetAllocationRequest,
-  handleCreateAllocationRequest,
-  handleUpdateAllocationRequest,
-  ALLOCATIONS_URL,
-} from "../allocations.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createErrorResponse,
   createSuccessResponse,
   handleGeneralError,
   makeDoitRequest,
 } from "../../utils/util.js";
+import {
+  ALLOCATIONS_URL,
+  handleCreateAllocationRequest,
+  handleGetAllocationRequest,
+  handleListAllocationsRequest,
+  handleUpdateAllocationRequest,
+} from "../allocations.js";
 
 // Mock the utility functions
 vi.mock("../../utils/util.js", () => ({
@@ -22,7 +22,7 @@ vi.mock("../../utils/util.js", () => ({
     content: [{ type: "text", text }],
   })),
   formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-  handleGeneralError: vi.fn((error, context) => ({
+  handleGeneralError: vi.fn((_error, context) => ({
     content: [{ type: "text", text: `General Error: ${context}` }],
   })),
   makeDoitRequest: vi.fn(),
@@ -56,7 +56,7 @@ describe("allocations", () => {
       };
       (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
 
-      const response = await handleListAllocationsRequest(mockArgs, mockToken);
+      const _response = await handleListAllocationsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
         `${ALLOCATIONS_URL}?pageToken=next-page`,
@@ -88,7 +88,7 @@ describe("allocations", () => {
       };
       (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
 
-      const response = await handleListAllocationsRequest(mockArgs, mockToken);
+      const _response = await handleListAllocationsRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
         ALLOCATIONS_URL,
@@ -107,7 +107,7 @@ describe("allocations", () => {
       };
       (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
 
-      const response = await handleListAllocationsRequest(mockArgs, mockToken);
+      const _response = await handleListAllocationsRequest(mockArgs, mockToken);
 
       expect(createErrorResponse).toHaveBeenCalledWith("No allocations found");
     });
@@ -116,7 +116,7 @@ describe("allocations", () => {
       const mockArgs = {};
       (makeDoitRequest as vi.Mock).mockResolvedValue(null);
 
-      const response = await handleListAllocationsRequest(mockArgs, mockToken);
+      const _response = await handleListAllocationsRequest(mockArgs, mockToken);
 
       expect(createErrorResponse).toHaveBeenCalledWith(
         "Failed to retrieve allocations data"
@@ -129,7 +129,7 @@ describe("allocations", () => {
         new Error("Network error")
       );
 
-      const response = await handleListAllocationsRequest(mockArgs, mockToken);
+      const _response = await handleListAllocationsRequest(mockArgs, mockToken);
 
       expect(handleGeneralError).toHaveBeenCalledWith(
         expect.any(Error),
@@ -166,7 +166,7 @@ describe("allocations", () => {
       };
       (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
 
-      const response = await handleGetAllocationRequest(mockArgs, mockToken);
+      const _response = await handleGetAllocationRequest(mockArgs, mockToken);
 
       expect(makeDoitRequest).toHaveBeenCalledWith(
         `${ALLOCATIONS_URL}/allocation-123`,
@@ -183,7 +183,7 @@ describe("allocations", () => {
     it("should handle missing allocation ID", async () => {
       const mockArgs = {};
 
-      const response = await handleGetAllocationRequest(mockArgs, mockToken);
+      const _response = await handleGetAllocationRequest(mockArgs, mockToken);
 
       expect(createErrorResponse).toHaveBeenCalledWith(
         expect.stringContaining("Formatted Zod Error")
@@ -194,7 +194,7 @@ describe("allocations", () => {
       const mockArgs = { id: "allocation-123" };
       (makeDoitRequest as vi.Mock).mockResolvedValue(null);
 
-      const response = await handleGetAllocationRequest(mockArgs, mockToken);
+      const _response = await handleGetAllocationRequest(mockArgs, mockToken);
 
       expect(createErrorResponse).toHaveBeenCalledWith(
         "Failed to retrieve allocation data"
@@ -207,7 +207,7 @@ describe("allocations", () => {
         new Error("Network error")
       );
 
-      const response = await handleGetAllocationRequest(mockArgs, mockToken);
+      const _response = await handleGetAllocationRequest(mockArgs, mockToken);
 
       expect(handleGeneralError).toHaveBeenCalledWith(
         expect.any(Error),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { debugLog, DebugLevel } from "../util.js";
+import { DebugLevel, debugLog } from "../util.js";
 
 describe("DebugLevel enum", () => {
   it("should have correct debug level values", () => {

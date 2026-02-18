@@ -1,15 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { z } from "zod";
-import {
-  ChangeCustomerArgumentsSchema,
-  handleChangeCustomerRequest,
-} from "../changeCustomer.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createErrorResponse,
   createSuccessResponse,
   formatZodError,
   handleGeneralError,
 } from "../../utils/util.js";
+import {
+  ChangeCustomerArgumentsSchema,
+  handleChangeCustomerRequest,
+} from "../changeCustomer.js";
 
 // Mock the utility functions
 vi.mock("../../utils/util.js", () => ({
@@ -78,7 +77,7 @@ describe("changeCustomer", () => {
       const token = "mock-token";
       const updateCallback = vi.fn();
 
-      const result = await handleChangeCustomerRequest(
+      const _result = await handleChangeCustomerRequest(
         { ...args, customerContext: newContext },
         token,
         updateCallback
@@ -96,7 +95,7 @@ describe("changeCustomer", () => {
       const token = "mock-token";
       const updateCallback = vi.fn();
 
-      const result = await handleChangeCustomerRequest(
+      const _result = await handleChangeCustomerRequest(
         { ...args, customerContext: newContext },
         token,
         updateCallback
@@ -115,7 +114,7 @@ describe("changeCustomer", () => {
       const newContext = "new-customer-123";
       const token = "mock-token";
 
-      const result = await handleChangeCustomerRequest(
+      const _result = await handleChangeCustomerRequest(
         { ...args, customerContext: newContext },
         token
       );
@@ -131,7 +130,7 @@ describe("changeCustomer", () => {
       };
       const token = "mock-token";
 
-      const result = await handleChangeCustomerRequest(invalidArgs, token);
+      const _result = await handleChangeCustomerRequest(invalidArgs, token);
 
       expect(createErrorResponse).toHaveBeenCalled();
       expect(formatZodError).toHaveBeenCalled();
@@ -151,7 +150,7 @@ describe("changeCustomer", () => {
       };
       const token = "mock-token";
 
-      const result = await handleChangeCustomerRequest(args, token);
+      const _result = await handleChangeCustomerRequest(args, token);
 
       expect(handleGeneralError).toHaveBeenCalledWith(
         expect.any(Error),
