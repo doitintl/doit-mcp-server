@@ -115,8 +115,8 @@ const AllocationBaseMutationSchema = z.object({
     ),
 });
 
-// Refinements for the allocation mutation schemas to apply validations on the input
-const allocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
+// Refinements for the create allocation arguments schema to apply validations on the input
+const createAllocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
   schema
     .refine((data: any) => (data.rule && !data.rules) || (!data.rule && data.rules), {
       message:
@@ -130,13 +130,28 @@ const allocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
       }
     );
 
-export const CreateAllocationArgumentsSchema = allocationRefinements(
+// Refinements for the update allocation arguments schema to apply validations on the input
+const updateAllocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
+  schema
+    .refine((data: any) => !(data.rule && data.rules), {
+      message:
+        "Provide at most one of 'rule' or 'rules', not both",
+    })
+    .refine(
+      (data: any) => !data.rules || data.unallocatedCosts !== undefined,
+      {
+        message:
+          "'unallocatedCosts' is required when using 'rules' for a group allocation",
+      }
+    );
+
+export const CreateAllocationArgumentsSchema = createAllocationRefinements(
   AllocationBaseMutationSchema.extend({
     description: z.string().describe("Description of the allocation's purpose"),
   })
 );
 
-export const UpdateAllocationArgumentsSchema = allocationRefinements(
+export const UpdateAllocationArgumentsSchema = updateAllocationRefinements(
   AllocationBaseMutationSchema.extend({
     id: z.string().describe("The ID of the allocation to update"),
   })
@@ -347,15 +362,15 @@ const updateAllocationInputSchema = {
     },
     ...createAllocationInputSchema.properties,
   },
-  required: ["id", "name"],
+  required: ["id"],
 } as const;
 
 export const updateAllocationTool = {
   name: "update_allocation",
   description: `Update an existing allocation
     Provide the allocation ID and the updated allocation configuration.
-    For a single-rule allocation, provide 'rule' (a single rule object).
-    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).
+    Allows partial updates only specify the fields needed to be updated,
+    overrides the existing allocation configuration.
     The 'rule' and 'rules' fields are mutually exclusive.`,
   inputSchema: updateAllocationInputSchema,
 };
@@ -502,7 +517,7 @@ export async function handleUpdateAllocationRequest(
     if (parsed.rules) {
       requestBody.rules = parsed.rules;
       requestBody.unallocatedCosts = parsed.unallocatedCosts;
-    } else {
+    } else if (parsed.rule) {
       requestBody.rule = parsed.rule;
     }
 
