@@ -1,7 +1,6 @@
 import app from "./app";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import { DurableObject } from "cloudflare:workers";
 
 // Import DoiT tool handlers
@@ -50,8 +49,12 @@ import {
 import {
   ListAllocationsArgumentsSchema,
   GetAllocationArgumentsSchema,
+  CreateAllocationArgumentsSchema,
+  UpdateAllocationArgumentsSchema,
   listAllocationsTool,
   getAllocationTool,
+  createAllocationTool,
+  updateAllocationTool,
 } from "../../src/tools/allocations.js";
 import {
   ListAssetsArgumentsSchema,
@@ -274,6 +277,8 @@ export class DoitMCPAgent extends McpAgent {
     // Allocations tools
     this.registerTool(listAllocationsTool, ListAllocationsArgumentsSchema);
     this.registerTool(getAllocationTool, GetAllocationArgumentsSchema);
+    this.registerTool(createAllocationTool, CreateAllocationArgumentsSchema);
+    this.registerTool(updateAllocationTool, UpdateAllocationArgumentsSchema);
 
     // Assets tools
     this.registerTool(listAssetsTool, ListAssetsArgumentsSchema);

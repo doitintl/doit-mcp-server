@@ -1,7 +1,70 @@
 import { z } from "zod";
 
-// Constants
-export const DOIT_API_BASE = "https://api.doit.com";
+export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
+
+/**
+ * Debug levels for controlling log verbosity
+ */
+export enum DebugLevel {
+  /** No debug output */
+  OFF = 0,
+  /** Basic debug information (default when debugging is enabled) */
+  INFO = 1,
+  /** Detailed debug information */
+  VERBOSE = 2,
+  /** Very detailed debug information including full request/response data */
+  TRACE = 3,
+}
+
+/**
+ * Parse and validate the DOIT_DEBUG_LEVEL environment variable
+ * Supports: 0 (off), 1 (info), 2 (verbose), 3 (trace)
+ */
+const parseDebugLevel = (): DebugLevel => {
+  const envValue = process.env.DOIT_DEBUG_LEVEL;
+  if (!envValue) {
+    return DebugLevel.OFF;
+  }
+  try {
+    const numValue = parseInt(envValue, 10);
+    if (Number.isNaN(numValue)) {
+      return DebugLevel.OFF;
+    }
+    if (numValue <= 0) return DebugLevel.OFF;
+    if (numValue >= 3) return DebugLevel.TRACE;
+    return numValue as DebugLevel;
+  } catch {
+    return DebugLevel.OFF;
+  }
+};
+
+const DOIT_DEBUG_LEVEL = parseDebugLevel();
+
+/**
+ * Logs a message to standard error when debug mode is enabled and the message level
+ * is less than or equal to the configured debug level.
+ * Standard output may be mixed with MCP server output.
+ * @param message Message or data to log (will be stringified if not a string)
+ * @param level Debug level for this message (default: INFO).
+ * @param optionalArgs Optional additional arguments (logged after the message, like console.log)
+ */
+export function debugLog(
+  message: unknown,
+  level: DebugLevel = DebugLevel.INFO,
+  ...optionalArgs: unknown[]
+): void {
+  if (DOIT_DEBUG_LEVEL < level) return;
+  
+  const levelName = DebugLevel[level];
+  const text =
+    typeof message === "string" ? message : JSON.stringify(message, null, 2);
+  
+  if (optionalArgs.length > 0) {
+    console.error(`[doit-mcp debug:${levelName}]`, text, ...optionalArgs);
+  } else {
+    console.error(`[doit-mcp debug:${levelName}]`, text);
+  }
+}
 
 /**
  * Generic function to convert a zod schema to MCP server tool format
@@ -72,7 +135,11 @@ export function handleGeneralError(
   context: string
 ): ReturnType<typeof createErrorResponse> {
   console.error(`Error ${context}:`, error);
-  return createErrorResponse("An error occurred while processing your request");
+  const message =
+    error instanceof Error ? error.message : String(error);
+  return createErrorResponse(
+    message || "An error occurred while processing your request"
+  );
 }
 
 /**
@@ -149,6 +216,7 @@ export async function makeDoitRequest<T>(
     // Add body for non-GET requests if provided
     if (method !== "GET" && body !== undefined) {
       requestOptions.body = JSON.stringify(body);
+      debugLog("API request body: ", DebugLevel.TRACE, requestOptions.body);
     }
 
     // add mcp params to the url
@@ -159,11 +227,26 @@ export async function makeDoitRequest<T>(
       url += `&sse=true`;
     }
 
-    console.log("url", url);
+    debugLog("API request URL: ", DebugLevel.VERBOSE, url);
     const response = await fetch(url, requestOptions);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const bodyText = await response.text();
+      let detail = bodyText;
+      try {
+        const parsed = JSON.parse(bodyText);
+        detail =
+          parsed.message ||
+          parsed.error ||
+          (typeof parsed.detail === "string"
+            ? parsed.detail
+            : JSON.stringify(parsed));
+      } catch {
+        // use bodyText as-is
+      }
+      throw new Error(
+        `HTTP ${response.status}: ${detail || response.statusText}`
+      );
     }
     return (await response.json()) as T;
   } catch (error) {

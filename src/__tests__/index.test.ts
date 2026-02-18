@@ -85,8 +85,25 @@ vi.mock("../tools/allocations.js", () => ({
     name: "get_allocation",
     description: "Get a specific allocation by ID from the DoiT API",
   },
+  createAllocationTool: {
+    name: "create_allocation",
+    description: `Create a new allocation via the DoiT API
+    Allocations let you group and segment cloud costs using allocation rules.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).`,
+  },
+  updateAllocationTool: {
+    name: "update_allocation",
+    description: `Update an existing allocation
+    Provide the allocation ID and the updated allocation configuration.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).
+    The 'rule' and 'rules' fields are mutually exclusive.`,
+  },
   handleListAllocationsRequest: vi.fn(),
   handleGetAllocationRequest: vi.fn(),
+  handleCreateAllocationRequest: vi.fn(),
+  handleUpdateAllocationRequest: vi.fn(),
 }));
 
 vi.mock("../tools/assets.js", () => ({
@@ -244,6 +261,21 @@ describe("ListToolsRequestSchema Handler", () => {
         {
           name: "get_allocation",
           description: "Get a specific allocation by ID from the DoiT API",
+        },
+        {
+          name: "create_allocation",
+          description: `Create a new allocation via the DoiT API
+    Allocations let you group and segment cloud costs using allocation rules.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).`,
+        },
+        {
+          name: "update_allocation",
+          description: `Update an existing allocation
+    Provide the allocation ID and the updated allocation configuration.
+    For a single-rule allocation, provide 'rule' (a single rule object).
+    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).
+    The 'rule' and 'rules' fields are mutually exclusive.`,
         },
         {
           name: "list_assets",
@@ -519,6 +551,37 @@ describe("CallToolRequestSchema Handler", () => {
     expect(handleGetAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
   });
 
+  it("should route to the correct tool handler for create_allocation", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = {
+      name: "Test Allocation",
+      rule: { components: [{ key: "env", type: "label", values: ["prod"] }] },
+    };
+    const request = mockRequest("create_allocation", args);
+
+    await callToolHandler(request);
+
+    expect(handleCreateAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
+  it("should route to the correct tool handler for update_allocation", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = {
+      id: "allocation-123",
+      name: "Updated Allocation",
+      rule: { components: [{ key: "env", type: "label", values: ["staging"] }] },
+    };
+    const request = mockRequest("update_allocation", args);
+
+    await callToolHandler(request);
+
+    expect(handleUpdateAllocationRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
   it("should route to the correct tool handler for list_assets", async () => {
     const callToolHandler = setRequestHandlerMock.mock.calls.find(
       (call) => call[0] === CallToolRequestSchema
@@ -636,5 +699,7 @@ const {
   handleGetInvoiceRequest,
   handleListAllocationsRequest,
   handleGetAllocationRequest,
+  handleCreateAllocationRequest,
+  handleUpdateAllocationRequest,
   handleListAssetsRequest,
 } = indexModule;

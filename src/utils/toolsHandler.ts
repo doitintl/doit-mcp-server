@@ -24,7 +24,6 @@ import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import {
   handleListTicketsRequest,
-  handleCreateTicketRequest,
 } from "../tools/tickets.js";
 import {
   handleListInvoicesRequest,
@@ -33,6 +32,8 @@ import {
 import {
   handleListAllocationsRequest,
   handleGetAllocationRequest,
+  handleCreateAllocationRequest,
+  handleUpdateAllocationRequest,
 } from "../tools/allocations.js";
 import { handleListAssetsRequest } from "../tools/assets.js";
 
@@ -98,6 +99,12 @@ export async function executeToolHandler(
         break;
       case "get_allocation":
         result = await handleGetAllocationRequest(args, token);
+        break;
+      case "create_allocation":
+        result = await handleCreateAllocationRequest(args, token);
+        break;
+      case "update_allocation":
+        result = await handleUpdateAllocationRequest(args, token);
         break;
       case "list_assets":
         result = await handleListAssetsRequest(args, token);
