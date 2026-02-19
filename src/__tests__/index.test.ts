@@ -115,6 +115,14 @@ vi.mock("../tools/assets.js", () => ({
   },
   handleListAssetsRequest: vi.fn(),
 }));
+vi.mock("../tools/alerts.js", () => ({
+  listAlertsTool: {
+    name: "list_alerts",
+    description:
+      "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
+  },
+  handleListAlertsRequest: vi.fn(),
+}));
 vi.mock("../utils/util.js", async () => {
   const actual = await vi.importActual("../utils/util.js");
   return {
@@ -283,6 +291,11 @@ describe("ListToolsRequestSchema Handler", () => {
           name: "list_assets",
           description:
             "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
+        },
+        {
+          name: "list_alerts",
+          description:
+            "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
         },
       ],
     });
@@ -596,6 +609,18 @@ describe("CallToolRequestSchema Handler", () => {
     expect(handleListAssetsRequest).toHaveBeenCalledWith(args, "fake-token");
   });
 
+  it("should route to the correct tool handler for list_alerts", async () => {
+    const callToolHandler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema
+    )?.[1];
+    const args = { sortBy: "name", sortOrder: "asc" };
+    const request = mockRequest("list_alerts", args);
+
+    await callToolHandler(request);
+
+    expect(handleListAlertsRequest).toHaveBeenCalledWith(args, "fake-token");
+  });
+
   it("should return Unknown tool error for unknown tool names", async () => {
     const callToolHandler = setRequestHandlerMock.mock.calls.find(
       (call) => call[0] === CallToolRequestSchema
@@ -704,4 +729,5 @@ const {
   handleCreateAllocationRequest,
   handleUpdateAllocationRequest,
   handleListAssetsRequest,
+  handleListAlertsRequest,
 } = indexModule;

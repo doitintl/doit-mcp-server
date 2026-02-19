@@ -62,6 +62,10 @@ import {
   listAssetsTool,
 } from "../../src/tools/assets.js";
 import {
+  ListAlertsArgumentsSchema,
+  listAlertsTool,
+} from "../../src/tools/alerts.js";
+import {
   ChangeCustomerArgumentsSchema,
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
@@ -283,6 +287,9 @@ export class DoitMCPAgent extends McpAgent {
 
     // Assets tools
     this.registerTool(listAssetsTool, ListAssetsArgumentsSchema);
+
+    // Alerts tools
+    this.registerTool(listAlertsTool, ListAlertsArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
