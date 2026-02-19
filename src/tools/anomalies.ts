@@ -2,10 +2,10 @@ import { z } from "zod";
 import {
   createErrorResponse,
   createSuccessResponse,
+  DOIT_API_BASE,
   formatZodError,
   handleGeneralError,
   makeDoitRequest,
-  DOIT_API_BASE,
 } from "../utils/util.js";
 
 // Schema definitions
@@ -146,7 +146,7 @@ export async function handleAnomaliesRequest(args: any, token: string) {
         return createErrorResponse("Failed to retrieve anomalies data");
       }
 
-      let anomalies = anomaliesData.anomalies || [];
+      const anomalies = anomaliesData.anomalies || [];
       const rowCount = anomaliesData.rowCount || 0;
 
       if (anomalies.length === 0) {
@@ -203,7 +203,7 @@ export async function handleAnomalyRequest(args: any, token: string) {
   try {
     const { id } = AnomalyArgumentsSchema.parse(args);
     const { customerContext } = args;
-    let anomalyUrl = `${DOIT_API_BASE}/anomalies/v1/${id}`;
+    const anomalyUrl = `${DOIT_API_BASE}/anomalies/v1/${id}`;
 
     try {
       // Explicitly set appendParams to true to ensure URL parameters are added

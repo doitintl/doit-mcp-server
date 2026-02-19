@@ -1,9 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import {
-  formatAnomaly,
-  handleAnomaliesRequest,
-  handleAnomalyRequest,
-} from "../anomalies.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -11,6 +6,11 @@ import {
   handleGeneralError,
   makeDoitRequest,
 } from "../../utils/util.js";
+import {
+  formatAnomaly,
+  handleAnomaliesRequest,
+  handleAnomalyRequest,
+} from "../anomalies.js";
 
 // Mock the utility functions
 vi.mock("../../utils/util.js", () => ({
@@ -21,7 +21,7 @@ vi.mock("../../utils/util.js", () => ({
     content: [{ type: "text", text }],
   })),
   formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-  handleGeneralError: vi.fn((error, context) => ({
+  handleGeneralError: vi.fn((_error, context) => ({
     content: [{ type: "text", text: `General Error: ${context}` }],
   })),
   makeDoitRequest: vi.fn(),

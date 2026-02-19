@@ -49,7 +49,7 @@ export async function handleChangeCustomerRequest(
       return createErrorResponse("Customer context is required");
     }
 
-    const previousContext = args.customerContext;
+    const _previousContext = args.customerContext;
 
     // Verify that the new context is valid
     const newCustomerDomain = await handleValidateUserRequest(

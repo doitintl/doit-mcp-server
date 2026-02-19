@@ -2,10 +2,10 @@ import { z } from "zod";
 import {
   createErrorResponse,
   createSuccessResponse,
+  DOIT_API_BASE,
   formatZodError,
   handleGeneralError,
   makeDoitRequest,
-  DOIT_API_BASE,
 } from "../utils/util.js";
 
 // Define known platforms enum
@@ -210,7 +210,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
   try {
     const { id, customerContext } = CloudIncidentArgumentsSchema.parse(args);
 
-    let incidentUrl = `${DOIT_API_BASE}/core/v1/cloudincidents/${id}`;
+    const incidentUrl = `${DOIT_API_BASE}/core/v1/cloudincidents/${id}`;
 
     try {
       // Explicitly set appendParams to true to ensure URL parameters are added

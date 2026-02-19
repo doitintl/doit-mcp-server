@@ -1,5 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { handleListAssetsRequest, formatAsset } from "../assets.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -7,6 +6,7 @@ import {
   handleGeneralError,
   makeDoitRequest,
 } from "../../utils/util.js";
+import { formatAsset, handleListAssetsRequest } from "../assets.js";
 
 // Mock the utility functions
 vi.mock("../../utils/util.js", () => ({
@@ -17,7 +17,7 @@ vi.mock("../../utils/util.js", () => ({
     content: [{ type: "text", text }],
   })),
   formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-  handleGeneralError: vi.fn((error, context) => ({
+  handleGeneralError: vi.fn((_error, context) => ({
     content: [{ type: "text", text: `General Error: ${context}` }],
   })),
   makeDoitRequest: vi.fn(),
@@ -191,7 +191,7 @@ Created: 2022-01-01T00:00:00.000Z
       };
       (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
 
-      const response = await handleListAssetsRequest(mockArgs, mockToken);
+      const _response = await handleListAssetsRequest(mockArgs, mockToken);
 
       expect(createSuccessResponse).toHaveBeenCalledWith(
         expect.stringContaining("Page token: next-page-token")

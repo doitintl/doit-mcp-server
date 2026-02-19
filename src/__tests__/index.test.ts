@@ -1,13 +1,13 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
-  ListToolsRequestSchema,
+  InitializeRequestSchema,
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
-  InitializeRequestSchema,
+  ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { SERVER_VERSION } from "../utils/consts.js";
 
@@ -126,7 +126,7 @@ vi.mock("../utils/util.js", async () => {
       content: [{ type: "text", text }],
     })),
     formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-    handleGeneralError: vi.fn((error, context) => ({
+    handleGeneralError: vi.fn((_error, context) => ({
       content: [{ type: "text", text: `General Error: ${context}` }],
     })),
     DOIT_API_BASE: "https://api.doit.com",
@@ -148,11 +148,12 @@ const setRequestHandlerMock = vi.fn();
 // Mock process.env
 const originalProcessEnv = process.env;
 let server: any;
-let connectSpy: any;
-let stdioTransportSpy: any;
+let _connectSpy: any;
+let _stdioTransportSpy: any;
 
 // Attach spies to the mocked util functions before importing the index module
 import * as utilModule from "../utils/util.js";
+
 const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
 const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
 
@@ -165,8 +166,8 @@ beforeEach(() => {
     _capabilities: { tools: {}, prompts: {}, resources: {} },
   }));
   server = createServer();
-  connectSpy = vi.spyOn(server, "connect");
-  stdioTransportSpy = vi.spyOn(
+  _connectSpy = vi.spyOn(server, "connect");
+  _stdioTransportSpy = vi.spyOn(
     require("@modelcontextprotocol/sdk/server/stdio.js"),
     "StdioServerTransport"
   );

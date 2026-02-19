@@ -4,69 +4,67 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
-  ListToolsRequestSchema,
+  InitializeRequestSchema,
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
-  InitializeRequestSchema,
+  ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
 import * as dotenv from "dotenv";
 import {
-  cloudIncidentsTool,
-  cloudIncidentTool,
-  handleCloudIncidentsRequest,
-  handleCloudIncidentRequest,
-} from "./tools/cloudIncidents.js";
+  createAllocationTool,
+  getAllocationTool,
+  handleCreateAllocationRequest,
+  handleGetAllocationRequest,
+  handleListAllocationsRequest,
+  handleUpdateAllocationRequest,
+  listAllocationsTool,
+  updateAllocationTool,
+} from "./tools/allocations.js";
 import {
   anomaliesTool,
   anomalyTool,
   handleAnomaliesRequest,
   handleAnomalyRequest,
 } from "./tools/anomalies.js";
+import { handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
 import {
-  reportsTool,
-  runQueryTool,
-  handleReportsRequest,
-  handleRunQueryRequest,
+  cloudIncidentsTool,
+  cloudIncidentTool,
+  handleCloudIncidentRequest,
+  handleCloudIncidentsRequest,
+} from "./tools/cloudIncidents.js";
+import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
+import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
+import {
+  getInvoiceTool,
+  handleGetInvoiceRequest,
+  handleListInvoicesRequest,
+  listInvoicesTool,
+} from "./tools/invoices.js";
+import {
   getReportResultsTool,
   handleGetReportResultsRequest,
+  handleReportsRequest,
+  handleRunQueryRequest,
+  reportsTool,
+  runQueryTool,
 } from "./tools/reports.js";
 import {
-  validateUserTool,
+  handleListTicketsRequest,
+  listTicketsTool,
+} from "./tools/tickets.js";
+import {
   handleValidateUserRequest,
+  validateUserTool,
 } from "./tools/validateUser.js";
-import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
-import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
+import { SERVER_VERSION } from "./utils/consts.js";
+import { prompts } from "./utils/prompts.js";
+import { executeToolHandler } from "./utils/toolsHandler.js";
 import {
   createErrorResponse,
   formatZodError,
   handleGeneralError,
 } from "./utils/util.js";
-import { executeToolHandler } from "./utils/toolsHandler.js";
-
-import { prompts } from "./utils/prompts.js";
-import {
-  listTicketsTool,
-  handleListTicketsRequest,
-} from "./tools/tickets.js";
-import {
-  listInvoicesTool,
-  handleListInvoicesRequest,
-  getInvoiceTool,
-  handleGetInvoiceRequest,
-} from "./tools/invoices.js";
-import {
-  listAllocationsTool,
-  handleListAllocationsRequest,
-  getAllocationTool,
-  handleGetAllocationRequest,
-  createAllocationTool,
-  handleCreateAllocationRequest,
-  updateAllocationTool,
-  handleUpdateAllocationRequest,
-} from "./tools/allocations.js";
-import { listAssetsTool, handleListAssetsRequest } from "./tools/assets.js";
-import { SERVER_VERSION } from "./utils/consts.js";
 
 dotenv.config();
 
@@ -147,6 +145,7 @@ function createServer() {
         name: "doit-mcp-server",
         version: SERVER_VERSION,
       },
+      // biome-ignore lint/complexity/useLiteralKeys: bracket notation bypasses private property TS check
       capabilities: server["_capabilities"] || {},
     };
   });
