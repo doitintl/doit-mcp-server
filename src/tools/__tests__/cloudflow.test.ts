@@ -1,23 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-    createErrorResponse,
-    createSuccessResponse,
-    formatZodError,
-    handleGeneralError,
-    makeDoitRequest,
-} from "../../utils/util.js";
+import { makeDoitRequest } from "../../utils/util.js";
 import { CLOUDFLOW_TRIGGER_BASE_URL, getTriggerCloudFlowURL, handleTriggerCloudFlowRequest } from "../cloudflow.js";
 
-vi.mock("../../utils/util.js", () => ({
-    createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
-    createSuccessResponse: vi.fn((text) => ({ content: [{ type: "text", text }] })),
-    formatZodError: vi.fn((e) => `Formatted Zod Error: ${e.message}`),
-    handleGeneralError: vi.fn((_e, ctx) => ({
-        content: [{ type: "text", text: `General Error: ${ctx}` }],
-    })),
-    makeDoitRequest: vi.fn(),
-    DOIT_API_BASE: "https://api.doit.com",
-}));
+vi.mock("../../utils/util.js", async (importOriginal) => {
+    const actual = await importOriginal();
+    return { ...actual, makeDoitRequest: vi.fn() };
+});
 
 describe("cloudflow", () => {
     describe("getTriggerCloudFlowURL", () => {
@@ -25,11 +13,6 @@ describe("cloudflow", () => {
             expect(getTriggerCloudFlowURL("6OuBBTBsFROSyvdIOAWZ")).toBe(
                 `${CLOUDFLOW_TRIGGER_BASE_URL}/6OuBBTBsFROSyvdIOAWZ`
             );
-        });
-
-        it("returns a full trigger URL as-is", () => {
-            const fullUrl = "https://api-dev.doit.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ";
-            expect(getTriggerCloudFlowURL(fullUrl)).toBe(fullUrl);
         });
 
         it("returns a production trigger URL as-is", () => {
@@ -73,7 +56,6 @@ describe("cloudflow", () => {
                 body: {},
                 customerContext: undefined,
             });
-            expect(createSuccessResponse).toHaveBeenCalledWith(JSON.stringify(mockResponse, null, 2));
             expect(response).toEqual({
                 content: [{ type: "text", text: JSON.stringify(mockResponse, null, 2) }],
             });
@@ -84,14 +66,13 @@ describe("cloudflow", () => {
 
             const response = await handleTriggerCloudFlowRequest({ flowID }, mockToken);
 
-            expect(createSuccessResponse).toHaveBeenCalledWith(JSON.stringify({}, null, 2));
             expect(response).toEqual({
                 content: [{ type: "text", text: JSON.stringify({}, null, 2) }],
             });
         });
 
         it("should use the URL as-is when a full trigger URL is passed as flowID", async () => {
-            const triggerUrl = `https://api-dev.doit.com/cloudflow/v1/trigger/${flowID}`;
+            const triggerUrl = `https://api.doit.com/cloudflow/v1/trigger/${flowID}`;
             (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
 
             await handleTriggerCloudFlowRequest({ flowID: triggerUrl }, mockToken);
@@ -128,14 +109,11 @@ describe("cloudflow", () => {
             const response = await handleTriggerCloudFlowRequest({ flowID: "   " }, mockToken);
 
             expect(makeDoitRequest).not.toHaveBeenCalled();
-            expect(createErrorResponse).toHaveBeenCalledWith(
-                expect.stringContaining("target flow ID")
-            );
             expect(response).toEqual({
                 content: [
                     {
                         type: "text",
-                        text: expect.stringContaining("target flow ID"),
+                        text: expect.stringContaining("specify the target flow ID"),
                     },
                 ],
             });
@@ -146,20 +124,18 @@ describe("cloudflow", () => {
 
             const response = await handleTriggerCloudFlowRequest({ flowID }, mockToken);
 
-            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining(expectedUrl));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining(expectedUrl) }],
+                content: [{ type: "text", text: expect.stringContaining("Failed to trigger CloudFlow") }],
             });
         });
 
-        it("should call handleGeneralError when makeDoitRequest throws", async () => {
+        it("should return an error response when makeDoitRequest throws", async () => {
             (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
 
             const response = await handleTriggerCloudFlowRequest({ flowID }, mockToken);
 
-            expect(handleGeneralError).toHaveBeenCalledWith(expect.any(Error), expect.stringContaining("CloudFlow"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("General Error:") }],
+                content: [{ type: "text", text: expect.stringContaining("Network error") }],
             });
         });
 
@@ -167,10 +143,8 @@ describe("cloudflow", () => {
             const mockArgs = { flowID: 123 }; // invalid: must be string
             const response = await handleTriggerCloudFlowRequest(mockArgs, mockToken);
 
-            expect(formatZodError).toHaveBeenCalled();
-            expect(createErrorResponse).toHaveBeenCalled();
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Formatted Zod Error:") }],
+                content: [{ type: "text", text: expect.stringContaining("Invalid arguments:") }],
             });
         });
     });

@@ -112,6 +112,27 @@ vi.mock("../tools/assets.js", () => ({
     },
     handleListAssetsRequest: vi.fn(),
 }));
+vi.mock("../tools/cloudflow.js", () => ({
+    triggerCloudFlowTool: {
+        name: "trigger_cloud_flow",
+        description: "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
+        inputSchema: {
+            type: "object",
+            properties: {
+                flowID: {
+                    type: "string",
+                    description: "The ID of the CloudFlow flow to trigger",
+                },
+                requestBodyJson: {
+                    type: "object",
+                    description: "Optional JSON object to pass as the request body to the flow if the flow requires it",
+                },
+            },
+            required: ["flowID"],
+        },
+    },
+    handleTriggerCloudFlowRequest: vi.fn(),
+}));
 vi.mock("../utils/util.js", async () => {
     const actual = await vi.importActual("../utils/util.js");
     return {
@@ -517,6 +538,16 @@ describe("CallToolRequestSchema Handler", () => {
         expect(handleListAssetsRequest).toHaveBeenCalledWith(args, "fake-token");
     });
 
+    it("should route to the correct tool handler for trigger_cloud_flow", async () => {
+        const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+        const args = { flowID: "flow-123", requestBodyJson: { key: "value" } };
+        const request = mockRequest("trigger_cloud_flow", args);
+
+        await callToolHandler(request);
+
+        expect(handleTriggerCloudFlowRequest).toHaveBeenCalledWith(args, "fake-token");
+    });
+
     it("should return Unknown tool error for unknown tool names", async () => {
         const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
         const request = mockRequest("unknown_tool", {});
@@ -614,4 +645,5 @@ const {
     handleCreateAllocationRequest,
     handleUpdateAllocationRequest,
     handleListAssetsRequest,
+    handleTriggerCloudFlowRequest,
 } = indexModule;

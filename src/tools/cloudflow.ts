@@ -57,7 +57,7 @@ export async function handleTriggerCloudFlowRequest(args: any, token: string) {
         const { customerContext } = args;
 
         if (!flowID.trim()) {
-            return createErrorResponse("Please request the user to speicfy the the target flow ID and optionally the request body JSON if the flow requires it");
+            return createErrorResponse("Please request the user to specify the target flow ID and optionally the request body JSON if the flow requires it");
         }
         const url = getTriggerCloudFlowURL(flowID);
 
