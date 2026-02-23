@@ -128,12 +128,14 @@ describe("cloudflow", () => {
             const response = await handleTriggerCloudFlowRequest({ flowID: "   " }, mockToken);
 
             expect(makeDoitRequest).not.toHaveBeenCalled();
-            expect(createErrorResponse).toHaveBeenCalledWith("please request the user for target cloudflow id");
+            expect(createErrorResponse).toHaveBeenCalledWith(
+                expect.stringContaining("target flow ID")
+            );
             expect(response).toEqual({
                 content: [
                     {
                         type: "text",
-                        text: "please request the user for target cloudflow id",
+                        text: expect.stringContaining("target flow ID"),
                     },
                 ],
             });

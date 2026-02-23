@@ -12,11 +12,11 @@ export const CLOUDFLOW_BASE_URL = `${DOIT_API_BASE}/cloudflow/v1`;
 export const CLOUDFLOW_TRIGGER_BASE_URL = `${CLOUDFLOW_BASE_URL}/trigger`;
 
 export const TriggerCloudFlowArgumentsSchema = z.object({
-    flowID: z.string().describe("The ID of the CloudFlow to trigger"),
+    flowID: z.string().describe("The ID of the CloudFlow flow to trigger"),
     requestBodyJson: z
         .record(z.unknown())
         .optional()
-        .describe("Optional JSON object to pass as the request body to the flow"),
+        .describe("Optional JSON object to pass as the request body to the flow if the flow requires it"),
 });
 
 /**
@@ -34,18 +34,17 @@ export function getTriggerCloudFlowURL(value: string): string {
 
 export const triggerCloudFlowTool = {
     name: "trigger_cloud_flow",
-    description: "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body",
+    description: "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
     inputSchema: {
         type: "object",
         properties: {
             flowID: {
                 type: "string",
-                description: "The ID of the CloudFlow to trigger",
+                description: "The ID of the CloudFlow flow to trigger",
             },
             requestBodyJson: {
                 type: "object",
-                description: "Optional JSON object to pass as the request body to the flow",
-                additionalProperties: true,
+                description: "Optional JSON object to pass as the request body to the flow if the flow requires it",
             },
         },
         required: ["flowID"],
@@ -58,7 +57,7 @@ export async function handleTriggerCloudFlowRequest(args: any, token: string) {
         const { customerContext } = args;
 
         if (!flowID.trim()) {
-            return createErrorResponse("please request the user for target cloudflow id");
+            return createErrorResponse("Please request the user to speicfy the the target flow ID and optionally the request body JSON if the flow requires it");
         }
         const url = getTriggerCloudFlowURL(flowID);
 

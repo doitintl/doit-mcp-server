@@ -262,18 +262,18 @@ describe("ListToolsRequestSchema Handler", () => {
                 {
                     name: "trigger_cloud_flow",
                     description:
-                        "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body",
+                        "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
                     inputSchema: {
                         type: "object",
                         properties: {
                             flowID: {
                                 type: "string",
-                                description: "The ID of the CloudFlow to trigger",
+                                description: "The ID of the CloudFlow flow to trigger",
                             },
                             requestBodyJson: {
                                 type: "object",
-                                description: "Optional JSON object to pass as the request body to the flow",
-                                additionalProperties: true,
+                                description:
+                                    "Optional JSON object to pass as the request body to the flow if the flow requires it",
                             },
                         },
                         required: ["flowID"],
