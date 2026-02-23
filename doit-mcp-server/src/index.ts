@@ -65,6 +65,10 @@ import {
   ChangeCustomerArgumentsSchema,
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
+import {
+  TriggerCloudFlowArgumentsSchema,
+  triggerCloudFlowTool,
+} from "../../src/tools/cloudflow.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -283,6 +287,9 @@ export class DoitMCPAgent extends McpAgent {
 
     // Assets tools
     this.registerTool(listAssetsTool, ListAssetsArgumentsSchema);
+
+    // CloudFlow tools
+    this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {

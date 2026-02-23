@@ -10,6 +10,7 @@ import {
   handleAnomalyRequest,
 } from "../tools/anomalies.js";
 import { handleListAssetsRequest } from "../tools/assets.js";
+import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import {
   handleCloudIncidentRequest,
   handleCloudIncidentsRequest,
@@ -106,6 +107,9 @@ export async function executeToolHandler(
         break;
       case "list_assets":
         result = await handleListAssetsRequest(args, token);
+        break;
+      case "trigger_cloud_flow":
+        result = await handleTriggerCloudFlowRequest(args, token);
         break;
       default:
         return createErrorResponse(`Unknown tool: ${toolName}`);
