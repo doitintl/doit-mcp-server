@@ -8,7 +8,7 @@ import {
     makeDoitRequest,
 } from "../utils/util.js";
 import { ALERTS_SORT_BY_VALUES, ALERTS_SORT_ORDER_VALUES } from "../types/alerts.js";
-import type { AlertsResponse } from "../types/alerts.js";
+import type { Alert, AlertsResponse } from "../types/alerts.js";
 
 export const ALERTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/alerts`;
 
@@ -66,6 +66,48 @@ export const listAlertsTool = {
         },
     },
 };
+
+// Schema and metadata for get alert
+export const GetAlertArgumentsSchema = z.object({
+    id: z.string().describe("The ID of the alert to retrieve."),
+});
+
+export const getAlertTool = {
+    name: "get_alert",
+    description: "Returns a specific alert by ID.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            id: {
+                type: "string",
+                description: "The ID of the alert to retrieve.",
+            },
+        },
+        required: ["id"],
+    },
+};
+
+export async function handleGetAlertRequest(args: any, token: string) {
+    try {
+        const { id } = GetAlertArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${ALERTS_BASE_URL}/${id}`;
+        try {
+            const data = await makeDoitRequest<Alert>(url, token, { method: "GET", customerContext });
+            if (!data) {
+                return createErrorResponse("Failed to retrieve alert");
+            }
+            return createSuccessResponse(JSON.stringify(data, null, 2));
+        } catch (error) {
+            return handleGeneralError(error, "calling get alert API");
+        }
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return createErrorResponse(formatZodError(error));
+        }
+        return handleGeneralError(error, "handling get alert request");
+    }
+}
 
 // Handle list alerts request
 export async function handleListAlertsRequest(args: any, token: string) {

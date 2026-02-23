@@ -121,7 +121,12 @@ vi.mock("../tools/alerts.js", () => ({
     description:
       "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
   },
+  getAlertTool: {
+    name: "get_alert",
+    description: "Returns a specific alert by ID.",
+  },
   handleListAlertsRequest: vi.fn(),
+  handleGetAlertRequest: vi.fn(),
 }));
 vi.mock("../utils/util.js", async () => {
   const actual = await vi.importActual("../utils/util.js");
@@ -296,6 +301,10 @@ describe("ListToolsRequestSchema Handler", () => {
           name: "list_alerts",
           description:
             "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
+        },
+        {
+          name: "get_alert",
+          description: "Returns a specific alert by ID.",
         },
       ],
     });

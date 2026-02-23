@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createErrorResponse, createSuccessResponse, handleGeneralError, makeDoitRequest } from "../../utils/util.js";
-import { ALERTS_BASE_URL, handleListAlertsRequest } from "../alerts.js";
+import { ALERTS_BASE_URL, handleGetAlertRequest, handleListAlertsRequest } from "../alerts.js";
 
 vi.mock("../../utils/util.js", () => ({
     createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
@@ -38,6 +38,50 @@ const mockAlertLegacy = {
     ...mockAlertBase,
     config: { ...mockAlertBase.config, attributions: ["PvqyGcdFcTHh7aLUdGdf"] },
 };
+
+describe("handleGetAlertRequest", () => {
+    const mockToken = "fake-token";
+    const alertId = "7jyrczd6CSh3M8TuQ6Qq";
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("calls the API with the correct URL when given a valid ID", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockAlertBase);
+
+        await handleGetAlertRequest({ id: alertId }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${ALERTS_BASE_URL}/${alertId}`,
+            mockToken,
+            { method: "GET" }
+        );
+        expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining(alertId));
+    });
+
+    it("returns error when API returns null", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+        await handleGetAlertRequest({ id: alertId }, mockToken);
+
+        expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("alert"));
+    });
+
+    it("delegates to handleGeneralError when makeDoitRequest throws", async () => {
+        (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+        await handleGetAlertRequest({ id: alertId }, mockToken);
+
+        expect(handleGeneralError).toHaveBeenCalledWith(expect.any(Error), expect.stringContaining("alert"));
+    });
+
+    it("returns a Zod validation error when id is missing", async () => {
+        await handleGetAlertRequest({}, mockToken);
+
+        expect(createErrorResponse).toHaveBeenCalled();
+    });
+});
 
 describe("handleListAlertsRequest", () => {
     const mockToken = "fake-token";
