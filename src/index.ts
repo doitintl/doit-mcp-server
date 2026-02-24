@@ -28,6 +28,10 @@ import {
 } from "./tools/anomalies.js";
 import { handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
 import {
+  handleTriggerCloudFlowRequest,
+  triggerCloudFlowTool,
+} from "./tools/cloudflow.js";
+import {
   cloudIncidentsTool,
   cloudIncidentTool,
   handleCloudIncidentRequest,
@@ -105,6 +109,7 @@ function createServer() {
         createAllocationTool,
         updateAllocationTool,
         listAssetsTool,
+        triggerCloudFlowTool,
       ],
     };
   });
@@ -201,4 +206,5 @@ export {
   handleCreateAllocationRequest,
   handleUpdateAllocationRequest,
   handleListAssetsRequest,
+  handleTriggerCloudFlowRequest,
 };
