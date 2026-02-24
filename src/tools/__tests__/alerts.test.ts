@@ -1,17 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { createErrorResponse, createSuccessResponse, handleGeneralError, makeDoitRequest } from "../../utils/util.js";
 import { ALERTS_BASE_URL, handleGetAlertRequest, handleListAlertsRequest } from "../alerts.js";
 
-vi.mock("../../utils/util.js", () => ({
-    createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
-    createSuccessResponse: vi.fn((text) => ({ content: [{ type: "text", text }] })),
-    formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-    handleGeneralError: vi.fn((_error, context) => ({
-        content: [{ type: "text", text: `General Error: ${context}` }],
-    })),
-    makeDoitRequest: vi.fn(),
-    DOIT_API_BASE: "https://api.doit.com",
-}));
+vi.mock("../../utils/util.js", async (importActual) => {
+    const actual = await importActual<typeof import("../../utils/util.js")>();
+    return {
+        ...actual,
+        createErrorResponse: vi.fn(actual.createErrorResponse),
+        createSuccessResponse: vi.fn(actual.createSuccessResponse),
+        handleGeneralError: vi.fn(actual.handleGeneralError),
+        makeDoitRequest: vi.fn(),
+    };
+});
+
+beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
 const mockAlertBase = {
     id: "7jyrczd6CSh3M8TuQ6Qq",
@@ -52,12 +60,15 @@ describe("handleGetAlertRequest", () => {
 
         await handleGetAlertRequest({ id: alertId }, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(
-            `${ALERTS_BASE_URL}/${alertId}`,
-            mockToken,
-            { method: "GET" }
-        );
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}/${alertId}`, mockToken, { method: "GET" });
         expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining(alertId));
+    });
+
+    it("returns alerts even when the legacy attributions field is present in the API response", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockAlertLegacy);
+        await handleGetAlertRequest({ id: alertId }, mockToken);
+
+        expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining(mockAlertLegacy.id));
     });
 
     it("returns error when API returns null", async () => {
@@ -80,6 +91,7 @@ describe("handleGetAlertRequest", () => {
         await handleGetAlertRequest({}, mockToken);
 
         expect(createErrorResponse).toHaveBeenCalled();
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });
 

@@ -1,10 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import { CLOUDFLOW_TRIGGER_BASE_URL, getTriggerCloudFlowURL, handleTriggerCloudFlowRequest } from "../cloudflow.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, makeDoitRequest: vi.fn() };
+});
+
+beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
 });
 
 describe("cloudflow", () => {
