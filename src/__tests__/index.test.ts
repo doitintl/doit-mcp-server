@@ -125,6 +125,28 @@ vi.mock("../tools/alerts.js", () => ({
     handleListAlertsRequest: vi.fn(),
     handleGetAlertRequest: vi.fn(),
 }));
+vi.mock("../tools/cloudflow.js", () => ({
+    triggerCloudFlowTool: {
+        name: "trigger_cloud_flow",
+        description:
+            "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
+        inputSchema: {
+            type: "object",
+            properties: {
+                flowID: {
+                    type: "string",
+                    description: "The ID of the CloudFlow flow to trigger",
+                },
+                requestBodyJson: {
+                    type: "object",
+                    description: "Optional JSON object to pass as the request body to the flow if the flow requires it",
+                },
+            },
+            required: ["flowID"],
+        },
+    },
+    handleTriggerCloudFlowRequest: vi.fn(),
+}));
 vi.mock("../utils/util.js", async () => {
     const actual = await vi.importActual("../utils/util.js");
     return {
@@ -549,6 +571,36 @@ describe("CallToolRequestSchema Handler", () => {
         expect(handleListAlertsRequest).toHaveBeenCalledWith(args, "fake-token");
     });
 
+    it("should route to the correct tool handler for get_alert", async () => {
+        const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+        const args = { id: "alert-123" };
+        const request = mockRequest("get_alert", args);
+
+        await callToolHandler(request);
+
+        expect(handleGetAlertRequest).toHaveBeenCalledWith(args, "fake-token");
+    });
+
+    it("should route to the correct tool handler for trigger_cloud_flow", async () => {
+        const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+        const args = { flowID: "flow-456", requestBodyJson: { key: "value" } };
+        const request = mockRequest("trigger_cloud_flow", args);
+
+        await callToolHandler(request);
+
+        expect(handleTriggerCloudFlowRequest).toHaveBeenCalledWith(args, "fake-token");
+    });
+
+    it("should route to the correct tool handler for trigger_cloud_flow without optional body", async () => {
+        const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+        const args = { flowID: "flow-789" };
+        const request = mockRequest("trigger_cloud_flow", args);
+
+        await callToolHandler(request);
+
+        expect(handleTriggerCloudFlowRequest).toHaveBeenCalledWith(args, "fake-token");
+    });
+
     it("should return Unknown tool error for unknown tool names", async () => {
         const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
         const request = mockRequest("unknown_tool", {});
@@ -647,4 +699,6 @@ const {
     handleUpdateAllocationRequest,
     handleListAssetsRequest,
     handleListAlertsRequest,
+    handleGetAlertRequest,
+    handleTriggerCloudFlowRequest,
 } = indexModule;
