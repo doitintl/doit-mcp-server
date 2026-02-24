@@ -111,6 +111,7 @@ export async function executeToolHandler(
         break;
       case "trigger_cloud_flow":
         result = await handleTriggerCloudFlowRequest(args, token);
+        break;
       case "list_alerts":
         result = await handleListAlertsRequest(args, token);
         break;

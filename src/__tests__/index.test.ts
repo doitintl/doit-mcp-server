@@ -306,6 +306,26 @@ describe("ListToolsRequestSchema Handler", () => {
           name: "get_alert",
           description: "Returns a specific alert by ID.",
         },
+        {
+          name: "trigger_cloud_flow",
+          description:
+            "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
+          inputSchema: {
+            type: "object",
+            properties: {
+              flowID: {
+                type: "string",
+                description: "The ID of the CloudFlow flow to trigger",
+              },
+              requestBodyJson: {
+                type: "object",
+                description:
+                  "Optional JSON object to pass as the request body to the flow if the flow requires it",
+              },
+            },
+            required: ["flowID"],
+          },
+        },
       ],
     });
   });
