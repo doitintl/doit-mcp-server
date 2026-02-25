@@ -61,6 +61,12 @@ import {
   handleValidateUserRequest,
   validateUserTool,
 } from "./tools/validateUser.js";
+import {
+  getAlertTool,
+  handleGetAlertRequest,
+  handleListAlertsRequest,
+  listAlertsTool,
+} from "./tools/alerts.js";
 import { SERVER_VERSION } from "./utils/consts.js";
 import { prompts } from "./utils/prompts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
@@ -109,6 +115,8 @@ function createServer() {
         createAllocationTool,
         updateAllocationTool,
         listAssetsTool,
+        listAlertsTool,
+        getAlertTool,
         triggerCloudFlowTool,
       ],
     };
@@ -207,4 +215,6 @@ export {
   handleUpdateAllocationRequest,
   handleListAssetsRequest,
   handleTriggerCloudFlowRequest,
+  handleListAlertsRequest,
+  handleGetAlertRequest,
 };

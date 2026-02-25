@@ -30,6 +30,7 @@ import {
   handleListTicketsRequest,
 } from "../tools/tickets.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
+import { handleGetAlertRequest, handleListAlertsRequest } from "../tools/alerts.js";
 import {
   createErrorResponse,
   formatZodError,
@@ -110,6 +111,12 @@ export async function executeToolHandler(
         break;
       case "trigger_cloud_flow":
         result = await handleTriggerCloudFlowRequest(args, token);
+        break;
+      case "list_alerts":
+        result = await handleListAlertsRequest(args, token);
+        break;
+      case "get_alert":
+        result = await handleGetAlertRequest(args, token);
         break;
       default:
         return createErrorResponse(`Unknown tool: ${toolName}`);

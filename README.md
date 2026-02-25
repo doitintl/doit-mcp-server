@@ -149,6 +149,8 @@ This MCP server provides many tools including the following:
 - [`get_allocation`](https://developer.doit.com/reference/getallocation): Get a specific allocation by ID from the DoiT API
 - [`create_allocation`](https://developer.doit.com/reference/createallocation): Create a new allocation
 - [`update_allocation`](https://developer.doit.com/reference/updateallocation): Update an existing allocation
+- [`list_alerts`](https://developer.doit.com/reference/listalerts): Returns a list of alerts that your account has access to
+- [`get_alert`](https://developer.doit.com/reference/getalert): Returns a specific alert by ID.
 
 
 ## Usage Examples

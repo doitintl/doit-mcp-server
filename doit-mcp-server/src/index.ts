@@ -62,6 +62,12 @@ import {
   listAssetsTool,
 } from "../../src/tools/assets.js";
 import {
+  GetAlertArgumentsSchema,
+  getAlertTool,
+  ListAlertsArgumentsSchema,
+  listAlertsTool,
+} from "../../src/tools/alerts.js";
+import {
   ChangeCustomerArgumentsSchema,
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
@@ -290,6 +296,10 @@ export class DoitMCPAgent extends McpAgent {
 
     // CloudFlow tools
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
+
+    // Alerts tools
+    this.registerTool(listAlertsTool, ListAlertsArgumentsSchema);
+    this.registerTool(getAlertTool, GetAlertArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {

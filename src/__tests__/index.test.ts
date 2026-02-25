@@ -112,10 +112,24 @@ vi.mock("../tools/assets.js", () => ({
     },
     handleListAssetsRequest: vi.fn(),
 }));
+vi.mock("../tools/alerts.js", () => ({
+    listAlertsTool: {
+        name: "list_alerts",
+        description:
+            "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
+    },
+    getAlertTool: {
+        name: "get_alert",
+        description: "Returns a specific alert by ID.",
+    },
+    handleListAlertsRequest: vi.fn(),
+    handleGetAlertRequest: vi.fn(),
+}));
 vi.mock("../tools/cloudflow.js", () => ({
     triggerCloudFlowTool: {
         name: "trigger_cloud_flow",
-        description: "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
+        description:
+            "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
         inputSchema: {
             type: "object",
             properties: {
@@ -279,6 +293,15 @@ describe("ListToolsRequestSchema Handler", () => {
                     name: "list_assets",
                     description:
                         "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
+                },
+                {
+                    name: "list_alerts",
+                    description:
+                        "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
+                },
+                {
+                    name: "get_alert",
+                    description: "Returns a specific alert by ID.",
                 },
                 {
                     name: "trigger_cloud_flow",
@@ -538,9 +561,39 @@ describe("CallToolRequestSchema Handler", () => {
         expect(handleListAssetsRequest).toHaveBeenCalledWith(args, "fake-token");
     });
 
+    it("should route to the correct tool handler for list_alerts", async () => {
+        const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+        const args = { sortBy: "name", sortOrder: "asc" };
+        const request = mockRequest("list_alerts", args);
+
+        await callToolHandler(request);
+
+        expect(handleListAlertsRequest).toHaveBeenCalledWith(args, "fake-token");
+    });
+
+    it("should route to the correct tool handler for get_alert", async () => {
+        const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+        const args = { id: "alert-123" };
+        const request = mockRequest("get_alert", args);
+
+        await callToolHandler(request);
+
+        expect(handleGetAlertRequest).toHaveBeenCalledWith(args, "fake-token");
+    });
+
     it("should route to the correct tool handler for trigger_cloud_flow", async () => {
         const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
-        const args = { flowID: "flow-123", requestBodyJson: { key: "value" } };
+        const args = { flowID: "flow-456", requestBodyJson: { key: "value" } };
+        const request = mockRequest("trigger_cloud_flow", args);
+
+        await callToolHandler(request);
+
+        expect(handleTriggerCloudFlowRequest).toHaveBeenCalledWith(args, "fake-token");
+    });
+
+    it("should route to the correct tool handler for trigger_cloud_flow without optional body", async () => {
+        const callToolHandler = setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+        const args = { flowID: "flow-789" };
         const request = mockRequest("trigger_cloud_flow", args);
 
         await callToolHandler(request);
@@ -645,5 +698,7 @@ const {
     handleCreateAllocationRequest,
     handleUpdateAllocationRequest,
     handleListAssetsRequest,
+    handleListAlertsRequest,
+    handleGetAlertRequest,
     handleTriggerCloudFlowRequest,
 } = indexModule;
