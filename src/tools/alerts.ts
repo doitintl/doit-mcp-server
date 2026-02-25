@@ -11,6 +11,7 @@ import { ALERTS_SORT_BY_VALUES, ALERTS_SORT_ORDER_VALUES } from "../types/alerts
 import type { Alert, AlertsResponse } from "../types/alerts.js";
 
 export const ALERTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/alerts`;
+const DEFAULT_LIST_ALERTS_MAX_RESULTS = 40;
 
 // Schema definitions
 export const ListAlertsArgumentsSchema = z.object({
@@ -19,7 +20,7 @@ export const ListAlertsArgumentsSchema = z.object({
     maxResults: z
         .string()
         .optional()
-        .describe("Maximum number of results to return in a single page. Defaults to 500."),
+        .describe("Maximum number of results to return in a single page."),
     pageToken: z
         .string()
         .optional()
@@ -36,7 +37,7 @@ export const ListAlertsArgumentsSchema = z.object({
 export const listAlertsTool = {
     name: "list_alerts",
     description:
-        "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
+        "Returns a list of alerts from DoIT API that your account has access to. Alerts are listed in reverse chronological order by default.",
     inputSchema: {
         type: "object",
         properties: {
@@ -52,7 +53,7 @@ export const listAlertsTool = {
             },
             maxResults: {
                 type: "string",
-                description: "Maximum number of results to return in a single page. Defaults to 500.",
+                description: "Maximum number of results to return in a single page",
             },
             pageToken: {
                 type: "string",
@@ -74,7 +75,7 @@ export const GetAlertArgumentsSchema = z.object({
 
 export const getAlertTool = {
     name: "get_alert",
-    description: "Returns a specific alert by ID.",
+    description: "Returns details of a specific alert from DoIT API by ID.",
     inputSchema: {
         type: "object",
         properties: {
@@ -91,7 +92,7 @@ export async function handleGetAlertRequest(args: any, token: string) {
     try {
         const { id } = GetAlertArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${ALERTS_BASE_URL}/${id}`;
+        const url = `${ALERTS_BASE_URL}/${encodeURIComponent(id)}`;
         try {
             const data = await makeDoitRequest<Alert>(url, token, { method: "GET", customerContext });
             if (!data) {
@@ -113,12 +114,16 @@ export async function handleGetAlertRequest(args: any, token: string) {
 export async function handleListAlertsRequest(args: any, token: string) {
     try {
         const { sortBy, sortOrder, maxResults, pageToken, filter } = ListAlertsArgumentsSchema.parse(args);
+        const maxResultsValue = maxResults ? parseInt(maxResults) : DEFAULT_LIST_ALERTS_MAX_RESULTS;
         const { customerContext } = args;
 
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(
+            {
+                maxResults: maxResultsValue.toString(),
+            }
+        );
         if (sortBy) params.append("sortBy", sortBy);
         if (sortOrder) params.append("sortOrder", sortOrder);
-        if (maxResults) params.append("maxResults", maxResults);
         if (pageToken) params.append("pageToken", pageToken);
         if (filter) params.append("filter", filter);
 
@@ -137,7 +142,7 @@ export async function handleListAlertsRequest(args: any, token: string) {
             const alerts = alertsData.alerts || [];
 
             const responseData = {
-                pageToken: alertsData.pageToken || "",
+                ...(alertsData.pageToken !== undefined && { pageToken: alertsData.pageToken }),
                 rowCount: alertsData.rowCount || 0,
                 alerts,
             };

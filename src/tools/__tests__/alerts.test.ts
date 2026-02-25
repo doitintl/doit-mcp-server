@@ -60,7 +60,7 @@ describe("handleGetAlertRequest", () => {
 
         await handleGetAlertRequest({ id: alertId }, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}/${alertId}`, mockToken, { method: "GET" });
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}/${alertId}`, mockToken, { method: "GET", customerContext: undefined });
         expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining(alertId));
     });
 
@@ -107,7 +107,7 @@ describe("handleListAlertsRequest", () => {
 
         await handleListAlertsRequest({}, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(ALERTS_BASE_URL, mockToken, { method: "GET" });
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}?maxResults=40`, mockToken, { method: "GET", customerContext: undefined });
         expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining(mockAlertBase.id));
     });
 
@@ -128,9 +128,9 @@ describe("handleListAlertsRequest", () => {
         );
 
         expect(makeDoitRequest).toHaveBeenCalledWith(
-            `${ALERTS_BASE_URL}?sortBy=name&sortOrder=asc&maxResults=10&pageToken=tok123&filter=owner%3A%5Bme%5D`,
+            `${ALERTS_BASE_URL}?maxResults=10&sortBy=name&sortOrder=asc&pageToken=tok123&filter=owner%3A%5Bme%5D`,
             mockToken,
-            { method: "GET" }
+            { method: "GET", customerContext: undefined }
         );
     });
 
@@ -148,6 +148,26 @@ describe("handleListAlertsRequest", () => {
         await handleListAlertsRequest({}, mockToken);
 
         expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("alerts"));
+    });
+
+    it("omits pageToken from the response when the API does not return one", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue({ rowCount: 1, alerts: [mockAlertBase] });
+
+        await handleListAlertsRequest({}, mockToken);
+
+        const call = (createSuccessResponse as vi.Mock).mock.calls[0][0];
+        const parsed = JSON.parse(call);
+        expect(parsed).not.toHaveProperty("pageToken");
+    });
+
+    it("includes pageToken in the response when the API returns one", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue({ rowCount: 1, alerts: [mockAlertBase], pageToken: "next-page-token" });
+
+        await handleListAlertsRequest({}, mockToken);
+
+        const call = (createSuccessResponse as vi.Mock).mock.calls[0][0];
+        const parsed = JSON.parse(call);
+        expect(parsed.pageToken).toBe("next-page-token");
     });
 
     it("delegates to handleGeneralError when makeDoitRequest throws", async () => {
