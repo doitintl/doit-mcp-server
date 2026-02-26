@@ -17,10 +17,7 @@ const DEFAULT_LIST_ALERTS_MAX_RESULTS = 40;
 export const ListAlertsArgumentsSchema = z.object({
     sortBy: z.enum(ALERTS_SORT_BY_VALUES).optional().describe("A field by which the results will be sorted."),
     sortOrder: z.enum(ALERTS_SORT_ORDER_VALUES).optional().describe("Sort order: ascending or descending."),
-    maxResults: z
-        .string()
-        .optional()
-        .describe("Maximum number of results to return in a single page."),
+    maxResults: z.string().optional().describe("Maximum number of results to return in a single page."),
     pageToken: z
         .string()
         .optional()
@@ -117,11 +114,9 @@ export async function handleListAlertsRequest(args: any, token: string) {
         const maxResultsValue = maxResults ? parseInt(maxResults) : DEFAULT_LIST_ALERTS_MAX_RESULTS;
         const { customerContext } = args;
 
-        const params = new URLSearchParams(
-            {
-                maxResults: maxResultsValue.toString(),
-            }
-        );
+        const params = new URLSearchParams({
+            maxResults: maxResultsValue.toString(),
+        });
         if (sortBy) params.append("sortBy", sortBy);
         if (sortOrder) params.append("sortOrder", sortOrder);
         if (pageToken) params.append("pageToken", pageToken);

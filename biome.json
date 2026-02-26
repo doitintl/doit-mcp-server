@@ -9,7 +9,7 @@
     "includes": ["src/**/*.ts"]
   },
   "formatter": {
-    "enabled": false,
+    "enabled": true,
     "indentStyle": "space",
     "indentWidth": 4,
     "lineWidth": 120
