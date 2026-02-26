@@ -11,137 +11,74 @@ import { z } from "zod";
 import { SERVER_VERSION } from "../utils/consts.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/index.js");
-vi.mock("../tools/cloudIncidents.js", () => ({
-    cloudIncidentsTool: { name: "list_cloud_incidents", description: "List cloud incidents" },
-    cloudIncidentTool: { name: "get_cloud_incident", description: "Get a cloud incident" },
+vi.mock(import("../tools/cloudIncidents.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleCloudIncidentsRequest: vi.fn(),
     handleCloudIncidentRequest: vi.fn(),
 }));
-vi.mock("../tools/anomalies.js", () => ({
-    anomaliesTool: { name: "get_anomalies", description: "List anomalies" },
-    anomalyTool: { name: "get_anomaly", description: "Get an anomaly" },
+vi.mock(import("../tools/anomalies.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleAnomaliesRequest: vi.fn(),
     handleAnomalyRequest: vi.fn(),
 }));
-vi.mock("../tools/reports.js", () => ({
-    reportsTool: { name: "list_reports", description: "List reports" },
-    runQueryTool: { name: "run_query", description: "Run a query" },
-    getReportResultsTool: { name: "get_report_results", description: "Get report results" },
+vi.mock(import("../tools/reports.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleReportsRequest: vi.fn(),
     handleRunQueryRequest: vi.fn(),
     handleGetReportResultsRequest: vi.fn(),
 }));
-vi.mock("../tools/validateUser.js", () => ({
-    validateUserTool: { name: "validate_user", description: "Validate user" },
+vi.mock(import("../tools/validateUser.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleValidateUserRequest: vi.fn(),
 }));
-vi.mock("../tools/dimensions.js", () => ({
-    dimensionsTool: { name: "list_dimensions", description: "List dimensions" },
+vi.mock(import("../tools/dimensions.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleDimensionsRequest: vi.fn(),
 }));
-vi.mock("../tools/dimension.js", () => ({
-    dimensionTool: { name: "get_dimension", description: "Get a dimension" },
+vi.mock(import("../tools/dimension.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleDimensionRequest: vi.fn(),
 }));
-vi.mock("../tools/tickets.js", () => ({
-    listTicketsTool: {
-        name: "list_tickets",
-        description: "List support tickets from DoiT using the support API.",
-    },
+vi.mock(import("../tools/tickets.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleListTicketsRequest: vi.fn(),
 }));
-vi.mock("../tools/invoices.ts", () => ({
-    listInvoicesTool: {
-        name: "list_invoices",
-        description: "List all current and historical invoices for your organization from the DoiT API.",
-    },
-    getInvoiceTool: {
-        name: "get_invoice",
-        description: "Retrieve the full details of an invoice specified by the invoice number from the DoiT API.",
-    },
+vi.mock(import("../tools/invoices.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleListInvoicesRequest: vi.fn(),
     handleGetInvoiceRequest: vi.fn(),
 }));
-vi.mock("../tools/allocations.js", () => ({
-    listAllocationsTool: {
-        name: "list_allocations",
-        description: "List allocations that your account has access to from the DoiT API",
-    },
-    getAllocationTool: {
-        name: "get_allocation",
-        description: "Get a specific allocation by ID from the DoiT API",
-    },
-    createAllocationTool: {
-        name: "create_allocation",
-        description: `Create a new allocation via the DoiT API
-    Allocations let you group and segment cloud costs using allocation rules.
-    For a single-rule allocation, provide 'rule' (a single rule object).
-    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).`,
-    },
-    updateAllocationTool: {
-        name: "update_allocation",
-        description: `Update an existing allocation
-    Provide the allocation ID and the updated allocation configuration.
-    For a single-rule allocation, provide 'rule' (a single rule object).
-    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).
-    The 'rule' and 'rules' fields are mutually exclusive.`,
-    },
+vi.mock(import("../tools/allocations.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleListAllocationsRequest: vi.fn(),
     handleGetAllocationRequest: vi.fn(),
     handleCreateAllocationRequest: vi.fn(),
     handleUpdateAllocationRequest: vi.fn(),
 }));
-vi.mock("../tools/assets.js", () => ({
-    listAssetsTool: {
-        name: "list_assets",
-        description:
-            "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
-    },
+vi.mock(import("../tools/assets.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleListAssetsRequest: vi.fn(),
 }));
-vi.mock("../tools/alerts.js", () => ({
-    listAlertsTool: {
-        name: "list_alerts",
-        description:
-            "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
-    },
-    getAlertTool: { name: "get_alert", description: "Returns a specific alert by ID." },
+vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleListAlertsRequest: vi.fn(),
     handleGetAlertRequest: vi.fn(),
 }));
-vi.mock("../tools/cloudflow.js", () => ({
-    triggerCloudFlowTool: {
-        name: "trigger_cloud_flow",
-        description:
-            "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
-        inputSchema: {
-            type: "object",
-            properties: {
-                flowID: { type: "string", description: "The ID of the CloudFlow flow to trigger" },
-                requestBodyJson: {
-                    type: "object",
-                    description: "Optional JSON object to pass as the request body to the flow if the flow requires it",
-                },
-            },
-            required: ["flowID"],
-        },
-    },
+vi.mock(import("../tools/cloudflow.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
     handleTriggerCloudFlowRequest: vi.fn(),
 }));
-vi.mock("../utils/util.js", async () => {
-    const actual = await vi.importActual("../utils/util.js");
-    return {
-        ...actual,
-        createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
-        createSuccessResponse: vi.fn((text) => ({ content: [{ type: "text", text }] })),
-        formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-        handleGeneralError: vi.fn((_error, context) => ({
-            content: [{ type: "text", text: `General Error: ${context}` }],
-        })),
-        DOIT_API_BASE: "https://api.doit.com",
-        makeDoitRequest: vi.fn(),
-    };
-});
+vi.mock(import("../utils/util.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
+    createSuccessResponse: vi.fn((text) => ({ content: [{ type: "text", text }] })),
+    formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
+    handleGeneralError: vi.fn((_error, context) => ({
+        content: [{ type: "text", text: `General Error: ${context}` }],
+    })),
+    DOIT_API_BASE: "https://api.doit.com",
+    makeDoitRequest: vi.fn(),
+}));
 
 const setRequestHandlerMock = vi.fn();
 (Server as any).mockImplementation(() => ({
@@ -150,6 +87,23 @@ const setRequestHandlerMock = vi.fn();
     _capabilities: { tools: {}, prompts: {}, resources: {} },
 }));
 
+import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
+import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
+import { reportsTool, runQueryTool, getReportResultsTool } from "../tools/reports.js";
+import { validateUserTool } from "../tools/validateUser.js";
+import { dimensionsTool } from "../tools/dimensions.js";
+import { dimensionTool } from "../tools/dimension.js";
+import { listTicketsTool } from "../tools/tickets.js";
+import { listInvoicesTool, getInvoiceTool } from "../tools/invoices.js";
+import {
+    listAllocationsTool,
+    getAllocationTool,
+    createAllocationTool,
+    updateAllocationTool,
+} from "../tools/allocations.js";
+import { listAssetsTool } from "../tools/assets.js";
+import { listAlertsTool, getAlertTool } from "../tools/alerts.js";
+import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import * as utilModule from "../utils/util.js";
 import {
     createServer,
@@ -225,74 +179,27 @@ describe("ListToolsRequestSchema handler", () => {
 
         expect(response).toEqual({
             tools: [
-                { name: "list_cloud_incidents", description: "List cloud incidents" },
-                { name: "get_cloud_incident", description: "Get a cloud incident" },
-                { name: "get_anomalies", description: "List anomalies" },
-                { name: "get_anomaly", description: "Get an anomaly" },
-                { name: "list_reports", description: "List reports" },
-                { name: "run_query", description: "Run a query" },
-                { name: "get_report_results", description: "Get report results" },
-                { name: "validate_user", description: "Validate user" },
-                { name: "list_dimensions", description: "List dimensions" },
-                { name: "get_dimension", description: "Get a dimension" },
-                { name: "list_tickets", description: "List support tickets from DoiT using the support API." },
-                {
-                    name: "list_invoices",
-                    description: "List all current and historical invoices for your organization from the DoiT API.",
-                },
-                {
-                    name: "get_invoice",
-                    description:
-                        "Retrieve the full details of an invoice specified by the invoice number from the DoiT API.",
-                },
-                {
-                    name: "list_allocations",
-                    description: "List allocations that your account has access to from the DoiT API",
-                },
-                { name: "get_allocation", description: "Get a specific allocation by ID from the DoiT API" },
-                {
-                    name: "create_allocation",
-                    description: `Create a new allocation via the DoiT API
-    Allocations let you group and segment cloud costs using allocation rules.
-    For a single-rule allocation, provide 'rule' (a single rule object).
-    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).`,
-                },
-                {
-                    name: "update_allocation",
-                    description: `Update an existing allocation
-    Provide the allocation ID and the updated allocation configuration.
-    For a single-rule allocation, provide 'rule' (a single rule object).
-    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).
-    The 'rule' and 'rules' fields are mutually exclusive.`,
-                },
-                {
-                    name: "list_assets",
-                    description:
-                        "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
-                },
-                {
-                    name: "list_alerts",
-                    description:
-                        "Returns a list of alerts that your account has access to. Alerts are listed in reverse chronological order by default.",
-                },
-                { name: "get_alert", description: "Returns a specific alert by ID." },
-                {
-                    name: "trigger_cloud_flow",
-                    description:
-                        "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
-                    inputSchema: {
-                        type: "object",
-                        properties: {
-                            flowID: { type: "string", description: "The ID of the CloudFlow flow to trigger" },
-                            requestBodyJson: {
-                                type: "object",
-                                description:
-                                    "Optional JSON object to pass as the request body to the flow if the flow requires it",
-                            },
-                        },
-                        required: ["flowID"],
-                    },
-                },
+                cloudIncidentsTool,
+                cloudIncidentTool,
+                anomaliesTool,
+                anomalyTool,
+                reportsTool,
+                runQueryTool,
+                getReportResultsTool,
+                validateUserTool,
+                dimensionsTool,
+                dimensionTool,
+                listTicketsTool,
+                listInvoicesTool,
+                getInvoiceTool,
+                listAllocationsTool,
+                getAllocationTool,
+                createAllocationTool,
+                updateAllocationTool,
+                listAssetsTool,
+                listAlertsTool,
+                getAlertTool,
+                triggerCloudFlowTool,
             ],
         });
     });
