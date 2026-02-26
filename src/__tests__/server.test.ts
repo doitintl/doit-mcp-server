@@ -151,11 +151,7 @@ const setRequestHandlerMock = vi.fn();
 }));
 
 import * as utilModule from "../utils/util.js";
-const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
-const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
-
-const serverModule = await import("../server.js");
-const {
+import {
     createServer,
     handleCloudIncidentsRequest,
     handleCloudIncidentRequest,
@@ -179,7 +175,10 @@ const {
     handleGetAlertRequest,
     handleTriggerCloudFlowRequest,
     handleGeneralError,
-} = serverModule;
+} from "../server.js";
+
+const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
+const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
 
 const originalProcessEnv = process.env;
 let server: any;

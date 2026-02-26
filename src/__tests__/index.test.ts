@@ -1,5 +1,7 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { describe, expect, it, vi } from "vitest";
+import { mainWithServer, main } from "../index.js";
+import { server } from "../server.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/stdio.js");
 vi.mock("../server.js", () => ({
@@ -7,8 +9,6 @@ vi.mock("../server.js", () => ({
     createServer: vi.fn(),
 }));
 vi.mock("dotenv", () => ({ config: vi.fn() }));
-
-const { mainWithServer, main } = await import("../index.js");
 
 describe("mainWithServer", () => {
     it("connects a custom server to a new StdioServerTransport", async () => {
@@ -21,8 +21,6 @@ describe("mainWithServer", () => {
     });
 
     it("falls back to the default server when no argument is provided", async () => {
-        const { server } = await import("../server.js");
-
         await mainWithServer();
 
         expect(StdioServerTransport).toHaveBeenCalled();
