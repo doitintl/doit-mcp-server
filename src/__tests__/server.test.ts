@@ -87,49 +87,49 @@ const setRequestHandlerMock = vi.fn();
     _capabilities: { tools: {}, prompts: {}, resources: {} },
 }));
 
-import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
-import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
-import { reportsTool, runQueryTool, getReportResultsTool } from "../tools/reports.js";
-import { validateUserTool } from "../tools/validateUser.js";
-import { dimensionsTool } from "../tools/dimensions.js";
-import { dimensionTool } from "../tools/dimension.js";
-import { listTicketsTool } from "../tools/tickets.js";
-import { listInvoicesTool, getInvoiceTool } from "../tools/invoices.js";
-import {
-    listAllocationsTool,
-    getAllocationTool,
-    createAllocationTool,
-    updateAllocationTool,
-} from "../tools/allocations.js";
-import { listAssetsTool } from "../tools/assets.js";
-import { listAlertsTool, getAlertTool } from "../tools/alerts.js";
-import { triggerCloudFlowTool } from "../tools/cloudflow.js";
-import * as utilModule from "../utils/util.js";
 import {
     createServer,
-    handleCloudIncidentsRequest,
-    handleCloudIncidentRequest,
     handleAnomaliesRequest,
     handleAnomalyRequest,
+    handleCloudIncidentRequest,
+    handleCloudIncidentsRequest,
+    handleCreateAllocationRequest,
+    handleDimensionRequest,
+    handleDimensionsRequest,
+    handleGeneralError,
+    handleGetAlertRequest,
+    handleGetAllocationRequest,
+    handleGetInvoiceRequest,
+    handleGetReportResultsRequest,
+    handleListAlertsRequest,
+    handleListAllocationsRequest,
+    handleListAssetsRequest,
+    handleListInvoicesRequest,
+    handleListTicketsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
-    handleGetReportResultsRequest,
-    handleValidateUserRequest,
-    handleDimensionsRequest,
-    handleDimensionRequest,
-    handleListTicketsRequest,
-    handleListInvoicesRequest,
-    handleGetInvoiceRequest,
-    handleListAllocationsRequest,
-    handleGetAllocationRequest,
-    handleCreateAllocationRequest,
-    handleUpdateAllocationRequest,
-    handleListAssetsRequest,
-    handleListAlertsRequest,
-    handleGetAlertRequest,
     handleTriggerCloudFlowRequest,
-    handleGeneralError,
+    handleUpdateAllocationRequest,
+    handleValidateUserRequest,
 } from "../server.js";
+import { getAlertTool, listAlertsTool } from "../tools/alerts.js";
+import {
+    createAllocationTool,
+    getAllocationTool,
+    listAllocationsTool,
+    updateAllocationTool,
+} from "../tools/allocations.js";
+import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
+import { listAssetsTool } from "../tools/assets.js";
+import { triggerCloudFlowTool } from "../tools/cloudflow.js";
+import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
+import { dimensionTool } from "../tools/dimension.js";
+import { dimensionsTool } from "../tools/dimensions.js";
+import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
+import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
+import { listTicketsTool } from "../tools/tickets.js";
+import { validateUserTool } from "../tools/validateUser.js";
+import * as utilModule from "../utils/util.js";
 
 const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
 const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");

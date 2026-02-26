@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { Alert, AlertsResponse } from "../types/alerts.js";
+import { ALERTS_SORT_BY_VALUES, ALERTS_SORT_ORDER_VALUES } from "../types/alerts.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -7,8 +9,6 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
-import { ALERTS_SORT_BY_VALUES, ALERTS_SORT_ORDER_VALUES } from "../types/alerts.js";
-import type { Alert, AlertsResponse } from "../types/alerts.js";
 
 export const ALERTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/alerts`;
 const DEFAULT_LIST_ALERTS_MAX_RESULTS = 40;
