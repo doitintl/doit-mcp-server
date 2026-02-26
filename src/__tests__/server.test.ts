@@ -220,9 +220,7 @@ describe("createServer", () => {
 
 describe("ListToolsRequestSchema handler", () => {
     it("returns all registered tools in order", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find(
-            (call) => call[0] === ListToolsRequestSchema
-        )?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
 
         const response = await handler();
 
@@ -303,9 +301,7 @@ describe("ListToolsRequestSchema handler", () => {
 
 describe("ListPromptsRequestSchema handler", () => {
     it("returns a non-empty list of prompts with name and text fields", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find(
-            (call) => call[0] === ListPromptsRequestSchema
-        )?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
 
         const response = await handler();
 
@@ -317,9 +313,7 @@ describe("ListPromptsRequestSchema handler", () => {
 
 describe("ListResourcesRequestSchema handler", () => {
     it("returns an empty resources list", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find(
-            (call) => call[0] === ListResourcesRequestSchema
-        )?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListResourcesRequestSchema)?.[1];
 
         const response = await handler();
 
@@ -329,9 +323,7 @@ describe("ListResourcesRequestSchema handler", () => {
 
 describe("InitializeRequestSchema handler", () => {
     it("returns server info and capabilities with the provided protocol version", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find(
-            (call) => call[0] === InitializeRequestSchema
-        )?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
 
         const response = await handler({ params: { protocolVersion: "2024-11-05" } });
 
@@ -343,9 +335,7 @@ describe("InitializeRequestSchema handler", () => {
     });
 
     it("falls back to default protocol version when not provided", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find(
-            (call) => call[0] === InitializeRequestSchema
-        )?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
 
         const response = await handler({ params: {} });
 
@@ -424,14 +414,28 @@ describe("CallToolRequestSchema handler", () => {
         [
             "update_allocation",
             "update_allocation",
-            { id: "allocation-123", name: "Updated", rule: { components: [{ key: "env", type: "label", values: ["staging"] }] } },
+            {
+                id: "allocation-123",
+                name: "Updated",
+                rule: { components: [{ key: "env", type: "label", values: ["staging"] }] },
+            },
             handleUpdateAllocationRequest,
         ],
         ["list_assets", "list_assets", { pageToken: "next-page" }, handleListAssetsRequest],
         ["list_alerts", "list_alerts", { sortBy: "name", sortOrder: "asc" }, handleListAlertsRequest],
         ["get_alert", "get_alert", { id: "alert-123" }, handleGetAlertRequest],
-        ["trigger_cloud_flow (with body)", "trigger_cloud_flow", { flowID: "flow-456", requestBodyJson: { key: "value" } }, handleTriggerCloudFlowRequest],
-        ["trigger_cloud_flow (without body)", "trigger_cloud_flow", { flowID: "flow-789" }, handleTriggerCloudFlowRequest],
+        [
+            "trigger_cloud_flow (with body)",
+            "trigger_cloud_flow",
+            { flowID: "flow-456", requestBodyJson: { key: "value" } },
+            handleTriggerCloudFlowRequest,
+        ],
+        [
+            "trigger_cloud_flow (without body)",
+            "trigger_cloud_flow",
+            { flowID: "flow-789" },
+            handleTriggerCloudFlowRequest,
+        ],
     ];
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
