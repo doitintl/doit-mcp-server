@@ -1,45 +1,45 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.2/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
-  "files": {
-    "includes": ["src/**/*.ts"]
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 4,
-    "lineWidth": 120
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "suspicious": {
-        "noExplicitAny": "off",
-        "noDebugger": "warn"
-      },
-      "style": {
-        "noNonNullAssertion": "warn",
-        "noParameterAssign": "warn",
-        "noUselessElse": "warn"
-      },
-      "correctness": {
-        "noUnusedVariables": "warn"
-      },
-      "complexity": {
-        "noForEach": "off"
-      }
-    }
-  },
-  "javascript": {
+    "$schema": "https://biomejs.dev/schemas/2.4.2/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
+    "files": {
+        "includes": ["src/**/*.ts"]
+    },
     "formatter": {
-      "quoteStyle": "double",
-      "semicolons": "always",
-      "trailingCommas": "es5"
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 120
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "suspicious": {
+                "noExplicitAny": "off",
+                "noDebugger": "warn"
+            },
+            "style": {
+                "noNonNullAssertion": "warn",
+                "noParameterAssign": "warn",
+                "noUselessElse": "warn"
+            },
+            "correctness": {
+                "noUnusedVariables": "warn"
+            },
+            "complexity": {
+                "noForEach": "off"
+            }
+        }
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "double",
+            "semicolons": "always",
+            "trailingCommas": "es5"
+        }
     }
-  }
 }

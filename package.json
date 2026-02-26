@@ -25,7 +25,8 @@
     "lint:fix": "biome lint --write src/",
     "format": "biome format src/",
     "format:fix": "biome format --write src/",
-    "check": "biome check src/",
+    "check:dev": "yarn type-check && biome check src/",
+    "check:ci": "yarn type-check && biome ci src/",
     "check:fix": "biome check --write src/"
   },
   "dependencies": {
