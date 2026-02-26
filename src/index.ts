@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import * as dotenv from "dotenv";
+
 dotenv.config();
 
+import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { server } from "./server.js";
 
 export async function mainWithServer(customServer?: Server) {

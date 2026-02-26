@@ -6,6 +6,7 @@ import {
     ListResourcesRequestSchema,
     ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { getAlertTool, handleGetAlertRequest, handleListAlertsRequest, listAlertsTool } from "./tools/alerts.js";
 import {
     createAllocationTool,
     getAllocationTool,
@@ -43,7 +44,6 @@ import {
 } from "./tools/reports.js";
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
-import { getAlertTool, handleGetAlertRequest, handleListAlertsRequest, listAlertsTool } from "./tools/alerts.js";
 import { SERVER_VERSION } from "./utils/consts.js";
 import { prompts } from "./utils/prompts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";

@@ -1,6 +1,6 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { describe, expect, it, vi } from "vitest";
-import { mainWithServer, main } from "../index.js";
+import { main, mainWithServer } from "../index.js";
 import { server } from "../server.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/stdio.js");

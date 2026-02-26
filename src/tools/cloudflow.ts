@@ -34,7 +34,8 @@ export function getTriggerCloudFlowURL(value: string): string {
 
 export const triggerCloudFlowTool = {
     name: "trigger_cloud_flow",
-    description: "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
+    description:
+        "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
     inputSchema: {
         type: "object",
         properties: {
@@ -57,7 +58,9 @@ export async function handleTriggerCloudFlowRequest(args: any, token: string) {
         const { customerContext } = args;
 
         if (!flowID.trim()) {
-            return createErrorResponse("Please request the user to specify the target flow ID and optionally the request body JSON if the flow requires it");
+            return createErrorResponse(
+                "Please request the user to specify the target flow ID and optionally the request body JSON if the flow requires it"
+            );
         }
         const url = getTriggerCloudFlowURL(flowID);
 
