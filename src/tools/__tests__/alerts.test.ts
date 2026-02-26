@@ -60,7 +60,10 @@ describe("handleGetAlertRequest", () => {
 
         await handleGetAlertRequest({ id: alertId }, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}/${alertId}`, mockToken, { method: "GET", customerContext: undefined });
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}/${alertId}`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
         expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining(alertId));
     });
 
@@ -107,7 +110,10 @@ describe("handleListAlertsRequest", () => {
 
         await handleListAlertsRequest({}, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}?maxResults=40`, mockToken, { method: "GET", customerContext: undefined });
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}?maxResults=40`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
         expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining(mockAlertBase.id));
     });
 
@@ -161,7 +167,11 @@ describe("handleListAlertsRequest", () => {
     });
 
     it("includes pageToken in the response when the API returns one", async () => {
-        (makeDoitRequest as vi.Mock).mockResolvedValue({ rowCount: 1, alerts: [mockAlertBase], pageToken: "next-page-token" });
+        (makeDoitRequest as vi.Mock).mockResolvedValue({
+            rowCount: 1,
+            alerts: [mockAlertBase],
+            pageToken: "next-page-token",
+        });
 
         await handleListAlertsRequest({}, mockToken);
 
