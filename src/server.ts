@@ -45,7 +45,7 @@ import {
 } from "./tools/reports.js";
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
-import { SERVER_VERSION } from "./utils/consts.js";
+import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { prompts } from "./utils/prompts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./utils/util.js";
@@ -53,7 +53,7 @@ import { createErrorResponse, formatZodError, handleGeneralError } from "./utils
 export function createServer() {
     const server = new Server(
         {
-            name: "doit-mcp-server",
+            name: SERVER_NAME,
             version: SERVER_VERSION,
         },
         {
@@ -143,7 +143,7 @@ export function createServer() {
         return {
             protocolVersion: request?.params?.protocolVersion || "2024-11-05",
             serverInfo: {
-                name: "doit-mcp-server",
+                name: SERVER_NAME,
                 version: SERVER_VERSION,
             },
             // biome-ignore lint/complexity/useLiteralKeys: bracket notation bypasses private property TS check

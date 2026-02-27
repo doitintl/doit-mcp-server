@@ -3,7 +3,7 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { DurableObject } from "cloudflare:workers";
 
-import { SERVER_VERSION } from "../../src/utils/consts.js";
+import { SERVER_NAME_WEB, SERVER_VERSION } from "../../src/utils/consts.js";
 
 import {
   CloudIncidentsArgumentsSchema,
@@ -135,7 +135,7 @@ function convertToMcpResponse(doitResponse: any) {
 
 export class DoitMCPAgent extends McpAgent {
   server = new McpServer({
-    name: "Doit",
+    name: SERVER_NAME_WEB,
     version: SERVER_VERSION,
   });
 
