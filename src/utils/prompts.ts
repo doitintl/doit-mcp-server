@@ -9,14 +9,47 @@ export type PromptArgument = {
 
 export type PromptRole = "user" | "assistant";
 
-export type Prompt = {
+export type PromptMessage = {
+    role: PromptRole;
+    text: string;
+};
+
+// base type for a prompt for both single and multi message prompts
+type PromptBase = {
     name: string;
     description: string;
-    text: string;
-    role?: PromptRole;
     arguments?: PromptArgument[];
 };
 
+// backward compatible and simple definition of a prompt with a single message
+type SingleMessagePrompt = PromptBase & {
+    text: string;
+    role?: PromptRole;
+    messages?: never;
+};
+
+// protocl compatible definition of a prompt with multiple messages
+type MultiMessagePrompt = PromptBase & {
+    messages: PromptMessage[];
+    text?: never;
+    role?: never;
+};
+
+export type Prompt = SingleMessagePrompt | MultiMessagePrompt;
+
+/**
+ * Resolve the prompt messages for a prompt definition (into a list of messages as expected by the MCP protocol).
+ * helping to translate single message prompts to multi message prompts.
+ *
+ * @param prompt - the prompt definition
+ * @returns the list of messages as expected by the MCP protocol
+ */
+export function resolvePromptMessages(prompt: Prompt): PromptMessage[] {
+    if (prompt.messages) return prompt.messages;
+    return [{ role: prompt.role ?? "user", text: prompt.text }];
+}
+
+// list of prompts definitions
 export const prompts: Prompt[] = [
     {
         name: "Filter Fields Reference",

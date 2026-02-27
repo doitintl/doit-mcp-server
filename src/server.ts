@@ -46,7 +46,7 @@ import {
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
-import { prompts } from "./utils/prompts.js";
+import { prompts, resolvePromptMessages } from "./utils/prompts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./utils/util.js";
 
@@ -111,15 +111,13 @@ export function createServer() {
         }
         return {
             description: prompt.description,
-            messages: [
-                {
-                    role: prompt.role ?? "user",
-                    content: {
-                        type: "text",
-                        text: prompt.text,
-                    },
+            messages: resolvePromptMessages(prompt).map((message) => ({
+                role: message.role,
+                content: {
+                    type: "text",
+                    text: message.text,
                 },
-            ],
+            })),
         };
     });
 

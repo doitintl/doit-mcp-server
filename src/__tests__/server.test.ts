@@ -10,6 +10,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { SERVER_VERSION } from "../utils/consts.js";
+import { prompts } from "../utils/prompts.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/index.js");
 vi.mock(import("../tools/cloudIncidents.js"), async (importOriginal) => ({
@@ -221,7 +222,7 @@ describe("ListPromptsRequestSchema handler", () => {
 });
 
 describe("GetPromptRequestSchema handler", () => {
-    it("returns description and messages for a known prompt", async () => {
+    it("returns description and a single message for a single-message prompt", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
 
         const response = await handler({ params: { name: "Allow Artifacts" } });
@@ -232,6 +233,33 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[0].role).toBe("user");
         expect(response.messages[0].content.type).toBe("text");
         expect(response.messages[0].content.text).toBeTruthy();
+    });
+
+    it("returns all messages for a multi-message prompt", async () => {
+        const multiMessagePrompt = {
+            name: "__test_multi__",
+            description: "Multi-message test prompt",
+            messages: [
+                { role: "user" as const, text: "Hello" },
+                { role: "assistant" as const, text: "How can I help?" },
+                { role: "user" as const, text: "Tell me about costs." },
+            ],
+        };
+        prompts.push(multiMessagePrompt); // this is cleanup after the test by the afterEach hook
+
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({ params: { name: "__test_multi__" } });
+
+        expect(response.messages).toHaveLength(3);
+        expect(response.messages[0]).toEqual({ role: "user", content: { type: "text", text: "Hello" } });
+        expect(response.messages[1]).toEqual({ role: "assistant", content: { type: "text", text: "How can I help?" } });
+        expect(response.messages[2]).toEqual({ role: "user", content: { type: "text", text: "Tell me about costs." } });
+    });
+
+    afterEach(() => {
+        // cleanup the test prompt injected by the tests
+        const idx = prompts.findIndex((p) => p.name === "__test_multi__");
+        if (idx !== -1) prompts.splice(idx, 1);
     });
 
     it("throws an error for an unknown prompt name", async () => {

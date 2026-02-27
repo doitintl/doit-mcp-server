@@ -79,7 +79,7 @@ import {
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
-import { prompts } from "../../src/utils/prompts.js";
+import { prompts, resolvePromptMessages } from "../../src/utils/prompts.js";
 
 const KEEP_ALIVE_INTERVAL_MS = 120_000; // 2 minutes in milliseconds
 
@@ -246,15 +246,13 @@ export class DoitMCPAgent extends McpAgent {
     // Register prompts
     prompts.forEach((prompt) => {
       this.server.prompt(prompt.name, prompt.description, async () => ({
-        messages: [
-          {
-            role: prompt.role ?? "user",
-            content: {
-              type: "text",
-              text: prompt.text,
-            },
+        messages: resolvePromptMessages(prompt).map((message) => ({
+          role: message.role,
+          content: {
+            type: "text",
+            text: message.text,
           },
-        ],
+        })),
       }));
     });
 
