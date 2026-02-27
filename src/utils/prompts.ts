@@ -130,11 +130,16 @@ const legacyPrompts: Prompt[] = [
 ];
 
 /**
- * The main list of prompts exposed by the MCP server.
- * Each legacy prompt is included twice: once under its original human-readable name
- * (backward compatibility) and once under its snake_case equivalent (MCP convention).
+ * The canonical list of prompts exposed by the MCP server, using snake_case names only.
  *
  * NOTE: New prompts should be added directly to this array using snake_case names,
  * e.g. { name: "my_new_prompt", description: "...", text: "..." }
  */
-export const prompts: Prompt[] = [...legacyPrompts, ...legacyPrompts.map((p) => ({ ...p, name: toSnakeCase(p.name) }))];
+export const prompts: Prompt[] = [...legacyPrompts.map((p) => ({ ...p, name: toSnakeCase(p.name) }))];
+
+/**
+ * Extends `prompts` with the original human-readable names of legacy prompts for
+ * backward compatibility. Use this only where clients may still refer to prompts
+ * by their old human-readable names.
+ */
+export const promptsIncludingLegacyNames: Prompt[] = [...prompts, ...legacyPrompts];
