@@ -1,6 +1,60 @@
 import { aws_global_resource_id, gcp_global_resource_id } from "./filterFields.js";
+import { toSnakeCase } from "./util.js";
 
-export const prompts = [
+// Argument for a prompt when using the GetPromptRequestSchema
+export type PromptArgument = {
+    name: string;
+    description: string;
+    required?: boolean;
+};
+
+export type PromptRole = "user" | "assistant";
+
+export type PromptMessage = {
+    role: PromptRole;
+    text: string;
+};
+
+// base type for a prompt for both single and multi message prompts
+type PromptBase = {
+    name: string;
+    description: string;
+    arguments?: PromptArgument[];
+};
+
+// simple definition of a prompt with a single message, backward compatible with initial project prompts
+type SingleMessagePrompt = PromptBase & {
+    text: string;
+    role?: PromptRole;
+    messages?: never;
+};
+
+// protocol compatible definition of a prompt with multiple messages
+type MultiMessagePrompt = PromptBase & {
+    messages: PromptMessage[];
+    text?: never;
+    role?: never;
+};
+
+export type Prompt = SingleMessagePrompt | MultiMessagePrompt;
+
+/**
+ * Resolve the prompt messages for a prompt definition (into a list of messages as expected by the MCP protocol).
+ * helping to translate single message prompts to multi message prompts.
+ *
+ * @param prompt - the prompt definition
+ * @returns the list of messages as expected by the MCP protocol
+ */
+export function resolvePromptMessages(prompt: Prompt): PromptMessage[] {
+    if (prompt.messages) return prompt.messages;
+    return [{ role: prompt.role ?? "user", text: prompt.text }];
+}
+
+/**
+ * NOTE: do not use this for new prompts, add new prompts to the prompts array instead in snake_case format.
+ * Legacy prompts with human-readable names kept for reference.
+ */
+const legacyPrompts: Prompt[] = [
     {
         name: "Filter Fields Reference",
         description: "Filter fields explanation for GCP and AWS resources",
@@ -63,3 +117,18 @@ export const prompts = [
         text: `Trigger a CloudFlow by its flow ID, the user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow.`,
     },
 ];
+
+/**
+ * The canonical list of prompts exposed by the MCP server, using snake_case names only.
+ *
+ * NOTE: New prompts should be added directly to this array using snake_case names,
+ * e.g. { name: "my_new_prompt", description: "...", text: "..." }
+ */
+export const prompts: Prompt[] = [...legacyPrompts.map((p) => ({ ...p, name: toSnakeCase(p.name) }))];
+
+/**
+ * Extends `prompts` with the original human-readable names of legacy prompts for
+ * backward compatibility. Use this only where clients may still refer to prompts
+ * by their old human-readable names.
+ */
+export const promptsIncludingLegacyNames: Prompt[] = [...prompts, ...legacyPrompts];

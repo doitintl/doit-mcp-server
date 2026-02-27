@@ -1,6 +1,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
     CallToolRequestSchema,
+    GetPromptRequestSchema,
     InitializeRequestSchema,
     ListPromptsRequestSchema,
     ListResourcesRequestSchema,
@@ -9,6 +10,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { SERVER_VERSION } from "../utils/consts.js";
+import { prompts } from "../utils/prompts.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/index.js");
 vi.mock(import("../tools/cloudIncidents.js"), async (importOriginal) => ({
@@ -165,6 +167,7 @@ describe("createServer", () => {
     it("registers handlers for all required schemas", () => {
         expect(setRequestHandlerMock).toHaveBeenCalledWith(ListToolsRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(ListPromptsRequestSchema, expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith(GetPromptRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(ListResourcesRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(CallToolRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(InitializeRequestSchema, expect.any(Function));
@@ -206,14 +209,89 @@ describe("ListToolsRequestSchema handler", () => {
 });
 
 describe("ListPromptsRequestSchema handler", () => {
-    it("returns a non-empty list of prompts with name and text fields", async () => {
+    it("returns a non-empty list of prompts with name and description fields", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
 
         const response = await handler();
 
         expect(response.prompts.length).toBeGreaterThan(0);
         expect(response.prompts[0]).toHaveProperty("name");
-        expect(response.prompts[0]).toHaveProperty("text");
+        expect(response.prompts[0]).toHaveProperty("description");
+        expect(response.prompts[0]).not.toHaveProperty("text");
+    });
+
+    it("exposes only snake_case names", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+
+        const response = await handler();
+        const names: string[] = response.prompts.map((p: { name: string }) => p.name);
+        const snakeCasePattern = /^[a-z][a-z0-9_]*$/;
+
+        expect(names).toContain("allow_artifacts");
+        expect(names).toContain("create_ticket");
+        expect(names).not.toContain("Allow Artifacts");
+        expect(names).not.toContain("Create Ticket");
+        for (const name of names) {
+            expect(name).toMatch(snakeCasePattern);
+        }
+    });
+});
+
+describe("GetPromptRequestSchema handler", () => {
+    afterEach(() => {
+        // cleanup the test prompt injected by the tests
+        const idx = prompts.findIndex((p) => p.name === "__test_multi__");
+        if (idx !== -1) prompts.splice(idx, 1);
+    });
+
+    it("returns description and a single message for a snake_case prompt name", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+
+        const response = await handler({ params: { name: "allow_artifacts" } });
+
+        expect(response).toHaveProperty("description");
+        expect(response).toHaveProperty("messages");
+        expect(response.messages).toHaveLength(1);
+        expect(response.messages[0].role).toBe("user");
+        expect(response.messages[0].content.type).toBe("text");
+        expect(response.messages[0].content.text).toBeTruthy();
+    });
+
+    it("throws an error for a human-readable prompt name (not exposed by this server)", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+
+        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toThrow(
+            "Prompt not found: Allow Artifacts"
+        );
+    });
+
+    it("returns all messages for a multi-message prompt", async () => {
+        const multiMessagePrompt = {
+            name: "__test_multi__",
+            description: "Multi-message test prompt",
+            messages: [
+                { role: "user" as const, text: "Hello" },
+                { role: "assistant" as const, text: "How can I help?" },
+                { role: "user" as const, text: "Tell me about costs." },
+            ],
+        };
+        prompts.push(multiMessagePrompt); // this will be cleaned up by the afterEach hook
+
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({ params: { name: "__test_multi__" } });
+
+        expect(response.messages).toHaveLength(3);
+        expect(response.messages[0]).toEqual({ role: "user", content: { type: "text", text: "Hello" } });
+        expect(response.messages[1]).toEqual({ role: "assistant", content: { type: "text", text: "How can I help?" } });
+        expect(response.messages[2]).toEqual({ role: "user", content: { type: "text", text: "Tell me about costs." } });
+    });
+
+    it("throws an error for an unknown prompt name", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+
+        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(
+            "Prompt not found: nonexistent-prompt"
+        );
     });
 });
 
