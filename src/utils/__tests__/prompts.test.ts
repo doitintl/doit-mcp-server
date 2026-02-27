@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prompt } from "../prompts.js";
-import { resolvePromptMessages } from "../prompts.js";
+import { resolvePromptMessages, toSnakeCase } from "../prompts.js";
 
 describe("resolvePromptMessages", () => {
     describe("single-message prompts", () => {
@@ -100,5 +100,52 @@ describe("resolvePromptMessages", () => {
 
             expect(resolvePromptMessages(prompt)).toBe(messageArray);
         });
+    });
+});
+
+describe("toSnakeCase", () => {
+    it("converts space-separated words to snake_case", () => {
+        expect(toSnakeCase("Filter Fields Reference")).toBe("filter_fields_reference");
+    });
+
+    it("converts a single word to lowercase", () => {
+        expect(toSnakeCase("Create Ticket")).toBe("create_ticket");
+    });
+
+    it("handles mixed case with multiple words", () => {
+        expect(toSnakeCase("Generate Report Document")).toBe("generate_report_document");
+    });
+
+    it("strips non-alphanumeric characters other than underscores", () => {
+        expect(toSnakeCase("Trigger CloudFlow flow")).toBe("trigger_cloudflow_flow");
+    });
+
+    it("collapses multiple spaces into a single underscore", () => {
+        expect(toSnakeCase("hello   world")).toBe("hello_world");
+    });
+
+    it("returns an already snake_case string unchanged", () => {
+        expect(toSnakeCase("allow_artifacts")).toBe("allow_artifacts");
+    });
+
+    it("converts all legacy prompt names to valid snake_case identifiers", () => {
+        const legacyNames = [
+            "Filter Fields Reference",
+            "Generate Report Document",
+            "Query Best Practice",
+            "Document Output Reminder",
+            "Generate Report Command",
+            "Generate Anomalies Document",
+            "Dimension Usage Guidance",
+            "Create Ticket",
+            "Generate Invoice Details Document",
+            "Allocations Usage Guidance",
+            "Allow Artifacts",
+            "Trigger CloudFlow flow",
+        ];
+        const snakeCasePattern = /^[a-z][a-z0-9_]*$/;
+        for (const name of legacyNames) {
+            expect(toSnakeCase(name)).toMatch(snakeCasePattern);
+        }
     });
 });

@@ -21,14 +21,14 @@ type PromptBase = {
     arguments?: PromptArgument[];
 };
 
-// backward compatible and simple definition of a prompt with a single message
+// simple definition of a prompt with a single message, backward compatible with initial project prompts
 type SingleMessagePrompt = PromptBase & {
     text: string;
     role?: PromptRole;
     messages?: never;
 };
 
-// protocl compatible definition of a prompt with multiple messages
+// protocol compatible definition of a prompt with multiple messages
 type MultiMessagePrompt = PromptBase & {
     messages: PromptMessage[];
     text?: never;
@@ -49,8 +49,23 @@ export function resolvePromptMessages(prompt: Prompt): PromptMessage[] {
     return [{ role: prompt.role ?? "user", text: prompt.text }];
 }
 
-// list of prompts definitions
-export const prompts: Prompt[] = [
+/**
+ * Converts a human-readable string to snake_case.
+ * e.g. "Filter Fields Reference" → "filter_fields_reference"
+ */
+export function toSnakeCase(str: string): string {
+    return str
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+}
+
+/**
+ * NOTE: do not use this, add new prompts to the prompts array instead.
+ * Legacy prompts with human-readable names kept for reference.
+ * These are automatically converted to snake_case and injected into the main prompts list below.
+ */
+const legacyPrompts: Prompt[] = [
     {
         name: "Filter Fields Reference",
         description: "Filter fields explanation for GCP and AWS resources",
@@ -113,3 +128,13 @@ export const prompts: Prompt[] = [
         text: `Trigger a CloudFlow by its flow ID, the user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow.`,
     },
 ];
+
+/**
+ * The main list of prompts exposed by the MCP server.
+ * Each legacy prompt is included twice: once under its original human-readable name
+ * (backward compatibility) and once under its snake_case equivalent (MCP convention).
+ *
+ * NOTE: New prompts should be added directly to this array using snake_case names,
+ * e.g. { name: "my_new_prompt", description: "...", text: "..." }
+ */
+export const prompts: Prompt[] = [...legacyPrompts, ...legacyPrompts.map((p) => ({ ...p, name: toSnakeCase(p.name) }))];
