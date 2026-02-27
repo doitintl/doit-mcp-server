@@ -238,6 +238,12 @@ describe("ListPromptsRequestSchema handler", () => {
 });
 
 describe("GetPromptRequestSchema handler", () => {
+    afterEach(() => {
+        // cleanup the test prompt injected by the tests
+        const idx = prompts.findIndex((p) => p.name === "__test_multi__");
+        if (idx !== -1) prompts.splice(idx, 1);
+    });
+
     it("returns description and a single message for a snake_case prompt name", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
 
@@ -269,7 +275,7 @@ describe("GetPromptRequestSchema handler", () => {
                 { role: "user" as const, text: "Tell me about costs." },
             ],
         };
-        prompts.push(multiMessagePrompt); // this is cleanup after the test by the afterEach hook
+        prompts.push(multiMessagePrompt); // this will be cleaned up by the afterEach hook
 
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
         const response = await handler({ params: { name: "__test_multi__" } });
@@ -278,12 +284,6 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[0]).toEqual({ role: "user", content: { type: "text", text: "Hello" } });
         expect(response.messages[1]).toEqual({ role: "assistant", content: { type: "text", text: "How can I help?" } });
         expect(response.messages[2]).toEqual({ role: "user", content: { type: "text", text: "Tell me about costs." } });
-    });
-
-    afterEach(() => {
-        // cleanup the test prompt injected by the tests
-        const idx = prompts.findIndex((p) => p.name === "__test_multi__");
-        if (idx !== -1) prompts.splice(idx, 1);
     });
 
     it("throws an error for an unknown prompt name", async () => {

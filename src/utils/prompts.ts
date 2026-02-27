@@ -51,9 +51,8 @@ export function resolvePromptMessages(prompt: Prompt): PromptMessage[] {
 }
 
 /**
- * NOTE: do not use this, add new prompts to the prompts array instead.
+ * NOTE: do not use this for new prompts, add new prompts to the prompts array instead in snake_case format.
  * Legacy prompts with human-readable names kept for reference.
- * These are automatically converted to snake_case and injected into the main prompts list below.
  */
 const legacyPrompts: Prompt[] = [
     {
