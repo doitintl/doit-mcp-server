@@ -1,6 +1,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
     CallToolRequestSchema,
+    GetPromptRequestSchema,
     InitializeRequestSchema,
     ListPromptsRequestSchema,
     ListResourcesRequestSchema,
@@ -95,9 +96,30 @@ export function createServer() {
     server.setRequestHandler(ListPromptsRequestSchema, async () => {
         return {
             prompts: prompts.map((prompt) => ({
-                text: prompt.text,
                 name: prompt.name,
+                description: prompt.description,
+                ...(prompt.arguments ? { arguments: prompt.arguments } : {}),
             })),
+        };
+    });
+
+    server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+        const { name } = request.params;
+        const prompt = prompts.find((p) => p.name === name);
+        if (!prompt) {
+            throw new Error(`Prompt not found: ${name}`);
+        }
+        return {
+            description: prompt.description,
+            messages: [
+                {
+                    role: prompt.role ?? "user",
+                    content: {
+                        type: "text",
+                        text: prompt.text,
+                    },
+                },
+            ],
         };
     });
 

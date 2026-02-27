@@ -1,6 +1,23 @@
 import { aws_global_resource_id, gcp_global_resource_id } from "./filterFields.js";
 
-export const prompts = [
+// Argument for a prompt when using the GetPromptRequestSchema
+export type PromptArgument = {
+    name: string;
+    description: string;
+    required?: boolean;
+};
+
+export type PromptRole = "user" | "assistant";
+
+export type Prompt = {
+    name: string;
+    description: string;
+    text: string;
+    role?: PromptRole;
+    arguments?: PromptArgument[];
+};
+
+export const prompts: Prompt[] = [
     {
         name: "Filter Fields Reference",
         description: "Filter fields explanation for GCP and AWS resources",

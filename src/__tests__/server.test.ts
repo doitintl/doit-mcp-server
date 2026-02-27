@@ -1,6 +1,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
     CallToolRequestSchema,
+    GetPromptRequestSchema,
     InitializeRequestSchema,
     ListPromptsRequestSchema,
     ListResourcesRequestSchema,
@@ -165,6 +166,7 @@ describe("createServer", () => {
     it("registers handlers for all required schemas", () => {
         expect(setRequestHandlerMock).toHaveBeenCalledWith(ListToolsRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(ListPromptsRequestSchema, expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith(GetPromptRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(ListResourcesRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(CallToolRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(InitializeRequestSchema, expect.any(Function));
@@ -206,14 +208,38 @@ describe("ListToolsRequestSchema handler", () => {
 });
 
 describe("ListPromptsRequestSchema handler", () => {
-    it("returns a non-empty list of prompts with name and text fields", async () => {
+    it("returns a non-empty list of prompts with name and description fields", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
 
         const response = await handler();
 
         expect(response.prompts.length).toBeGreaterThan(0);
         expect(response.prompts[0]).toHaveProperty("name");
-        expect(response.prompts[0]).toHaveProperty("text");
+        expect(response.prompts[0]).toHaveProperty("description");
+        expect(response.prompts[0]).not.toHaveProperty("text");
+    });
+});
+
+describe("GetPromptRequestSchema handler", () => {
+    it("returns description and messages for a known prompt", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+
+        const response = await handler({ params: { name: "Allow Artifacts" } });
+
+        expect(response).toHaveProperty("description");
+        expect(response).toHaveProperty("messages");
+        expect(response.messages).toHaveLength(1);
+        expect(response.messages[0].role).toBe("user");
+        expect(response.messages[0].content.type).toBe("text");
+        expect(response.messages[0].content.text).toBeTruthy();
+    });
+
+    it("throws an error for an unknown prompt name", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+
+        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(
+            "Prompt not found: nonexistent-prompt"
+        );
     });
 });
 

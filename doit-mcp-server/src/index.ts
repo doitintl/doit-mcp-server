@@ -248,7 +248,7 @@ export class DoitMCPAgent extends McpAgent {
       this.server.prompt(prompt.name, prompt.description, async () => ({
         messages: [
           {
-            role: "user",
+            role: prompt.role ?? "user",
             content: {
               type: "text",
               text: prompt.text,
