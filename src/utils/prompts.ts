@@ -1,4 +1,5 @@
 import { aws_global_resource_id, gcp_global_resource_id } from "./filterFields.js";
+import { toSnakeCase } from "./util.js";
 
 // Argument for a prompt when using the GetPromptRequestSchema
 export type PromptArgument = {
@@ -47,17 +48,6 @@ export type Prompt = SingleMessagePrompt | MultiMessagePrompt;
 export function resolvePromptMessages(prompt: Prompt): PromptMessage[] {
     if (prompt.messages) return prompt.messages;
     return [{ role: prompt.role ?? "user", text: prompt.text }];
-}
-
-/**
- * Converts a human-readable string to snake_case.
- * e.g. "Filter Fields Reference" → "filter_fields_reference"
- */
-export function toSnakeCase(str: string): string {
-    return str
-        .toLowerCase()
-        .replace(/\s+/g, "_")
-        .replace(/[^a-z0-9_]/g, "");
 }
 
 /**
