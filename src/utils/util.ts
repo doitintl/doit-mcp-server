@@ -276,3 +276,14 @@ export function decodeJWT(token: string): {
         return null;
     }
 }
+
+/**
+ * Converts a human-readable string to snake_case.
+ * e.g. "Filter Fields Reference" → "filter_fields_reference"
+ */
+export function toSnakeCase(str: string): string {
+    return str
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+}

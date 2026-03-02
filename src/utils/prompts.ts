@@ -1,6 +1,79 @@
 import { aws_global_resource_id, gcp_global_resource_id } from "./filterFields.js";
+import { toSnakeCase } from "./util.js";
 
-export const prompts = [
+// Argument for a prompt when using the GetPromptRequestSchema
+export type PromptArgument = {
+    name: string;
+    description: string;
+    required?: boolean;
+};
+
+export type PromptRole = "user" | "assistant";
+
+export type PromptMessage = {
+    role: PromptRole;
+    text: string;
+};
+
+// base type for a prompt for both single and multi message prompts
+type PromptBase = {
+    name: string;
+    description: string;
+    arguments?: PromptArgument[];
+};
+
+// simple definition of a prompt with a single message, backward compatible with initial project prompts
+type SingleMessagePrompt = PromptBase & {
+    text: string;
+    role?: PromptRole;
+    messages?: never;
+};
+
+// protocol compatible definition of a prompt with multiple messages
+type MultiMessagePrompt = PromptBase & {
+    messages: PromptMessage[];
+    text?: never;
+    role?: never;
+};
+
+export type Prompt = SingleMessagePrompt | MultiMessagePrompt;
+
+/**
+ * Returns the names of required prompt arguments that are absent from the provided args map.
+ */
+export function getPromptMissingArgs(prompt: Prompt, args: Record<string, string | number>): string[] {
+    return (prompt.arguments ?? [])
+        .filter((a) => a.required)
+        .filter((a) => args[a.name] === undefined || args[a.name] === "")
+        .map((a) => a.name);
+}
+
+/**
+ * Resolve the prompt messages for a prompt definition (into a list of messages as expected by the MCP protocol).
+ * helping to translate single message prompts to multi message prompts.
+ *
+ * @param prompt - the prompt definition
+ * @returns the list of messages as expected by the MCP protocol
+ */
+export function resolvePromptMessages(prompt: Prompt): PromptMessage[] {
+    if (prompt.messages) return prompt.messages;
+    return [{ role: prompt.role ?? "user", text: prompt.text }];
+}
+
+/**
+ * The canonical list of prompts exposed by the MCP server, using snake_case names only.
+ *
+ * NOTE: New prompts should be added directly to this array using snake_case names,
+ * e.g. { name: "my_new_prompt", description: "...", text: "..." }
+ */
+const canonicalPrompts: Prompt[] = [];
+
+/**
+ * NOTE: DO NOT ADD NEW PROMPTS HERE, add new prompts to the canonicalPrompts array instead.
+ * Legacy prompts with human-readable names kept for backward compatibility.
+ * This is deprecated and will be removed in the future.
+ */
+const legacyPrompts: Prompt[] = [
     {
         name: "Filter Fields Reference",
         description: "Filter fields explanation for GCP and AWS resources",
@@ -63,3 +136,30 @@ export const prompts = [
         text: `Trigger a CloudFlow by its flow ID, the user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow.`,
     },
 ];
+
+function deprecateBySnakeCaseNotice(prompt: Prompt): Prompt {
+    const snakeCaseName = toSnakeCase(prompt.name);
+    const deprecationSuffix = ` [DEPRECATED: Please use '${snakeCaseName}' instead]`;
+    return {
+        ...prompt,
+        description: `${prompt.description}${deprecationSuffix}`,
+    };
+}
+
+/**
+ * The canonical list of prompts exposed by the MCP server, using snake_case names only.
+ *
+ * NOTE: New prompts should be added directly to canonicalPrompts array, which
+ * is used to generate the promptsIncludingLegacyNames array.
+ */
+export const prompts: Prompt[] = [
+    ...canonicalPrompts,
+    ...legacyPrompts.map((p) => ({ ...p, name: toSnakeCase(p.name) })),
+];
+
+/**
+ * Extends `prompts` with the original human-readable names of legacy prompts for
+ * backward compatibility. Use this only where clients may still refer to prompts
+ * by their old human-readable names.
+ */
+export const promptsIncludingLegacyNames: Prompt[] = [...prompts, ...legacyPrompts.map(deprecateBySnakeCaseNotice)];

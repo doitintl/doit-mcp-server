@@ -1,10 +1,13 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
     CallToolRequestSchema,
+    ErrorCode,
+    GetPromptRequestSchema,
     InitializeRequestSchema,
     ListPromptsRequestSchema,
     ListResourcesRequestSchema,
     ListToolsRequestSchema,
+    McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { getAlertTool, handleGetAlertRequest, handleListAlertsRequest, listAlertsTool } from "./tools/alerts.js";
 import {
@@ -44,15 +47,15 @@ import {
 } from "./tools/reports.js";
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
-import { SERVER_VERSION } from "./utils/consts.js";
-import { prompts } from "./utils/prompts.js";
+import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
+import { getPromptMissingArgs, prompts, resolvePromptMessages } from "./utils/prompts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./utils/util.js";
 
 export function createServer() {
     const server = new Server(
         {
-            name: "doit-mcp-server",
+            name: SERVER_NAME,
             version: SERVER_VERSION,
         },
         {
@@ -95,10 +98,44 @@ export function createServer() {
     server.setRequestHandler(ListPromptsRequestSchema, async () => {
         return {
             prompts: prompts.map((prompt) => ({
-                text: prompt.text,
                 name: prompt.name,
+                description: prompt.description,
+                ...(prompt.arguments ? { arguments: prompt.arguments } : {}),
             })),
         };
+    });
+
+    server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+        const { name } = request.params;
+        const prompt = prompts.find((p) => p.name === name);
+        if (!prompt) {
+            throw new McpError(ErrorCode.InvalidParams, `Invalid prompt name: ${name}`);
+        }
+
+        try {
+            const messages = resolvePromptMessages(prompt);
+            const missingArgs = getPromptMissingArgs(prompt, request.params.arguments ?? {});
+            if (missingArgs.length > 0) {
+                throw new McpError(ErrorCode.InvalidParams, `Missing required arguments: ${missingArgs.join(", ")}`);
+            }
+
+            return {
+                description: prompt.description,
+                messages: messages.map((message) => ({
+                    role: message.role,
+                    content: {
+                        type: "text",
+                        text: message.text,
+                    },
+                })),
+            };
+        } catch (error) {
+            if (error instanceof McpError) throw error;
+            throw new McpError(
+                ErrorCode.InternalError,
+                error instanceof Error ? error.message : "An unexpected error occurred"
+            );
+        }
     });
 
     server.setRequestHandler(ListResourcesRequestSchema, async () => {
@@ -121,7 +158,7 @@ export function createServer() {
         return {
             protocolVersion: request?.params?.protocolVersion || "2024-11-05",
             serverInfo: {
-                name: "doit-mcp-server",
+                name: SERVER_NAME,
                 version: SERVER_VERSION,
             },
             // biome-ignore lint/complexity/useLiteralKeys: bracket notation bypasses private property TS check

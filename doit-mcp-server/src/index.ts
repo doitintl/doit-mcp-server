@@ -3,7 +3,7 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { DurableObject } from "cloudflare:workers";
 
-import { SERVER_VERSION } from "../../src/utils/consts.js";
+import { SERVER_NAME_WEB, SERVER_VERSION } from "../../src/utils/consts.js";
 
 import {
   CloudIncidentsArgumentsSchema,
@@ -79,7 +79,7 @@ import {
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
-import { prompts } from "../../src/utils/prompts.js";
+import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/utils/prompts.js";
 
 const KEEP_ALIVE_INTERVAL_MS = 120_000; // 2 minutes in milliseconds
 
@@ -135,7 +135,7 @@ function convertToMcpResponse(doitResponse: any) {
 
 export class DoitMCPAgent extends McpAgent {
   server = new McpServer({
-    name: "Doit",
+    name: SERVER_NAME_WEB,
     version: SERVER_VERSION,
   });
 
@@ -244,17 +244,15 @@ export class DoitMCPAgent extends McpAgent {
     }
 
     // Register prompts
-    prompts.forEach((prompt) => {
+    promptsIncludingLegacyNames.forEach((prompt) => {
       this.server.prompt(prompt.name, prompt.description, async () => ({
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: prompt.text,
-            },
+        messages: resolvePromptMessages(prompt).map((message) => ({
+          role: message.role,
+          content: {
+            type: "text",
+            text: message.text,
           },
-        ],
+        })),
       }));
     });
 
