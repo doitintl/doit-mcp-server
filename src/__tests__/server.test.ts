@@ -248,10 +248,13 @@ describe("ListPromptsRequestSchema handler", () => {
 });
 
 describe("GetPromptRequestSchema handler", () => {
+    const TEST_PROMPT_NAMES = ["__test_multi__", "__test_args__", "__test_no_args__"];
+
     afterEach(() => {
-        // cleanup the test prompt injected by the tests
-        const idx = prompts.findIndex((p) => p.name === "__test_multi__");
-        if (idx !== -1) prompts.splice(idx, 1);
+        for (const name of TEST_PROMPT_NAMES) {
+            const idx = prompts.findIndex((p) => p.name === name);
+            if (idx !== -1) prompts.splice(idx, 1);
+        }
     });
 
     it("returns description and a single message for a snake_case prompt name", async () => {
@@ -308,32 +311,98 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("throws McpError with InvalidParams when required arguments are missing", async () => {
-        const promptWithRequiredArgs = {
-            name: "__test_required_args__",
+        prompts.push({
+            name: "__test_args__",
             description: "Test prompt with required args",
-            text: "Test text",
+            text: "Hello {arg1}, your value is {arg2}",
             arguments: [
                 { name: "arg1", description: "First arg", required: true },
                 { name: "arg2", description: "Second arg", required: true },
                 { name: "arg3", description: "Optional arg", required: false },
             ],
-        };
-        prompts.push(promptWithRequiredArgs);
+        });
 
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
 
+        await expect(handler({ params: { name: "__test_args__", arguments: { arg1: "value" } } })).rejects.toThrow(
+            McpError
+        );
         await expect(
-            handler({ params: { name: "__test_required_args__", arguments: { arg1: "value" } } })
-        ).rejects.toThrow(McpError);
-        await expect(
-            handler({ params: { name: "__test_required_args__", arguments: { arg1: "value" } } })
+            handler({ params: { name: "__test_args__", arguments: { arg1: "value" } } })
         ).rejects.toMatchObject({
             code: ErrorCode.InvalidParams,
             message: expect.stringContaining("arg2"),
         });
+    });
 
-        const idx = prompts.findIndex((p) => p.name === "__test_required_args__");
-        if (idx !== -1) prompts.splice(idx, 1);
+    it("substitutes required argument placeholders into the message text", async () => {
+        prompts.push({
+            name: "__test_args__",
+            description: "Test prompt with required args",
+            text: "Hello {name}, your ID is {id}",
+            arguments: [
+                { name: "name", description: "User name", required: true },
+                { name: "id", description: "User ID", required: true },
+            ],
+        });
+
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({
+            params: { name: "__test_args__", arguments: { name: "Alice", id: "42" } },
+        });
+
+        expect(response.messages).toHaveLength(1);
+        expect(response.messages[0].content.text).toBe("Hello Alice, your ID is 42");
+    });
+
+    it("substitutes double-brace placeholders into the message text", async () => {
+        prompts.push({
+            name: "__test_args__",
+            description: "Test prompt with double-brace placeholders",
+            text: "Trigger flow {{flowID}} now",
+            arguments: [{ name: "flowID", description: "Flow ID", required: true }],
+        });
+
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({
+            params: { name: "__test_args__", arguments: { flowID: "flow-99" } },
+        });
+
+        expect(response.messages[0].content.text).toBe("Trigger flow flow-99 now");
+    });
+
+    it("substitutes placeholders across all messages in a multi-message prompt", async () => {
+        prompts.push({
+            name: "__test_args__",
+            description: "Multi-message prompt with args",
+            messages: [
+                { role: "user" as const, text: "Start {flowID}" },
+                { role: "assistant" as const, text: "Processing {flowID}" },
+            ],
+            arguments: [{ name: "flowID", description: "Flow ID", required: true }],
+        });
+
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({
+            params: { name: "__test_args__", arguments: { flowID: "flow-7" } },
+        });
+
+        expect(response.messages).toHaveLength(2);
+        expect(response.messages[0].content.text).toBe("Start flow-7");
+        expect(response.messages[1].content.text).toBe("Processing flow-7");
+    });
+
+    it("does not alter message text when no arguments are provided", async () => {
+        prompts.push({
+            name: "__test_no_args__",
+            description: "Prompt without arguments",
+            text: "Static prompt text with no placeholders",
+        });
+
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({ params: { name: "__test_no_args__" } });
+
+        expect(response.messages[0].content.text).toBe("Static prompt text with no placeholders");
     });
 });
 

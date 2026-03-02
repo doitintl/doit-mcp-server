@@ -1,6 +1,75 @@
 import { describe, expect, it } from "vitest";
-import type { Prompt } from "../prompts.js";
-import { getPromptMissingArgs, resolvePromptMessages } from "../prompts.js";
+import type { Prompt, PromptMessage } from "../prompts.js";
+import { applyPromptMessageArguments, getPromptMissingArgs, resolvePromptMessages } from "../prompts.js";
+
+describe("applyPromptMessageArguments", () => {
+    const msg = (text: string, role: "user" | "assistant" = "user"): PromptMessage => ({ role, text });
+
+    it("returns messages unchanged when args is empty", () => {
+        const messages = [msg("Hello {name}"), msg("No placeholders here")];
+        expect(applyPromptMessageArguments(messages, {})).toEqual(messages);
+    });
+
+    it("substitutes a single-brace placeholder", () => {
+        const result = applyPromptMessageArguments([msg("Hello {name}!")], { name: "Alice" });
+        expect(result[0].text).toBe("Hello Alice!");
+    });
+
+    it("substitutes a double-brace placeholder", () => {
+        const result = applyPromptMessageArguments([msg("Hello {{name}}!")], { name: "Alice" });
+        expect(result[0].text).toBe("Hello Alice!");
+    });
+
+    it("substitutes the same placeholder multiple times within one message", () => {
+        const result = applyPromptMessageArguments([msg("Flow {id} and again {id}")], { id: "abc" });
+        expect(result[0].text).toBe("Flow abc and again abc");
+    });
+
+    it("substitutes placeholders across multiple messages", () => {
+        const messages = [msg("Start {flowID}"), msg("End {flowID}", "assistant")];
+        const result = applyPromptMessageArguments(messages, { flowID: "flow-1" });
+        expect(result[0].text).toBe("Start flow-1");
+        expect(result[1].text).toBe("End flow-1");
+    });
+
+    it("substitutes multiple distinct placeholders in one message", () => {
+        const result = applyPromptMessageArguments([msg("User {user} runs {action}")], {
+            user: "Bob",
+            action: "deploy",
+        });
+        expect(result[0].text).toBe("User Bob runs deploy");
+    });
+
+    it("preserves the role of each message", () => {
+        const messages: PromptMessage[] = [
+            { role: "user", text: "Hi {x}" },
+            { role: "assistant", text: "Hello {x}" },
+        ];
+        const result = applyPromptMessageArguments(messages, { x: "world" });
+        expect(result[0].role).toBe("user");
+        expect(result[1].role).toBe("assistant");
+    });
+
+    it("converts non-string arg values to strings", () => {
+        const result = applyPromptMessageArguments([msg("Count: {n}")], { n: 42 });
+        expect(result[0].text).toBe("Count: 42");
+    });
+
+    it("leaves unmatched placeholders untouched", () => {
+        const result = applyPromptMessageArguments([msg("Hello {unknown}")], { name: "Alice" });
+        expect(result[0].text).toBe("Hello {unknown}");
+    });
+
+    it("does not mutate the original messages", () => {
+        const original: PromptMessage[] = [{ role: "user", text: "Hello {name}" }];
+        applyPromptMessageArguments(original, { name: "Alice" });
+        expect(original[0].text).toBe("Hello {name}");
+    });
+
+    it("handles an empty messages array", () => {
+        expect(applyPromptMessageArguments([], { name: "Alice" })).toEqual([]);
+    });
+});
 
 describe("getPromptMissingArgs", () => {
     const base = { name: "p", description: "d", text: "t" };

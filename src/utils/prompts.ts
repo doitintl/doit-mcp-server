@@ -49,6 +49,30 @@ export function getPromptMissingArgs(prompt: Prompt, args: Record<string, string
 }
 
 /**
+ * Apply argument substitution to prompt messages.
+ * Takes a list of messages and substitutes argument placeholders (e.g., {argName} or {{argName}})
+ * with actual values from the provided arguments.
+ *
+ * @param messages - the list of prompt messages to process
+ * @param args - record of argument names to values for substitution
+ * @returns the list of messages with arguments substituted
+ */
+export function applyPromptMessageArguments(messages: PromptMessage[], args: Record<string, unknown>): PromptMessage[] {
+    return messages.map((message) => {
+        let text = message.text;
+
+        for (const [key, value] of Object.entries(args)) {
+            text = text.replace(new RegExp(`\\{\\{?${key}\\}\\}?`, "g"), String(value));
+        }
+
+        return {
+            role: message.role,
+            text,
+        };
+    });
+}
+
+/**
  * Resolve the prompt messages for a prompt definition (into a list of messages as expected by the MCP protocol).
  * helping to translate single message prompts to multi message prompts.
  *
