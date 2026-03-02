@@ -39,6 +39,16 @@ type MultiMessagePrompt = PromptBase & {
 export type Prompt = SingleMessagePrompt | MultiMessagePrompt;
 
 /**
+ * Returns the names of required prompt arguments that are absent from the provided args map.
+ */
+export function getPromptMissingArgs(prompt: Prompt, args: Record<string, string | number>): string[] {
+    return (prompt.arguments ?? [])
+        .filter((a) => a.required)
+        .filter((a) => args[a.name] === undefined || args[a.name] === "")
+        .map((a) => a.name);
+}
+
+/**
  * Resolve the prompt messages for a prompt definition (into a list of messages as expected by the MCP protocol).
  * helping to translate single message prompts to multi message prompts.
  *
@@ -51,8 +61,17 @@ export function resolvePromptMessages(prompt: Prompt): PromptMessage[] {
 }
 
 /**
- * NOTE: do not use this for new prompts, add new prompts to the prompts array instead in snake_case format.
- * Legacy prompts with human-readable names kept for reference.
+ * The canonical list of prompts exposed by the MCP server, using snake_case names only.
+ *
+ * NOTE: New prompts should be added directly to this array using snake_case names,
+ * e.g. { name: "my_new_prompt", description: "...", text: "..." }
+ */
+const canonicalPrompts: Prompt[] = [];
+
+/**
+ * NOTE: DO NOT ADD NEW PROMPTS HERE, add new prompts to the canonicalPrompts array instead.
+ * Legacy prompts with human-readable names kept for backward compatibility.
+ * This is deprecated and will be removed in the future.
  */
 const legacyPrompts: Prompt[] = [
     {
@@ -130,10 +149,13 @@ function deprecateBySnakeCaseNotice(prompt: Prompt): Prompt {
 /**
  * The canonical list of prompts exposed by the MCP server, using snake_case names only.
  *
- * NOTE: New prompts should be added directly to this array using snake_case names,
- * e.g. { name: "my_new_prompt", description: "...", text: "..." }
+ * NOTE: New prompts should be added directly to canonicalPrompts array, which
+ * is used to generate the promptsIncludingLegacyNames array.
  */
-export const prompts: Prompt[] = [...legacyPrompts.map((p) => ({ ...p, name: toSnakeCase(p.name) }))];
+export const prompts: Prompt[] = [
+    ...canonicalPrompts,
+    ...legacyPrompts.map((p) => ({ ...p, name: toSnakeCase(p.name) })),
+];
 
 /**
  * Extends `prompts` with the original human-readable names of legacy prompts for

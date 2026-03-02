@@ -284,7 +284,6 @@ export function decodeJWT(token: string): {
 export function toSnakeCase(str: string): string {
     return str
         .toLowerCase()
-        .replace(/\s+/g, "_")
-        .replace(/[^a-z0-9_]/g, "")
-        .replace(/_+/g, "_");
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
 }

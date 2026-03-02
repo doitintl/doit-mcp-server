@@ -1,6 +1,63 @@
 import { describe, expect, it } from "vitest";
 import type { Prompt } from "../prompts.js";
-import { resolvePromptMessages } from "../prompts.js";
+import { getPromptMissingArgs, resolvePromptMessages } from "../prompts.js";
+
+describe("getPromptMissingArgs", () => {
+    const base = { name: "p", description: "d", text: "t" };
+
+    it("returns empty array when prompt has no arguments", () => {
+        expect(getPromptMissingArgs({ ...base }, {})).toEqual([]);
+    });
+
+    it("returns empty array when all required args are present", () => {
+        const prompt: Prompt = { ...base, arguments: [{ name: "foo", description: "", required: true }] };
+        expect(getPromptMissingArgs(prompt, { foo: "bar" })).toEqual([]);
+    });
+
+    it("returns names of required args that are absent", () => {
+        const prompt: Prompt = {
+            ...base,
+            arguments: [
+                { name: "foo", description: "", required: true },
+                { name: "bar", description: "", required: true },
+            ],
+        };
+        expect(getPromptMissingArgs(prompt, {})).toEqual(["foo", "bar"]);
+    });
+
+    it("does not report optional args as missing", () => {
+        const prompt: Prompt = {
+            ...base,
+            arguments: [
+                { name: "req", description: "", required: true },
+                { name: "opt", description: "", required: false },
+            ],
+        };
+        expect(getPromptMissingArgs(prompt, {})).toEqual(["req"]);
+    });
+
+    it("treats an empty string as missing", () => {
+        const prompt: Prompt = { ...base, arguments: [{ name: "foo", description: "", required: true }] };
+        expect(getPromptMissingArgs(prompt, { foo: "" })).toEqual(["foo"]);
+    });
+
+    it("accepts numeric zero as a provided value", () => {
+        const prompt: Prompt = { ...base, arguments: [{ name: "count", description: "", required: true }] };
+        expect(getPromptMissingArgs(prompt, { count: 0 })).toEqual([]);
+    });
+
+    it("only reports args that are actually missing when some are present", () => {
+        const prompt: Prompt = {
+            ...base,
+            arguments: [
+                { name: "a", description: "", required: true },
+                { name: "b", description: "", required: true },
+                { name: "c", description: "", required: true },
+            ],
+        };
+        expect(getPromptMissingArgs(prompt, { b: "val" })).toEqual(["a", "c"]);
+    });
+});
 
 describe("resolvePromptMessages", () => {
     describe("single-message prompts", () => {

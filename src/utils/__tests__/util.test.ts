@@ -54,8 +54,12 @@ describe("toSnakeCase", () => {
         expect(toSnakeCase("Generate Report Document")).toBe("generate_report_document");
     });
 
-    it("strips non-alphanumeric characters other than underscores", () => {
+    it("treats non-alphanumeric characters as word separators", () => {
         expect(toSnakeCase("Trigger CloudFlow flow")).toBe("trigger_cloudflow_flow");
+    });
+
+    it("converts hyphens to underscores", () => {
+        expect(toSnakeCase("hello-world")).toBe("hello_world");
     });
 
     it("collapses multiple spaces into a single underscore", () => {

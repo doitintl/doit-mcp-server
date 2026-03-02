@@ -48,7 +48,7 @@ import {
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
-import { prompts, resolvePromptMessages } from "./utils/prompts.js";
+import { getPromptMissingArgs, prompts, resolvePromptMessages } from "./utils/prompts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./utils/util.js";
 
@@ -114,11 +114,7 @@ export function createServer() {
 
         try {
             const messages = resolvePromptMessages(prompt);
-
-            const missingArgs = (prompt.arguments ?? [])
-                .filter((a) => a.required)
-                .filter((a) => !request.params.arguments?.[a.name])
-                .map((a) => a.name);
+            const missingArgs = getPromptMissingArgs(prompt, request.params.arguments ?? {});
             if (missingArgs.length > 0) {
                 throw new McpError(ErrorCode.InvalidParams, `Missing required arguments: ${missingArgs.join(", ")}`);
             }
