@@ -107,7 +107,7 @@ export function createServer() {
         const { name } = request.params;
         const prompt = prompts.find((p) => p.name === name);
         if (!prompt) {
-            throw new Error(`Prompt not found: ${name}`);
+            return createErrorResponse(`Prompt not found: ${name}`);
         }
         return {
             description: prompt.description,

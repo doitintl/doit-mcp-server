@@ -257,12 +257,14 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[0].content.text).toBeTruthy();
     });
 
-    it("throws an error for a human-readable prompt name (not exposed by this server)", async () => {
+    it("returns an error response for a human-readable prompt name (not exposed by this server)", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
 
-        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toThrow(
-            "Prompt not found: Allow Artifacts"
-        );
+        const response = await handler({ params: { name: "Allow Artifacts" } });
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: "Prompt not found: Allow Artifacts" }],
+        });
     });
 
     it("returns all messages for a multi-message prompt", async () => {
@@ -286,12 +288,14 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[2]).toEqual({ role: "user", content: { type: "text", text: "Tell me about costs." } });
     });
 
-    it("throws an error for an unknown prompt name", async () => {
+    it("returns an error response for an unknown prompt name", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
 
-        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(
-            "Prompt not found: nonexistent-prompt"
-        );
+        const response = await handler({ params: { name: "nonexistent-prompt" } });
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: "Prompt not found: nonexistent-prompt" }],
+        });
     });
 });
 

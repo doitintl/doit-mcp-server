@@ -118,6 +118,15 @@ const legacyPrompts: Prompt[] = [
     },
 ];
 
+function deprecateBySnakeCaseNotice(prompt: Prompt): Prompt {
+    const snakeCaseName = toSnakeCase(prompt.name);
+    const deprecationSuffix = ` [DEPRECATED: Please use '${snakeCaseName}' instead]`;
+    return {
+        ...prompt,
+        description: `${prompt.description}${deprecationSuffix}`,
+    };
+}
+
 /**
  * The canonical list of prompts exposed by the MCP server, using snake_case names only.
  *
@@ -131,4 +140,4 @@ export const prompts: Prompt[] = [...legacyPrompts.map((p) => ({ ...p, name: toS
  * backward compatibility. Use this only where clients may still refer to prompts
  * by their old human-readable names.
  */
-export const promptsIncludingLegacyNames: Prompt[] = [...prompts, ...legacyPrompts];
+export const promptsIncludingLegacyNames: Prompt[] = [...prompts, ...legacyPrompts.map(deprecateBySnakeCaseNotice)];
