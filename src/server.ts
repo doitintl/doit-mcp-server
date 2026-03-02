@@ -1,11 +1,13 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
     CallToolRequestSchema,
+    ErrorCode,
     GetPromptRequestSchema,
     InitializeRequestSchema,
     ListPromptsRequestSchema,
     ListResourcesRequestSchema,
     ListToolsRequestSchema,
+    McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { getAlertTool, handleGetAlertRequest, handleListAlertsRequest, listAlertsTool } from "./tools/alerts.js";
 import {
@@ -107,18 +109,37 @@ export function createServer() {
         const { name } = request.params;
         const prompt = prompts.find((p) => p.name === name);
         if (!prompt) {
-            return createErrorResponse(`Prompt not found: ${name}`);
+            throw new McpError(ErrorCode.InvalidParams, `Invalid prompt name: ${name}`);
         }
-        return {
-            description: prompt.description,
-            messages: resolvePromptMessages(prompt).map((message) => ({
-                role: message.role,
-                content: {
-                    type: "text",
-                    text: message.text,
-                },
-            })),
-        };
+
+        try {
+            const messages = resolvePromptMessages(prompt);
+
+            const missingArgs = (prompt.arguments ?? [])
+                .filter((a) => a.required)
+                .filter((a) => !request.params.arguments?.[a.name])
+                .map((a) => a.name);
+            if (missingArgs.length > 0) {
+                throw new McpError(ErrorCode.InvalidParams, `Missing required arguments: ${missingArgs.join(", ")}`);
+            }
+
+            return {
+                description: prompt.description,
+                messages: messages.map((message) => ({
+                    role: message.role,
+                    content: {
+                        type: "text",
+                        text: message.text,
+                    },
+                })),
+            };
+        } catch (error) {
+            if (error instanceof McpError) throw error;
+            throw new McpError(
+                ErrorCode.InternalError,
+                error instanceof Error ? error.message : "An unexpected error occurred"
+            );
+        }
     });
 
     server.setRequestHandler(ListResourcesRequestSchema, async () => {

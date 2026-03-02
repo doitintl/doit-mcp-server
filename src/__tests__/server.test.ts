@@ -1,11 +1,13 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
     CallToolRequestSchema,
+    ErrorCode,
     GetPromptRequestSchema,
     InitializeRequestSchema,
     ListPromptsRequestSchema,
     ListResourcesRequestSchema,
     ListToolsRequestSchema,
+    McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -257,13 +259,12 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[0].content.text).toBeTruthy();
     });
 
-    it("returns an error response for a human-readable prompt name (not exposed by this server)", async () => {
+    it("throws McpError with InvalidParams for a human-readable prompt name (not exposed by this server)", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
 
-        const response = await handler({ params: { name: "Allow Artifacts" } });
-
-        expect(response).toEqual({
-            content: [{ type: "text", text: "Prompt not found: Allow Artifacts" }],
+        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toThrow(McpError);
+        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toMatchObject({
+            code: ErrorCode.InvalidParams,
         });
     });
 
@@ -288,14 +289,43 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[2]).toEqual({ role: "user", content: { type: "text", text: "Tell me about costs." } });
     });
 
-    it("returns an error response for an unknown prompt name", async () => {
+    it("throws McpError with InvalidParams for an unknown prompt name", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
 
-        const response = await handler({ params: { name: "nonexistent-prompt" } });
-
-        expect(response).toEqual({
-            content: [{ type: "text", text: "Prompt not found: nonexistent-prompt" }],
+        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(McpError);
+        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toMatchObject({
+            code: ErrorCode.InvalidParams,
+            message: expect.stringContaining("nonexistent-prompt"),
         });
+    });
+
+    it("throws McpError with InvalidParams when required arguments are missing", async () => {
+        const promptWithRequiredArgs = {
+            name: "__test_required_args__",
+            description: "Test prompt with required args",
+            text: "Test text",
+            arguments: [
+                { name: "arg1", description: "First arg", required: true },
+                { name: "arg2", description: "Second arg", required: true },
+                { name: "arg3", description: "Optional arg", required: false },
+            ],
+        };
+        prompts.push(promptWithRequiredArgs);
+
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+
+        await expect(
+            handler({ params: { name: "__test_required_args__", arguments: { arg1: "value" } } })
+        ).rejects.toThrow(McpError);
+        await expect(
+            handler({ params: { name: "__test_required_args__", arguments: { arg1: "value" } } })
+        ).rejects.toMatchObject({
+            code: ErrorCode.InvalidParams,
+            message: expect.stringContaining("arg2"),
+        });
+
+        const idx = prompts.findIndex((p) => p.name === "__test_required_args__");
+        if (idx !== -1) prompts.splice(idx, 1);
     });
 });
 

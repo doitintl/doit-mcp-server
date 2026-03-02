@@ -1,7 +1,5 @@
 # AGENTS.md
 
-This document provides guidance for AI agents working on the DoiT MCP Server codebase.
-
 ## Environment Setup
 
 Requires Node.js `>=18`. Install dependencies before running any commands:
@@ -12,7 +10,7 @@ yarn install
 
 ## Project Overview
 
-DoiT MCP Server is a Model Context Protocol (MCP) server that provides LLMs with access to the DoiT API for troubleshooting and analysis.
+DoiT MCP Server is a Model Context Protocol (MCP) server that provides LLMs with access to the DoiT API.
 
 The project consists of two main packages:
 
@@ -67,9 +65,10 @@ The HTTP/SSE package imports tools and utilities from the main package and wraps
 Use `yarn` for all package management and development tasks:
 
 ### Local Development
-- `yarn check:dev` - Run type checking and linting (recommended before committing)
+- `yarn check:dev` - Run type checking and linting (run after changes)
 - `yarn test` - Run all tests
 - `yarn lint` - Check code for linting issues
+- `yarn type-check` - Run TypeScript type checking without emitting files
 - `yarn build` - Build the project
 
 ### Fixing Issues
@@ -77,15 +76,12 @@ Use `yarn` for all package management and development tasks:
 - `yarn lint:fix` - Auto-fix linting issues only
 - `yarn format:fix` - Auto-fix formatting issues only
 
-### Type Checking
-- `yarn type-check` - Run TypeScript type checking without emitting files
-
 ## Code Conventions
 
 ### Naming Conventions
 - **Files**: Use camelCase for file names (e.g., `cloudIncidents.ts`)
 - **Functions**: Use camelCase for function names
-- **Types/Interfaces**: Use PascalCase for type and interface names
+- **Types/Interfaces**: Use PascalCase for type and interface names, use types for structure, interfaces for behavior
 - **Constants**: Use UPPER_SNAKE_CASE for constants
 - **Tool names**: Use snake_case for tool and prompt names
 
@@ -151,14 +147,6 @@ When adding a new MCP tool:
 7. Update README.md with tool documentation
 
 **Note**: Tools must be registered in both transports to be available in all deployment modes.
-
-## Code Quality
-
-Before committing:
-1. Run `yarn check:dev` to ensure code passes type checking and linting
-2. Run `yarn test` to ensure all tests pass
-3. Use `yarn check:fix` to automatically fix common issues
-4. Use `yarn build` to ensure project builds successfully
 
 The project uses:
 - **TypeScript** for type safety
