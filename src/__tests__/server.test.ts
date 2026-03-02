@@ -310,29 +310,24 @@ describe("GetPromptRequestSchema handler", () => {
         });
     });
 
-    it("throws McpError with InvalidParams when required arguments are missing", async () => {
+    it("returns messages with only the provided arguments appended, ignoring missing ones", async () => {
         prompts.push({
             name: "__test_args__",
             description: "Test prompt with required args",
-            text: "Hello {arg1}, your value is {arg2}",
+            text: "Please handle the following request.",
             arguments: [
                 { name: "arg1", description: "First arg", required: true },
                 { name: "arg2", description: "Second arg", required: true },
-                { name: "arg3", description: "Optional arg", required: false },
             ],
         });
 
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-
-        await expect(handler({ params: { name: "__test_args__", arguments: { arg1: "value" } } })).rejects.toThrow(
-            McpError
-        );
-        await expect(
-            handler({ params: { name: "__test_args__", arguments: { arg1: "value" } } })
-        ).rejects.toMatchObject({
-            code: ErrorCode.InvalidParams,
-            message: expect.stringContaining("arg2"),
+        const response = await handler({
+            params: { name: "__test_args__", arguments: { arg1: "value" } },
         });
+
+        expect(response.messages).toHaveLength(1);
+        expect(response.messages[0].content.text).toBe("Please handle the following request.\n\narg1: value");
     });
 
     it("appends required arguments as key-value pairs after the last message", async () => {

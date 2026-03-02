@@ -157,11 +157,10 @@ const legacyPrompts: Prompt[] = [
             "Trigger a flow defined in CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
         text: "Trigger a CloudFlow by its flow ID. the user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow if not set.",
         arguments: [
-            { name: "flowID", description: "The ID of the flow to trigger", required: true },
+            { name: "flowID", description: "The ID of the flow to trigger" },
             {
                 name: "requestBodyJson",
                 description: "The request body JSON to pass to the flow",
-                required: false,
             },
         ],
     },
