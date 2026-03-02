@@ -49,27 +49,25 @@ export function getPromptMissingArgs(prompt: Prompt, args: Record<string, string
 }
 
 /**
- * Apply argument substitution to prompt messages.
- * Takes a list of messages and substitutes argument placeholders (e.g., {argName} or {{argName}})
- * with actual values from the provided arguments.
+ * Apply argument substitution to prompt messages by appending the provided
+ * key-value pairs as a block after the last message.
  *
  * @param messages - the list of prompt messages to process
- * @param args - record of argument names to values for substitution
- * @returns the list of messages with arguments substituted
+ * @param args - record of argument names to values
+ * @returns a new list of messages with the argument block appended to the last message
  */
 export function applyPromptMessageArguments(messages: PromptMessage[], args: Record<string, unknown>): PromptMessage[] {
-    return messages.map((message) => {
-        let text = message.text;
+    if (messages.length === 0) return messages;
 
-        for (const [key, value] of Object.entries(args)) {
-            text = text.replace(new RegExp(`\\{\\{?${key}\\}\\}?`, "g"), String(value));
-        }
+    const block = Object.entries(args)
+        .map(([key, value]) => `${key}: ${String(value)}`)
+        .join("\n");
 
-        return {
-            role: message.role,
-            text,
-        };
-    });
+    const result = messages.map((m) => ({ ...m }));
+    const last = result.length - 1;
+    result[last] = { role: result[last].role, text: `${result[last].text}\n\n${block}` };
+
+    return result;
 }
 
 /**
@@ -157,7 +155,15 @@ const legacyPrompts: Prompt[] = [
         name: "Trigger CloudFlow flow",
         description:
             "Trigger a flow defined in CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
-        text: `Trigger a CloudFlow by its flow ID, the user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow.`,
+        text: "Trigger a CloudFlow by its flow ID. the user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow if not set.",
+        arguments: [
+            { name: "flowID", description: "The ID of the flow to trigger", required: true },
+            {
+                name: "requestBodyJson",
+                description: "The request body JSON to pass to the flow",
+                required: false,
+            },
+        ],
     },
 ];
 

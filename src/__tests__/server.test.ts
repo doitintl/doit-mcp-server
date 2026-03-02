@@ -335,11 +335,11 @@ describe("GetPromptRequestSchema handler", () => {
         });
     });
 
-    it("substitutes required argument placeholders into the message text", async () => {
+    it("appends required arguments as key-value pairs after the last message", async () => {
         prompts.push({
             name: "__test_args__",
             description: "Test prompt with required args",
-            text: "Hello {name}, your ID is {id}",
+            text: "Please handle the following request.",
             arguments: [
                 { name: "name", description: "User name", required: true },
                 { name: "id", description: "User ID", required: true },
@@ -352,32 +352,16 @@ describe("GetPromptRequestSchema handler", () => {
         });
 
         expect(response.messages).toHaveLength(1);
-        expect(response.messages[0].content.text).toBe("Hello Alice, your ID is 42");
+        expect(response.messages[0].content.text).toBe("Please handle the following request.\n\nname: Alice\nid: 42");
     });
 
-    it("substitutes double-brace placeholders into the message text", async () => {
-        prompts.push({
-            name: "__test_args__",
-            description: "Test prompt with double-brace placeholders",
-            text: "Trigger flow {{flowID}} now",
-            arguments: [{ name: "flowID", description: "Flow ID", required: true }],
-        });
-
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({
-            params: { name: "__test_args__", arguments: { flowID: "flow-99" } },
-        });
-
-        expect(response.messages[0].content.text).toBe("Trigger flow flow-99 now");
-    });
-
-    it("substitutes placeholders across all messages in a multi-message prompt", async () => {
+    it("appends arguments only to the last message in a multi-message prompt", async () => {
         prompts.push({
             name: "__test_args__",
             description: "Multi-message prompt with args",
             messages: [
-                { role: "user" as const, text: "Start {flowID}" },
-                { role: "assistant" as const, text: "Processing {flowID}" },
+                { role: "user" as const, text: "What should I do?" },
+                { role: "assistant" as const, text: "I will trigger the flow." },
             ],
             arguments: [{ name: "flowID", description: "Flow ID", required: true }],
         });
@@ -388,8 +372,8 @@ describe("GetPromptRequestSchema handler", () => {
         });
 
         expect(response.messages).toHaveLength(2);
-        expect(response.messages[0].content.text).toBe("Start flow-7");
-        expect(response.messages[1].content.text).toBe("Processing flow-7");
+        expect(response.messages[0].content.text).toBe("What should I do?");
+        expect(response.messages[1].content.text).toBe("I will trigger the flow.\n\nflowID: flow-7");
     });
 
     it("does not alter message text when no arguments are provided", async () => {
