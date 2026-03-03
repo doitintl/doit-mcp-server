@@ -20,15 +20,16 @@
             "recommended": true,
             "suspicious": {
                 "noExplicitAny": "off",
-                "noDebugger": "warn"
+                "noDebugger": "error"
             },
             "style": {
-                "noNonNullAssertion": "warn",
-                "noParameterAssign": "warn",
-                "noUselessElse": "warn"
+                "noNonNullAssertion": "error",
+                "noParameterAssign": "error",
+                "noUselessElse": "error"
             },
             "correctness": {
-                "noUnusedVariables": "warn"
+                "noUnusedVariables": "error",
+                "useParseIntRadix": "error"
             },
             "complexity": {
                 "noForEach": "off"
