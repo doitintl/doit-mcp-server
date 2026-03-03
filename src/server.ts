@@ -37,6 +37,7 @@ import {
     handleListInvoicesRequest,
     listInvoicesTool,
 } from "./tools/invoices.js";
+import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import {
     getReportResultsTool,
     handleGetReportResultsRequest,
@@ -91,6 +92,7 @@ export function createServer() {
                 listAlertsTool,
                 getAlertTool,
                 triggerCloudFlowTool,
+                listOrganizationsTool,
             ],
         };
     });
@@ -193,6 +195,7 @@ export {
     handleTriggerCloudFlowRequest,
     handleListAlertsRequest,
     handleGetAlertRequest,
+    handleListOrganizationsRequest,
     createErrorResponse,
     formatZodError,
     handleGeneralError,

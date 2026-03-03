@@ -72,6 +72,10 @@ vi.mock(import("../tools/cloudflow.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleTriggerCloudFlowRequest: vi.fn(),
 }));
+vi.mock(import("../tools/organizations.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListOrganizationsRequest: vi.fn(),
+}));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
@@ -130,6 +134,7 @@ import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.j
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
+import { listOrganizationsTool } from "../tools/organizations.js";
 import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
 import { listTicketsTool } from "../tools/tickets.js";
 import { validateUserTool } from "../tools/validateUser.js";
@@ -205,6 +210,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listAlertsTool,
                 getAlertTool,
                 triggerCloudFlowTool,
+                listOrganizationsTool,
             ],
         });
     });
