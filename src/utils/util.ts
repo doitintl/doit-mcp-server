@@ -182,9 +182,7 @@ export async function makeDoitRequest<T>(
         Accept: "application/json",
     };
 
-    if (appendParams) {
-        url = appendUrlParameters(url, customerContext);
-    }
+    let requestUrl = appendParams ? appendUrlParameters(url, customerContext) : url;
 
     try {
         const requestOptions: RequestInit = {
@@ -199,15 +197,15 @@ export async function makeDoitRequest<T>(
         }
 
         // add mcp params to the url
-        url += `&mcp=true`;
+        requestUrl += `&mcp=true`;
 
         if (!process.env.CUSTOMER_CONTEXT) {
             // request from the sse server
-            url += `&sse=true`;
+            requestUrl += `&sse=true`;
         }
 
-        debugLog("API request URL: ", DebugLevel.VERBOSE, url);
-        const response = await fetch(url, requestOptions);
+        debugLog("API request URL: ", DebugLevel.VERBOSE, requestUrl);
+        const response = await fetch(requestUrl, requestOptions);
 
         if (!response.ok) {
             const bodyText = await response.text();

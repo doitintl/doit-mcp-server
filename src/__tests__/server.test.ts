@@ -145,7 +145,7 @@ const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
 const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
 
 const originalProcessEnv = process.env;
-let server: any;
+let _server: any;
 
 beforeEach(() => {
     vi.resetAllMocks();
@@ -155,7 +155,7 @@ beforeEach(() => {
         connect: vi.fn(),
         _capabilities: { tools: {}, prompts: {}, resources: {} },
     }));
-    server = createServer();
+    _server = createServer();
     formatZodErrorSpy.mockClear();
     createErrorResponseSpy.mockClear();
 });
