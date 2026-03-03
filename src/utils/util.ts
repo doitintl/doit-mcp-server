@@ -153,7 +153,9 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
 }
 
 /**
- * Helper function for making DoiT API requests
+ * Helper function for making DoiT API requests.
+ * On error, logs the error and returns null.
+ *
  * @param url The API endpoint URL
  * @param token The authentication token
  * @param options Additional request options

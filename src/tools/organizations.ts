@@ -27,28 +27,24 @@ export async function handleListOrganizationsRequest(args: any, token: string) {
         ListOrganizationsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
-        try {
-            const data = await makeDoitRequest<OrganizationsResponse>(ORGANIZATIONS_BASE_URL, token, {
-                method: "GET",
-                customerContext,
-            });
+        const data = await makeDoitRequest<OrganizationsResponse>(ORGANIZATIONS_BASE_URL, token, {
+            method: "GET",
+            customerContext,
+        });
 
-            if (!data) {
-                return createErrorResponse("Failed to retrieve organizations");
-            }
-
-            const organizations = data.organizations || [];
-
-            if (organizations.length === 0) {
-                return createSuccessResponse("No organizations found.");
-            }
-
-            return createSuccessResponse(
-                JSON.stringify({ organizations: organizations.map((org) => ({ id: org.id, name: org.name })) }, null, 2)
-            );
-        } catch (error) {
-            return handleGeneralError(error, "calling list organizations API");
+        if (!data) {
+            return createErrorResponse("Failed to retrieve organizations");
         }
+
+        const organizations = data.organizations || [];
+
+        if (organizations.length === 0) {
+            return createSuccessResponse("No organizations found.");
+        }
+
+        return createSuccessResponse(
+            JSON.stringify({ organizations: organizations.map((org) => ({ id: org.id, name: org.name })) }, null, 2)
+        );
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling list organizations request");
