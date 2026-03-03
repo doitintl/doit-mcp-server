@@ -151,7 +151,7 @@ This MCP server provides many tools including the following:
 - [`update_allocation`](https://developer.doit.com/reference/updateallocation): Update an existing allocation
 - [`list_alerts`](https://developer.doit.com/reference/listalerts): Returns a list of alerts that your account has access to
 - [`get_alert`](https://developer.doit.com/reference/getalert): Returns a specific alert by ID.
-
+- [`list_organizations`](https://developer.doit.com/reference/listorganizations): Returns a list of organizations accessible to the authenticated user.
 
 ## Usage Examples
 
