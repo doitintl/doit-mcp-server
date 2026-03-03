@@ -135,6 +135,7 @@ import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
+import { listPlatformsTool } from "../tools/platforms.js";
 import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
 import { listTicketsTool } from "../tools/tickets.js";
 import { validateUserTool } from "../tools/validateUser.js";
@@ -211,6 +212,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getAlertTool,
                 triggerCloudFlowTool,
                 listOrganizationsTool,
+                listPlatformsTool,
             ],
         });
     });
