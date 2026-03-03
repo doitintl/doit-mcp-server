@@ -50,7 +50,7 @@ import {
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
-import { applyPromptMessageArguments, prompts, resolvePromptMessages } from "./utils/prompts.js";
+import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./utils/prompts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./utils/util.js";
 
@@ -117,10 +117,9 @@ export function createServer() {
         }
 
         try {
-            const args = request.params.arguments ?? {};
+            const args = filterPromptArgs(prompt, request.params.arguments ?? {});
             const resolvedMessages = resolvePromptMessages(prompt);
-            const messages =
-                Object.keys(args).length > 0 ? applyPromptMessageArguments(resolvedMessages, args) : resolvedMessages;
+            const messages = applyPromptMessageArguments(resolvedMessages, args);
 
             return {
                 description: prompt.description,
