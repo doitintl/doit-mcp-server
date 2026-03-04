@@ -111,7 +111,7 @@ export async function handleGetAlertRequest(args: any, token: string) {
 export async function handleListAlertsRequest(args: any, token: string) {
     try {
         const { sortBy, sortOrder, maxResults, pageToken, filter } = ListAlertsArgumentsSchema.parse(args);
-        const maxResultsValue = maxResults ? parseInt(maxResults) : DEFAULT_LIST_ALERTS_MAX_RESULTS;
+        const maxResultsValue = maxResults ? parseInt(maxResults, 10) : DEFAULT_LIST_ALERTS_MAX_RESULTS;
         const { customerContext } = args;
 
         const params = new URLSearchParams({

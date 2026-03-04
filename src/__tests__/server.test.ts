@@ -135,6 +135,7 @@ import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
+import { listPlatformsTool } from "../tools/platforms.js";
 import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
 import { listTicketsTool } from "../tools/tickets.js";
 import { validateUserTool } from "../tools/validateUser.js";
@@ -144,7 +145,7 @@ const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
 const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
 
 const originalProcessEnv = process.env;
-let server: any;
+let _server: any;
 
 beforeEach(() => {
     vi.resetAllMocks();
@@ -154,7 +155,7 @@ beforeEach(() => {
         connect: vi.fn(),
         _capabilities: { tools: {}, prompts: {}, resources: {} },
     }));
-    server = createServer();
+    _server = createServer();
     formatZodErrorSpy.mockClear();
     createErrorResponseSpy.mockClear();
 });
@@ -211,6 +212,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getAlertTool,
                 triggerCloudFlowTool,
                 listOrganizationsTool,
+                listPlatformsTool,
             ],
         });
     });
