@@ -1,6 +1,140 @@
 import { describe, expect, it } from "vitest";
-import type { Prompt } from "../prompts.js";
-import { getPromptMissingArgs, resolvePromptMessages } from "../prompts.js";
+import type { Prompt, PromptMessage } from "../prompts.js";
+import {
+    applyPromptMessageArguments,
+    filterPromptArgs,
+    getPromptMissingArgs,
+    resolvePromptMessages,
+} from "../prompts.js";
+
+describe("applyPromptMessageArguments", () => {
+    const msg = (text: string, role: "user" | "assistant" = "user"): PromptMessage => ({ role, text });
+
+    it("handles an empty messages array", () => {
+        expect(applyPromptMessageArguments([], { name: "Alice" })).toEqual([]);
+    });
+
+    it("appends a single arg as a key-value line after the last message", () => {
+        const result = applyPromptMessageArguments([msg("Do the thing")], { flowID: "f-1" });
+        expect(result[0].text).toBe("Do the thing\n\nflowID: f-1");
+    });
+
+    it("appends multiple args as separate key-value lines", () => {
+        const result = applyPromptMessageArguments([msg("Hello")], { name: "Alice", id: "42" });
+        expect(result[0].text).toBe("Hello\n\nname: Alice\nid: 42");
+    });
+
+    it("only modifies the last message in a multi-message prompt", () => {
+        const messages = [msg("First"), msg("Second", "assistant"), msg("Third")];
+        const result = applyPromptMessageArguments(messages, { key: "val" });
+        expect(result[0].text).toBe("First");
+        expect(result[1].text).toBe("Second");
+        expect(result[2].text).toBe("Third\n\nkey: val");
+    });
+
+    it("preserves the role of every message", () => {
+        const messages: PromptMessage[] = [
+            { role: "user", text: "A" },
+            { role: "assistant", text: "B" },
+        ];
+        const result = applyPromptMessageArguments(messages, { x: "1" });
+        expect(result[0].role).toBe("user");
+        expect(result[1].role).toBe("assistant");
+    });
+
+    it("converts non-string arg values to strings", () => {
+        const result = applyPromptMessageArguments([msg("Base")], { count: 7 });
+        expect(result[0].text).toBe("Base\n\ncount: 7");
+    });
+
+    it("does not mutate the original messages", () => {
+        const original: PromptMessage[] = [{ role: "user", text: "Hello" }];
+        applyPromptMessageArguments(original, { name: "Alice" });
+        expect(original[0].text).toBe("Hello");
+    });
+
+    it("returns messages unchanged when args is empty", () => {
+        const original: PromptMessage[] = [{ role: "user", text: "Hello" }];
+        const result = applyPromptMessageArguments(original, {});
+        expect(result[0].text).toBe("Hello");
+        expect(result).toEqual(original);
+    });
+
+    it("serializes a plain object value with JSON.stringify", () => {
+        const body = { key: "value", nested: { n: 1 } };
+        const result = applyPromptMessageArguments([msg("Trigger")], { requestBodyJson: body });
+        expect(result[0].text).toBe(`Trigger\n\nrequestBodyJson: ${JSON.stringify(body, null, 2)}`);
+    });
+
+    it("serializes an array value with JSON.stringify", () => {
+        const list = [1, "two", { three: 3 }];
+        const result = applyPromptMessageArguments([msg("Base")], { items: list });
+        expect(result[0].text).toBe(`Base\n\nitems: ${JSON.stringify(list, null, 2)}`);
+    });
+
+    it("skips null arg values and returns messages unchanged", () => {
+        const original = [msg("Base")];
+        const result = applyPromptMessageArguments(original, { optional: null });
+        expect(result[0].text).toBe("Base");
+    });
+
+    it("skips undefined arg values and returns messages unchanged", () => {
+        const original = [msg("Base")];
+        const result = applyPromptMessageArguments(original, { optional: undefined });
+        expect(result[0].text).toBe("Base");
+    });
+
+    it("skips null/undefined args but still appends present args", () => {
+        const result = applyPromptMessageArguments([msg("Base")], { skip: null, keep: "yes", also: undefined });
+        expect(result[0].text).toBe("Base\n\nkeep: yes");
+    });
+});
+
+describe("filterPromptArgs", () => {
+    const base = { name: "p", description: "d", text: "t" };
+
+    it("returns an empty object when the prompt declares no arguments", () => {
+        expect(filterPromptArgs({ ...base }, { extra: "value" })).toEqual({});
+    });
+
+    it("keeps only keys declared in prompt.arguments", () => {
+        const prompt: Prompt = { ...base, arguments: [{ name: "flowID", description: "" }] };
+        expect(filterPromptArgs(prompt, { flowID: "f-1", injected: "bad" })).toEqual({ flowID: "f-1" });
+    });
+
+    it("drops entries whose value is an empty string", () => {
+        const prompt: Prompt = {
+            ...base,
+            arguments: [
+                { name: "flowID", description: "" },
+                { name: "requestBodyJson", description: "" },
+            ],
+        };
+        expect(filterPromptArgs(prompt, { flowID: "f-1", requestBodyJson: "" })).toEqual({ flowID: "f-1" });
+    });
+
+    it("retains non-string values including objects and numbers", () => {
+        const prompt: Prompt = {
+            ...base,
+            arguments: [
+                { name: "count", description: "" },
+                { name: "payload", description: "" },
+            ],
+        };
+        const payload = { key: "val" };
+        expect(filterPromptArgs(prompt, { count: 5, payload })).toEqual({ count: 5, payload });
+    });
+
+    it("returns an empty object when args is empty", () => {
+        const prompt: Prompt = { ...base, arguments: [{ name: "flowID", description: "" }] };
+        expect(filterPromptArgs(prompt, {})).toEqual({});
+    });
+
+    it("returns an empty object when args contains only undeclared keys", () => {
+        const prompt: Prompt = { ...base, arguments: [{ name: "flowID", description: "" }] };
+        expect(filterPromptArgs(prompt, { unknown: "x", another: "y" })).toEqual({});
+    });
+});
 
 describe("getPromptMissingArgs", () => {
     const base = { name: "p", description: "d", text: "t" };

@@ -49,6 +49,50 @@ export function getPromptMissingArgs(prompt: Prompt, args: Record<string, string
 }
 
 /**
+ * Filter raw request arguments to only the keys declared on the prompt and
+ * drop any entry whose value is an empty string.
+ *
+ * @param prompt - the prompt definition whose `arguments` list is the allowlist
+ * @param args - the raw key-value map supplied by the caller
+ * @returns a new object containing only the allowed, non-empty-string entries
+ */
+export function filterPromptArgs(prompt: Prompt, args: Record<string, unknown>): Record<string, unknown> {
+    const declared = new Set((prompt.arguments ?? []).map((a) => a.name));
+    return Object.fromEntries(Object.entries(args).filter(([key, value]) => declared.has(key) && value !== ""));
+}
+
+/**
+ * Apply argument substitution to prompt messages by appending the provided
+ * key-value pairs as a block after the last message.
+ *
+ * @param messages - the list of prompt messages to process
+ * @param args - record of argument names to values
+ * @returns a new list of messages with the argument block appended to the last message
+ */
+export function applyPromptMessageArguments(messages: PromptMessage[], args: Record<string, unknown>): PromptMessage[] {
+    if (messages.length === 0) return messages;
+
+    const entries = Object.entries(args);
+    if (entries.length === 0) return messages;
+
+    const lines = entries
+        .filter(([, value]) => value !== null && value !== undefined)
+        .map(([key, value]) => {
+            const serialized = typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+            return `${key}: ${serialized}`;
+        });
+
+    if (lines.length === 0) return messages;
+
+    const block = lines.join("\n");
+    const result = messages.map((m) => ({ ...m }));
+    const last = result.length - 1;
+    result[last] = { role: result[last].role, text: `${result[last].text}\n\n${block}` };
+
+    return result;
+}
+
+/**
  * Resolve the prompt messages for a prompt definition (into a list of messages as expected by the MCP protocol).
  * helping to translate single message prompts to multi message prompts.
  *
@@ -133,7 +177,14 @@ const legacyPrompts: Prompt[] = [
         name: "Trigger CloudFlow flow",
         description:
             "Trigger a flow defined in CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
-        text: `Trigger a CloudFlow by its flow ID, the user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow.`,
+        text: "Trigger a CloudFlow by its flow ID. The user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow if not set.",
+        arguments: [
+            { name: "flowID", description: "The ID of the flow to trigger" },
+            {
+                name: "requestBodyJson",
+                description: "The request body JSON to pass to the flow",
+            },
+        ],
     },
 ];
 
