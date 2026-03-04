@@ -48,6 +48,7 @@ import {
     runQueryTool,
 } from "./tools/reports.js";
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
+import { handleListUsersRequest, listUsersTool } from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./utils/prompts.js";
@@ -95,6 +96,7 @@ export function createServer() {
                 triggerCloudFlowTool,
                 listOrganizationsTool,
                 listPlatformsTool,
+                listUsersTool,
             ],
         };
     });
@@ -197,6 +199,7 @@ export {
     handleGetAlertRequest,
     handleListOrganizationsRequest,
     handleListPlatformsRequest,
+    handleListUsersRequest,
     createErrorResponse,
     formatZodError,
     handleGeneralError,
