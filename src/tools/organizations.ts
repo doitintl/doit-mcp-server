@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { OrganizationsResponse } from "../types/organizations.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -16,10 +17,7 @@ export const ListOrganizationsArgumentsSchema = z.object({}); // for consistency
 export const listOrganizationsTool = {
     name: "list_organizations",
     description: "Returns a list of organizations from DoiT API that are accessible to the authenticated user.",
-    inputSchema: {
-        type: "object",
-        properties: {},
-    },
+    inputSchema: zodToMcpInputSchema(ListOrganizationsArgumentsSchema),
 };
 
 export async function handleListOrganizationsRequest(args: any, token: string) {

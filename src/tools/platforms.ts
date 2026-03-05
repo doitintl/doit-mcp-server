@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { PlatformsResponse } from "../types/platforms.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -16,10 +17,7 @@ export const ListPlatformsArgumentsSchema = z.object({});
 export const listPlatformsTool = {
     name: "list_platforms",
     description: "Returns a list of all the available platforms from DoiT API.",
-    inputSchema: {
-        type: "object",
-        properties: {},
-    },
+    inputSchema: zodToMcpInputSchema(ListPlatformsArgumentsSchema),
 };
 
 export async function handleListPlatformsRequest(args: any, token: string) {
