@@ -47,6 +47,7 @@ import {
     reportsTool,
     runQueryTool,
 } from "./tools/reports.js";
+import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleListUsersRequest, listUsersTool } from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
@@ -97,6 +98,7 @@ export function createServer() {
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
+                listRolesTool,
             ],
         };
     });
@@ -200,6 +202,7 @@ export {
     handleListOrganizationsRequest,
     handleListPlatformsRequest,
     handleListUsersRequest,
+    handleListRolesRequest,
     createErrorResponse,
     formatZodError,
     handleGeneralError,
