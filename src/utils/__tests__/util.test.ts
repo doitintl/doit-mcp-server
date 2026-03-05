@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugLevel, debugLog, toSnakeCase } from "../util.js";
+
+beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
 describe("DebugLevel enum", () => {
     it("should have correct debug level values", () => {

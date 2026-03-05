@@ -7,6 +7,14 @@ vi.mock("../../utils/util.js", async (importOriginal) => {
     return { ...actual, makeDoitRequest: vi.fn() };
 });
 
+beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
+
 describe("users", () => {
     const mockToken = "fake-token";
 
@@ -24,14 +32,6 @@ describe("users", () => {
         organizationId: "org-1",
         status: "active",
     };
-
-    beforeEach(() => {
-        vi.spyOn(console, "error").mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
 
     it("should call makeDoitRequest with base URL and return users in response", async () => {
         const mockApiResponse = { users: [mockUser], rowCount: 1 };

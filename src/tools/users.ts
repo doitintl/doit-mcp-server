@@ -5,6 +5,7 @@ import {
     createErrorResponse,
     createSuccessResponse,
     DOIT_API_BASE,
+    formatZodError,
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
@@ -15,7 +16,8 @@ export const ListUsersArgumentsSchema = z.object({});
 
 export const listUsersTool = {
     name: "list_users",
-    description: "Returns a list of all users in the organization, including both active users and invited users.",
+    description:
+        "Returns a list of all users in the organization from DoiT API, including both active users and invited users.",
     inputSchema: zodToMcpInputSchema(ListUsersArgumentsSchema),
 };
 
@@ -33,6 +35,7 @@ export async function handleListUsersRequest(args: any, token: string) {
 
         return createSuccessResponse(JSON.stringify({ rowCount: data.rowCount, users: data.users }, null, 2));
     } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling list users request");
     }
 }
