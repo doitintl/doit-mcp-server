@@ -64,6 +64,7 @@ describe("roles", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("roles") }],
+            isError: true,
         });
     });
 
@@ -74,6 +75,7 @@ describe("roles", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
         });
     });
 });
