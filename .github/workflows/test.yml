@@ -6,7 +6,8 @@ on:
       - "**"
 
 jobs:
-  test:
+  lint-test-build:
+    name: Tests and Build - Node 18
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -23,8 +24,31 @@ jobs:
       - name: Run lint and format checks
         run: yarn check:ci
 
-      - name: Run tests
+      - name: Run unit tests
         run: yarn test
 
       - name: Build
         run: yarn build
+
+  integration-tests:
+    name: Integration Tests - Node 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install integration test dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: test/integration
+
+      - name: Run integration tests
+        run: yarn test
+        working-directory: test/integration
