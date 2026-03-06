@@ -21,13 +21,13 @@
     "test": "vitest run",
     "deploy": "yarn build && npm publish --access public",
     "type-check": "tsc --noEmit",
-    "lint": "biome lint src/",
-    "lint:fix": "biome lint --write src/",
-    "format": "biome format src/",
-    "format:fix": "biome format --write src/",
-    "check:dev": "yarn type-check && biome check src/",
-    "check:ci": "yarn type-check && biome ci src/",
-    "check:fix": "biome check --write src/"
+    "lint": "biome lint src/ test/",
+    "lint:fix": "biome lint --write src/ test/",
+    "format": "biome format src/ test/",
+    "format:fix": "biome format --write src/ test/",
+    "check:dev": "yarn type-check && biome check src/ test/",
+    "check:ci": "yarn type-check && biome ci src/ test/",
+    "check:fix": "biome check --write src/ test/"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.3",

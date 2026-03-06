@@ -76,6 +76,10 @@ vi.mock(import("../tools/organizations.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListOrganizationsRequest: vi.fn(),
 }));
+vi.mock(import("../tools/roles.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListRolesRequest: vi.fn(),
+}));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
@@ -137,6 +141,7 @@ import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
+import { listRolesTool } from "../tools/roles.js";
 import { listTicketsTool } from "../tools/tickets.js";
 import { listUsersTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
@@ -215,6 +220,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
+                listRolesTool,
             ],
         });
     });

@@ -124,6 +124,7 @@ describe("cloudflow", () => {
                         text: expect.stringContaining("specify the target flow ID"),
                     },
                 ],
+                isError: true,
             });
         });
 
@@ -134,6 +135,7 @@ describe("cloudflow", () => {
 
             expect(response).toEqual({
                 content: [{ type: "text", text: expect.stringContaining("Failed to trigger CloudFlow") }],
+                isError: true,
             });
         });
 
@@ -144,6 +146,7 @@ describe("cloudflow", () => {
 
             expect(response).toEqual({
                 content: [{ type: "text", text: expect.stringContaining("Network error") }],
+                isError: true,
             });
         });
 
@@ -153,6 +156,7 @@ describe("cloudflow", () => {
 
             expect(response).toEqual({
                 content: [{ type: "text", text: expect.stringContaining("Invalid arguments:") }],
+                isError: true,
             });
         });
     });

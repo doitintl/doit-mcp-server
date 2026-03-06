@@ -87,6 +87,10 @@ import {
   ListUsersArgumentsSchema,
   listUsersTool,
 } from "../../src/tools/users.js";
+import {
+  ListRolesArgumentsSchema,
+  listRolesTool,
+} from "../../src/tools/roles.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -319,6 +323,9 @@ export class DoitMCPAgent extends McpAgent {
 
     // Users tools
     this.registerTool(listUsersTool, ListUsersArgumentsSchema);
+
+    // Roles tools
+    this.registerTool(listRolesTool, ListRolesArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {

@@ -64,6 +64,7 @@ describe("platforms", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("platforms") }],
+            isError: true,
         });
     });
 
@@ -84,6 +85,7 @@ describe("platforms", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
         });
     });
 });

@@ -70,6 +70,7 @@ describe("users", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("users") }],
+            isError: true,
         });
     });
 
@@ -80,6 +81,7 @@ describe("users", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
         });
     });
 });

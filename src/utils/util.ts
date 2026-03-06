@@ -83,6 +83,7 @@ export function createErrorResponse(message: string) {
                 text: message,
             },
         ],
+        isError: true,
     };
 }
 
