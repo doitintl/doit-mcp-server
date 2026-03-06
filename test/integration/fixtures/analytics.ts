@@ -1,6 +1,6 @@
 export const reportsFixture = {
-	pageToken: null,
-	rowCount: 1,
+	pageToken: "",
+	rowCount: 2,
 	reports: [
 		{
 			id: "report-1",
@@ -10,6 +10,21 @@ export const reportsFixture = {
 			createTime: 1700000000000,
 			updateTime: 1700100000000,
 			urlUI: "https://console.doit.com/reports/report-1",
+		},
+		{
+			id: "report-2",
+			reportName: "Monthly Cost Report",
+			owner: "bob@example.com",
+			type: "custom",
+			createTime: 0,
+			updateTime: 0,
+			urlUI: "https://console.doit.com/reports/report-2",
+			labels: [
+				{
+					id: "project_name",
+					name: "my-project",
+				},
+			],
 		},
 	],
 };
@@ -49,7 +64,7 @@ export const reportResultsFixture = {
 };
 
 export const dimensionsFixture = {
-	pageToken: null,
+	pageToken: "",
 	rowCount: 2,
 	dimensions: [
 		{ id: "service_description", label: "Service", type: "fixed" },

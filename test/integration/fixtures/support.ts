@@ -6,7 +6,7 @@ export const platformsFixture = {
 };
 
 export const ticketsFixture = {
-	pageToken: undefined,
+	pageToken: "",
 	rowCount: 1,
 	tickets: [
 		{

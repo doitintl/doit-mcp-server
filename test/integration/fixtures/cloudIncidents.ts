@@ -1,5 +1,6 @@
 export const cloudIncidentsFixture = {
-	pageToken: null,
+	pageToken: "",
+	rowCount: 2,
 	incidents: [
 		{
 			id: "inc-1",
