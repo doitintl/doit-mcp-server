@@ -43,6 +43,7 @@ describe("MCP Tools Integration", () => {
                 "list_invoices",
                 "list_organizations",
                 "list_platforms",
+                "list_products",
                 "list_reports",
                 "list_roles",
                 "list_tickets",
@@ -111,6 +112,26 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("Amazon Web Services");
             expect(text).toContain("google_cloud_platform");
             expect(text).toContain("amazon_web_services");
+        });
+    });
+
+    describe("list_products", () => {
+        it("returns products from mock API", async () => {
+            const result = await client.callTool({ name: "list_products", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("Compute Engine");
+            expect(text).toContain("Cloud Storage");
+            expect(text).toContain("compute-engine");
+            expect(text).toContain("cloud-storage");
+        });
+
+        it("accepts platform filter parameter", async () => {
+            const result = await client.callTool({
+                name: "list_products",
+                arguments: { platform: "google_cloud_platform" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Compute Engine");
         });
     });
 

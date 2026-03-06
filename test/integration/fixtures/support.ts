@@ -5,6 +5,13 @@ export const platformsFixture = {
     ],
 };
 
+export const productsFixture = {
+    products: [
+        { id: "compute-engine", displayName: "Compute Engine", platform: "google_cloud_platform" },
+        { id: "cloud-storage", displayName: "Cloud Storage", platform: "google_cloud_platform" },
+    ],
+};
+
 export const ticketsFixture = {
     pageToken: "",
     rowCount: 1,

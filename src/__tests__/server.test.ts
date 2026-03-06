@@ -140,6 +140,7 @@ import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { listPlatformsTool } from "../tools/platforms.js";
+import { listProductsTool } from "../tools/products.js";
 import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
 import { listTicketsTool } from "../tools/tickets.js";
@@ -221,6 +222,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listPlatformsTool,
                 listUsersTool,
                 listRolesTool,
+                listProductsTool,
             ],
         });
     });
