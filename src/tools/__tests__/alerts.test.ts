@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createErrorResponse, createSuccessResponse, handleGeneralError, makeDoitRequest } from "../../utils/util.js";
 import { ALERTS_BASE_URL, handleGetAlertRequest, handleListAlertsRequest } from "../alerts.js";
 
-vi.mock("../../utils/util.js", async (importActual) => {
-    const actual = await importActual<typeof import("../../utils/util.js")>();
+vi.mock("../../utils/util.js", async (importOriginal) => {
+    const actual = await importOriginal();
     return {
         ...actual,
         createErrorResponse: vi.fn(actual.createErrorResponse),

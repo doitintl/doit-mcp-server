@@ -7,16 +7,16 @@ vi.mock("../../utils/util.js", async (importOriginal) => {
     return { ...actual, makeDoitRequest: vi.fn() };
 });
 
+beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
+
 describe("platforms", () => {
     const mockToken = "fake-token";
-
-    beforeEach(() => {
-        vi.spyOn(console, "error").mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
 
     it("should call makeDoitRequest with base URL and return platforms in response", async () => {
         const mockApiResponse = {

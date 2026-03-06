@@ -1,5 +1,5 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { main, mainWithServer } from "../index.js";
 import { server } from "../server.js";
 
@@ -9,6 +9,14 @@ vi.mock("../server.js", () => ({
     createServer: vi.fn(),
 }));
 vi.mock("dotenv", () => ({ config: vi.fn() }));
+
+beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
 describe("mainWithServer", () => {
     it("connects a custom server to a new StdioServerTransport", async () => {

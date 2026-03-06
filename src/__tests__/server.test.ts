@@ -138,6 +138,7 @@ import { listOrganizationsTool } from "../tools/organizations.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
 import { listTicketsTool } from "../tools/tickets.js";
+import { listUsersTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
 
@@ -213,6 +214,7 @@ describe("ListToolsRequestSchema handler", () => {
                 triggerCloudFlowTool,
                 listOrganizationsTool,
                 listPlatformsTool,
+                listUsersTool,
             ],
         });
     });

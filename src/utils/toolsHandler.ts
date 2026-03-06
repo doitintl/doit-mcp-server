@@ -17,6 +17,7 @@ import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleGetReportResultsRequest, handleReportsRequest, handleRunQueryRequest } from "../tools/reports.js";
 import { handleListTicketsRequest } from "../tools/tickets.js";
+import { handleListUsersRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./util.js";
 
@@ -106,6 +107,9 @@ export async function executeToolHandler(
                 break;
             case "list_platforms":
                 result = await handleListPlatformsRequest(args, token);
+                break;
+            case "list_users":
+                result = await handleListUsersRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);
