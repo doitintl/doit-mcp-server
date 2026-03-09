@@ -8,6 +8,8 @@ import {
     makeDoitRequest,
 } from "../utils/util.js";
 
+export const CLOUD_INCIDENTS_BASE_URL = `${DOIT_API_BASE}/core/v1/cloudincidents`;
+
 // Define known platforms enum
 export enum KnownIssuePlatforms {
     AWS = "amazon-web-services",
@@ -137,7 +139,7 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
             params.append("pageToken", pageToken);
         }
 
-        let incidentsUrl = `${DOIT_API_BASE}/core/v1/cloudincidents`;
+        let incidentsUrl = CLOUD_INCIDENTS_BASE_URL;
         if (params.toString()) {
             incidentsUrl += `?${params.toString()}`;
         }
@@ -197,7 +199,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
     try {
         const { id, customerContext } = CloudIncidentArgumentsSchema.parse(args);
 
-        const incidentUrl = `${DOIT_API_BASE}/core/v1/cloudincidents/${id}`;
+        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${id}`;
 
         try {
             // Explicitly set appendParams to true to ensure URL parameters are added

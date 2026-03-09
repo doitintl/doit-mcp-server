@@ -16,13 +16,14 @@ import { assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
 import { cloudflowTriggerFixture } from "./cloudflow.js";
 import { cloudIncidentFixture, cloudIncidentsFixture } from "./cloudIncidents.js";
 import { organizationsFixture, rolesFixture, usersFixture, validateUserFixture } from "./iam.js";
-import { platformsFixture, ticketsFixture } from "./support.js";
+import { platformsFixture, productsFixture, ticketsFixture } from "./support.js";
 
 export const fixtures = {
     organizations: organizationsFixture,
     roles: rolesFixture,
     users: usersFixture,
     platforms: platformsFixture,
+    products: productsFixture,
     validateUser: validateUserFixture,
 
     cloudIncidents: cloudIncidentsFixture,

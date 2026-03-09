@@ -15,6 +15,7 @@ import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
+import { handleListProductsRequest } from "../tools/products.js";
 import { handleGetReportResultsRequest, handleReportsRequest, handleRunQueryRequest } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
 import { handleListTicketsRequest } from "../tools/tickets.js";
@@ -114,6 +115,9 @@ export async function executeToolHandler(
                 break;
             case "list_roles":
                 result = await handleListRolesRequest(args, token);
+                break;
+            case "list_products":
+                result = await handleListProductsRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);

@@ -8,6 +8,8 @@ import {
     makeDoitRequest,
 } from "../utils/util.js";
 
+export const DIMENSION_BASE_URL = `${DOIT_API_BASE}/analytics/v1/dimension`;
+
 // Schema definitions
 export const DimensionArgumentsSchema = z.object({
     type: z
@@ -100,9 +102,7 @@ export async function handleDimensionRequest(args: any, token: string) {
         const { type, id } = DimensionArgumentsSchema.parse(args);
 
         // Create API URL for retrieving a specific dimension
-        const dimensionUrl = `${DOIT_API_BASE}/analytics/v1/dimension?type=${encodeURIComponent(
-            type
-        )}&id=${encodeURIComponent(id)}`;
+        const dimensionUrl = `${DIMENSION_BASE_URL}?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`;
 
         try {
             const dimensionData = await makeDoitRequest<DimensionResponse>(dimensionUrl, token, {

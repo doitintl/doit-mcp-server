@@ -8,6 +8,8 @@ import {
     makeDoitRequest,
 } from "../utils/util.js";
 
+export const ASSETS_BASE_URL = `${DOIT_API_BASE}/billing/v1/assets`;
+
 // Schema definitions
 export const ListAssetsArgumentsSchema = z.object({
     pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
@@ -71,7 +73,7 @@ export async function handleListAssetsRequest(args: any, token: string) {
             params.append("pageToken", pageToken);
         }
 
-        let assetsUrl = `${DOIT_API_BASE}/billing/v1/assets`;
+        let assetsUrl = ASSETS_BASE_URL;
         if (params.toString()) {
             assetsUrl += `?${params.toString()}`;
         }

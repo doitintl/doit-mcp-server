@@ -24,6 +24,11 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.platforms);
     }),
 
+    // Products
+    http.get(`${API_BASE}/support/v1/metadata/products`, () => {
+        return HttpResponse.json(fixtures.products);
+    }),
+
     // Cloud Incidents
     http.get(`${API_BASE}/core/v1/cloudincidents/:id`, ({ params }) => {
         if (params.id === "inc-1") {

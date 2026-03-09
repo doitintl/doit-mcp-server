@@ -8,6 +8,8 @@ import {
     makeDoitRequest,
 } from "../utils/util.js";
 
+export const DIMENSIONS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/dimensions`;
+
 // Schema definitions
 export const DimensionsArgumentsSchema = z.object({
     filter: z
@@ -75,7 +77,7 @@ export async function handleDimensionsRequest(args: any, token: string) {
 
         params.append("maxResults", "200");
 
-        let dimensionsUrl = `${DOIT_API_BASE}/analytics/v1/dimensions`;
+        let dimensionsUrl = DIMENSIONS_BASE_URL;
         if (params.toString()) {
             dimensionsUrl += `?${params.toString()}`;
         }

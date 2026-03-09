@@ -2,10 +2,13 @@ import { z } from "zod";
 import {
     createErrorResponse,
     createSuccessResponse,
+    DOIT_API_BASE,
     formatDate,
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+
+export const INVOICES_BASE_URL = `${DOIT_API_BASE}/billing/v1/invoices`;
 
 // Invoice interface matching the API response
 export interface Invoice {
@@ -52,7 +55,7 @@ export async function handleListInvoicesRequest(args: any, token: string) {
         const { customerContext } = args;
         const params = new URLSearchParams();
         if (args.pageToken) params.append("pageToken", args.pageToken);
-        const url = `https://api.doit.com/billing/v1/invoices${params.toString() ? `?${params.toString()}` : ""}`;
+        const url = `${INVOICES_BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
         const data = await makeDoitRequest<InvoicesResponse>(url, token, {
             customerContext,
         });
@@ -102,7 +105,7 @@ export async function handleGetInvoiceRequest(args: any, token: string) {
         if (!args.id) {
             return createErrorResponse("Invoice ID is required");
         }
-        const url = `https://api.doit.com/billing/v1/invoices/${encodeURIComponent(args.id)}`;
+        const url = `${INVOICES_BASE_URL}/${encodeURIComponent(args.id)}`;
         const data: Invoice | null = await makeDoitRequest<Invoice>(url, token, {
             appendParams: true,
             customerContext,
