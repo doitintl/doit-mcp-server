@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugLevel, debugLog, toSnakeCase } from "../util.js";
+import { DebugLevel, debugLog, formatEnumValues, toSnakeCase } from "../util.js";
 
 beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -101,5 +101,36 @@ describe("toSnakeCase", () => {
         for (const name of legacyNames) {
             expect(toSnakeCase(name)).toMatch(snakeCasePattern);
         }
+    });
+});
+
+describe("formatEnumValues", () => {
+    const SORT_ORDER_VALUES = ["asc", "desc"] as const;
+    const SORT_BY_VALUES = ["id", "name", "type", "createTime", "updateTime"] as const;
+    const COLOR_VALUES = ["blue", "teal", "mint"] as const;
+
+    it("joins enum values with default separator", () => {
+        expect(formatEnumValues(SORT_ORDER_VALUES)).toBe("asc, desc");
+    });
+
+    it("joins enum values with custom separator", () => {
+        expect(formatEnumValues(SORT_BY_VALUES, " | ")).toBe("id | name | type | createTime | updateTime");
+    });
+
+    it("joins enum values with dash separator", () => {
+        expect(formatEnumValues(COLOR_VALUES, " - ")).toBe("blue - teal - mint");
+    });
+
+    it("returns single enum value as-is", () => {
+        const SINGLE = ["only"] as const;
+        expect(formatEnumValues(SINGLE)).toBe("only");
+    });
+
+    it("returns empty string for empty array", () => {
+        expect(formatEnumValues([])).toBe("");
+    });
+
+    it("works with plain arrays", () => {
+        expect(formatEnumValues(["a", "b", "c"])).toBe("a, b, c");
     });
 });

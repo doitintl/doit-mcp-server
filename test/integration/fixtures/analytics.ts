@@ -153,6 +153,29 @@ export const alertsFixture = {
     ],
 };
 
+export const labelsFixture = {
+    pageToken: "",
+    rowCount: 2,
+    labels: [
+        {
+            id: "label-1",
+            name: "Engineering",
+            color: "blue",
+            type: "custom",
+            createTime: "2026-01-01T00:00:00.000Z",
+            updateTime: "2026-01-02T00:00:00.000Z",
+        },
+        {
+            id: "label-2",
+            name: "Finance",
+            color: "teal",
+            type: "preset",
+            createTime: "2026-02-01T00:00:00.000Z",
+            updateTime: "2026-02-02T00:00:00.000Z",
+        },
+    ],
+};
+
 export const alertFixture = {
     id: "alert-1",
     name: "Cost Spike Alert",

@@ -41,6 +41,7 @@ describe("MCP Tools Integration", () => {
                 "list_assets",
                 "list_dimensions",
                 "list_invoices",
+                "list_labels",
                 "list_organizations",
                 "list_platforms",
                 "list_products",
@@ -427,6 +428,32 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("USD");
             expect(text).toContain("billing");
             expect(text).toContain("1000");
+        });
+    });
+
+    describe("list_labels", () => {
+        it("returns labels from mock API", async () => {
+            const result = await client.callTool({ name: "list_labels", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.labels).toHaveLength(2);
+            expect(parsed.labels[0].id).toBe("label-1");
+            expect(parsed.labels[0].name).toBe("Engineering");
+            expect(parsed.labels[0].color).toBe("blue");
+            expect(parsed.labels[1].id).toBe("label-2");
+            expect(parsed.labels[1].name).toBe("Finance");
+            expect(parsed.labels[1].type).toBe("preset");
+            expect(parsed.rowCount).toBe(2);
+        });
+
+        it("accepts filter and sort parameters", async () => {
+            const result = await client.callTool({
+                name: "list_labels",
+                arguments: { sortBy: "name", sortOrder: "asc", filter: "type:custom" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.labels).toHaveLength(2);
         });
     });
 
