@@ -178,6 +178,29 @@ Here are some common queries you can ask using the DoiT MCP server:
 
 These examples demonstrate basic usage patterns. You can combine and modify these queries based on your needs. The MCP server will interpret your natural language queries and use the appropriate tools to fetch the requested information.
 
+## Release Procedure
+
+1. **Write the changelog** — generate a changelog entry from commits since the last tag:
+
+```bash
+# Preview what will be generated
+./scripts/release/write-changelog.sh --tag v0.6.0 --dry-run
+
+# Write the entry to CHANGELOG.md
+./scripts/release/write-changelog.sh --tag v0.6.0
+```
+
+2. **Commit the changelog update** and merge to `main`.
+
+3. **Create and push a version tag**:
+
+```bash
+git tag v0.6.0
+git push origin v0.6.0
+```
+
+4. Pushing the tag triggers the [Release workflow](.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md` and creates a GitHub Release automatically.
+
 ## Environment Variables
 
 - `DOIT_API_KEY`: Your DoiT API key (required)
