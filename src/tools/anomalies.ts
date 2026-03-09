@@ -8,6 +8,8 @@ import {
     makeDoitRequest,
 } from "../utils/util.js";
 
+export const ANOMALIES_BASE_URL = `${DOIT_API_BASE}/anomalies/v1`;
+
 // Schema definitions
 export const AnomaliesArgumentsSchema = z.object({
     pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
@@ -119,7 +121,7 @@ export async function handleAnomaliesRequest(args: any, token: string) {
         }
         params.append("maxResults", "20");
 
-        let anomaliesUrl = `${DOIT_API_BASE}/anomalies/v1`;
+        let anomaliesUrl = `${ANOMALIES_BASE_URL}`;
 
         if (params.toString()) {
             anomaliesUrl += `?${params.toString()}`;
@@ -183,7 +185,7 @@ export async function handleAnomalyRequest(args: any, token: string) {
     try {
         const { id } = AnomalyArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const anomalyUrl = `${DOIT_API_BASE}/anomalies/v1/${id}`;
+        const anomalyUrl = `${ANOMALIES_BASE_URL}/${id}`;
 
         try {
             // Explicitly set appendParams to true to ensure URL parameters are added

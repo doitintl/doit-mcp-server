@@ -8,6 +8,8 @@ import {
     makeDoitRequest,
 } from "../utils/util.js";
 
+export const VALIDATE_USER_BASE_URL = `${DOIT_API_BASE}/auth/v1/validate`;
+
 // Schema definition
 export const ValidateUserArgumentsSchema = z.object({});
 
@@ -35,7 +37,7 @@ export async function handleValidateUserRequest(args: any, token: string) {
         const customerContext = args.customerContext;
 
         // Set up the URL for the validate endpoint
-        const validateUrl = `${DOIT_API_BASE}/auth/v1/validate`;
+        const validateUrl = `${VALIDATE_USER_BASE_URL}`;
 
         try {
             // Make the API request

@@ -8,6 +8,8 @@ import {
     makeDoitRequest,
 } from "../utils/util.js";
 
+export const REPORTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/reports`;
+
 // Schema definitions
 export const ReportsArgumentsSchema = z.object({
     filter: z
@@ -461,7 +463,7 @@ export async function handleReportsRequest(args: any, token: string) {
             params.append("pageToken", pageToken);
         }
 
-        let reportsUrl = `${DOIT_API_BASE}/analytics/v1/reports`;
+        let reportsUrl = `${REPORTS_BASE_URL}`;
         if (params.toString()) {
             reportsUrl += `?${params.toString()}`;
         }
@@ -516,7 +518,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
         const { config } = RunQueryArgumentsSchema.parse(args);
         const { customerContext } = args;
         // Create API URL for the query endpoint
-        const queryUrl = `${DOIT_API_BASE}/analytics/v1/reports/query`;
+        const queryUrl = `${REPORTS_BASE_URL}/query`;
 
         try {
             // Use enhanced makeDoitRequest for POST request
@@ -589,7 +591,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
         const { id } = GetReportResultsArgumentsSchema.parse(args);
         const { customerContext } = args;
         // Create API URL
-        const reportUrl = `${DOIT_API_BASE}/analytics/v1/reports/${encodeURIComponent(id)}`;
+        const reportUrl = `${REPORTS_BASE_URL}/${encodeURIComponent(id)}`;
 
         try {
             const reportData = await makeDoitRequest<GetReportResultsResponse>(reportUrl, token, {
