@@ -19,7 +19,7 @@ export const ListProductsArgumentsSchema = z.object({
 export const listProductsTool = {
     name: "list_products",
     description:
-        "Returns a list of all the available products of specific platforms from DoiT API. If no platform is specified, it returns products from all platforms.",
+        "Lists products available for different platforms from the DoiT API, optionally filtered by platform name. If no platform is specified, it returns products from all platforms.",
     inputSchema: zodToMcpInputSchema(ListProductsArgumentsSchema),
 };
 

@@ -139,7 +139,7 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
             params.append("pageToken", pageToken);
         }
 
-        let incidentsUrl = `${CLOUD_INCIDENTS_BASE_URL}`;
+        let incidentsUrl = CLOUD_INCIDENTS_BASE_URL;
         if (params.toString()) {
             incidentsUrl += `?${params.toString()}`;
         }

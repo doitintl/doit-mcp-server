@@ -77,7 +77,7 @@ export async function handleDimensionsRequest(args: any, token: string) {
 
         params.append("maxResults", "200");
 
-        let dimensionsUrl = `${DIMENSIONS_BASE_URL}`;
+        let dimensionsUrl = DIMENSIONS_BASE_URL;
         if (params.toString()) {
             dimensionsUrl += `?${params.toString()}`;
         }

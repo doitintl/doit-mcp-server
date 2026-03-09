@@ -37,7 +37,7 @@ export async function handleValidateUserRequest(args: any, token: string) {
         const customerContext = args.customerContext;
 
         // Set up the URL for the validate endpoint
-        const validateUrl = `${VALIDATE_USER_BASE_URL}`;
+        const validateUrl = VALIDATE_USER_BASE_URL;
 
         try {
             // Make the API request

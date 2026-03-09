@@ -135,7 +135,7 @@ export const CreateTicketArgumentsSchema = z.object({
 export async function handleCreateTicketRequest(args: any, token: string) {
     try {
         const { customerContext } = args;
-        const url = `${TICKETS_BASE_URL}`;
+        const url = TICKETS_BASE_URL;
         const response = await makeDoitRequest(url, token, {
             method: "POST",
             body: { ticket: args.ticket },

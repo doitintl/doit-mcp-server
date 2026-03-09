@@ -73,7 +73,7 @@ export async function handleListAssetsRequest(args: any, token: string) {
             params.append("pageToken", pageToken);
         }
 
-        let assetsUrl = `${ASSETS_BASE_URL}`;
+        let assetsUrl = ASSETS_BASE_URL;
         if (params.toString()) {
             assetsUrl += `?${params.toString()}`;
         }

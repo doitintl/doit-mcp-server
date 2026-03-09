@@ -463,7 +463,7 @@ export async function handleReportsRequest(args: any, token: string) {
             params.append("pageToken", pageToken);
         }
 
-        let reportsUrl = `${REPORTS_BASE_URL}`;
+        let reportsUrl = REPORTS_BASE_URL;
         if (params.toString()) {
             reportsUrl += `?${params.toString()}`;
         }

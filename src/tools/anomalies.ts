@@ -121,7 +121,7 @@ export async function handleAnomaliesRequest(args: any, token: string) {
         }
         params.append("maxResults", "20");
 
-        let anomaliesUrl = `${ANOMALIES_BASE_URL}`;
+        let anomaliesUrl = ANOMALIES_BASE_URL;
 
         if (params.toString()) {
             anomaliesUrl += `?${params.toString()}`;
