@@ -7,10 +7,7 @@ jspm_packages/
 
 # Environment files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 
 # Build output
 dist/
@@ -31,11 +28,14 @@ coverage/
 .nyc_output/
 
 # IDE / Editor specific files
-.idea/
-.vscode/
+.idea*
+.vscode*
+.claude*
+*.code-workspace
 *.swp
 *.swo
 .DS_Store
+.vim*
 
 # Cache directories
 .npm
@@ -57,5 +57,5 @@ coverage/
 *.pem
 *.key
 
-.vscode/
-*.code-workspace
+# Local files not supposed to be committed
+_local
