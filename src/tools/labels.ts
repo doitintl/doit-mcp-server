@@ -21,7 +21,9 @@ export const ListLabelsArgumentsSchema = z.object({
     maxResults: z
         .string()
         .optional()
-        .describe("The maximum number of results to return in a single page. Defaults to 500."),
+        .describe(
+            `The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS_LABELS}.`
+        ),
     pageToken: z
         .string()
         .optional()

@@ -106,16 +106,12 @@ format_entry() {
   local date
   date="$(date +%Y-%m-%d)"
 
-  local range_label
-  if [[ -n "$prev" ]]; then
-    range_label="${prev}...${tag}"
-  else
-    range_label="${tag}"
-  fi
-
   echo "## ${tag} (${date})"
   echo ""
-  echo "**Full diff:** [\`${range_label}\`](../../compare/${range_label})"
+  if [[ -n "$prev" ]]; then
+    local range_label="${prev}...${tag}"
+    echo "**Full diff:** [\`${range_label}\`](../../compare/${range_label})"
+  fi
   categorize_commits "$commits"
 }
 
