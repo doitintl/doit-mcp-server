@@ -196,16 +196,24 @@ Project uses semantic versioning, and the CHANGELOG.md is used as a source of tr
    generates a draft based on commit messages, but you may want to edit it for
    clarity, formatting, or to add additional context.
 
-3. **Commit the changelog update** and merge to `main`.
+3. **Commit the changelog update**
 
-4. **Create and push a version tag**: (use the same version passed as new tag to the changelog script)
+4. **Ensure the server version** to match the release (e.g., `0.5.0` for tag `v0.5.0`), if not, update and commit, then make a release PR to `main` branch.
+
+```bash
+# find where version is defined and update it, then commit the change
+find . -name "package.json" -not -path "*/node_modules/*" -exec grep '"version"' {} +
+git grep "SERVER_VERSION" src/
+```
+
+5. **Create and push a version tag** from the latest `main` branch (use the same version passed as new tag to the changelog script)
 
 ```bash
 git tag v0.6.0
 git push origin v0.6.0
 ```
 
-5. Pushing the tag triggers the [Release workflow](.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md` and creates a GitHub Release automatically.
+6. Pushing the tag triggers the [Release workflow](.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md` and creates a GitHub Release automatically.
 
 ## Environment Variables
 
