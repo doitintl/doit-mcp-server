@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LABEL_SORT_BY_VALUES, LABEL_SORT_ORDER_VALUES } from "../../types/labels.js";
 import { makeDoitRequest } from "../../utils/util.js";
-import { DEFAULT_MAX_RESULTS_LABELS, handleListLabelsRequest, LABELS_BASE_URL, listLabelsTool } from "../labels.js";
+import {
+    DEFAULT_MAX_RESULTS_LABELS,
+    handleGetLabelRequest,
+    handleListLabelsRequest,
+    LABELS_BASE_URL,
+    listLabelsTool,
+} from "../labels.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
@@ -163,6 +169,79 @@ describe("labels", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+});
+
+describe("get_label", () => {
+    const mockToken = "fake-token";
+
+    it("should call makeDoitRequest with label ID in URL and return label data", async () => {
+        const mockLabel = {
+            id: "label-1",
+            name: "Engineering",
+            color: "blue",
+            type: "custom",
+            createTime: "2026-01-01T00:00:00.000Z",
+            updateTime: "2026-01-02T00:00:00.000Z",
+        };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockLabel);
+
+        const response = await handleGetLabelRequest({ id: "label-1" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-1`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
+
+        const text = response.content[0].text;
+        const parsed = JSON.parse(text);
+        expect(parsed.id).toBe("label-1");
+        expect(parsed.name).toBe("Engineering");
+        expect(parsed.color).toBe("blue");
+        expect(parsed.type).toBe("custom");
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        const mockLabel = { id: "label-1", name: "Engineering", color: "blue", type: "custom" };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockLabel);
+
+        await handleGetLabelRequest({ id: "label-1", customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-1`, mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleGetLabelRequest({ id: "label-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("label") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleGetLabelRequest({ id: "label-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is missing", async () => {
+        const response = await handleGetLabelRequest({}, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
             isError: true,
         });
     });

@@ -37,7 +37,7 @@ import {
     handleListInvoicesRequest,
     listInvoicesTool,
 } from "./tools/invoices.js";
-import { handleListLabelsRequest, listLabelsTool } from "./tools/labels.js";
+import { getLabelTool, handleGetLabelRequest, handleListLabelsRequest, listLabelsTool } from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
@@ -103,6 +103,7 @@ export function createServer() {
                 listRolesTool,
                 listProductsTool,
                 listLabelsTool,
+                getLabelTool,
             ],
         };
     });
@@ -209,6 +210,7 @@ export {
     handleListRolesRequest,
     handleListProductsRequest,
     handleListLabelsRequest,
+    handleGetLabelRequest,
     createErrorResponse,
     formatZodError,
     handleGeneralError,

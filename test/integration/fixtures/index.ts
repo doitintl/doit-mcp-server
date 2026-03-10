@@ -6,6 +6,7 @@ import {
     createAllocationFixture,
     dimensionFixture,
     dimensionsFixture,
+    labelFixture,
     labelsFixture,
     queryResultFixture,
     reportResultsFixture,
@@ -55,5 +56,6 @@ export const fixtures = {
 
     cloudflowTrigger: cloudflowTriggerFixture,
 
+    label: labelFixture,
     labels: labelsFixture,
 };

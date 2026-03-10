@@ -13,7 +13,7 @@ import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tool
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
-import { handleListLabelsRequest } from "../tools/labels.js";
+import { handleGetLabelRequest, handleListLabelsRequest } from "../tools/labels.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
@@ -122,6 +122,9 @@ export async function executeToolHandler(
                 break;
             case "list_labels":
                 result = await handleListLabelsRequest(args, token);
+                break;
+            case "get_label":
+                result = await handleGetLabelRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);

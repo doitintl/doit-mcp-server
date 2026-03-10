@@ -133,6 +133,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Labels
+    http.get(`${API_BASE}/analytics/v1/labels/:id`, ({ params }) => {
+        if (params.id === "label-1") {
+            return HttpResponse.json(fixtures.label);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/analytics/v1/labels`, () => {
         return HttpResponse.json(fixtures.labels);
     }),

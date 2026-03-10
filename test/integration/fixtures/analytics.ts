@@ -153,6 +153,15 @@ export const alertsFixture = {
     ],
 };
 
+export const labelFixture = {
+    id: "label-1",
+    name: "Engineering",
+    color: "blue",
+    type: "custom",
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-01-02T00:00:00.000Z",
+};
+
 export const labelsFixture = {
     pageToken: "",
     rowCount: 2,
