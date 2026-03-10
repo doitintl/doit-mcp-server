@@ -95,3 +95,7 @@ jobs:
                 comment_id: existing.id,
               });
             }
+
+      - name: Fail if commits are invalid
+        if: steps.checkcommits.outcome == 'failure'
+        run: exit 1
