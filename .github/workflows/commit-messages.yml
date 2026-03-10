@@ -20,10 +20,15 @@ jobs:
       - name: Check commit messages
         id: checkcommits
         continue-on-error: true
+        # --safe omits commit messages from output, printing only hashes.
+        # This prevents untrusted commit messages from injecting special
+        # characters that could break shell expansion, base64 encoding,
+        # or the GitHub Actions expression context used downstream.
         run: |
-          bash scripts/dev/check-commits.sh origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} 2>&1 | tee /tmp/checkcommits.txt
+          bash scripts/dev/check-commits.sh --safe origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} 2>&1 | tee /tmp/checkcommits.txt
+          rc=${PIPESTATUS[0]}
           echo "output=$(base64 -w0 /tmp/checkcommits.txt)" >> "$GITHUB_OUTPUT"
-          exit "${PIPESTATUS[0]}"
+          exit "$rc"
 
       - name: Post failure comment
         if: steps.checkcommits.outcome == 'failure' && github.event.pull_request.head.repo.fork == false

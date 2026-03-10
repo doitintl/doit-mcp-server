@@ -1,17 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ $# -lt 2 ]; then
-  echo "Usage: $0 <base-ref> <head-ref>"
+SAFE=0
+POSITIONAL=()
+for arg in "$@"; do
+  case "$arg" in
+    --safe) SAFE=1 ;;
+    *) POSITIONAL+=("$arg") ;;
+  esac
+done
+
+if [ "${#POSITIONAL[@]}" -lt 2 ]; then
+  echo "Usage: $0 [--safe] <base-ref> <head-ref>"
   echo "Example: $0 origin/main HEAD"
+  echo "  --safe  Only print commit hashes in output, not messages (avoids shell injection from untrusted commit messages)"
   exit 1
 fi
 
-BASE_REF="$1"
-HEAD_REF="$2"
+BASE_REF="${POSITIONAL[0]}"
+HEAD_REF="${POSITIONAL[1]}"
 
 # Conventional commit pattern: type(optional-scope): description
-PATTERN='^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?: .{1,120}$'
+PATTERN='^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?!?: .{1,120}$'
 
 echo "Checking commits from ${BASE_REF} to ${HEAD_REF}..."
 
@@ -21,7 +31,11 @@ while IFS= read -r LINE; do
   MESSAGE="${LINE#* }"
 
   if ! echo "$MESSAGE" | grep -qE "$PATTERN"; then
-    echo "FAIL: $HASH $MESSAGE"
+    if [ "$SAFE" -eq 1 ]; then
+      echo "FAIL: $HASH"
+    else
+      echo "FAIL: $HASH $MESSAGE"
+    fi
     FAILED=$((FAILED + 1))
   fi
 done < <(git log --no-merges --format="%h %s" "${BASE_REF}..${HEAD_REF}")
