@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { LabelsResponse } from "../types/labels.js";
+import type { Label, LabelsResponse } from "../types/labels.js";
 import { LABEL_SORT_BY_VALUES, LABEL_SORT_ORDER_VALUES } from "../types/labels.js";
 import { DEFAULT_MAX_RESULTS } from "../utils/consts.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
@@ -78,5 +78,36 @@ export async function handleListLabelsRequest(args: any, token: string) {
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling list labels request");
+    }
+}
+
+// Schema and metadata for get label
+export const GetLabelArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Label ID is required and cannot be empty."))
+        .describe("The ID of the label to retrieve."),
+});
+
+export const getLabelTool = {
+    name: "get_label",
+    description: "Returns details of a specific label from the DoiT API by its ID.",
+    inputSchema: zodToMcpInputSchema(GetLabelArgumentsSchema),
+};
+
+export async function handleGetLabelRequest(args: any, token: string) {
+    try {
+        const { id } = GetLabelArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${LABELS_BASE_URL}/${encodeURIComponent(id)}`;
+        const data = await makeDoitRequest<Label>(url, token, { method: "GET", customerContext });
+        if (!data) {
+            return createErrorResponse("Failed to retrieve label");
+        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get label request");
     }
 }

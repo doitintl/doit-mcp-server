@@ -92,6 +92,8 @@ import {
   listRolesTool,
 } from "../../src/tools/roles.js";
 import {
+  GetLabelArgumentsSchema,
+  getLabelTool,
   ListLabelsArgumentsSchema,
   listLabelsTool,
 } from "../../src/tools/labels.js";
@@ -340,6 +342,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // Labels tools
     this.registerTool(listLabelsTool, ListLabelsArgumentsSchema);
+    this.registerTool(getLabelTool, GetLabelArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {

@@ -35,6 +35,7 @@ describe("MCP Tools Integration", () => {
                 "get_cloud_incidents",
                 "get_dimension",
                 "get_invoice",
+                "get_label",
                 "get_report_results",
                 "list_alerts",
                 "list_allocations",
@@ -454,6 +455,20 @@ describe("MCP Tools Integration", () => {
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
             expect(parsed.labels).toHaveLength(2);
+        });
+    });
+
+    describe("get_label", () => {
+        it("returns a specific label", async () => {
+            const result = await client.callTool({ name: "get_label", arguments: { id: "label-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("label-1");
+            expect(parsed.name).toBe("Engineering");
+            expect(parsed.color).toBe("blue");
+            expect(parsed.type).toBe("custom");
+            expect(parsed.createTime).toBe("2026-01-01T00:00:00.000Z");
+            expect(parsed.updateTime).toBe("2026-01-02T00:00:00.000Z");
         });
     });
 
