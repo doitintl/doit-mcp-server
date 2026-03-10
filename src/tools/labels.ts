@@ -83,12 +83,16 @@ export async function handleListLabelsRequest(args: any, token: string) {
 
 // Schema and metadata for get label
 export const GetLabelArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the label to retrieve."),
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Label ID is required and cannot be empty."))
+        .describe("The ID of the label to retrieve."),
 });
 
 export const getLabelTool = {
     name: "get_label",
-    description: "Returns details of a specific label from the DoiT API by ID.",
+    description: "Returns details of a specific label from the DoiT API by its ID.",
     inputSchema: zodToMcpInputSchema(GetLabelArgumentsSchema),
 };
 

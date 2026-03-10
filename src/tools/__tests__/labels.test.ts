@@ -245,4 +245,22 @@ describe("get_label", () => {
             isError: true,
         });
     });
+
+    it("should return error when id is an empty string", async () => {
+        const response = await handleGetLabelRequest({ id: "" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is only whitespace", async () => {
+        const response = await handleGetLabelRequest({ id: "   " }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
 });
