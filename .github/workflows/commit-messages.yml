@@ -22,18 +22,16 @@ jobs:
         continue-on-error: true
         run: |
           bash scripts/dev/check-commits.sh origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} 2>&1 | tee /tmp/checkcommits.txt
-          echo 'output<<EOF' >> "$GITHUB_OUTPUT"
-          cat /tmp/checkcommits.txt >> "$GITHUB_OUTPUT"
-          echo 'EOF' >> "$GITHUB_OUTPUT"
+          echo "output=$(base64 -w0 /tmp/checkcommits.txt)" >> "$GITHUB_OUTPUT"
           exit "${PIPESTATUS[0]}"
 
       - name: Post failure comment
-        if: steps.checkcommits.outcome == 'failure'
+        if: steps.checkcommits.outcome == 'failure' && github.event.pull_request.head.repo.fork == false
         uses: actions/github-script@v7
         with:
           script: |
             const marker = '<!-- ci-checkcommits-mark -->';
-            const output = `${{ steps.checkcommits.outputs.output }}`.replace(/`/g, '\\`');
+            const output = Buffer.from('${{ steps.checkcommits.outputs.output }}', 'base64').toString('utf8').replace(/`/g, '\\`');
             const body = [
               marker,
               '## Commit Message Lint Failed',
@@ -47,8 +45,7 @@ jobs:
               output,
               '```',
               '',
-              '</details>',
-              '```',
+              '</details>'
             ].join('\n');
 
             const { data: comments } = await github.rest.issues.listComments({
@@ -75,7 +72,7 @@ jobs:
             }
 
       - name: Remove stale comment
-        if: steps.checkcommits.outcome == 'success'
+        if: steps.checkcommits.outcome == 'success' && github.event.pull_request.head.repo.fork == false
         uses: actions/github-script@v7
         with:
           script: |
