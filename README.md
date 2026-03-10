@@ -122,7 +122,7 @@ yarn install
 yarn build
 ```
 
-5. **Run the server**
+4. **Run the server**
 
 ```bash
 node dist/index.js
@@ -177,6 +177,35 @@ Here are some common queries you can ask using the DoiT MCP server:
 - "Show me details for invoice INV-2024-001" - This will provide full details for a specific invoice, including line items and payment status.
 
 These examples demonstrate basic usage patterns. You can combine and modify these queries based on your needs. The MCP server will interpret your natural language queries and use the appropriate tools to fetch the requested information.
+
+## Release Procedure
+
+Project uses semantic versioning, and the CHANGELOG.md is used as a source of truth for release notes.
+
+1. **Write the changelog** — generate a changelog entry from commits since the latest tag (pass the new tag as argument)
+
+```bash
+# Preview what will be generated, --tag is the NEW tag not created yet
+./scripts/release/write-changelog.sh --tag v0.6.0 --dry-run
+
+# Write the entry to CHANGELOG.md
+./scripts/release/write-changelog.sh --tag v0.6.0
+```
+
+2. **Review and modify the generated changelog entry** if needed. The script
+   generates a draft based on commit messages, but you may want to edit it for
+   clarity, formatting, or to add additional context.
+
+3. **Commit the changelog update** and merge to `main`.
+
+4. **Create and push a version tag**: (use the same version passed as new tag to the changelog script)
+
+```bash
+git tag v0.6.0
+git push origin v0.6.0
+```
+
+5. Pushing the tag triggers the [Release workflow](.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md` and creates a GitHub Release automatically.
 
 ## Environment Variables
 

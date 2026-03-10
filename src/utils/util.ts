@@ -278,6 +278,10 @@ export function decodeJWT(token: string): {
     }
 }
 
+export function formatEnumValues(values: readonly string[], separator = ", "): string {
+    return values.join(separator);
+}
+
 /**
  * Converts a human-readable string to snake_case.
  * e.g. "Filter Fields Reference" → "filter_fields_reference"
