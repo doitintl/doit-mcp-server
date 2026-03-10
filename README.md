@@ -178,7 +178,15 @@ Here are some common queries you can ask using the DoiT MCP server:
 
 These examples demonstrate basic usage patterns. You can combine and modify these queries based on your needs. The MCP server will interpret your natural language queries and use the appropriate tools to fetch the requested information.
 
-## Release Procedure
+## Environment Variables
+
+- `DOIT_API_KEY`: Your DoiT API key (required)
+- `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
+
+
+## Development
+
+### Release Procedure
 
 Project uses semantic versioning, and the CHANGELOG.md is used as a source of truth for release notes.
 
@@ -214,8 +222,3 @@ git push origin v0.6.0
 ```
 
 6. Pushing the tag triggers the [Release workflow](.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md` and creates a GitHub Release automatically.
-
-## Environment Variables
-
-- `DOIT_API_KEY`: Your DoiT API key (required)
-- `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
