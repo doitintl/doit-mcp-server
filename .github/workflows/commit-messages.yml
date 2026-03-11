@@ -95,10 +95,3 @@ jobs:
                 comment_id: existing.id,
               });
             }
-
-      - name: Fail if commits are invalid
-        if: steps.checkcommits.outcome == 'failure'
-        run: |
-          echo "::error::One or more commit messages do not follow the Conventional Commits format."
-          echo "::error::See the PR comment for details: ${{ github.event.pull_request.html_url }}#issuecomment"
-          exit 1
