@@ -1,5 +1,4 @@
-import { TicketSeverity } from "../common/types.js";
-import { formatEnumValues, toSnakeCase } from "../utils/util.js";
+import { toSnakeCase } from "../utils/util.js";
 import { deprecateBySnakeCaseNotice } from "./helpers.js";
 import { legacyPrompts } from "./legacy.js";
 import type { Prompt } from "./types.js";
@@ -26,26 +25,6 @@ const canonicalPrompts: Prompt[] = [
             {
                 name: "keyword",
                 description: "Keywords in the subject or the body of the ticket to filter the inquiries",
-            },
-        ],
-    },
-    {
-        name: "new_expert_inquiry",
-        description: "Create a new DoIT expert inquiry",
-        messages: [
-            {
-                role: "user",
-                text: "Create a new expert inquiry by submitting a new support request ticket to DoiT API. Ask for details, and confirm content before creating the ticket",
-            },
-        ],
-        arguments: [
-            { name: "subject", description: "The subject of the inquiry" },
-            { name: "body", description: "The body of the inquiry" },
-            { name: "platform", description: "The cloud platform the inquiry is related to" },
-            { name: "product", description: "The product the inquiry is related to" },
-            {
-                name: "severity",
-                description: `The severity level of the inquiry: ${formatEnumValues(Object.values(TicketSeverity))}`,
             },
         ],
     },
