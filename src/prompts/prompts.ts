@@ -15,7 +15,7 @@ const canonicalPrompts: Prompt[] = [];
  * The exported list of prompts exposed by the MCP server, using snake_case names only.
  *
  * NOTE: New prompts should be added directly to canonicalPrompts array,
- * this is way to keep exporting legacy prompts until deprecated.
+ * this is a way to keep exporting legacy prompts until deprecated.
  */
 export const prompts: Prompt[] = [
     ...canonicalPrompts,

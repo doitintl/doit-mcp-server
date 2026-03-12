@@ -56,8 +56,8 @@ export function applyPromptMessageArguments(messages: PromptMessage[], args: Rec
 }
 
 /**
- * Resolve the prompt messages for a prompt definition (into a list of messages as expected by the MCP protocol).
- * helping to translate single message prompts to multi message prompts.
+ * Resolve the prompt messages for a prompt definition (into a list of messages as expected by the MCP protocol),
+ * translating single message prompts to multi message prompts.
  *
  * @param prompt - the prompt definition
  * @returns the list of messages as expected by the MCP protocol

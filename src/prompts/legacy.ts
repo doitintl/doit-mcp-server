@@ -15,7 +15,7 @@ export const legacyPrompts: Prompt[] = [
     {
         name: "Generate Report Document",
         description: "Generate a document with report results table",
-        text: `Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)`,
+        text: `Create a document (Artifacts) with a table to display the report results. Include insights and recommendations if possible. (Do not generate code, only a document)`,
     },
     {
         name: "Query Best Practice",
@@ -30,7 +30,7 @@ export const legacyPrompts: Prompt[] = [
     {
         name: "Generate Report Command",
         description: "Template for generating cost reports",
-        text: `To create a cost report, first check if you need specific dimensions with:\nlist_dimensions(filter: "type:fixed") and allocations with list_allocations(filter: "type:fixed")\n\nThen check if there is similar reports with list_reports and get_report_results. when you understand the structure Then run a query like:\nrun_query({\n  config: {\n    dataSource: "billing",\n    metric: { type: "basic", value: "cost" },\n    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },\n    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]\n  }\n})`,
+        text: `To create a cost report, first check if you need specific dimensions with:\nlist_dimensions(filter: "type:fixed") and allocations with list_allocations(filter: "type:fixed")\n\nThen check if there are similar reports with list_reports and get_report_results. When you understand the structure, run a query like:\nrun_query({\n  config: {\n    dataSource: "billing",\n    metric: { type: "basic", value: "cost" },\n    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },\n    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]\n  }\n})`,
     },
     {
         name: "Generate Anomalies Document",
