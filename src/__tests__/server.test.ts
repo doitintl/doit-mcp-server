@@ -11,8 +11,8 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { prompts } from "../prompts/index.js";
 import { SERVER_VERSION } from "../utils/consts.js";
-import { prompts } from "../utils/prompts.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/index.js");
 vi.mock(import("../tools/cloudIncidents.js"), async (importOriginal) => ({
