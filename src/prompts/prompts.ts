@@ -4,7 +4,7 @@ import { legacyPrompts } from "./legacy.js";
 import type { Prompt } from "./types.js";
 
 /**
- * The canonical list of prompts exposed by the MCP server, using snake_case names only.
+ * The canonical prompts defined by the MCP server, using snake_case names only.
  *
  * NOTE: New prompts should be added directly to this array using snake_case names,
  * e.g. { name: "my_new_prompt", description: "...", text: "..." }
@@ -12,10 +12,10 @@ import type { Prompt } from "./types.js";
 const canonicalPrompts: Prompt[] = [];
 
 /**
- * The canonical list of prompts exposed by the MCP server, using snake_case names only.
+ * The exported list of prompts exposed by the MCP server, using snake_case names only.
  *
- * NOTE: New prompts should be added directly to canonicalPrompts array, which
- * is used to generate the promptsIncludingLegacyNames array.
+ * NOTE: New prompts should be added directly to canonicalPrompts array,
+ * this is way to keep exporting legacy prompts until deprecated.
  */
 export const prompts: Prompt[] = [
     ...canonicalPrompts,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     applyPromptMessageArguments,
+    deprecateBySnakeCaseNotice,
     filterPromptArgs,
     getPromptMissingArgs,
     resolvePromptMessages,
@@ -291,5 +292,32 @@ describe("resolvePromptMessages", () => {
 
             expect(resolvePromptMessages(prompt)).toBe(messageArray);
         });
+    });
+});
+
+describe("deprecateBySnakeCaseNotice", () => {
+    const base = { name: "Filter Fields Reference", description: "Filter fields explanation", text: "some text" };
+
+    it("appends a deprecation notice with the snake_case name to the description", () => {
+        const result = deprecateBySnakeCaseNotice(base);
+        expect(result.description).toBe(
+            "Filter fields explanation [DEPRECATED: Please use 'filter_fields_reference' instead]"
+        );
+    });
+
+    it("preserves all other prompt fields", () => {
+        const prompt: Prompt = {
+            ...base,
+            arguments: [{ name: "flowID", description: "The flow ID" }],
+        };
+        const result = deprecateBySnakeCaseNotice(prompt);
+        expect(result.text).toBe("some text");
+        expect(result.arguments).toEqual([{ name: "flowID", description: "The flow ID" }]);
+    });
+
+    it("does not mutate the original prompt", () => {
+        const original: Prompt = { ...base };
+        deprecateBySnakeCaseNotice(original);
+        expect(original.description).toBe("Filter fields explanation");
     });
 });
