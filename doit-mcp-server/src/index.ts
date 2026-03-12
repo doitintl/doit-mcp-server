@@ -105,7 +105,7 @@ import {
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
-import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/utils/prompts.js";
+import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
 
 const KEEP_ALIVE_INTERVAL_MS = 120_000; // 2 minutes in milliseconds
 

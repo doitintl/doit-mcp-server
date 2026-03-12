@@ -9,6 +9,7 @@ import {
     ListToolsRequestSchema,
     McpError,
 } from "@modelcontextprotocol/sdk/types.js";
+import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
 import { getAlertTool, handleGetAlertRequest, handleListAlertsRequest, listAlertsTool } from "./tools/alerts.js";
 import {
     createAllocationTool,
@@ -54,7 +55,6 @@ import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleListUsersRequest, listUsersTool } from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
-import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./utils/prompts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./utils/util.js";
 

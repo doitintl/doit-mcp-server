@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { Prompt, PromptMessage } from "../prompts.js";
 import {
     applyPromptMessageArguments,
     filterPromptArgs,
     getPromptMissingArgs,
     resolvePromptMessages,
-} from "../prompts.js";
+} from "../helpers.js";
+import type { Prompt, PromptMessage } from "../types.js";
 
 describe("applyPromptMessageArguments", () => {
     const msg = (text: string, role: "user" | "assistant" = "user"): PromptMessage => ({ role, text });
