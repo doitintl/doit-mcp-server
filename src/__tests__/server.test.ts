@@ -389,6 +389,33 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[1].content.text).toBe("I will trigger the flow.\n\nflowID: flow-7");
     });
 
+    it("returns prompt for expert_inquiries with expected message and arguments", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({ params: { name: "expert_inquiries" } });
+
+        expect(response).toHaveProperty("description");
+        expect(response.description).toContain("expert inquiries");
+        expect(response.messages).toHaveLength(1);
+        expect(response.messages[0].role).toBe("user");
+        expect(response.messages[0].content.type).toBe("text");
+        expect(response.messages[0].content.text).toContain("expert inquiries");
+        expect(response.messages[0].content.text).toContain("support request ticket");
+    });
+
+    it("returns prompt for expert_inquiries with arguments appended to message", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({
+            params: {
+                name: "expert_inquiries",
+                arguments: { platform: "aws", keyword: "billing" },
+            },
+        });
+
+        expect(response.messages).toHaveLength(1);
+        expect(response.messages[0].content.text).toContain("platform: aws");
+        expect(response.messages[0].content.text).toContain("keyword: billing");
+    });
+
     it("does not alter message text when no arguments are provided", async () => {
         prompts.push({
             name: "__test_no_args__",

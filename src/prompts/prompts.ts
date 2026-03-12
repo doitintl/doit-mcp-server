@@ -1,4 +1,5 @@
-import { toSnakeCase } from "../utils/util.js";
+import { TicketSeverity } from "../common/types.js";
+import { formatEnumValues, toSnakeCase } from "../utils/util.js";
 import { deprecateBySnakeCaseNotice } from "./helpers.js";
 import { legacyPrompts } from "./legacy.js";
 import type { Prompt } from "./types.js";
@@ -9,7 +10,46 @@ import type { Prompt } from "./types.js";
  * NOTE: New prompts should be added directly to this array using snake_case names,
  * e.g. { name: "my_new_prompt", description: "...", text: "..." }
  */
-const canonicalPrompts: Prompt[] = [];
+const canonicalPrompts: Prompt[] = [
+    {
+        name: "expert_inquiries",
+        description: "View latest DoIT expert inquiries",
+        messages: [
+            {
+                role: "user",
+                text: "List latest open expert inquiries by listing my last few support request ticket from DoiT API with status=open. If user has provided some criteria like platform or product, or subject keyword, first fetch the list and show those tickets matching the keyword first, then a summary of others",
+            },
+        ],
+        arguments: [
+            { name: "platform", description: "The cloud platform the inquiry is related to" },
+            { name: "product", description: "The product the inquiry is related to" },
+            {
+                name: "keyword",
+                description: "Keywords in the subject or the body of the ticket to filter the inquiries",
+            },
+        ],
+    },
+    {
+        name: "new_expert_inquiry",
+        description: "Create a new DoIT expert inquiry",
+        messages: [
+            {
+                role: "user",
+                text: "Create a new expert inquiry by submitting a new support request ticket to DoiT API. Ask for details, and confirm content before creating the ticket",
+            },
+        ],
+        arguments: [
+            { name: "subject", description: "The subject of the inquiry" },
+            { name: "body", description: "The body of the inquiry" },
+            { name: "platform", description: "The cloud platform the inquiry is related to" },
+            { name: "product", description: "The product the inquiry is related to" },
+            {
+                name: "severity",
+                description: `The severity level of the inquiry: ${formatEnumValues(Object.values(TicketSeverity))}`,
+            },
+        ],
+    },
+];
 
 /**
  * The exported list of prompts exposed by the MCP server, using snake_case names only.

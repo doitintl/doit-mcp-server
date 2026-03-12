@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TicketSeverity } from "../common/types.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -105,7 +106,7 @@ export const createTicketTool = {
                     severity: {
                         type: "string",
                         description: "Ticket severity",
-                        enum: ["low", "normal", "high", "urgent"],
+                        enum: Object.values(TicketSeverity),
                     },
                     subject: {
                         type: "string",
@@ -126,7 +127,7 @@ export const CreateTicketArgumentsSchema = z.object({
         created: z.string(),
         platform: z.enum(["doit", "google_cloud_platform", "amazon_web_services", "microsoft_azure"]),
         product: z.string(),
-        severity: z.enum(["low", "normal", "high", "urgent"]),
+        severity: z.nativeEnum(TicketSeverity),
         subject: z.string(),
     }),
 });
