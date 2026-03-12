@@ -1,4 +1,4 @@
-import { aws_global_resource_id, gcp_global_resource_id } from "../utils/filterFields.js";
+import { aws_global_resource_id, gcp_global_resource_id } from "./filterFields.js";
 import type { Prompt } from "./types.js";
 
 /**
