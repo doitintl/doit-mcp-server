@@ -399,7 +399,7 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[0].role).toBe("user");
         expect(response.messages[0].content.type).toBe("text");
         expect(response.messages[0].content.text).toContain("expert inquiries");
-        expect(response.messages[0].content.text).toContain("support request ticket");
+        expect(response.messages[0].content.text).toContain("support API");
     });
 
     it("returns prompt for expert_inquiries with arguments appended to message", async () => {

@@ -12,20 +12,22 @@ import type { Prompt } from "./types.js";
 const canonicalPrompts: Prompt[] = [
     {
         name: "expert_inquiries",
-        description: "View latest DoIT expert inquiries",
+        description: "List recent DoiT expert inquiries, optionally filtered locally by specified criteria",
         messages: [
             {
                 role: "user",
-                text: "List latest open expert inquiries by listing my last few support request ticket from DoiT API with status=open. If user has provided some criteria like platform or product, or subject keyword, first fetch the list and show those tickets matching the keyword first, then a summary of others",
+                text: "List recent expert inquiries from the DoiT support API by calling the `list_tickets` tool. First list the tickets with the specified status if provided, otherwise status that is not `closed`, show the list maximum of 20 or the limit argument, if specified. If filters such as platform, product, or keyword are provided, show tickets that contain the keyword in subject or body first, followed by a brief summary of the rest. Use the term 'expert inquiries' to refer to tickets in messages",
             },
         ],
         arguments: [
-            { name: "platform", description: "The cloud platform the inquiry is related to" },
-            { name: "product", description: "The product the inquiry is related to" },
+            { name: "status", description: "Enquiry status (open, new, pending, hold, closed, solved)" },
+            { name: "platform", description: "Related cloud platform" },
+            { name: "product", description: "Related product" },
             {
                 name: "keyword",
-                description: "Keywords in the subject or the body of the ticket to filter the inquiries",
+                description: "keywords in the subject or body of the inquiry",
             },
+            { name: "limit", description: "Number of inquiries to return" },
         ],
     },
 ];
