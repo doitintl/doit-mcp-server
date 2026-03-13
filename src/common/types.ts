@@ -1,1 +1,1 @@
-export { TicketSeverity } from "./types/tickets.js";
+export { TicketPlatform, TicketSeverity } from "./types/tickets.js";

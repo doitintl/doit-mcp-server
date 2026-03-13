@@ -27,6 +27,7 @@ describe("MCP Tools Integration", () => {
 
             expect(names).toEqual([
                 "create_allocation",
+                "create_ticket",
                 "get_alert",
                 "get_allocation",
                 "get_anomalies",

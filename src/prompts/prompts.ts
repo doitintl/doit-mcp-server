@@ -1,4 +1,5 @@
-import { toSnakeCase } from "../utils/util.js";
+import { TicketPlatform, TicketSeverity } from "../common/types.js";
+import { formatEnumValues, toSnakeCase } from "../utils/util.js";
 import { deprecateBySnakeCaseNotice } from "./helpers.js";
 import { legacyPrompts } from "./legacy.js";
 import type { Prompt } from "./types.js";
@@ -28,6 +29,29 @@ const canonicalPrompts: Prompt[] = [
                 description: "keywords in the subject or body of the inquiry",
             },
             { name: "limit", description: "Number of inquiries to return" },
+        ],
+    },
+    {
+        name: "create_expert_inquiry",
+        description: "Create a new DoiT expert inquiry with the specified details",
+        messages: [
+            {
+                role: "user",
+                text: `Create a new expert inquiry using the DoiT support API by calling the \`create_ticket\` tool. Use the provided subject, body, platform and severity to create the inquiry. If severity is not specified, default to '${TicketSeverity.NORMAL}'. Use tool 'list_platforms' for a list of valid platforms, then use tool 'list_products' to get a list of products for the chosen latform and request the user to specify a product. The valid severities are: ${formatEnumValues(Object.values(TicketSeverity))}. Use the term 'expert inquiry' to refer to tickets in messages. Before creating the expert inquiry, confirm the creation and after creation show the inquiry details including its ID and URL.`,
+            },
+        ],
+        arguments: [
+            { name: "subject", description: "Subject of the expert inquiry", required: true },
+            { name: "body", description: "Detailed description of the expert inquiry", required: true },
+            {
+                name: "platform",
+                description: `Related cloud platform (${formatEnumValues(Object.values(TicketPlatform))})`,
+                required: true,
+            },
+            {
+                name: "severity",
+                description: `Inquiry severity (${formatEnumValues(Object.values(TicketSeverity))})`,
+            },
         ],
     },
 ];
