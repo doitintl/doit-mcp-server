@@ -1,8 +1,16 @@
-import { TicketPlatform, TicketSeverity } from "../common/types.js";
+import { TicketSeverity, TicketStatus } from "../common/types.js";
 import { formatEnumValues, toSnakeCase } from "../utils/util.js";
 import { deprecateBySnakeCaseNotice } from "./helpers.js";
 import { legacyPrompts } from "./legacy.js";
 import type { Prompt } from "./types.js";
+
+const TOOL_LIST_PLATFORMS = "list_platforms";
+const TOOL_LIST_PRODUCTS = "list_products";
+const TOOL_LIST_TICKETS = "list_tickets";
+const TOOL_CREATE_TICKET = "create_ticket";
+const DEFAULT_TICKET_SEVERITY = TicketSeverity.NORMAL;
+const VALID_TICKET_SEVERITIES = formatEnumValues(Object.values(TicketSeverity));
+const VALID_TICKET_STATUSES = formatEnumValues(Object.values(TicketStatus));
 
 /**
  * The canonical prompts defined by the MCP server, using snake_case names only.
@@ -17,18 +25,14 @@ const canonicalPrompts: Prompt[] = [
         messages: [
             {
                 role: "user",
-                text: "List recent expert inquiries from the DoiT support API by calling the `list_tickets` tool. First list the tickets with the specified status if provided, otherwise status that is not `closed`, show the list maximum of 20 or the limit argument, if specified. If filters such as platform, product, or keyword are provided, show tickets that contain the keyword in subject or body first, followed by a brief summary of the rest. Use the term 'expert inquiries' to refer to tickets in messages",
+                text: `List recent expert inquiries from the DoiT support API by calling the \`${TOOL_LIST_TICKETS}\` tool. First list the tickets with the specified status if provided, otherwise status that is not \`closed\`, show the list maximum of 20 ticket, or the limit argument if specified. If more specific criteria like platform or product are provided, show tickets that match the criteria first, followed by a brief summary of the rest. Use the term 'expert inquiries' to refer to tickets in messages`,
             },
         ],
         arguments: [
-            { name: "status", description: "Enquiry status (open, new, pending, hold, closed, solved)" },
-            { name: "platform", description: "Related cloud platform" },
-            { name: "product", description: "Related product" },
-            {
-                name: "keyword",
-                description: "keywords in the subject or body of the inquiry",
-            },
-            { name: "limit", description: "Number of inquiries to return" },
+            { name: "status", description: `Optional, status (${VALID_TICKET_STATUSES})` },
+            { name: "platform", description: "Optional, related platform" },
+            { name: "product", description: "Optional, related product" },
+            { name: "limit", description: "Optional, number of items" },
         ],
     },
     {
@@ -37,20 +41,21 @@ const canonicalPrompts: Prompt[] = [
         messages: [
             {
                 role: "user",
-                text: `Create a new expert inquiry using the DoiT support API by calling the \`create_ticket\` tool. Use the provided subject, body, platform and severity to create the inquiry. If severity is not specified, default to '${TicketSeverity.NORMAL}'. Use tool 'list_platforms' for a list of valid platforms, then use tool 'list_products' to get a list of products for the chosen latform and request the user to specify a product. The valid severities are: ${formatEnumValues(Object.values(TicketSeverity))}. Use the term 'expert inquiry' to refer to tickets in messages. Before creating the expert inquiry, confirm the creation and after creation show the inquiry details including its ID and URL.`,
+                text: `Create a new expert inquiry using the DoiT support API. Follow these steps in order:
+1. Call the \`${TOOL_LIST_PLATFORMS}\` tool to get the list of valid platforms and ask the user to choose a platform.
+2. Once the user has chosen a platform, call the \`${TOOL_LIST_PRODUCTS}\` tool for the chosen platform to get the list of products and ask the user to choose a product.
+3. Ask the user for the body (detailed description) of the expert inquiry.
+4. Confirm the expert inquiry details with the user before creating it.
+5. Call the \`${TOOL_CREATE_TICKET}\` tool to create the expert inquiry.
+6. After creation, show the expert inquiry details including its ID and URL.
+The valid severities are: ${VALID_TICKET_SEVERITIES}. If severity is not specified, default to '${DEFAULT_TICKET_SEVERITY}'. Use the term 'expert inquiry' to refer to tickets in messages.`,
             },
         ],
         arguments: [
             { name: "subject", description: "Subject of the expert inquiry", required: true },
-            { name: "body", description: "Detailed description of the expert inquiry", required: true },
-            {
-                name: "platform",
-                description: `Related cloud platform (${formatEnumValues(Object.values(TicketPlatform))})`,
-                required: true,
-            },
             {
                 name: "severity",
-                description: `Inquiry severity (${formatEnumValues(Object.values(TicketSeverity))})`,
+                description: `Inquiry severity (${VALID_TICKET_SEVERITIES})`,
             },
         ],
     },

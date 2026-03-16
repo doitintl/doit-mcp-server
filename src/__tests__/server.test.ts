@@ -410,13 +410,12 @@ describe("GetPromptRequestSchema handler", () => {
         const response = await handler({
             params: {
                 name: "expert_inquiries",
-                arguments: { platform: "aws", keyword: "billing" },
+                arguments: { platform: "aws" },
             },
         });
 
         expect(response.messages).toHaveLength(1);
         expect(response.messages[0].content.text).toContain("platform: aws");
-        expect(response.messages[0].content.text).toContain("keyword: billing");
     });
 
     it("does not alter message text when no arguments are provided", async () => {
