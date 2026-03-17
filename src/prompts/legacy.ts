@@ -43,11 +43,6 @@ export const legacyPrompts: Prompt[] = [
         text: `Use the list_dimensions tool to explore available dimensions. Select dimensions that best match your reporting needs. Combine multiple dimensions for more granular analysis, and always review the filter fields reference for optimal filtering.`,
     },
     {
-        name: "Create Ticket",
-        description: "Best practice for creating support tickets",
-        text: `Before creating a ticket, ask the user if the ticket body is clear and if they want to add more details.`,
-    },
-    {
         name: "Generate Invoice Details Document",
         description: "Generate a document with invoice details table",
         text: `Create a document (Artifacts) with a table to display invoice details. Include the following columns: Invoice ID, Invoice Date, Due Date, Status, Total Amount, Balance Amount, Currency, and URL. For line items, create a separate table with columns: Description, Details, Price, Quantity, Type, and Currency. Add any relevant payment status or due date alerts. (Do not generate code, only a document)`,

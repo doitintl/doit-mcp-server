@@ -46,7 +46,6 @@ vi.mock(import("../tools/dimension.js"), async (importOriginal) => ({
 vi.mock(import("../tools/tickets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListTicketsRequest: vi.fn(),
-    handleCreateTicketRequest: vi.fn(),
 }));
 vi.mock(import("../tools/invoices.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -112,7 +111,6 @@ import {
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAllocationRequest,
-    handleCreateTicketRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
     handleGeneralError,
@@ -151,7 +149,7 @@ import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { createTicketTool, listTicketsTool } from "../tools/tickets.js";
+import { listTicketsTool } from "../tools/tickets.js";
 import { listUsersTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
@@ -216,7 +214,6 @@ describe("ListToolsRequestSchema handler", () => {
                 dimensionsTool,
                 dimensionTool,
                 listTicketsTool,
-                createTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -259,9 +256,7 @@ describe("ListPromptsRequestSchema handler", () => {
         const snakeCasePattern = /^[a-z][a-z0-9_]*$/;
 
         expect(names).toContain("allow_artifacts");
-        expect(names).toContain("create_ticket");
         expect(names).not.toContain("Allow Artifacts");
-        expect(names).not.toContain("Create Ticket");
         for (const name of names) {
             expect(name).toMatch(snakeCasePattern);
         }
@@ -522,21 +517,6 @@ describe("CallToolRequestSchema handler", () => {
         ["list_dimensions", "list_dimensions", { filter: "type:fixed" }, handleDimensionsRequest],
         ["get_dimension", "get_dimension", { id: "dimension-abc" }, handleDimensionRequest],
         ["list_tickets", "list_tickets", { pageSize: 5 }, handleListTicketsRequest],
-        [
-            "create_ticket",
-            "create_ticket",
-            {
-                ticket: {
-                    subject: "Test",
-                    body: "Test body",
-                    platform: "google_cloud_platform",
-                    product: "BigQuery",
-                    severity: "normal",
-                    created: "2024-01-15T10:00:00Z",
-                },
-            },
-            handleCreateTicketRequest,
-        ],
         ["list_invoices", "list_invoices", { pageToken: "next-page-token" }, handleListInvoicesRequest],
         ["get_invoice", "get_invoice", { id: "invoice-123" }, handleGetInvoiceRequest],
         ["list_allocations", "list_allocations", { pageToken: "next-page-token" }, handleListAllocationsRequest],

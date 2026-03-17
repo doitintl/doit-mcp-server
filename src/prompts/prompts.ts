@@ -1,15 +1,10 @@
-import { TicketSeverity, TicketStatus } from "../common/types.js";
+import { TicketStatus } from "../common/types.js";
 import { formatEnumValues, toSnakeCase } from "../utils/util.js";
 import { deprecateBySnakeCaseNotice } from "./helpers.js";
 import { legacyPrompts } from "./legacy.js";
 import type { Prompt } from "./types.js";
 
-const TOOL_LIST_PLATFORMS = "list_platforms";
-const TOOL_LIST_PRODUCTS = "list_products";
 const TOOL_LIST_TICKETS = "list_tickets";
-const TOOL_CREATE_TICKET = "create_ticket";
-const DEFAULT_TICKET_SEVERITY = TicketSeverity.NORMAL;
-const VALID_TICKET_SEVERITIES = formatEnumValues(Object.values(TicketSeverity));
 const VALID_TICKET_STATUSES = formatEnumValues(Object.values(TicketStatus));
 
 /**
@@ -33,30 +28,6 @@ const canonicalPrompts: Prompt[] = [
             { name: "platform", description: "Optional, related platform" },
             { name: "product", description: "Optional, related product" },
             { name: "limit", description: "Optional, number of items" },
-        ],
-    },
-    {
-        name: "create_expert_inquiry",
-        description: "Create a new DoiT expert inquiry with the specified details",
-        messages: [
-            {
-                role: "user",
-                text: `Create a new expert inquiry using the DoiT support API. Follow these steps in order:
-1. Call the \`${TOOL_LIST_PLATFORMS}\` tool to get the list of valid platforms and ask the user to choose a platform.
-2. Once the user has chosen a platform, call the \`${TOOL_LIST_PRODUCTS}\` tool for the chosen platform to get the list of products and ask the user to choose a product.
-3. Ask the user for the body (detailed description) of the expert inquiry.
-4. Confirm the expert inquiry details with the user before creating it.
-5. Call the \`${TOOL_CREATE_TICKET}\` tool to create the expert inquiry.
-6. After creation, show the expert inquiry details including its ID and URL.
-The valid severities are: ${VALID_TICKET_SEVERITIES}. If severity is not specified, default to '${DEFAULT_TICKET_SEVERITY}'. Use the term 'expert inquiry' to refer to tickets in messages.`,
-            },
-        ],
-        arguments: [
-            { name: "subject", description: "Subject of the expert inquiry", required: true },
-            {
-                name: "severity",
-                description: `Inquiry severity (${VALID_TICKET_SEVERITIES})`,
-            },
         ],
     },
 ];
