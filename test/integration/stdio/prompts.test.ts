@@ -40,6 +40,7 @@ describe("MCP Prompts Integration", () => {
             expect(names).toContain("query_best_practice");
             expect(names).toContain("trigger_cloudflow_flow");
             expect(names).toContain("search_expert_inquiries");
+            expect(names).toContain("expert_inquiries");
         });
     });
 
@@ -72,6 +73,17 @@ describe("MCP Prompts Integration", () => {
             expect(lastMessage.content.type).toBe("text");
             const text = lastMessage.content.type === "text" ? lastMessage.content.text : "";
             expect(text).toContain("flow-abc");
+        });
+    });
+
+    describe("expert_inquiries prompt", () => {
+        it("is listed and returns a user message referencing list_tickets", async () => {
+            const list = await client.listPrompts();
+            expect(list.prompts.find((p) => p.name === "expert_inquiries")).toBeDefined();
+            const result = await client.getPrompt({ name: "expert_inquiries" });
+            expect(result.messages[0].role).toBe("user");
+            const text = result.messages[0].content.type === "text" ? result.messages[0].content.text : "";
+            expect(text).toContain("list_tickets");
         });
     });
 
