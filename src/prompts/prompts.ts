@@ -5,7 +5,13 @@ import { legacyPrompts } from "./legacy.js";
 import type { Prompt } from "./types.js";
 
 const TOOL_LIST_TICKETS = "list_tickets";
+const TOOL_LIST_PRODUCTS = "list_products";
+const TOOL_LIST_PLATFORMS = "list_platforms";
 const VALID_TICKET_STATUSES = formatEnumValues(Object.values(TicketStatus));
+
+const PLATFORM_PRODUCT_RESOLUTION = `If platform or product criteria are provided, first call related tool (for platform \`${TOOL_LIST_PLATFORMS}\` and for product \`${TOOL_LIST_PRODUCTS}\`) to retrieve the available values, then find the closest matching platform or product to what the user entered before applying the filter. If the provided platform or product does not match to the tool results, ignore those provided values and skip matching/searching based on them, but inform the user at the end about the invalid product/platform value`;
+const EXPERT_INQUIRY_TERMINOLOGY_GUIDE =
+    "Use the term 'expert inquiry' to refer to a ticket or 'expert inquiries' to refer to tickets in messages";
 
 /**
  * The canonical prompts defined by the MCP server, using snake_case names only.
@@ -20,7 +26,7 @@ const canonicalPrompts: Prompt[] = [
         messages: [
             {
                 role: "user",
-                text: `List recent expert inquiries from the DoiT support API by calling the \`${TOOL_LIST_TICKETS}\` tool. First list the tickets with the specified status if provided, otherwise status that is not \`closed\`, show the list maximum of 20 ticket, or the limit argument if specified. If more specific criteria like platform or product are provided, show tickets that match the criteria first, followed by a brief summary of the rest. Use the term 'expert inquiries' to refer to tickets in messages`,
+                text: `List recent expert inquiries from the DoiT support API by calling the \`${TOOL_LIST_TICKETS}\` tool. First list the tickets with the specified status if provided, otherwise status that is not \`closed\`, show the list maximum of 20 tickets, or the limit argument if specified. If more specific criteria like platform or product are provided, show tickets that match the criteria first, followed by a brief summary of the rest. ${PLATFORM_PRODUCT_RESOLUTION} ${EXPERT_INQUIRY_TERMINOLOGY_GUIDE}`,
             },
         ],
         arguments: [
@@ -28,6 +34,21 @@ const canonicalPrompts: Prompt[] = [
             { name: "platform", description: "Optional, related platform" },
             { name: "product", description: "Optional, related product" },
             { name: "limit", description: "Optional, number of items" },
+        ],
+    },
+    {
+        name: "search_expert_inquiries",
+        description: "Search DoiT expert inquiries by keyword, optionally filtered by platform and product",
+        messages: [
+            {
+                role: "user",
+                text: `Search expert inquiries from the DoiT support API by calling the \`${TOOL_LIST_TICKETS}\` tool with a pageSize=100 to retrieve a set of results. Search through the returned tickets, to find tickets where subject or body matches the provided keyword. If platform or product are provided, further narrow the matches to tickets related to those criteria. ${PLATFORM_PRODUCT_RESOLUTION} Present the matching expert inquiries prominently. If no match found, call the tool again page by page (using pageToken) to fetch more results until a match found or no more results. At the end, include a brief summary with statistics about the full set of tickets searched (e.g. total retrieved, how many matched, ticket status breakdown). ${EXPERT_INQUIRY_TERMINOLOGY_GUIDE}`,
+            },
+        ],
+        arguments: [
+            { name: "keyword", description: "Keyword to search for in ticket subject and body", required: true },
+            { name: "platform", description: "Optional, filter matches by related platform" },
+            { name: "product", description: "Optional, filter matches by related product" },
         ],
     },
 ];

@@ -39,6 +39,7 @@ describe("MCP Prompts Integration", () => {
             expect(names).toContain("generate_report_document");
             expect(names).toContain("query_best_practice");
             expect(names).toContain("trigger_cloudflow_flow");
+            expect(names).toContain("search_expert_inquiries");
         });
     });
 
@@ -71,6 +72,51 @@ describe("MCP Prompts Integration", () => {
             expect(lastMessage.content.type).toBe("text");
             const text = lastMessage.content.type === "text" ? lastMessage.content.text : "";
             expect(text).toContain("flow-abc");
+        });
+    });
+
+    describe("search_expert_inquiries prompt", () => {
+        it("is listed with a description", async () => {
+            const result = await client.listPrompts();
+            const prompt = result.prompts.find((p) => p.name === "search_expert_inquiries");
+            expect(prompt).toBeDefined();
+            expect(prompt?.description).toBeTruthy();
+        });
+
+        it("lists keyword as required and platform/product as optional arguments", async () => {
+            const result = await client.listPrompts();
+            const prompt = result.prompts.find((p) => p.name === "search_expert_inquiries");
+            expect(prompt).toBeDefined();
+            const args = prompt?.arguments ?? [];
+            const keyword = args.find((a) => a.name === "keyword");
+            const platform = args.find((a) => a.name === "platform");
+            const product = args.find((a) => a.name === "product");
+            expect(keyword).toBeDefined();
+            expect(keyword?.required).toBe(true);
+            expect(platform).toBeDefined();
+            expect(platform?.required).toBeFalsy();
+            expect(product).toBeDefined();
+            expect(product?.required).toBeFalsy();
+        });
+
+        it("returns a user message when called with a keyword", async () => {
+            const result = await client.getPrompt({
+                name: "search_expert_inquiries",
+                arguments: { keyword: "billing" },
+            });
+            expect(result.messages).toBeDefined();
+            expect(result.messages.length).toBeGreaterThan(0);
+            expect(result.messages[0].role).toBe("user");
+            expect(result.messages[0].content.type).toBe("text");
+        });
+
+        it("prompt text references list_tickets tool", async () => {
+            const result = await client.getPrompt({
+                name: "search_expert_inquiries",
+                arguments: { keyword: "billing" },
+            });
+            const text = result.messages[0].content.type === "text" ? result.messages[0].content.text : "";
+            expect(text).toContain("list_tickets");
         });
     });
 });

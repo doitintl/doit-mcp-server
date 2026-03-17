@@ -413,6 +413,28 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[0].content.text).toContain("platform: aws");
     });
 
+    it("returns prompt for search_expert_inquiries with expected structure and content", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({ params: { name: "search_expert_inquiries" } });
+
+        expect(response.description).toContain("expert inquiries");
+        expect(response.messages).toHaveLength(1);
+        expect(response.messages[0].role).toBe("user");
+        const text: string = response.messages[0].content.text;
+        expect(text).toContain("list_tickets");
+    });
+
+    it("appends arguments to search_expert_inquiries message", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const response = await handler({
+            params: { name: "search_expert_inquiries", arguments: { keyword: "billing", platform: "gcp" } },
+        });
+
+        const text: string = response.messages[0].content.text;
+        expect(text).toContain("keyword: billing");
+        expect(text).toContain("platform: gcp");
+    });
+
     it("does not alter message text when no arguments are provided", async () => {
         prompts.push({
             name: "__test_no_args__",
