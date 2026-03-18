@@ -143,6 +143,11 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.labels);
     }),
 
+    // Cloud Diagrams
+    http.post(`${API_BASE}/clouddiagrams/v1/scheme/find`, () => {
+        return HttpResponse.json(fixtures.cloudDiagrams);
+    }),
+
     // CloudFlow trigger
     http.post(`${API_BASE}/cloudflow/v1/trigger/:flowId`, () => {
         return HttpResponse.json(fixtures.cloudflowTrigger);
