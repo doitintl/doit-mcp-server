@@ -869,6 +869,42 @@ describe("update_budget", () => {
             expect(makeDoitRequest).not.toHaveBeenCalled();
         });
 
+        it("should reject type fixed without endPeriod", async () => {
+            const args = {
+                id: "budget-1",
+                type: "fixed" as const,
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("endPeriod");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject type recurring without timeInterval", async () => {
+            const args = {
+                id: "budget-1",
+                type: "recurring" as const,
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("timeInterval");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject usePrevSpend false without amount", async () => {
+            const args = {
+                id: "budget-1",
+                usePrevSpend: false,
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("amount");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
         it("should reject collaborators without an owner role", async () => {
             const args = {
                 id: "budget-1",

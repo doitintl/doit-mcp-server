@@ -292,6 +292,15 @@ const updateBudgetRefinements = <T extends z.ZodTypeAny>(schema: T) =>
         .refine((data: any) => data.type !== "recurring" || data.endPeriod === undefined, {
             message: "'endPeriod' must not be set when type is 'recurring'",
         })
+        .refine((data: any) => data.type !== "fixed" || data.endPeriod !== undefined, {
+            message: "'endPeriod' is required when type is 'fixed'",
+        })
+        .refine((data: any) => data.type !== "recurring" || data.timeInterval !== undefined, {
+            message: "'timeInterval' is required when type is 'recurring'",
+        })
+        .refine((data: any) => data.usePrevSpend !== false || (typeof data.amount === "number" && data.amount > 0), {
+            message: "When 'usePrevSpend' is false, a positive 'amount' is required",
+        })
         .refine((data: any) => !data.collaborators || data.collaborators.some((c: any) => c.role === "owner"), {
             message: "Collaborators must include at least one member with role 'owner'",
         });
