@@ -318,18 +318,16 @@ describe("create_budget", () => {
         it("should accept usePrevSpend=true without amount", async () => {
             (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreateBudgetResponse);
 
-            const args = {
+            const { amount: _omit, ...args } = {
                 ...validRecurringArgs,
-                amount: undefined,
                 usePrevSpend: true,
             };
-            const { amount: _, ...expectedBody } = args;
 
             const response = await handleCreateBudgetRequest(args, mockToken);
 
             expect(makeDoitRequest).toHaveBeenCalledWith(BUDGETS_BASE_URL, mockToken, {
                 method: "POST",
-                body: expectedBody,
+                body: args,
                 customerContext: undefined,
             });
             expect(response.isError).toBeFalsy();
