@@ -584,9 +584,7 @@ describe("create_budget", () => {
                     type: "recurring" as const,
                     timeInterval: "month" as const,
                     startPeriod: 1704067200000,
-                    scopes: [
-                        { id: "cloud_provider", type: "fixed" as const, mode: "is" as const, values: ["aws"] },
-                    ],
+                    scopes: [{ id: "cloud_provider", type: "fixed" as const, mode: "is" as const, values: ["aws"] }],
                     collaborators: [{ role: "owner" as const, email: "test@example.com" }],
                 },
                 mockToken
@@ -602,10 +600,7 @@ describe("create_budget", () => {
 
         it("should not surface refinement errors when base schema fields are also invalid", async () => {
             const { scopes: _, ...argsWithoutScopes } = validRecurringArgs;
-            const response = await handleCreateBudgetRequest(
-                { ...argsWithoutScopes, currency: "FAKE" },
-                mockToken
-            );
+            const response = await handleCreateBudgetRequest({ ...argsWithoutScopes, currency: "FAKE" }, mockToken);
 
             expect(response.isError).toBe(true);
             const errorText = response.content[0].text;
@@ -623,6 +618,29 @@ describe("create_budget", () => {
 
             expect(response.isError).toBe(true);
             expect(response.content[0].text).toContain("email");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject recurring budget without timeInterval", async () => {
+            const { timeInterval: _, ...args } = validRecurringArgs;
+            const response = await handleCreateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("timeInterval");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject empty scopes array", async () => {
+            const response = await handleCreateBudgetRequest({ ...validRecurringArgs, scopes: [] }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject empty collaborators array", async () => {
+            const response = await handleCreateBudgetRequest({ ...validRecurringArgs, collaborators: [] }, mockToken);
+
+            expect(response.isError).toBe(true);
             expect(makeDoitRequest).not.toHaveBeenCalled();
         });
     });

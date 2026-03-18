@@ -147,16 +147,19 @@ const CreateBudgetBaseSchema = z.object({
         .describe(`Public sharing access level. Accepted values: ${formatEnumValues(BUDGET_PUBLIC_VALUES)}.`),
     scopes: z
         .array(BudgetScopeSchema)
+        .min(1)
         .optional()
         .describe("Filters that define the scope of the budget. Exactly one of scope or scopes must be provided."),
     scope: z
         .array(z.string())
+        .min(1)
         .optional()
         .describe(
             "List of allocations that define the budget scope (deprecated). Exactly one of scope or scopes must be provided."
         ),
     collaborators: z
         .array(CollaboratorSchema)
+        .min(1)
         .optional()
         .describe(
             "List of permitted users to view/edit the budget. If provided, must include at least one collaborator with role 'owner'."
@@ -191,16 +194,15 @@ const createBudgetRefinements = <T extends z.ZodTypeAny>(schema: T) =>
         .refine((data: any) => data.type !== "recurring" || data.endPeriod === undefined, {
             message: "'endPeriod' must not be set when type is 'recurring'",
         })
+        .refine((data: any) => data.type !== "recurring" || data.timeInterval !== undefined, {
+            message: "'timeInterval' is required when type is 'recurring'",
+        })
         .refine((data: any) => data.usePrevSpend === true || (data.amount !== undefined && data.amount > 0), {
             message: "'amount' is required and must be positive when 'usePrevSpend' is not true",
         })
-        .refine(
-            (data: any) =>
-                !data.collaborators ||
-                data.collaborators.length === 0 ||
-                data.collaborators.some((c: any) => c.role === "owner"),
-            { message: "Collaborators must include at least one member with role 'owner'" }
-        );
+        .refine((data: any) => !data.collaborators || data.collaborators.some((c: any) => c.role === "owner"), {
+            message: "Collaborators must include at least one member with role 'owner'",
+        });
 
 export const CreateBudgetArgumentsSchema = createBudgetRefinements(CreateBudgetBaseSchema);
 
