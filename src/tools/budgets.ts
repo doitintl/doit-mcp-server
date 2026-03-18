@@ -1,10 +1,21 @@
 import { z } from "zod";
 import type { BudgetDetails, BudgetsResponse } from "../types/budgets.js";
+import {
+    BUDGET_METRIC_VALUES,
+    BUDGET_PUBLIC_VALUES,
+    BUDGET_TIME_INTERVAL_VALUES,
+    BUDGET_TYPE_VALUES,
+    COLLABORATOR_ROLE_VALUES,
+    CURRENCY_VALUES,
+    SCOPE_MODE_VALUES,
+    SCOPE_TYPE_VALUES,
+} from "../types/budgets.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
     DOIT_API_BASE,
+    formatEnumValues,
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
@@ -63,6 +74,145 @@ export const getBudgetTool = {
     inputSchema: zodToMcpInputSchema(GetBudgetArgumentsSchema),
 };
 
+const BudgetScopeSchema = z.object({
+    id: z.string().describe("The field to filter on."),
+    type: z
+        .enum(SCOPE_TYPE_VALUES)
+        .describe(`The dimension type. Accepted values: ${formatEnumValues(SCOPE_TYPE_VALUES)}.`),
+    mode: z.enum(SCOPE_MODE_VALUES).describe(`Filter mode. Accepted values: ${formatEnumValues(SCOPE_MODE_VALUES)}.`),
+    inverse: z.boolean().optional().describe("Set to true to exclude the values."),
+    values: z.array(z.string()).optional().describe("Values to filter on."),
+});
+
+const CollaboratorSchema = z.object({
+    email: z.string().email().describe("Email address of the collaborator."),
+    role: z
+        .enum(COLLABORATOR_ROLE_VALUES)
+        .describe(`Role of the collaborator. Accepted values: ${formatEnumValues(COLLABORATOR_ROLE_VALUES)}.`),
+});
+
+const BudgetAlertSchema = z.object({
+    percentage: z.number().describe("Alert threshold as a percentage of the budget amount."),
+});
+
+const SlackChannelSchema = z.object({
+    customerId: z.string().optional().describe("Customer ID for the Slack channel."),
+    id: z.string().min(1).describe("Slack channel ID (required)."),
+    name: z.string().min(1).describe("Slack channel name (required)."),
+    shared: z.boolean().optional().describe("Whether the channel is shared."),
+    type: z.string().optional().describe("Slack channel type."),
+    workspace: z.string().optional().describe("Slack workspace identifier."),
+});
+
+const CreateBudgetBaseSchema = z.object({
+    name: z.string().min(1).describe("Budget name (required, non-empty)."),
+    amount: z.number().positive().optional().describe("Budget period amount. Required if usePrevSpend is false."),
+    currency: z
+        .enum(CURRENCY_VALUES)
+        .describe(`Currency code (required). Accepted values: ${formatEnumValues(CURRENCY_VALUES)}.`),
+    type: z
+        .enum(BUDGET_TYPE_VALUES)
+        .describe(`Budget type (required). Accepted values: ${formatEnumValues(BUDGET_TYPE_VALUES)}.`),
+    timeInterval: z
+        .enum(BUDGET_TIME_INTERVAL_VALUES)
+        .optional()
+        .describe(
+            `Recurring budget interval. Required for recurring budgets. Accepted values: ${formatEnumValues(BUDGET_TIME_INTERVAL_VALUES)}.`
+        ),
+    startPeriod: z.number().int().describe("Budget start date as a UNIX timestamp in milliseconds (required)."),
+    endPeriod: z
+        .number()
+        .int()
+        .optional()
+        .describe(
+            "Fixed budget end date as a UNIX timestamp in milliseconds. Required if type is fixed, must not be set for recurring."
+        ),
+    description: z.string().optional().describe("Budget description."),
+    usePrevSpend: z
+        .boolean()
+        .optional()
+        .describe("Use the last period's spend as the target amount for recurring budgets. Defaults to false."),
+    growthPerPeriod: z
+        .number()
+        .nonnegative()
+        .optional()
+        .describe("Periodical growth percentage in recurring budgets. Must be >= 0. Defaults to 0."),
+    metric: z
+        .enum(BUDGET_METRIC_VALUES)
+        .optional()
+        .describe(`Budget metric. Accepted values: ${formatEnumValues(BUDGET_METRIC_VALUES)}. Defaults to cost.`),
+    public: z
+        .enum(BUDGET_PUBLIC_VALUES)
+        .optional()
+        .describe(`Public sharing access level. Accepted values: ${formatEnumValues(BUDGET_PUBLIC_VALUES)}.`),
+    scopes: z
+        .array(BudgetScopeSchema)
+        .min(1)
+        .optional()
+        .describe("Filters that define the scope of the budget. Exactly one of scope or scopes must be provided."),
+    scope: z
+        .array(z.string())
+        .min(1)
+        .optional()
+        .describe(
+            "List of allocations that define the budget scope (deprecated). Exactly one of scope or scopes must be provided."
+        ),
+    collaborators: z
+        .array(CollaboratorSchema)
+        .min(1)
+        .optional()
+        .describe(
+            "List of permitted users to view/edit the budget. If provided, must include at least one collaborator with role 'owner'."
+        ),
+    alerts: z
+        .array(BudgetAlertSchema)
+        .max(3)
+        .optional()
+        .describe("List of up to three alert thresholds defined as a percentage of the amount."),
+    recipients: z
+        .array(z.string().email())
+        .optional()
+        .describe("List of email addresses to notify when reaching an alert threshold."),
+    recipientsSlackChannels: z
+        .array(SlackChannelSchema)
+        .optional()
+        .describe("List of Slack channels to notify when reaching an alert threshold."),
+    seasonalAmounts: z
+        .array(z.number())
+        .optional()
+        .describe("List of seasonal amounts for recurring budgets with different amounts per period."),
+});
+
+const createBudgetRefinements = <T extends z.ZodTypeAny>(schema: T) =>
+    schema
+        .refine((data: any) => (data.scope && !data.scopes) || (!data.scope && data.scopes), {
+            message: "Provide exactly one of 'scope' or 'scopes', not both and not neither",
+        })
+        .refine((data: any) => data.type !== "fixed" || data.endPeriod !== undefined, {
+            message: "'endPeriod' is required when type is 'fixed'",
+        })
+        .refine((data: any) => data.type !== "recurring" || data.endPeriod === undefined, {
+            message: "'endPeriod' must not be set when type is 'recurring'",
+        })
+        .refine((data: any) => data.type !== "recurring" || data.timeInterval !== undefined, {
+            message: "'timeInterval' is required when type is 'recurring'",
+        })
+        .refine((data: any) => data.usePrevSpend === true || (data.amount !== undefined && data.amount > 0), {
+            message: "'amount' is required and must be positive when 'usePrevSpend' is not true",
+        })
+        .refine((data: any) => !data.collaborators || data.collaborators.some((c: any) => c.role === "owner"), {
+            message: "Collaborators must include at least one member with role 'owner'",
+        });
+
+export const CreateBudgetArgumentsSchema = createBudgetRefinements(CreateBudgetBaseSchema);
+
+export const createBudgetTool = {
+    name: "create_budget",
+    description:
+        "Creates a new budget in the DoiT platform to track actual cloud spend against planned spend. Supports recurring and fixed budget types with configurable scopes, alerts, and collaborators.",
+    inputSchema: zodToMcpInputSchema(CreateBudgetArgumentsSchema),
+};
+
 export async function handleGetBudgetRequest(args: any, token: string) {
     try {
         const { id } = GetBudgetArgumentsSchema.parse(args);
@@ -107,5 +257,29 @@ export async function handleListBudgetsRequest(args: any, token: string) {
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling list budgets request");
+    }
+}
+
+export async function handleCreateBudgetRequest(args: any, token: string) {
+    try {
+        const parsed = CreateBudgetArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const body = { ...parsed };
+
+        const data = await makeDoitRequest<BudgetDetails>(BUDGETS_BASE_URL, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to create budget");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create budget request");
     }
 }

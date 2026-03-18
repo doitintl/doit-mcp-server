@@ -8,7 +8,7 @@ import {
 } from "../tools/allocations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleListAssetsRequest } from "../tools/assets.js";
-import { handleGetBudgetRequest, handleListBudgetsRequest } from "../tools/budgets.js";
+import { handleCreateBudgetRequest, handleGetBudgetRequest, handleListBudgetsRequest } from "../tools/budgets.js";
 import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
@@ -136,6 +136,9 @@ export async function executeToolHandler(
                 break;
             case "get_budget":
                 result = await handleGetBudgetRequest(args, token);
+                break;
+            case "create_budget":
+                result = await handleCreateBudgetRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);

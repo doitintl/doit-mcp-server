@@ -23,7 +23,14 @@ import {
 } from "./tools/allocations.js";
 import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
 import { handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
-import { getBudgetTool, handleGetBudgetRequest, handleListBudgetsRequest, listBudgetsTool } from "./tools/budgets.js";
+import {
+    createBudgetTool,
+    getBudgetTool,
+    handleCreateBudgetRequest,
+    handleGetBudgetRequest,
+    handleListBudgetsRequest,
+    listBudgetsTool,
+} from "./tools/budgets.js";
 import { findCloudDiagramsTool, handleFindCloudDiagramsRequest } from "./tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest, triggerCloudFlowTool } from "./tools/cloudflow.js";
 import {
@@ -109,6 +116,7 @@ export function createServer() {
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
+                createBudgetTool,
             ],
         };
     });
@@ -219,6 +227,7 @@ export {
     handleFindCloudDiagramsRequest,
     handleListBudgetsRequest,
     handleGetBudgetRequest,
+    handleCreateBudgetRequest,
     createErrorResponse,
     formatZodError,
     handleGeneralError,
