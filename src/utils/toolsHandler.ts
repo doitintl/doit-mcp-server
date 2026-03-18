@@ -8,7 +8,7 @@ import {
 } from "../tools/allocations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleListAssetsRequest } from "../tools/assets.js";
-import { handleCreateBudgetRequest, handleListBudgetsRequest } from "../tools/budgets.js";
+import { handleCreateBudgetRequest, handleGetBudgetRequest, handleListBudgetsRequest } from "../tools/budgets.js";
 import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
@@ -133,6 +133,9 @@ export async function executeToolHandler(
                 break;
             case "list_budgets":
                 result = await handleListBudgetsRequest(args, token);
+                break;
+            case "get_budget":
+                result = await handleGetBudgetRequest(args, token);
                 break;
             case "create_budget":
                 result = await handleCreateBudgetRequest(args, token);

@@ -108,7 +108,9 @@ import {
 import {
   CreateBudgetArgumentsSchema,
   createBudgetTool,
+  GetBudgetArgumentsSchema,
   ListBudgetsArgumentsSchema,
+  getBudgetTool,
   listBudgetsTool,
 } from "../../src/tools/budgets.js";
 
@@ -359,6 +361,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // Budgets tools
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);
+    this.registerTool(getBudgetTool, GetBudgetArgumentsSchema);
     this.registerTool(createBudgetTool, CreateBudgetArgumentsSchema);
 
     // Change Customer tool (requires special handling)

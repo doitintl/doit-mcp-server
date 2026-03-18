@@ -25,7 +25,9 @@ import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyReques
 import { handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
 import {
     createBudgetTool,
+    getBudgetTool,
     handleCreateBudgetRequest,
+    handleGetBudgetRequest,
     handleListBudgetsRequest,
     listBudgetsTool,
 } from "./tools/budgets.js";
@@ -113,6 +115,7 @@ export function createServer() {
                 getLabelTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
+                getBudgetTool,
                 createBudgetTool,
             ],
         };
@@ -223,6 +226,7 @@ export {
     handleGetLabelRequest,
     handleFindCloudDiagramsRequest,
     handleListBudgetsRequest,
+    handleGetBudgetRequest,
     handleCreateBudgetRequest,
     createErrorResponse,
     formatZodError,

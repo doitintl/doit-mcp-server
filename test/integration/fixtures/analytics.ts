@@ -216,6 +216,33 @@ export const budgetsFixture = {
     rowCount: 1,
 };
 
+export const budgetFixture = {
+    alerts: [{ forecastedDate: 1700090000000, percentage: 80, triggered: true }],
+    amount: 1000,
+    seasonalAmounts: [],
+    collaborators: [{ email: "alice@example.com", role: "owner" }],
+    createTime: 1700000000000,
+    currency: "USD",
+    currentUtilization: 50,
+    description: "Monthly cloud budget",
+    endPeriod: 1700100000000,
+    forecastedUtilization: 75,
+    growthPerPeriod: 0,
+    id: "budget-1",
+    metric: "cost",
+    name: "Monthly Budget",
+    public: "owner",
+    recipients: ["alice@example.com"],
+    recipientsSlackChannels: [],
+    scope: [],
+    scopes: [{ id: "cloud_provider", type: "fixed", inverse: false, mode: "is", values: ["google-cloud"] }],
+    startPeriod: 1700000000000,
+    timeInterval: "month",
+    type: "recurring",
+    updateTime: 1700050000000,
+    usePrevSpend: false,
+};
+
 export const createBudgetFixture = {
     id: "budget-new-1",
     name: "Test Budget",
