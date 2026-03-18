@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.6.0 (2026-03-18)
+
+### Features
+
+- feat: add tool get_budget (`3b00e68`)
+- feat: add list_budgets tool (`c915657`)
+- feat: add find_cloud_diagrams tool and related functionality (`8717dab`)
+- feat: add search expert inquriy prompt (`49be95f`)
+- feat: add prompts for expert inquiry (`1a2c59b`)
+
+### Bug Fixes
+
+- fix(security): update hono from 4.8.3 to 4.12.7 (`5ceab08`)
+
+### Chores
+
+- chore: better expert inquiry search prompt and tests (`8c92570`)
+- chore: better tests/docs (`f5ce130`)
+
+### Other Changes
+
+- refactor: move filterFields to prompts (`f422dd0`)
+- refactor: prompts from utils to top level package split into modules (`d50350c`)
+
+
 ## v0.5.0 (2026-03-11)
 
 ### Features
