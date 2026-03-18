@@ -1,3 +1,49 @@
+export const BUDGET_TYPE_VALUES = ["fixed", "recurring"] as const;
+export const BUDGET_TIME_INTERVAL_VALUES = ["day", "week", "month", "quarter", "year"] as const;
+export const BUDGET_METRIC_VALUES = ["cost", "amortized_cost"] as const;
+export const BUDGET_PUBLIC_VALUES = ["owner", "editor", "viewer"] as const;
+export const COLLABORATOR_ROLE_VALUES = ["owner", "editor", "viewer"] as const;
+export const SCOPE_MODE_VALUES = ["is", "starts_with", "ends_with", "contains", "regexp"] as const;
+export const SCOPE_TYPE_VALUES = [
+    "datetime",
+    "fixed",
+    "optional",
+    "label",
+    "tag",
+    "project_label",
+    "system_label",
+    "attribution",
+    "attribution_group",
+    "allocation",
+    "allocation_rule",
+    "gke",
+    "gke_label",
+] as const;
+export const CURRENCY_VALUES = [
+    "USD",
+    "ILS",
+    "EUR",
+    "AUD",
+    "CAD",
+    "GBP",
+    "DKK",
+    "NOK",
+    "SEK",
+    "BRL",
+    "SGD",
+    "MXN",
+    "CHF",
+    "MYR",
+    "TWD",
+    "EGP",
+    "ZAR",
+    "JPY",
+    "IDR",
+    "AED",
+    "THB",
+    "COP",
+] as const;
+
 export type BudgetAlertThreshold = {
     amount: number;
     percentage: number;
@@ -33,4 +79,49 @@ export type BudgetsResponse = {
     budgets: BudgetItem[];
     pageToken?: string;
     rowCount: number;
+};
+
+export type Collaborator = {
+    email?: string;
+    role?: string;
+};
+
+export type SlackChannel = {
+    customerId?: string;
+    id?: string;
+    name?: string;
+    shared?: boolean;
+    type?: string;
+    workspace?: string;
+};
+
+export type BudgetCreateUpdateAlert = {
+    percentage?: number;
+};
+
+export type Budget = {
+    id?: string;
+    name?: string;
+    amount?: number;
+    currency?: string;
+    type?: string;
+    timeInterval?: string;
+    startPeriod?: number;
+    endPeriod?: number;
+    description?: string;
+    createTime?: number;
+    updateTime?: number;
+    currentUtilization?: number;
+    forecastedUtilization?: number;
+    metric?: string;
+    public?: string;
+    usePrevSpend?: boolean;
+    growthPerPeriod?: number;
+    alerts?: { forecastedDate?: number; percentage?: number; triggered?: boolean }[];
+    collaborators?: Collaborator[];
+    recipients?: string[];
+    recipientsSlackChannels?: SlackChannel[];
+    scope?: string[];
+    scopes?: BudgetScope[];
+    seasonalAmounts?: number[];
 };

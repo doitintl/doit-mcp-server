@@ -154,6 +154,9 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Budgets
+    http.post(`${API_BASE}/analytics/v1/budgets`, () => {
+        return HttpResponse.json(fixtures.createBudget);
+    }),
     http.get(`${API_BASE}/analytics/v1/budgets`, () => {
         return HttpResponse.json(fixtures.budgets);
     }),

@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
-import { BUDGETS_BASE_URL, DEFAULT_MAX_RESULTS_BUDGETS, handleListBudgetsRequest } from "../budgets.js";
+import {
+    BUDGETS_BASE_URL,
+    DEFAULT_MAX_RESULTS_BUDGETS,
+    handleCreateBudgetRequest,
+    handleListBudgetsRequest,
+} from "../budgets.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
@@ -135,5 +140,118 @@ describe("budgets", () => {
             content: [{ type: "text", text: expect.stringContaining("Network error") }],
             isError: true,
         });
+    });
+});
+
+describe("create_budget", () => {
+    const mockToken = "fake-token";
+
+    const mockCreateBudgetResponse = {
+        id: "budget-new-1",
+        name: "Test Budget",
+        amount: 500,
+        currency: "USD",
+        type: "recurring",
+        timeInterval: "month",
+        startPeriod: 1704067200000,
+        createTime: 1704067200000,
+        metric: "cost",
+        usePrevSpend: false,
+        scopes: [{ id: "cloud_provider", type: "fixed", mode: "is", values: ["amazon-web-services"] }],
+        collaborators: [{ role: "owner", email: "test@example.com" }],
+    };
+
+    it("should call makeDoitRequest with POST method and body, and return created budget", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreateBudgetResponse);
+
+        const args = {
+            name: "Test Budget",
+            amount: 500,
+            currency: "USD",
+            type: "recurring",
+            timeInterval: "month",
+            startPeriod: 1704067200000,
+            scopes: [{ id: "cloud_provider", type: "fixed", mode: "is", values: ["amazon-web-services"] }],
+            collaborators: [{ role: "owner", email: "test@example.com" }],
+        };
+
+        const response = await handleCreateBudgetRequest(args, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(BUDGETS_BASE_URL, mockToken, {
+            method: "POST",
+            body: {
+                name: "Test Budget",
+                amount: 500,
+                currency: "USD",
+                type: "recurring",
+                timeInterval: "month",
+                startPeriod: 1704067200000,
+                scopes: [{ id: "cloud_provider", type: "fixed", mode: "is", values: ["amazon-web-services"] }],
+                collaborators: [{ role: "owner", email: "test@example.com" }],
+            },
+            customerContext: undefined,
+        });
+
+        const text = response.content[0].text;
+        const parsed = JSON.parse(text);
+        expect(parsed.id).toBe("budget-new-1");
+        expect(parsed.name).toBe("Test Budget");
+        expect(parsed.currency).toBe("USD");
+    });
+
+    it("should only include provided fields in the request body", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreateBudgetResponse);
+
+        await handleCreateBudgetRequest({ name: "Minimal Budget" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(BUDGETS_BASE_URL, mockToken, {
+            method: "POST",
+            body: { name: "Minimal Budget" },
+            customerContext: undefined,
+        });
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreateBudgetResponse);
+
+        await handleCreateBudgetRequest({ name: "Test Budget", customerContext: "customer-456" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(BUDGETS_BASE_URL, mockToken, {
+            method: "POST",
+            body: { name: "Test Budget" },
+            customerContext: "customer-456",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleCreateBudgetRequest({ name: "Test" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Failed to create budget") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleCreateBudgetRequest({ name: "Test" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return Zod validation error when name is missing", async () => {
+        const response = await handleCreateBudgetRequest({}, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });

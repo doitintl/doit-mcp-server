@@ -216,6 +216,28 @@ export const budgetsFixture = {
     rowCount: 1,
 };
 
+export const createBudgetFixture = {
+    id: "budget-new-1",
+    name: "Test Budget",
+    amount: 500,
+    currency: "USD",
+    type: "recurring",
+    timeInterval: "month",
+    startPeriod: 1704067200000,
+    createTime: 1704067200000,
+    metric: "cost",
+    usePrevSpend: false,
+    scopes: [
+        {
+            id: "cloud_provider",
+            type: "fixed",
+            mode: "is",
+            values: ["amazon-web-services"],
+        },
+    ],
+    collaborators: [{ role: "owner", email: "test@example.com" }],
+};
+
 export const alertFixture = {
     id: "alert-1",
     name: "Cost Spike Alert",

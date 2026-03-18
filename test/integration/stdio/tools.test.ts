@@ -27,6 +27,7 @@ describe("MCP Tools Integration", () => {
 
             expect(names).toEqual([
                 "create_allocation",
+                "create_budget",
                 "find_cloud_diagrams",
                 "get_alert",
                 "get_allocation",
@@ -511,6 +512,41 @@ describe("MCP Tools Integration", () => {
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
             expect(parsed.budgets).toHaveLength(1);
+        });
+    });
+
+    describe("create_budget", () => {
+        it("creates a budget via mock API", async () => {
+            const result = await client.callTool({
+                name: "create_budget",
+                arguments: {
+                    name: "Test Budget",
+                    amount: 500,
+                    currency: "USD",
+                    type: "recurring",
+                    timeInterval: "month",
+                    startPeriod: 1704067200000,
+                    scopes: [{ id: "cloud_provider", type: "fixed", mode: "is", values: ["amazon-web-services"] }],
+                    collaborators: [{ role: "owner", email: "test@example.com" }],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-new-1");
+            expect(parsed.name).toBe("Test Budget");
+            expect(parsed.amount).toBe(500);
+            expect(parsed.currency).toBe("USD");
+            expect(parsed.type).toBe("recurring");
+        });
+
+        it("creates a budget with minimal fields", async () => {
+            const result = await client.callTool({
+                name: "create_budget",
+                arguments: { name: "Minimal Budget" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-new-1");
         });
     });
 

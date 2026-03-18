@@ -5,6 +5,7 @@ import {
     allocationsFixture,
     budgetsFixture,
     createAllocationFixture,
+    createBudgetFixture,
     dimensionFixture,
     dimensionsFixture,
     labelFixture,
@@ -64,4 +65,5 @@ export const fixtures = {
     labels: labelsFixture,
 
     budgets: budgetsFixture,
+    createBudget: createBudgetFixture,
 };

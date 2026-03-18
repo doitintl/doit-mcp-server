@@ -106,6 +106,8 @@ import {
   findCloudDiagramsTool,
 } from "../../src/tools/cloudDiagrams.js";
 import {
+  CreateBudgetArgumentsSchema,
+  createBudgetTool,
   ListBudgetsArgumentsSchema,
   listBudgetsTool,
 } from "../../src/tools/budgets.js";
@@ -357,6 +359,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // Budgets tools
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);
+    this.registerTool(createBudgetTool, CreateBudgetArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
