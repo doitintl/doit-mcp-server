@@ -9,7 +9,7 @@ const TOOL_LIST_PRODUCTS = "list_products";
 const TOOL_LIST_PLATFORMS = "list_platforms";
 const VALID_TICKET_STATUSES = formatEnumValues(Object.values(TicketStatus) as string[]);
 
-const PLATFORM_PRODUCT_RESOLUTION = `If platform or product criteria are provided, first call related tool (for platform \`${TOOL_LIST_PLATFORMS}\` and for product \`${TOOL_LIST_PRODUCTS}\`) to retrieve the available values, then find the closest matching platform or product to what the user entered before applying the filter. If the provided platform or product does not match to the tool results, ignore those provided values and skip matching/searching based on them, but inform the user at the end about the invalid product/platform value`;
+const PLATFORM_PRODUCT_RESOLUTION = `If platform or product criteria are provided, first call related tool (for platform \`${TOOL_LIST_PLATFORMS}\` and for product \`${TOOL_LIST_PRODUCTS}\`) to retrieve the available values, then find the closest matching platform or product to what the user entered before applying the filter. If the provided platform or product does not match to the values returned by the tools, provide the list of valid values to the user and ask for clarification.`;
 const EXPERT_INQUIRY_TERMINOLOGY_GUIDE =
     "Use the term 'expert inquiry' to refer to a ticket or 'expert inquiries' to refer to tickets in messages";
 
