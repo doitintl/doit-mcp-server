@@ -41,6 +41,7 @@ describe("MCP Tools Integration", () => {
                 "list_alerts",
                 "list_allocations",
                 "list_assets",
+                "list_budgets",
                 "list_dimensions",
                 "list_invoices",
                 "list_labels",
@@ -486,6 +487,30 @@ describe("MCP Tools Integration", () => {
             expect(parsed[0].imageUrl).toContain("scheme-1");
             expect(parsed[1].diagramUrl).toContain("scheme-2");
             expect(parsed[1].imageUrl).toContain("scheme-2");
+        });
+    });
+
+    describe("list_budgets", () => {
+        it("returns budgets from mock API", async () => {
+            const result = await client.callTool({ name: "list_budgets", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.budgets).toHaveLength(1);
+            expect(parsed.budgets[0].id).toBe("budget-1");
+            expect(parsed.budgets[0].budgetName).toBe("Monthly Budget");
+            expect(parsed.budgets[0].owner).toBe("alice@example.com");
+            expect(parsed.budgets[0].currency).toBe("USD");
+            expect(parsed.rowCount).toBe(1);
+        });
+
+        it("accepts filter and pagination parameters", async () => {
+            const result = await client.callTool({
+                name: "list_budgets",
+                arguments: { filter: "owner:alice@example.com", maxResults: "10" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.budgets).toHaveLength(1);
         });
     });
 

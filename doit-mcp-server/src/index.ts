@@ -105,6 +105,10 @@ import {
   FindCloudDiagramsArgumentsSchema,
   findCloudDiagramsTool,
 } from "../../src/tools/cloudDiagrams.js";
+import {
+  ListBudgetsArgumentsSchema,
+  listBudgetsTool,
+} from "../../src/tools/budgets.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -350,6 +354,9 @@ export class DoitMCPAgent extends McpAgent {
 
     // Cloud Diagrams tools
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);
+
+    // Budgets tools
+    this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
