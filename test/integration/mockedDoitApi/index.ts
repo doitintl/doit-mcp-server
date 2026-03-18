@@ -152,4 +152,9 @@ export const mockedDoitApiHandlers = [
     http.post(`${API_BASE}/cloudflow/v1/trigger/:flowId`, () => {
         return HttpResponse.json(fixtures.cloudflowTrigger);
     }),
+
+    // Budgets
+    http.get(`${API_BASE}/analytics/v1/budgets`, () => {
+        return HttpResponse.json(fixtures.budgets);
+    }),
 ];

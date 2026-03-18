@@ -185,6 +185,37 @@ export const labelsFixture = {
     ],
 };
 
+export const budgetsFixture = {
+    budgets: [
+        {
+            alertThresholds: [{ amount: 0, percentage: 80 }],
+            amount: 1000,
+            budgetName: "Monthly Budget",
+            createTime: 1700000000000,
+            currency: "USD",
+            currentUtilization: 50,
+            endPeriod: 1700100000000,
+            id: "budget-1",
+            owner: "alice@example.com",
+            scopes: [
+                {
+                    id: "cloud_provider",
+                    type: "fixed",
+                    inverse: false,
+                    mode: "is",
+                    values: ["google-cloud"],
+                },
+            ],
+            startPeriod: 1700000000000,
+            timeInterval: "month",
+            updateTime: 1700050000000,
+            url: "https://console.doit.com/budgets/budget-1",
+        },
+    ],
+    pageToken: "",
+    rowCount: 1,
+};
+
 export const alertFixture = {
     id: "alert-1",
     name: "Cost Spike Alert",
