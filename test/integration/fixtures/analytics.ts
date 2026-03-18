@@ -265,6 +265,22 @@ export const createBudgetFixture = {
     collaborators: [{ role: "owner", email: "test@example.com" }],
 };
 
+export const updateBudgetFixture = {
+    id: "budget-1",
+    name: "Updated Budget",
+    amount: 2000,
+    currency: "USD",
+    type: "recurring",
+    timeInterval: "month",
+    startPeriod: 1700000000000,
+    createTime: 1700000000000,
+    updateTime: 1704153600000,
+    metric: "cost",
+    usePrevSpend: false,
+    scopes: [{ id: "cloud_provider", type: "fixed", mode: "is", values: ["google-cloud"] }],
+    collaborators: [{ role: "owner", email: "alice@example.com" }],
+};
+
 export const alertFixture = {
     id: "alert-1",
     name: "Cost Spike Alert",

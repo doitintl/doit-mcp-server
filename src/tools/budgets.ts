@@ -283,3 +283,78 @@ export async function handleCreateBudgetRequest(args: any, token: string) {
         return handleGeneralError(error, "handling create budget request");
     }
 }
+
+const updateBudgetRefinements = <T extends z.ZodTypeAny>(schema: T) =>
+    schema
+        .refine((data: any) => !(data.scope && data.scopes), {
+            message: "Provide at most one of 'scope' or 'scopes', not both",
+        })
+        .refine((data: any) => data.type !== "recurring" || data.endPeriod === undefined, {
+            message: "'endPeriod' must not be set when type is 'recurring'",
+        })
+        .refine((data: any) => !data.collaborators || data.collaborators.some((c: any) => c.role === "owner"), {
+            message: "Collaborators must include at least one member with role 'owner'",
+        });
+
+const UpdateBudgetBaseSchema = CreateBudgetBaseSchema.partial();
+
+export const UpdateBudgetArgumentsSchema = updateBudgetRefinements(
+    UpdateBudgetBaseSchema.extend({
+        id: z.string().min(1).describe("The ID of the budget to update (required)."),
+        name: UpdateBudgetBaseSchema.shape.name.describe("Budget name. Must be non-empty if provided."),
+        amount: UpdateBudgetBaseSchema.shape.amount.describe("Budget period amount."),
+        currency: UpdateBudgetBaseSchema.shape.currency.describe(
+            `Currency code. Accepted values: ${formatEnumValues(CURRENCY_VALUES)}.`
+        ),
+        type: UpdateBudgetBaseSchema.shape.type.describe(
+            `Budget type. Accepted values: ${formatEnumValues(BUDGET_TYPE_VALUES)}.`
+        ),
+        timeInterval: UpdateBudgetBaseSchema.shape.timeInterval.describe(
+            `Recurring budget interval. Accepted values: ${formatEnumValues(BUDGET_TIME_INTERVAL_VALUES)}.`
+        ),
+        startPeriod: UpdateBudgetBaseSchema.shape.startPeriod.describe(
+            "Budget start date as a UNIX timestamp in milliseconds."
+        ),
+        endPeriod: UpdateBudgetBaseSchema.shape.endPeriod.describe(
+            "Fixed budget end date as a UNIX timestamp in milliseconds. Must not be set for recurring budgets."
+        ),
+        scopes: UpdateBudgetBaseSchema.shape.scopes.describe(
+            "Filters that define the scope of the budget. Cannot be combined with scope."
+        ),
+        scope: UpdateBudgetBaseSchema.shape.scope.describe(
+            "List of allocations that define the budget scope (deprecated). Cannot be combined with scopes."
+        ),
+    })
+);
+
+export const updateBudgetTool = {
+    name: "update_budget",
+    description:
+        "Updates an existing budget in the DoiT platform. Supports partial updates — only the fields provided will be changed. The budget ID is required.",
+    inputSchema: zodToMcpInputSchema(UpdateBudgetArgumentsSchema),
+};
+
+export async function handleUpdateBudgetRequest(args: any, token: string) {
+    try {
+        const parsed = UpdateBudgetArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const { id, ...body } = parsed;
+        const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(id)}`;
+
+        const data = await makeDoitRequest<BudgetDetails>(url, token, {
+            method: "PATCH",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to update budget");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling update budget request");
+    }
+}
