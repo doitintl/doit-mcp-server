@@ -32,6 +32,7 @@ describe("MCP Tools Integration", () => {
                 "get_allocation",
                 "get_anomalies",
                 "get_anomaly",
+                "get_budget",
                 "get_cloud_incident",
                 "get_cloud_incidents",
                 "get_dimension",
@@ -511,6 +512,23 @@ describe("MCP Tools Integration", () => {
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
             expect(parsed.budgets).toHaveLength(1);
+        });
+    });
+
+    describe("get_budget", () => {
+        it("returns a specific budget", async () => {
+            const result = await client.callTool({ name: "get_budget", arguments: { id: "budget-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-1");
+            expect(parsed.name).toBe("Monthly Budget");
+            expect(parsed.currency).toBe("USD");
+            expect(parsed.currentUtilization).toBe(50);
+            expect(parsed.type).toBe("recurring");
+            expect(parsed.alerts).toHaveLength(1);
+            expect(parsed.alerts[0].percentage).toBe(80);
+            expect(parsed.alerts[0].triggered).toBe(true);
+            expect(parsed.collaborators[0].email).toBe("alice@example.com");
         });
     });
 

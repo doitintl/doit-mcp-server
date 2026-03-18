@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { BudgetsResponse } from "../types/budgets.js";
+import type { BudgetDetails, BudgetsResponse } from "../types/budgets.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
@@ -51,6 +51,33 @@ export const listBudgetsTool = {
         "Returns the list of budgets from the DoiT API that the user has access to. Supports pagination and filtering by owner, last modified time, and creation time range.",
     inputSchema: zodToMcpInputSchema(ListBudgetsArgumentsSchema),
 };
+
+export const GetBudgetArgumentsSchema = z.object({
+    id: z.string().min(1).describe("The ID of the budget to retrieve."),
+});
+
+export const getBudgetTool = {
+    name: "get_budget",
+    description:
+        "Returns the details like current utilization and configuration of the specified budget from the DoiT API.",
+    inputSchema: zodToMcpInputSchema(GetBudgetArgumentsSchema),
+};
+
+export async function handleGetBudgetRequest(args: any, token: string) {
+    try {
+        const { id } = GetBudgetArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(id)}`;
+        const data = await makeDoitRequest<BudgetDetails>(url, token, { method: "GET", customerContext });
+        if (!data) {
+            return createErrorResponse("Failed to retrieve budget details");
+        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get budget request");
+    }
+}
 
 export async function handleListBudgetsRequest(args: any, token: string) {
     try {

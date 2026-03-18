@@ -34,3 +34,50 @@ export type BudgetsResponse = {
     pageToken?: string;
     rowCount: number;
 };
+
+export type BudgetAlert = {
+    forecastedDate?: number;
+    percentage?: number;
+    triggered?: boolean;
+};
+
+export type BudgetCollaborator = {
+    email?: string;
+    role?: string;
+};
+
+export type BudgetSlackChannel = {
+    customerId?: string;
+    id: string;
+    name: string;
+    shared?: boolean;
+    type?: string;
+    workspace?: string;
+};
+
+export type BudgetDetails = {
+    alerts?: BudgetAlert[];
+    amount?: number;
+    seasonalAmounts?: number[];
+    collaborators?: BudgetCollaborator[];
+    createTime?: number;
+    currency: string;
+    currentUtilization?: number;
+    description?: string;
+    endPeriod?: number;
+    forecastedUtilization?: number;
+    growthPerPeriod?: number;
+    id: string;
+    metric?: string;
+    name: string;
+    public?: string;
+    recipients?: string[];
+    recipientsSlackChannels?: BudgetSlackChannel[];
+    scope?: string[];
+    scopes: BudgetScope[];
+    startPeriod?: number;
+    timeInterval?: string;
+    type: string;
+    updateTime?: number;
+    usePrevSpend?: boolean;
+};
