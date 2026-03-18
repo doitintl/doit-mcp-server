@@ -1,5 +1,5 @@
 export const gcp_global_resource_id = `
-global_resource_id: In GCP, a resource_id uniquely identifies resources (VMs, buckets, datasets, etc.) 
+global_resource_id: In GCP, a resource_id uniquely identifies resources (VMs, buckets, datasets, etc.)
 and typically includes the project, resource type, and location.
 
 Examples:
@@ -20,7 +20,7 @@ Always use global_resource_id to precisely identify, locate, and manage GCP reso
 `;
 
 export const aws_global_resource_id = `
-global_resource_id: In AWS, a resource_id typically takes the form of an Amazon Resource Name (ARN), 
+global_resource_id: In AWS, a resource_id typically takes the form of an Amazon Resource Name (ARN),
 which uniquely identifies resources across all AWS services.
 
 

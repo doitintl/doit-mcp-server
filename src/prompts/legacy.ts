@@ -1,4 +1,4 @@
-import { aws_global_resource_id, gcp_global_resource_id } from "../utils/filterFields.js";
+import { aws_global_resource_id, gcp_global_resource_id } from "./filterFields.js";
 import type { Prompt } from "./types.js";
 
 /**
@@ -41,11 +41,6 @@ export const legacyPrompts: Prompt[] = [
         name: "Dimension Usage Guidance",
         description: "Guidance for using dimensions effectively",
         text: `Use the list_dimensions tool to explore available dimensions. Select dimensions that best match your reporting needs. Combine multiple dimensions for more granular analysis, and always review the filter fields reference for optimal filtering.`,
-    },
-    {
-        name: "Create Ticket",
-        description: "Best practice for creating support tickets",
-        text: `Before creating a ticket, ask the user if the ticket body is clear and if they want to add more details.`,
     },
     {
         name: "Generate Invoice Details Document",
