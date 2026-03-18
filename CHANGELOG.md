@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.0 (2026-03-18)
+
+### Features
+
+- feat: tool create_budget (`204a09e`)
+
 ## v0.6.0 (2026-03-18)
 
 ### Features
@@ -23,7 +29,6 @@
 
 - refactor: move filterFields to prompts (`f422dd0`)
 - refactor: prompts from utils to top level package split into modules (`d50350c`)
-
 
 ## v0.5.0 (2026-03-11)
 
