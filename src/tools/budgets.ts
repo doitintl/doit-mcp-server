@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Budget, BudgetDetails, BudgetsResponse } from "../types/budgets.js";
+import type { BudgetDetails, BudgetsResponse } from "../types/budgets.js";
 import {
     BUDGET_METRIC_VALUES,
     BUDGET_PUBLIC_VALUES,
@@ -85,15 +85,14 @@ const BudgetScopeSchema = z.object({
 });
 
 const CollaboratorSchema = z.object({
-    email: z.string().optional().describe("Email address of the collaborator."),
+    email: z.string().email().describe("Email address of the collaborator."),
     role: z
         .enum(COLLABORATOR_ROLE_VALUES)
-        .optional()
         .describe(`Role of the collaborator. Accepted values: ${formatEnumValues(COLLABORATOR_ROLE_VALUES)}.`),
 });
 
 const BudgetAlertSchema = z.object({
-    percentage: z.number().optional().describe("Alert threshold as a percentage of the budget amount."),
+    percentage: z.number().describe("Alert threshold as a percentage of the budget amount."),
 });
 
 const SlackChannelSchema = z.object({
@@ -105,26 +104,29 @@ const SlackChannelSchema = z.object({
     workspace: z.string().optional().describe("Slack workspace identifier."),
 });
 
-export const CreateBudgetArgumentsSchema = z.object({
-    name: z.string().describe("Budget name."),
-    amount: z.number().optional().describe("Budget period amount. Required if usePrevSpend is false."),
+const CreateBudgetBaseSchema = z.object({
+    name: z.string().min(1).describe("Budget name (required, non-empty)."),
+    amount: z.number().positive().optional().describe("Budget period amount. Required if usePrevSpend is false."),
     currency: z
         .enum(CURRENCY_VALUES)
-        .optional()
-        .describe(`Currency code. Accepted values: ${formatEnumValues(CURRENCY_VALUES)}.`),
+        .describe(`Currency code (required). Accepted values: ${formatEnumValues(CURRENCY_VALUES)}.`),
     type: z
         .enum(BUDGET_TYPE_VALUES)
-        .optional()
-        .describe(`Budget type. Accepted values: ${formatEnumValues(BUDGET_TYPE_VALUES)}.`),
+        .describe(`Budget type (required). Accepted values: ${formatEnumValues(BUDGET_TYPE_VALUES)}.`),
     timeInterval: z
         .enum(BUDGET_TIME_INTERVAL_VALUES)
         .optional()
-        .describe(`Recurring budget interval. Accepted values: ${formatEnumValues(BUDGET_TIME_INTERVAL_VALUES)}.`),
-    startPeriod: z.number().optional().describe("Budget start date as a UNIX timestamp in milliseconds."),
+        .describe(
+            `Recurring budget interval. Required for recurring budgets. Accepted values: ${formatEnumValues(BUDGET_TIME_INTERVAL_VALUES)}.`
+        ),
+    startPeriod: z.number().int().describe("Budget start date as a UNIX timestamp in milliseconds (required)."),
     endPeriod: z
         .number()
+        .int()
         .optional()
-        .describe("Fixed budget end date as a UNIX timestamp in milliseconds. Required if type is fixed."),
+        .describe(
+            "Fixed budget end date as a UNIX timestamp in milliseconds. Required if type is fixed, must not be set for recurring."
+        ),
     description: z.string().optional().describe("Budget description."),
     usePrevSpend: z
         .boolean()
@@ -132,8 +134,9 @@ export const CreateBudgetArgumentsSchema = z.object({
         .describe("Use the last period's spend as the target amount for recurring budgets. Defaults to false."),
     growthPerPeriod: z
         .number()
+        .nonnegative()
         .optional()
-        .describe("Periodical growth percentage in recurring budgets. Defaults to 0."),
+        .describe("Periodical growth percentage in recurring budgets. Must be >= 0. Defaults to 0."),
     metric: z
         .enum(BUDGET_METRIC_VALUES)
         .optional()
@@ -142,18 +145,29 @@ export const CreateBudgetArgumentsSchema = z.object({
         .enum(BUDGET_PUBLIC_VALUES)
         .optional()
         .describe(`Public sharing access level. Accepted values: ${formatEnumValues(BUDGET_PUBLIC_VALUES)}.`),
-    scopes: z.array(BudgetScopeSchema).optional().describe("Filters that define the scope of the budget."),
+    scopes: z
+        .array(BudgetScopeSchema)
+        .optional()
+        .describe("Filters that define the scope of the budget. Exactly one of scope or scopes must be provided."),
     scope: z
         .array(z.string())
         .optional()
-        .describe("List of allocations that define the budget scope (deprecated, use scopes instead)."),
-    collaborators: z.array(CollaboratorSchema).optional().describe("List of permitted users to view/edit the budget."),
+        .describe(
+            "List of allocations that define the budget scope (deprecated). Exactly one of scope or scopes must be provided."
+        ),
+    collaborators: z
+        .array(CollaboratorSchema)
+        .optional()
+        .describe(
+            "List of permitted users to view/edit the budget. If provided, must include at least one collaborator with role 'owner'."
+        ),
     alerts: z
         .array(BudgetAlertSchema)
+        .max(3)
         .optional()
         .describe("List of up to three alert thresholds defined as a percentage of the amount."),
     recipients: z
-        .array(z.string())
+        .array(z.string().email())
         .optional()
         .describe("List of email addresses to notify when reaching an alert threshold."),
     recipientsSlackChannels: z
@@ -165,6 +179,30 @@ export const CreateBudgetArgumentsSchema = z.object({
         .optional()
         .describe("List of seasonal amounts for recurring budgets with different amounts per period."),
 });
+
+const createBudgetRefinements = <T extends z.ZodTypeAny>(schema: T) =>
+    schema
+        .refine((data: any) => (data.scope && !data.scopes) || (!data.scope && data.scopes), {
+            message: "Provide exactly one of 'scope' or 'scopes', not both and not neither",
+        })
+        .refine((data: any) => data.type !== "fixed" || data.endPeriod !== undefined, {
+            message: "'endPeriod' is required when type is 'fixed'",
+        })
+        .refine((data: any) => data.type !== "recurring" || data.endPeriod === undefined, {
+            message: "'endPeriod' must not be set when type is 'recurring'",
+        })
+        .refine((data: any) => data.usePrevSpend === true || (data.amount !== undefined && data.amount > 0), {
+            message: "'amount' is required and must be positive when 'usePrevSpend' is not true",
+        })
+        .refine(
+            (data: any) =>
+                !data.collaborators ||
+                data.collaborators.length === 0 ||
+                data.collaborators.some((c: any) => c.role === "owner"),
+            { message: "Collaborators must include at least one member with role 'owner'" }
+        );
+
+export const CreateBudgetArgumentsSchema = createBudgetRefinements(CreateBudgetBaseSchema);
 
 export const createBudgetTool = {
     name: "create_budget",
@@ -225,27 +263,9 @@ export async function handleCreateBudgetRequest(args: any, token: string) {
         const parsed = CreateBudgetArgumentsSchema.parse(args);
         const { customerContext } = args;
 
-        const body: Record<string, any> = { name: parsed.name };
-        if (parsed.amount !== undefined) body.amount = parsed.amount;
-        if (parsed.currency !== undefined) body.currency = parsed.currency;
-        if (parsed.type !== undefined) body.type = parsed.type;
-        if (parsed.timeInterval !== undefined) body.timeInterval = parsed.timeInterval;
-        if (parsed.startPeriod !== undefined) body.startPeriod = parsed.startPeriod;
-        if (parsed.endPeriod !== undefined) body.endPeriod = parsed.endPeriod;
-        if (parsed.description !== undefined) body.description = parsed.description;
-        if (parsed.usePrevSpend !== undefined) body.usePrevSpend = parsed.usePrevSpend;
-        if (parsed.growthPerPeriod !== undefined) body.growthPerPeriod = parsed.growthPerPeriod;
-        if (parsed.metric !== undefined) body.metric = parsed.metric;
-        if (parsed.public !== undefined) body.public = parsed.public;
-        if (parsed.scopes !== undefined) body.scopes = parsed.scopes;
-        if (parsed.scope !== undefined) body.scope = parsed.scope;
-        if (parsed.collaborators !== undefined) body.collaborators = parsed.collaborators;
-        if (parsed.alerts !== undefined) body.alerts = parsed.alerts;
-        if (parsed.recipients !== undefined) body.recipients = parsed.recipients;
-        if (parsed.recipientsSlackChannels !== undefined) body.recipientsSlackChannels = parsed.recipientsSlackChannels;
-        if (parsed.seasonalAmounts !== undefined) body.seasonalAmounts = parsed.seasonalAmounts;
+        const body = { ...parsed };
 
-        const data = await makeDoitRequest<Budget>(BUDGETS_BASE_URL, token, {
+        const data = await makeDoitRequest<BudgetDetails>(BUDGETS_BASE_URL, token, {
             method: "POST",
             body,
             customerContext,

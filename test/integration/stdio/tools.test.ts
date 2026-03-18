@@ -534,7 +534,7 @@ describe("MCP Tools Integration", () => {
     });
 
     describe("create_budget", () => {
-        it("creates a budget via mock API", async () => {
+        it("creates a recurring budget via mock API", async () => {
             const result = await client.callTool({
                 name: "create_budget",
                 arguments: {
@@ -557,14 +557,32 @@ describe("MCP Tools Integration", () => {
             expect(parsed.type).toBe("recurring");
         });
 
-        it("creates a budget with minimal fields", async () => {
+        it("creates a fixed budget with endPeriod via mock API", async () => {
+            const result = await client.callTool({
+                name: "create_budget",
+                arguments: {
+                    name: "Fixed Budget",
+                    amount: 1000,
+                    currency: "USD",
+                    type: "fixed",
+                    startPeriod: 1704067200000,
+                    endPeriod: 1706745600000,
+                    scope: ["allocation-1"],
+                    collaborators: [{ role: "owner", email: "test@example.com" }],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-new-1");
+        });
+
+        it("rejects invalid arguments before calling the API", async () => {
             const result = await client.callTool({
                 name: "create_budget",
                 arguments: { name: "Minimal Budget" },
             });
             const text = getTextContent(result);
-            const parsed = JSON.parse(text);
-            expect(parsed.id).toBe("budget-new-1");
+            expect(text).toContain("Invalid arguments");
         });
     });
 

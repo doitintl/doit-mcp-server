@@ -92,11 +92,6 @@ export type BudgetCollaborator = {
     role?: string;
 };
 
-export type Collaborator = {
-    email?: string;
-    role?: string;
-};
-
 export type BudgetSlackChannel = {
     customerId?: string;
     id: string;
@@ -104,46 +99,6 @@ export type BudgetSlackChannel = {
     shared?: boolean;
     type?: string;
     workspace?: string;
-};
-
-export type SlackChannel = {
-    customerId?: string;
-    id?: string;
-    name?: string;
-    shared?: boolean;
-    type?: string;
-    workspace?: string;
-};
-
-export type BudgetCreateUpdateAlert = {
-    percentage?: number;
-};
-
-export type Budget = {
-    id?: string;
-    name?: string;
-    amount?: number;
-    currency?: string;
-    type?: string;
-    timeInterval?: string;
-    startPeriod?: number;
-    endPeriod?: number;
-    description?: string;
-    createTime?: number;
-    updateTime?: number;
-    currentUtilization?: number;
-    forecastedUtilization?: number;
-    metric?: string;
-    public?: string;
-    usePrevSpend?: boolean;
-    growthPerPeriod?: number;
-    alerts?: { forecastedDate?: number; percentage?: number; triggered?: boolean }[];
-    collaborators?: Collaborator[];
-    recipients?: string[];
-    recipientsSlackChannels?: SlackChannel[];
-    scope?: string[];
-    scopes?: BudgetScope[];
-    seasonalAmounts?: number[];
 };
 
 export type BudgetDetails = {
