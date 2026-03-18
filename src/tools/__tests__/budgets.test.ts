@@ -574,5 +574,56 @@ describe("create_budget", () => {
             expect(response.content[0].text).toContain("owner");
             expect(makeDoitRequest).not.toHaveBeenCalled();
         });
+
+        it("should report multiple validation errors when several fields are invalid at once", async () => {
+            const response = await handleCreateBudgetRequest(
+                {
+                    name: "",
+                    amount: -100,
+                    currency: "FAKE",
+                    type: "recurring" as const,
+                    timeInterval: "month" as const,
+                    startPeriod: 1704067200000,
+                    scopes: [
+                        { id: "cloud_provider", type: "fixed" as const, mode: "is" as const, values: ["aws"] },
+                    ],
+                    collaborators: [{ role: "owner" as const, email: "test@example.com" }],
+                },
+                mockToken
+            );
+
+            expect(response.isError).toBe(true);
+            const errorText = response.content[0].text;
+            expect(errorText).toContain("name");
+            expect(errorText).toContain("amount");
+            expect(errorText).toContain("currency");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should not surface refinement errors when base schema fields are also invalid", async () => {
+            const { scopes: _, ...argsWithoutScopes } = validRecurringArgs;
+            const response = await handleCreateBudgetRequest(
+                { ...argsWithoutScopes, currency: "FAKE" },
+                mockToken
+            );
+
+            expect(response.isError).toBe(true);
+            const errorText = response.content[0].text;
+            expect(errorText).toContain("currency");
+            expect(errorText).not.toContain("scope");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid email in nested collaborator object", async () => {
+            const args = {
+                ...validRecurringArgs,
+                collaborators: [{ role: "owner" as const, email: "not-an-email" }],
+            };
+            const response = await handleCreateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("email");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
     });
 });
