@@ -97,8 +97,8 @@ const BudgetAlertSchema = z.object({
 
 const SlackChannelSchema = z.object({
     customerId: z.string().optional().describe("Customer ID for the Slack channel."),
-    id: z.string().optional().describe("Slack channel ID."),
-    name: z.string().optional().describe("Slack channel name."),
+    id: z.string().min(1).describe("Slack channel ID (required)."),
+    name: z.string().min(1).describe("Slack channel name (required)."),
     shared: z.boolean().optional().describe("Whether the channel is shared."),
     type: z.string().optional().describe("Slack channel type."),
     workspace: z.string().optional().describe("Slack workspace identifier."),
