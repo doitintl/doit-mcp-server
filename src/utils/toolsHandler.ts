@@ -8,6 +8,7 @@ import {
 } from "../tools/allocations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleListAssetsRequest } from "../tools/assets.js";
+import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
@@ -125,6 +126,9 @@ export async function executeToolHandler(
                 break;
             case "get_label":
                 result = await handleGetLabelRequest(args, token);
+                break;
+            case "find_cloud_diagrams":
+                result = await handleFindCloudDiagramsRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);

@@ -54,7 +54,10 @@ export async function handleValidateUserRequest(args: any, token: string) {
             // Format the response
             const formattedResponse = `User validation successful:
 Domain: ${userData.domain} (the domain of the user, make it bold)
-Email: ${userData.email}`;
+Email: ${userData.email}
+[hot-reload-check-v2] validate_user updated code path`;
+
+            console.error("[hot-reload-check-v2] validate_user handler executed");
 
             return createSuccessResponse(formattedResponse);
         } catch (error) {

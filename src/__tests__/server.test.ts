@@ -85,6 +85,10 @@ vi.mock(import("../tools/labels.js"), async (importOriginal) => ({
     handleListLabelsRequest: vi.fn(),
     handleGetLabelRequest: vi.fn(),
 }));
+vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleFindCloudDiagramsRequest: vi.fn(),
+}));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
@@ -138,6 +142,7 @@ import {
 } from "../tools/allocations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { listAssetsTool } from "../tools/assets.js";
+import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { dimensionTool } from "../tools/dimension.js";
@@ -231,6 +236,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listProductsTool,
                 listLabelsTool,
                 getLabelTool,
+                findCloudDiagramsTool,
             ],
         });
     });

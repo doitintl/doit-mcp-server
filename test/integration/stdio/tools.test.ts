@@ -27,6 +27,7 @@ describe("MCP Tools Integration", () => {
 
             expect(names).toEqual([
                 "create_allocation",
+                "find_cloud_diagrams",
                 "get_alert",
                 "get_allocation",
                 "get_anomalies",
@@ -469,6 +470,22 @@ describe("MCP Tools Integration", () => {
             expect(parsed.type).toBe("custom");
             expect(parsed.createTime).toBe("2026-01-01T00:00:00.000Z");
             expect(parsed.updateTime).toBe("2026-01-02T00:00:00.000Z");
+        });
+    });
+
+    describe("find_cloud_diagrams", () => {
+        it("returns diagram URLs for given resource IDs", async () => {
+            const result = await client.callTool({
+                name: "find_cloud_diagrams",
+                arguments: { resources: ["resource-1"] },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0].diagramUrl).toContain("scheme-1");
+            expect(parsed[0].imageUrl).toContain("scheme-1");
+            expect(parsed[1].diagramUrl).toContain("scheme-2");
+            expect(parsed[1].imageUrl).toContain("scheme-2");
         });
     });
 
