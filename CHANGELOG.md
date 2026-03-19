@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.8.0 (2026-03-19)
+
+### Features
+
+- feat: add update_budget tool (`7332fee`)
+
 ## v0.7.0 (2026-03-18)
 
 ### Features

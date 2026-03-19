@@ -157,6 +157,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Budgets
+    http.patch(`${API_BASE}/analytics/v1/budgets/:id`, ({ params }) => {
+        if (params.id === "budget-1") {
+            return HttpResponse.json(fixtures.updateBudget);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/analytics/v1/budgets/:id`, ({ params }) => {
         if (params.id === "budget-1") {
             return HttpResponse.json(fixtures.budget);

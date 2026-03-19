@@ -112,8 +112,10 @@ import {
   createBudgetTool,
   GetBudgetArgumentsSchema,
   ListBudgetsArgumentsSchema,
+  UpdateBudgetArgumentsSchema,
   getBudgetTool,
   listBudgetsTool,
+  updateBudgetTool,
 } from "../../src/tools/budgets.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
@@ -366,6 +368,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);
     this.registerTool(getBudgetTool, GetBudgetArgumentsSchema);
     this.registerTool(createBudgetTool, CreateBudgetArgumentsSchema);
+    this.registerTool(updateBudgetTool, UpdateBudgetArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {

@@ -36,7 +36,9 @@ import {
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
     handleListBudgetsRequest,
+    handleUpdateBudgetRequest,
     listBudgetsTool,
+    updateBudgetTool,
 } from "./tools/budgets.js";
 import { findCloudDiagramsTool, handleFindCloudDiagramsRequest } from "./tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest, triggerCloudFlowTool } from "./tools/cloudflow.js";
@@ -125,6 +127,7 @@ export function createServer() {
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
+                updateBudgetTool,
             ],
         };
     });
@@ -237,6 +240,7 @@ export {
     handleListBudgetsRequest,
     handleGetBudgetRequest,
     handleCreateBudgetRequest,
+    handleUpdateBudgetRequest,
     createErrorResponse,
     formatZodError,
     handleGeneralError,

@@ -58,6 +58,7 @@ describe("MCP Tools Integration", () => {
                 "run_query",
                 "trigger_cloud_flow",
                 "update_allocation",
+                "update_budget",
                 "validate_user",
             ]);
         });
@@ -619,6 +620,48 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "create_budget",
                 arguments: { name: "Minimal Budget" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_budget", () => {
+        it("updates a budget via mock API", async () => {
+            const result = await client.callTool({
+                name: "update_budget",
+                arguments: {
+                    id: "budget-1",
+                    name: "Updated Budget",
+                    amount: 2000,
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-1");
+            expect(parsed.name).toBe("Updated Budget");
+            expect(parsed.amount).toBe(2000);
+            expect(parsed.currency).toBe("USD");
+            expect(parsed.type).toBe("recurring");
+        });
+
+        it("accepts partial update with only name", async () => {
+            const result = await client.callTool({
+                name: "update_budget",
+                arguments: {
+                    id: "budget-1",
+                    name: "Renamed Budget",
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-1");
+        });
+
+        it("rejects invalid arguments before calling the API", async () => {
+            const result = await client.callTool({
+                name: "update_budget",
+                arguments: { name: "No ID Budget" },
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");
