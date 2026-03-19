@@ -5,6 +5,7 @@ import {
     allocationsFixture,
     budgetFixture,
     budgetsFixture,
+    createAlertFixture,
     createAllocationFixture,
     createBudgetFixture,
     dimensionFixture,
@@ -52,6 +53,7 @@ export const fixtures = {
 
     alerts: alertsFixture,
     alert: alertFixture,
+    createAlert: createAlertFixture,
 
     invoices: invoicesFixture,
     invoice: invoiceFixture,
