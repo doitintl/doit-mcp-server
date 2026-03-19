@@ -5,6 +5,7 @@ import {
     handleCreateAlertRequest,
     handleGetAlertRequest,
     handleListAlertsRequest,
+    handleUpdateAlertRequest,
 } from "../alerts.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -436,6 +437,267 @@ describe("create_alert", () => {
                     ...validCreateAlertArgs,
                     config: { ...validCreateAlertArgs.config, metric: { type: "basic", value: "" } },
                 },
+                mockToken
+            );
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+    });
+});
+
+describe("update_alert", () => {
+    const mockToken = "fake-token";
+    const alertId = "alert-123";
+
+    const validConfig = {
+        metric: { type: "basic", value: "cost" },
+        timeInterval: "month" as const,
+        value: 2000,
+    };
+
+    const validUpdateArgs = {
+        id: alertId,
+        config: validConfig,
+    };
+
+    const fullUpdateArgs = {
+        id: alertId,
+        name: "Updated Alert",
+        recipients: ["updated@example.com"],
+        config: {
+            condition: "value",
+            currency: "USD" as const,
+            metric: { type: "basic", value: "cost" },
+            operator: "gt" as const,
+            evaluateForEach: "",
+            scopes: [{ id: "project_name", type: "fixed" as const, mode: "is" as const, values: ["my-project"] }],
+            timeInterval: "month" as const,
+            dataSource: "billing",
+            value: 2000,
+        },
+    };
+
+    const mockUpdateAlertResponse = {
+        id: alertId,
+        name: "Updated Alert",
+        createTime: 1700000000000,
+        updateTime: 1700200000000,
+        lastAlerted: null,
+        recipients: ["updated@example.com"],
+        config: {
+            condition: "value",
+            currency: "USD",
+            metric: { type: "basic", value: "cost" },
+            operator: "gt",
+            evaluateForEach: "",
+            scopes: [],
+            timeInterval: "month",
+            dataSource: "billing",
+            value: 2000,
+        },
+    };
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    describe("happy paths", () => {
+        it("should call makeDoitRequest with PATCH, correct URL, and body excludes id", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdateAlertResponse);
+
+            await handleUpdateAlertRequest(validUpdateArgs, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}/${alertId}`, mockToken, {
+                method: "PATCH",
+                body: { config: validConfig },
+                customerContext: undefined,
+            });
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining(alertId));
+        });
+
+        it("should send all fields when all optional fields are provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdateAlertResponse);
+
+            await handleUpdateAlertRequest(fullUpdateArgs, mockToken);
+
+            const { id, ...expectedBody } = fullUpdateArgs;
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}/${alertId}`, mockToken, {
+                method: "PATCH",
+                body: expectedBody,
+                customerContext: undefined,
+            });
+            expect(createSuccessResponse).toHaveBeenCalled();
+        });
+    });
+
+    describe("customerContext and error handling", () => {
+        it("should pass customerContext to makeDoitRequest", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdateAlertResponse);
+
+            await handleUpdateAlertRequest({ ...validUpdateArgs, customerContext: "cust-123" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                expect.any(String),
+                mockToken,
+                expect.objectContaining({ customerContext: "cust-123" })
+            );
+        });
+
+        it("should return error response when API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            await handleUpdateAlertRequest(validUpdateArgs, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("Failed to update alert"));
+        });
+
+        it("should return error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+            await handleUpdateAlertRequest(validUpdateArgs, mockToken);
+
+            expect(handleGeneralError).toHaveBeenCalledWith(expect.any(Error), expect.stringContaining("alert"));
+        });
+    });
+
+    describe("validation errors", () => {
+        it("should reject when id is missing", async () => {
+            const { id: _, ...args } = validUpdateArgs;
+            await handleUpdateAlertRequest(args, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject when id is empty string", async () => {
+            await handleUpdateAlertRequest({ ...validUpdateArgs, id: "" }, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject when config is missing", async () => {
+            const { config: _, ...args } = validUpdateArgs;
+            await handleUpdateAlertRequest(args, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("config"));
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject when config.metric is missing", async () => {
+            const { metric: _, ...configWithoutMetric } = validUpdateArgs.config;
+            await handleUpdateAlertRequest({ ...validUpdateArgs, config: configWithoutMetric }, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("metric"));
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject when config.timeInterval is missing", async () => {
+            const { timeInterval: _, ...configWithoutInterval } = validUpdateArgs.config;
+            await handleUpdateAlertRequest({ ...validUpdateArgs, config: configWithoutInterval }, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("timeInterval"));
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject when config.value is missing", async () => {
+            const { value: _, ...configWithoutValue } = validUpdateArgs.config;
+            await handleUpdateAlertRequest({ ...validUpdateArgs, config: configWithoutValue }, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("value"));
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject when name is empty string", async () => {
+            await handleUpdateAlertRequest({ ...validUpdateArgs, name: "" }, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid email in recipients", async () => {
+            await handleUpdateAlertRequest({ ...validUpdateArgs, recipients: ["not-an-email"] }, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("email"));
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid timeInterval enum", async () => {
+            await handleUpdateAlertRequest(
+                { ...validUpdateArgs, config: { ...validConfig, timeInterval: "minute" } },
+                mockToken
+            );
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid operator enum", async () => {
+            await handleUpdateAlertRequest(
+                { ...validUpdateArgs, config: { ...validConfig, operator: "eq" } },
+                mockToken
+            );
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid currency enum", async () => {
+            await handleUpdateAlertRequest(
+                { ...validUpdateArgs, config: { ...validConfig, currency: "FAKE" } },
+                mockToken
+            );
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid scope type enum", async () => {
+            await handleUpdateAlertRequest(
+                {
+                    ...validUpdateArgs,
+                    config: {
+                        ...validConfig,
+                        scopes: [{ id: "test", type: "invalid_type", mode: "is" }],
+                    },
+                },
+                mockToken
+            );
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid scope mode enum", async () => {
+            await handleUpdateAlertRequest(
+                {
+                    ...validUpdateArgs,
+                    config: {
+                        ...validConfig,
+                        scopes: [{ id: "test", type: "fixed", mode: "invalid_mode" }],
+                    },
+                },
+                mockToken
+            );
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject empty metric type", async () => {
+            await handleUpdateAlertRequest(
+                { ...validUpdateArgs, config: { ...validConfig, metric: { type: "", value: "cost" } } },
+                mockToken
+            );
+
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject empty metric value", async () => {
+            await handleUpdateAlertRequest(
+                { ...validUpdateArgs, config: { ...validConfig, metric: { type: "basic", value: "" } } },
                 mockToken
             );
 

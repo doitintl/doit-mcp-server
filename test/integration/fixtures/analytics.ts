@@ -320,3 +320,23 @@ export const alertFixture = {
         value: 1000,
     },
 };
+
+export const updateAlertFixture = {
+    id: "alert-1",
+    name: "Updated Alert",
+    createTime: 1700000000000,
+    updateTime: 1700200000000,
+    lastAlerted: null,
+    recipients: ["updated@example.com"],
+    config: {
+        condition: "value",
+        currency: "USD",
+        metric: { type: "basic", value: "cost" },
+        operator: "gt",
+        evaluateForEach: "",
+        scopes: [{ id: "project_name", type: "fixed", mode: "is", values: ["my-project"] }],
+        timeInterval: "month",
+        dataSource: "billing",
+        value: 2000,
+    },
+};

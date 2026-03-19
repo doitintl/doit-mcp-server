@@ -68,6 +68,8 @@ import {
   getAlertTool,
   ListAlertsArgumentsSchema,
   listAlertsTool,
+  UpdateAlertArgumentsSchema,
+  updateAlertTool,
 } from "../../src/tools/alerts.js";
 import {
   ChangeCustomerArgumentsSchema,
@@ -341,6 +343,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(listAlertsTool, ListAlertsArgumentsSchema);
     this.registerTool(getAlertTool, GetAlertArgumentsSchema);
     this.registerTool(createAlertTool, CreateAlertArgumentsSchema);
+    this.registerTool(updateAlertTool, UpdateAlertArgumentsSchema);
 
     // Organizations tools
     this.registerTool(listOrganizationsTool, ListOrganizationsArgumentsSchema);

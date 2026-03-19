@@ -125,6 +125,9 @@ export const mockedDoitApiHandlers = [
     http.post(`${API_BASE}/analytics/v1/alerts`, () => {
         return HttpResponse.json(fixtures.createAlert);
     }),
+    http.patch(`${API_BASE}/analytics/v1/alerts/:id`, () => {
+        return HttpResponse.json(fixtures.updateAlert);
+    }),
     http.get(`${API_BASE}/analytics/v1/alerts/:id`, ({ params }) => {
         if (params.id === "alert-1") {
             return HttpResponse.json(fixtures.alert);

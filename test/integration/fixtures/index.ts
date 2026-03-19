@@ -15,6 +15,7 @@ import {
     queryResultFixture,
     reportResultsFixture,
     reportsFixture,
+    updateAlertFixture,
     updateAllocationFixture,
     updateBudgetFixture,
 } from "./analytics.js";
@@ -54,6 +55,7 @@ export const fixtures = {
     alerts: alertsFixture,
     alert: alertFixture,
     createAlert: createAlertFixture,
+    updateAlert: updateAlertFixture,
 
     invoices: invoicesFixture,
     invoice: invoiceFixture,
