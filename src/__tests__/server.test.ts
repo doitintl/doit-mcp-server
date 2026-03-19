@@ -67,6 +67,7 @@ vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListAlertsRequest: vi.fn(),
     handleGetAlertRequest: vi.fn(),
+    handleCreateAlertRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudflow.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -139,7 +140,7 @@ import {
     handleUpdateAllocationRequest,
     handleValidateUserRequest,
 } from "../server.js";
-import { getAlertTool, listAlertsTool } from "../tools/alerts.js";
+import { createAlertTool, getAlertTool, listAlertsTool } from "../tools/alerts.js";
 import {
     createAllocationTool,
     getAllocationTool,
@@ -235,6 +236,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listAssetsTool,
                 listAlertsTool,
                 getAlertTool,
+                createAlertTool,
                 triggerCloudFlowTool,
                 listOrganizationsTool,
                 listPlatformsTool,

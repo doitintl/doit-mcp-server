@@ -10,7 +10,14 @@ import {
     McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
-import { getAlertTool, handleGetAlertRequest, handleListAlertsRequest, listAlertsTool } from "./tools/alerts.js";
+import {
+    createAlertTool,
+    getAlertTool,
+    handleCreateAlertRequest,
+    handleGetAlertRequest,
+    handleListAlertsRequest,
+    listAlertsTool,
+} from "./tools/alerts.js";
 import {
     createAllocationTool,
     getAllocationTool,
@@ -105,6 +112,7 @@ export function createServer() {
                 listAssetsTool,
                 listAlertsTool,
                 getAlertTool,
+                createAlertTool,
                 triggerCloudFlowTool,
                 listOrganizationsTool,
                 listPlatformsTool,
@@ -217,6 +225,7 @@ export {
     handleTriggerCloudFlowRequest,
     handleListAlertsRequest,
     handleGetAlertRequest,
+    handleCreateAlertRequest,
     handleListOrganizationsRequest,
     handleListPlatformsRequest,
     handleListUsersRequest,

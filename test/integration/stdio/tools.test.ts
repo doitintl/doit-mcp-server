@@ -26,6 +26,7 @@ describe("MCP Tools Integration", () => {
             const names = result.tools.map((t) => t.name).sort();
 
             expect(names).toEqual([
+                "create_alert",
                 "create_allocation",
                 "create_budget",
                 "find_cloud_diagrams",
@@ -433,6 +434,44 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("USD");
             expect(text).toContain("billing");
             expect(text).toContain("1000");
+        });
+    });
+
+    describe("create_alert", () => {
+        it("creates an alert via mock API", async () => {
+            const result = await client.callTool({
+                name: "create_alert",
+                arguments: {
+                    name: "New Alert",
+                    recipients: ["user@example.com"],
+                    config: {
+                        condition: "value",
+                        currency: "USD",
+                        metric: { type: "basic", value: "cost" },
+                        operator: "gt",
+                        scopes: [{ id: "project_name", type: "fixed", mode: "is", values: ["my-project"] }],
+                        timeInterval: "month",
+                        dataSource: "billing",
+                        value: 500,
+                    },
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("alert-new-1");
+            expect(parsed.name).toBe("New Alert");
+            expect(parsed.config.currency).toBe("USD");
+            expect(parsed.config.value).toBe(500);
+            expect(parsed.recipients).toContain("user@example.com");
+        });
+
+        it("rejects invalid arguments before calling the API", async () => {
+            const result = await client.callTool({
+                name: "create_alert",
+                arguments: { name: "" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 

@@ -265,6 +265,26 @@ export const createBudgetFixture = {
     collaborators: [{ role: "owner", email: "test@example.com" }],
 };
 
+export const createAlertFixture = {
+    id: "alert-new-1",
+    name: "New Alert",
+    createTime: 1700000000000,
+    updateTime: 1700000000000,
+    lastAlerted: null,
+    recipients: ["user@example.com"],
+    config: {
+        condition: "value",
+        currency: "USD",
+        metric: { type: "basic", value: "cost" },
+        operator: "gt",
+        evaluateForEach: "",
+        scopes: [{ id: "project_name", type: "fixed", mode: "is", values: ["my-project"] }],
+        timeInterval: "month",
+        dataSource: "billing",
+        value: 500,
+    },
+};
+
 export const alertFixture = {
     id: "alert-1",
     name: "Cost Spike Alert",

@@ -62,6 +62,8 @@ import {
   listAssetsTool,
 } from "../../src/tools/assets.js";
 import {
+  CreateAlertArgumentsSchema,
+  createAlertTool,
   GetAlertArgumentsSchema,
   getAlertTool,
   ListAlertsArgumentsSchema,
@@ -336,6 +338,7 @@ export class DoitMCPAgent extends McpAgent {
     // Alerts tools
     this.registerTool(listAlertsTool, ListAlertsArgumentsSchema);
     this.registerTool(getAlertTool, GetAlertArgumentsSchema);
+    this.registerTool(createAlertTool, CreateAlertArgumentsSchema);
 
     // Organizations tools
     this.registerTool(listOrganizationsTool, ListOrganizationsArgumentsSchema);
