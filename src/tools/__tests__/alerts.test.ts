@@ -6,7 +6,6 @@ import {
     handleGetAlertRequest,
     handleListAlertsRequest,
     handleUpdateAlertRequest,
-
 } from "../alerts.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -705,6 +704,5 @@ describe("update_alert", () => {
             expect(createErrorResponse).toHaveBeenCalled();
             expect(makeDoitRequest).not.toHaveBeenCalled();
         });
-
     });
 });

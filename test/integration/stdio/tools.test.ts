@@ -526,7 +526,6 @@ describe("MCP Tools Integration", () => {
         });
     });
 
-
     describe("list_labels", () => {
         it("returns labels from mock API", async () => {
             const result = await client.callTool({ name: "list_labels", arguments: {} });
