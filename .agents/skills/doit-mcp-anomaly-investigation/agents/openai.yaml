@@ -1,0 +1,11 @@
+interface:
+  display_name: "DoiT MCP Anomaly Investigation"
+  short_description: "Investigate AWS and GCP anomalies with MCP"
+  default_prompt: "Use $doit-mcp-anomaly-investigation to investigate an AWS or GCP anomaly with the correct MCP sequence."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "doit-mcp-server"
+      description: "DoiT Cloud Intelligence MCP server"
+      transport: "streamable_http"
+      url: "https://mcp.doit.com/sse"
