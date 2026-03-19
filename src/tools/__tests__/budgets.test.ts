@@ -6,6 +6,7 @@ import {
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
     handleListBudgetsRequest,
+    handleUpdateBudgetRequest,
 } from "../budgets.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -637,6 +638,345 @@ describe("create_budget", () => {
 
         it("should reject empty collaborators array", async () => {
             const response = await handleCreateBudgetRequest({ ...validRecurringArgs, collaborators: [] }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+    });
+});
+
+describe("update_budget", () => {
+    const mockToken = "fake-token";
+
+    const mockUpdateBudgetResponse = {
+        id: "budget-1",
+        name: "Updated Budget",
+        amount: 2000,
+        currency: "USD",
+        type: "recurring",
+        timeInterval: "month",
+        startPeriod: 1704067200000,
+        createTime: 1700000000000,
+        updateTime: 1704153600000,
+        metric: "cost",
+        usePrevSpend: false,
+        scopes: [{ id: "cloud_provider", type: "fixed", mode: "is", values: ["google-cloud"] }],
+        collaborators: [{ role: "owner", email: "alice@example.com" }],
+    };
+
+    const validUpdateArgs = {
+        id: "budget-1",
+        name: "Updated Budget",
+        amount: 2000,
+    };
+
+    const fullUpdateArgs = {
+        id: "budget-1",
+        name: "Updated Budget",
+        amount: 2000,
+        currency: "USD" as const,
+        type: "recurring" as const,
+        timeInterval: "month" as const,
+        startPeriod: 1704067200000,
+        description: "Updated description",
+        growthPerPeriod: 5,
+        metric: "cost" as const,
+        public: "viewer" as const,
+        scopes: [
+            { id: "cloud_provider", type: "fixed" as const, mode: "is" as const, values: ["amazon-web-services"] },
+        ],
+        collaborators: [{ role: "owner" as const, email: "alice@example.com" }],
+        alerts: [{ percentage: 80 }],
+        recipients: ["alice@example.com"],
+        usePrevSpend: false,
+        seasonalAmounts: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200],
+    };
+
+    describe("happy paths", () => {
+        it("should update a budget with partial fields (name and amount only)", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdateBudgetResponse);
+
+            const response = await handleUpdateBudgetRequest(validUpdateArgs, mockToken);
+
+            const { id: _id, ...expectedBody } = validUpdateArgs;
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${BUDGETS_BASE_URL}/budget-1`, mockToken, {
+                method: "PATCH",
+                body: expectedBody,
+                customerContext: undefined,
+            });
+
+            const parsed = JSON.parse(response.content[0].text);
+            expect(parsed.id).toBe("budget-1");
+            expect(parsed.name).toBe("Updated Budget");
+            expect(parsed.amount).toBe(2000);
+        });
+
+        it("should update a budget with all optional fields", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdateBudgetResponse);
+
+            const response = await handleUpdateBudgetRequest(fullUpdateArgs, mockToken);
+
+            const { id: _id, ...expectedBody } = fullUpdateArgs;
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${BUDGETS_BASE_URL}/budget-1`, mockToken, {
+                method: "PATCH",
+                body: expectedBody,
+                customerContext: undefined,
+            });
+            expect(response.isError).toBeFalsy();
+        });
+
+        it("should update a fixed budget with endPeriod", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdateBudgetResponse);
+
+            const args = {
+                id: "budget-1",
+                type: "fixed" as const,
+                endPeriod: 1706745600000,
+            };
+
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBeFalsy();
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${BUDGETS_BASE_URL}/budget-1`, mockToken, {
+                method: "PATCH",
+                body: { type: "fixed", endPeriod: 1706745600000 },
+                customerContext: undefined,
+            });
+        });
+
+        it("should update only the id (empty body) when no other fields are provided", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdateBudgetResponse);
+
+            const response = await handleUpdateBudgetRequest({ id: "budget-1" }, mockToken);
+
+            expect(response.isError).toBeFalsy();
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${BUDGETS_BASE_URL}/budget-1`, mockToken, {
+                method: "PATCH",
+                body: {},
+                customerContext: undefined,
+            });
+        });
+
+        it("should accept scope (deprecated) without scopes for update", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdateBudgetResponse);
+
+            const args = { id: "budget-1", scope: ["allocation-1"] };
+
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBeFalsy();
+        });
+
+        it("should accept scopes without scope for update", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdateBudgetResponse);
+
+            const args = {
+                id: "budget-1",
+                scopes: [{ id: "cloud_provider", type: "fixed" as const, mode: "is" as const, values: ["aws"] }],
+            };
+
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBeFalsy();
+        });
+
+        it("should accept neither scope nor scopes for update", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdateBudgetResponse);
+
+            const response = await handleUpdateBudgetRequest({ id: "budget-1", name: "New Name" }, mockToken);
+
+            expect(response.isError).toBeFalsy();
+        });
+    });
+
+    describe("customerContext and error handling", () => {
+        it("should pass customerContext to makeDoitRequest", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdateBudgetResponse);
+
+            await handleUpdateBudgetRequest({ ...validUpdateArgs, customerContext: "customer-789" }, mockToken);
+
+            const { id: _id, ...expectedBody } = validUpdateArgs;
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${BUDGETS_BASE_URL}/budget-1`, mockToken, {
+                method: "PATCH",
+                body: expectedBody,
+                customerContext: "customer-789",
+            });
+        });
+
+        it("should return error response when API returns null", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+            const response = await handleUpdateBudgetRequest(validUpdateArgs, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to update budget") }],
+                isError: true,
+            });
+        });
+
+        it("should return error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+            const response = await handleUpdateBudgetRequest(validUpdateArgs, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Network error") }],
+                isError: true,
+            });
+        });
+    });
+
+    describe("validation errors", () => {
+        it("should reject when id is missing", async () => {
+            const response = await handleUpdateBudgetRequest({ name: "No ID" }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("id");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject empty string id", async () => {
+            const response = await handleUpdateBudgetRequest({ id: "" }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("id");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject when both scope and scopes are provided", async () => {
+            const args = {
+                id: "budget-1",
+                scope: ["allocation-1"],
+                scopes: [{ id: "cloud_provider", type: "fixed" as const, mode: "is" as const, values: ["aws"] }],
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("scope");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject endPeriod when type is recurring", async () => {
+            const args = {
+                id: "budget-1",
+                type: "recurring" as const,
+                endPeriod: 1706745600000,
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("endPeriod");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject type fixed without endPeriod", async () => {
+            const args = {
+                id: "budget-1",
+                type: "fixed" as const,
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("endPeriod");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject type recurring without timeInterval", async () => {
+            const args = {
+                id: "budget-1",
+                type: "recurring" as const,
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("timeInterval");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject usePrevSpend false without amount", async () => {
+            const args = {
+                id: "budget-1",
+                usePrevSpend: false,
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("amount");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject collaborators without an owner role", async () => {
+            const args = {
+                id: "budget-1",
+                collaborators: [{ role: "editor" as const, email: "editor@example.com" }],
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("owner");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid enum values for currency", async () => {
+            const response = await handleUpdateBudgetRequest({ id: "budget-1", currency: "INVALID" }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid enum values for type", async () => {
+            const response = await handleUpdateBudgetRequest({ id: "budget-1", type: "weekly" }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject negative amount", async () => {
+            const response = await handleUpdateBudgetRequest({ id: "budget-1", amount: -100 }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject more than 3 alerts", async () => {
+            const args = {
+                id: "budget-1",
+                alerts: [{ percentage: 25 }, { percentage: 50 }, { percentage: 75 }, { percentage: 100 }],
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject negative growthPerPeriod", async () => {
+            const response = await handleUpdateBudgetRequest({ id: "budget-1", growthPerPeriod: -5 }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject invalid email in nested collaborator object", async () => {
+            const args = {
+                id: "budget-1",
+                collaborators: [{ role: "owner" as const, email: "not-an-email" }],
+            };
+            const response = await handleUpdateBudgetRequest(args, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("email");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject empty scopes array", async () => {
+            const response = await handleUpdateBudgetRequest({ id: "budget-1", scopes: [] }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should reject empty collaborators array", async () => {
+            const response = await handleUpdateBudgetRequest({ id: "budget-1", collaborators: [] }, mockToken);
 
             expect(response.isError).toBe(true);
             expect(makeDoitRequest).not.toHaveBeenCalled();

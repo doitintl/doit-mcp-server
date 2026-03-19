@@ -15,6 +15,7 @@ import {
     reportResultsFixture,
     reportsFixture,
     updateAllocationFixture,
+    updateBudgetFixture,
 } from "./analytics.js";
 import { anomaliesFixture, anomalyFixture } from "./anomalies.js";
 import { assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
@@ -68,4 +69,5 @@ export const fixtures = {
     budgets: budgetsFixture,
     budget: budgetFixture,
     createBudget: createBudgetFixture,
+    updateBudget: updateBudgetFixture,
 };

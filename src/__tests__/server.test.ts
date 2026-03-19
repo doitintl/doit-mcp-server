@@ -94,6 +94,7 @@ vi.mock(import("../tools/budgets.js"), async (importOriginal) => ({
     handleListBudgetsRequest: vi.fn(),
     handleGetBudgetRequest: vi.fn(),
     handleCreateBudgetRequest: vi.fn(),
+    handleUpdateBudgetRequest: vi.fn(),
 }));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -148,7 +149,7 @@ import {
 } from "../tools/allocations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { listAssetsTool } from "../tools/assets.js";
-import { createBudgetTool, getBudgetTool, listBudgetsTool } from "../tools/budgets.js";
+import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
@@ -247,6 +248,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
+                updateBudgetTool,
             ],
         });
     });
