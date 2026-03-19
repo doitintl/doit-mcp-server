@@ -7,14 +7,23 @@ description: Investigate AWS and GCP anomalies with DoiT MCP plus cloud-specific
 
 Start from DoiT anomaly context, then branch into AWS or GCP inspection. Keep every follow-up call read-only and tightly scoped.
 
+## Reference Files
+
+Read these as needed during investigation:
+
+- `references/anomaly-fields.md` — field definitions, platform values, severity levels, feedback reasons. Read this when you need to interpret anomaly response fields or decide what to extract before cloud follow-up.
+- `references/service-abbreviations.md` — mapping between DoiT display names and cloud-native service names. Read this when a service name filter does not match in cloud MCP tools.
+- `references/common-patterns.md` — common root causes by service and anomaly type. Read this to form initial hypotheses faster, but always confirm with evidence.
+
 ## Investigation Order
 
 Use this order unless the user already supplied a specific anomaly payload:
 
 1. `get_anomalies` or `get_anomaly` on DoiT MCP
-2. Choose the cloud path from the anomaly details
-3. Run cloud-specific MCP follow-up
-4. Summarize root cause, evidence, and next actions
+2. Extract platform, account/project, time window, service, SKU, and `topSkus` details
+3. Choose the cloud path from the `platform` field
+4. Run cloud-specific MCP follow-up
+5. Summarize root cause, evidence, and next actions
 
 If the request is only about SKU mapping in the codebase, use the repo SKU-mapping skills instead of this skill.
 
@@ -23,6 +32,7 @@ If the request is only about SKU mapping in the codebase, use the repo SKU-mappi
 - Use `get_anomalies` when the user asks for recent or top anomalies.
 - Use `get_anomaly` when the anomaly ID is already known.
 - Extract the cloud, account or project, time window, service, and any SKU-like labels before touching AWS or GCP MCP.
+- Check `topSkus` for `resourceId` and `operation` — these are the best narrowing fields for cloud follow-up.
 - If DoiT MCP already answers the question, stop there.
 
 ## GCP Path
@@ -82,3 +92,16 @@ The AWS service in this repo is a proxy around `awslabs.core-mcp-server`, so do 
 - Separate confirmed cause, likely cause, and unresolved questions.
 - Recommend next actions only after identifying the cost driver.
 - If a missing permission blocked the investigation, state that clearly and stop.
+- Include the anomaly ID, platform, service, time window, and cost impact in every summary.
+
+## Gotchas
+
+- **Service name mismatch**: DoiT anomalies use abbreviated names (e.g., "Amazon EC2") while cloud APIs use full names (e.g., "Amazon Elastic Compute Cloud"). Check `references/service-abbreviations.md` before filtering.
+- **Platform field is the routing key**: Always use the `platform` field to decide GCP vs AWS path — do not infer from `serviceName` alone, as some service names are ambiguous.
+- **topSkus may be empty**: Not all anomalies have SKU-level breakdown. When `topSkus` is empty, fall back to service-level investigation.
+- **Sensitivity affects what you see**: Anomalies are filtered by customer sensitivity settings (-1/0/1). A "no anomalies found" result may mean the threshold is set high, not that nothing happened.
+- **Azure, Snowflake, Datadog, Databricks, OpenAI anomalies exist**: DoiT detects anomalies for these platforms too, but there are no cloud MCP follow-up tools for them yet. Report the DoiT MCP findings and stop — do not attempt cloud-level inspection.
+- **GCP access check is mandatory**: Skipping `check_gcp_access_permission` and going straight to `gcp_account_access` will fail. Always check first.
+- **AWS tool names are dynamic**: The AWS MCP proxy wraps `awslabs.core-mcp-server` — tool names may change between sessions. Always call `tools/list` first.
+- **Read-only only**: Never run mutating operations through cloud MCP during investigation. All follow-up must be read-only.
+- **Feedback on past anomalies**: If `customerFeedback` exists on similar anomalies, check the `reason` field — repeated `FAULTY_ANOMALY_DETECTION_MODEL` feedback means this service may produce false positives for this customer.

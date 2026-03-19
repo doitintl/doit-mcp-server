@@ -9,6 +9,11 @@ Set up DoiT MCP clients automatically when possible. For clients with writable c
 
 Do not invent alternate URLs, auth methods, or config keys.
 
+## Reference Files
+
+- `templates/` — ready-to-use config snippets for each automated client. Read and merge from these files instead of reconstructing config from prose.
+- `references/troubleshooting.md` — expanded troubleshooting table with client-specific notes. Read this when the user reports a connection issue.
+
 ## Setup Flow
 
 1. Ask the user which client to configure: ChatGPT, Claude (web), Claude Code, Codex, Cursor, or Gemini CLI.
@@ -22,96 +27,55 @@ Do not write placeholder credentials into config files.
 
 ## Automated Clients
 
-These clients have local config files the agent can write directly.
+These clients have local config files the agent can write directly. Use the template files in `templates/` as the source — read the template, merge into the existing config, and write back.
 
 ### Claude Code
 
 Config file: `~/.claude.json`
-
-Use the remote MCP connector with OAuth.
+Template: `templates/claude-code.json`
 
 1. Read `~/.claude.json`.
-2. If the user wants the server available only for one project, merge the following into that project's `mcpServers` key. Otherwise merge it into the top-level `mcpServers` key. Preserve any existing servers.
-
-```json
-{
-  "mcpServers": {
-    "doit-mcp": {
-      "type": "http",
-      "url": "https://mcp.doit.com/sse"
-    }
-  }
-}
-```
-
-3. Write the merged result back to `~/.claude.json`.
-4. Tell the user to open the MCP UI in Claude Code and click `Authorize` for the DoiT server.
-5. Tell the user to restart Claude Code or run `/mcp` if the server does not appear immediately after saving.
+2. Read `templates/claude-code.json` for the server snippet.
+3. If the user wants the server available only for one project, merge the snippet into that project's `mcpServers` key. Otherwise merge it into the top-level `mcpServers` key. Preserve any existing servers.
+4. Write the merged result back to `~/.claude.json`.
+5. Tell the user to open the MCP UI in Claude Code and click `Authorize` for the DoiT server.
+6. Tell the user to restart Claude Code or run `/mcp` if the server does not appear immediately after saving.
 
 ### Cursor
 
 Config file: `.cursor/mcp.json` in the project root.
-
-Use the remote MCP connector with OAuth.
+Template: `templates/cursor.json`
 
 1. Read `.cursor/mcp.json` (create it if it does not exist).
-2. Merge the following into the existing `mcpServers` key (preserve any existing servers):
-
-```json
-{
-  "mcpServers": {
-    "doit-mcp": {
-      "url": "https://mcp.doit.com/sse"
-    }
-  }
-}
-```
-
-3. Write the merged result back to `.cursor/mcp.json`.
-4. Tell the user to complete Cursor's OAuth flow for the DoiT server if Cursor prompts for authentication.
-5. Tell the user to restart Cursor or reload the MCP servers panel if the server does not appear immediately after saving.
+2. Read `templates/cursor.json` for the server snippet.
+3. Merge the snippet into the existing `mcpServers` key (preserve any existing servers).
+4. Write the merged result back to `.cursor/mcp.json`.
+5. Tell the user to complete Cursor's OAuth flow for the DoiT server if Cursor prompts for authentication.
+6. Tell the user to restart Cursor or reload the MCP servers panel if the server does not appear immediately after saving.
 
 ### Gemini CLI
 
 Config file: `~/.gemini/settings.json`
-
-Use the remote MCP connector with OAuth.
+Template: `templates/gemini-cli.json`
 
 1. Read `~/.gemini/settings.json` (create it if it does not exist).
-2. Merge the following into the existing `mcpServers` key (preserve any existing servers):
-
-```json
-{
-  "mcpServers": {
-    "doit-mcp": {
-      "url": "https://mcp.doit.com/sse"
-    }
-  }
-}
-```
-
-3. Write the merged result back to `~/.gemini/settings.json`.
-4. Tell the user to run `/mcp auth doit-mcp` in Gemini CLI if the server requires authentication.
-5. Tell the user to restart Gemini CLI if the server does not appear immediately after saving.
+2. Read `templates/gemini-cli.json` for the server snippet.
+3. Merge the snippet into the existing `mcpServers` key (preserve any existing servers).
+4. Write the merged result back to `~/.gemini/settings.json`.
+5. Tell the user to run `/mcp auth doit-mcp` in Gemini CLI if the server requires authentication.
+6. Tell the user to restart Gemini CLI if the server does not appear immediately after saving.
 
 ### Codex
 
 Config file: `~/.codex/config.toml`
-
-Use the remote MCP connector.
+Template: `templates/codex.toml`
 
 1. Read `~/.codex/config.toml` (create it if it does not exist).
-2. Merge the following TOML snippet into the file, preserving any existing `mcp_servers` entries:
-
-```toml
-[mcp_servers.doit-mcp]
-enabled = true
-url = "https://mcp.doit.com/sse"
-```
-
-3. Write the merged result back to `~/.codex/config.toml`.
-4. Tell the user they can alternatively run `codex mcp add doit-mcp --url https://mcp.doit.com/sse`.
-5. Tell the user to restart Codex or run `codex mcp list` to verify the server is registered, then complete the authorization flow if prompted.
+2. Read `templates/codex.toml` for the server snippet.
+3. Merge the TOML snippet into the file, preserving any existing `mcp_servers` entries.
+4. Write the merged result back to `~/.codex/config.toml`.
+5. Tell the user they can alternatively run `codex mcp add doit-mcp --url https://mcp.doit.com/sse`.
+6. Tell the user to restart Codex or run `codex mcp list` to verify the server is registered, then complete the authorization flow if prompted.
 
 ## Manual Clients
 
@@ -145,8 +109,22 @@ After setup, verify the connection:
 
 ## Troubleshooting
 
+For detailed troubleshooting, read `references/troubleshooting.md`.
+
+Quick checks:
+
 - If the user mixed local and remote setup patterns, correct the flow instead of trying to merge them.
 - If auth fails in Claude, Claude Code, Codex, Cursor, or Gemini CLI, verify the user completed the remote authorization flow in the client.
 - If auth fails in ChatGPT, check whether the wrong credential was used: API key plus Customer ID.
 - If a config file already has a `doit-mcp`, `doit`, or `doit_mcp_server` entry, ask the user whether to overwrite or replace it with the remote connector format for that client.
 - If the user asks for a client that is not covered here, say that supported clients are ChatGPT, Claude (web), Claude Code, Codex, Cursor, and Gemini CLI.
+
+## Gotchas
+
+- **Claude Code requires `"type": "http"`**: This is unique to Claude Code. Other clients infer the transport from the URL. Missing this field causes a silent failure.
+- **Cursor config is per-project**: The file lives at `.cursor/mcp.json` in the project root, not in the home directory. Setting it globally does not work.
+- **Codex uses TOML, not JSON**: Writing JSON syntax into `~/.codex/config.toml` will break the file. Use the TOML template.
+- **ChatGPT needs developer mode first**: Without enabling developer mode in Settings, the MCP connector option is not visible.
+- **Do not mix local and remote**: If the user previously had a stdio-based setup (`command: "npx"`, `DOIT_API_KEY`), it must be fully removed before adding the remote HTTP setup. Mixing both causes duplicate or conflicting sessions.
+- **OAuth tokens expire**: If a previously working connection stops, the most likely cause is an expired OAuth token. Re-authorize in the client UI.
+- **`Billing Profiles Admin` is required**: Without this DoiT permission, tool calls will return 403 even if the connection succeeds. Verify this before starting setup.
