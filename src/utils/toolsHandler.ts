@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { handleCreateAlertRequest, handleGetAlertRequest, handleListAlertsRequest } from "../tools/alerts.js";
+import {
+    handleCreateAlertRequest,
+    handleGetAlertRequest,
+    handleListAlertsRequest,
+    handleUpdateAlertRequest,
+} from "../tools/alerts.js";
+
 import {
     handleCreateAllocationRequest,
     handleGetAllocationRequest,
@@ -115,6 +121,10 @@ export async function executeToolHandler(
             case "create_alert":
                 result = await handleCreateAlertRequest(args, token);
                 break;
+            case "update_alert":
+                result = await handleUpdateAlertRequest(args, token);
+                break;
+
             case "list_organizations":
                 result = await handleListOrganizationsRequest(args, token);
                 break;

@@ -244,3 +244,45 @@ export async function handleCreateAlertRequest(args: any, token: string) {
         return handleGeneralError(error, "handling create alert request");
     }
 }
+
+// Unlike update_budget (which uses .partial()), config is required here because
+// the public AlertUpdateRequest contract explicitly requires it.
+export const UpdateAlertArgumentsSchema = z.object({
+    id: z.string().min(1).describe("The ID of the alert to update (required)."),
+    config: AlertConfigSchema.describe("Parameters that define when and how the alert is evaluated (required)."),
+    name: z.string().min(1).optional().describe("Alert name. Must be non-empty if provided."),
+    recipients: z
+        .array(z.string().email())
+        .optional()
+        .describe("List of email addresses to notify when the alert is triggered."),
+});
+
+export const updateAlertTool = {
+    name: "update_alert",
+    description:
+        "Updates an existing alert in the DoiT platform. The alert ID and config are required. Name and recipients are optional.",
+    inputSchema: zodToMcpInputSchema(UpdateAlertArgumentsSchema),
+};
+
+export async function handleUpdateAlertRequest(args: any, token: string) {
+    try {
+        const parsed = UpdateAlertArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const { id, ...body } = parsed;
+        const url = `${ALERTS_BASE_URL}/${encodeURIComponent(id)}`;
+
+        const data = await makeDoitRequest<Alert>(url, token, {
+            method: "PATCH",
+            body,
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to update alert");
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling update alert request");
+    }
+}

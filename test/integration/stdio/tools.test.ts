@@ -57,6 +57,7 @@ describe("MCP Tools Integration", () => {
                 "list_users",
                 "run_query",
                 "trigger_cloud_flow",
+                "update_alert",
                 "update_allocation",
                 "update_budget",
                 "validate_user",
@@ -470,6 +471,55 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "create_alert",
                 arguments: { name: "" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_alert", () => {
+        it("updates an alert via mock API", async () => {
+            const result = await client.callTool({
+                name: "update_alert",
+                arguments: {
+                    id: "alert-1",
+                    config: {
+                        metric: { type: "basic", value: "cost" },
+                        timeInterval: "month",
+                        value: 2000,
+                    },
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("alert-1");
+            expect(parsed.name).toBe("Updated Alert");
+            expect(parsed.config.value).toBe(2000);
+            expect(parsed.recipients).toContain("updated@example.com");
+        });
+
+        it("accepts optional name and recipients", async () => {
+            const result = await client.callTool({
+                name: "update_alert",
+                arguments: {
+                    id: "alert-1",
+                    name: "Renamed Alert",
+                    recipients: ["new@example.com"],
+                    config: {
+                        metric: { type: "basic", value: "cost" },
+                        timeInterval: "month",
+                        value: 2000,
+                    },
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Updated Alert");
+        });
+
+        it("rejects invalid arguments before calling the API", async () => {
+            const result = await client.callTool({
+                name: "update_alert",
+                arguments: { id: "alert-1" }, // missing config
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");
