@@ -5,6 +5,7 @@ import {
     handleListAlertsRequest,
     handleUpdateAlertRequest,
 } from "../tools/alerts.js";
+
 import {
     handleCreateAllocationRequest,
     handleGetAllocationRequest,
@@ -123,6 +124,7 @@ export async function executeToolHandler(
             case "update_alert":
                 result = await handleUpdateAlertRequest(args, token);
                 break;
+
             case "list_organizations":
                 result = await handleListOrganizationsRequest(args, token);
                 break;

@@ -57,6 +57,7 @@ export const fixtures = {
     createAlert: createAlertFixture,
     updateAlert: updateAlertFixture,
 
+
     invoices: invoicesFixture,
     invoice: invoiceFixture,
     assets: assetsFixture,

@@ -345,6 +345,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(createAlertTool, CreateAlertArgumentsSchema);
     this.registerTool(updateAlertTool, UpdateAlertArgumentsSchema);
 
+
     // Organizations tools
     this.registerTool(listOrganizationsTool, ListOrganizationsArgumentsSchema);
 

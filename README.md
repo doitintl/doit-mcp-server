@@ -154,6 +154,7 @@ This MCP server provides many tools including the following:
 - [`create_alert`](https://developer.doit.com/reference/createalert): Creates a new alert to notify when cloud costs exceed defined thresholds
 - [`update_alert`](https://developer.doit.com/reference/updatealert): Updates an existing alert by ID
 
+
 ## Usage Examples
 
 Here are some common queries you can ask using the DoiT MCP server:

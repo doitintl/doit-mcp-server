@@ -19,6 +19,7 @@ import {
     handleUpdateAlertRequest,
     listAlertsTool,
     updateAlertTool,
+
 } from "./tools/alerts.js";
 import {
     createAllocationTool,
@@ -118,6 +119,7 @@ export function createServer() {
                 getAlertTool,
                 createAlertTool,
                 updateAlertTool,
+
                 triggerCloudFlowTool,
                 listOrganizationsTool,
                 listPlatformsTool,
@@ -233,6 +235,7 @@ export {
     handleGetAlertRequest,
     handleCreateAlertRequest,
     handleUpdateAlertRequest,
+
     handleListOrganizationsRequest,
     handleListPlatformsRequest,
     handleListUsersRequest,

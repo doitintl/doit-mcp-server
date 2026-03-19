@@ -286,3 +286,4 @@ export async function handleUpdateAlertRequest(args: any, token: string) {
         return handleGeneralError(error, "handling update alert request");
     }
 }
+
