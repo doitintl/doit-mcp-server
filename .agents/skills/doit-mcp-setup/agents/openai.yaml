@@ -7,5 +7,5 @@ dependencies:
     - type: "mcp"
       value: "doit-mcp-server"
       description: "DoiT Cloud Intelligence MCP server"
-      transport: "streamable_http"
+      transport: "sse"
       url: "https://mcp.doit.com/sse"
