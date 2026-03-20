@@ -54,7 +54,11 @@ export const mockedDoitApiHandlers = [
     // Reports
     http.post(`${API_BASE}/analytics/v1/reports`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...fixtures.createReport, _requestBody: body });
+        return HttpResponse.json({
+            ...fixtures.createReport,
+            ...(body as Record<string, unknown>),
+            _requestBody: body,
+        });
     }),
     http.get(`${API_BASE}/analytics/v1/reports/:id`, ({ params }) => {
         if (params.id === "report-1") {
