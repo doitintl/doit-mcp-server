@@ -506,7 +506,7 @@ const TimeSettingsSchema = z
     });
 
 const TimeSettingsSecondarySchema = z.object({
-    amount: z.number().int().optional().describe("Number of periods to shift back."),
+    amount: z.number().int().min(0).optional().describe("Number of periods to shift back (non-negative)."),
     unit: z
         .enum(SECONDARY_TIME_UNIT_VALUES)
         .optional()
@@ -627,80 +627,94 @@ const ExternalSplitSchema = z
         }
     });
 
-export const ReportConfigSchema = z.object({
-    dataSource: z
-        .enum(DATA_SOURCE_VALUES)
-        .optional()
-        .describe(`Data source for the report. Accepted values: ${formatEnumValues(DATA_SOURCE_VALUES)}.`),
-    metrics: z
-        .array(ExternalMetricSchema)
-        .max(4)
-        .optional()
-        .describe("List of metrics to apply (max 4). Preferred over the deprecated 'metric' field."),
-    metric: ExternalMetricSchema.optional().describe("Deprecated: use 'metrics' instead."),
-    metricFilter: ExternalConfigMetricFilterSchema.optional().describe("Filter to limit report rows by metric value."),
-    aggregation: z
-        .enum(AGGREGATION_VALUES)
-        .optional()
-        .describe(`How to aggregate data values. Accepted values: ${formatEnumValues(AGGREGATION_VALUES)}.`),
-    advancedAnalysis: AdvancedAnalysisSchema.optional().describe("Advanced analysis options."),
-    timeInterval: z
-        .enum(TIME_INTERVAL_VALUES)
-        .optional()
-        .describe(`Time interval for grouping data. Accepted values: ${formatEnumValues(TIME_INTERVAL_VALUES)}.`),
-    dimensions: z
-        .array(ReportDimensionSchema)
-        .optional()
-        .describe("Dimensions to break down data by (columns in table view)."),
-    timeRange: TimeSettingsSchema.optional().describe("Time range for the report. Preferred over customTimeRange."),
-    secondaryTimeRange: TimeSettingsSecondarySchema.optional().describe(
-        "Secondary time range for comparative reports."
-    ),
-    customTimeRange: z
-        .object({
-            from: z.string().describe("Start timestamp in RFC3339 format. Example: '2024-03-10T23:00:00Z'."),
-            to: z.string().describe("End timestamp in RFC3339 format. Example: '2024-03-12T23:00:00Z'."),
-        })
-        .optional()
-        .describe("Custom time range. Only use when timeRange mode is 'custom'."),
-    includePromotionalCredits: z
-        .boolean()
-        .optional()
-        .describe("Include promotional credits. Requires timeInterval of 'month', 'quarter', or 'year'."),
-    includeSubtotals: z
-        .boolean()
-        .optional()
-        .describe("Include subgroup totals. No effect when reading via API. Defaults to false."),
-    filters: z.array(ExternalConfigFilterSchema).optional().describe("Filters to apply to the report."),
-    group: z.array(GroupSchema).optional().describe("Dimensions that define rows in the report (group-by)."),
-    layout: z
-        .enum(LAYOUT_VALUES)
-        .optional()
-        .describe(`Report layout / visualization type. Accepted values: ${formatEnumValues(LAYOUT_VALUES)}.`),
-    displayValues: z
-        .enum(DISPLAY_VALUES)
-        .optional()
-        .describe(
-            `How to display values in comparative reports. Accepted values: ${formatEnumValues(DISPLAY_VALUES)}.`
+export const ReportConfigSchema = z
+    .object({
+        dataSource: z
+            .enum(DATA_SOURCE_VALUES)
+            .optional()
+            .describe(`Data source for the report. Accepted values: ${formatEnumValues(DATA_SOURCE_VALUES)}.`),
+        metrics: z
+            .array(ExternalMetricSchema)
+            .max(4)
+            .optional()
+            .describe("List of metrics to apply (max 4). Preferred over the deprecated 'metric' field."),
+        metric: ExternalMetricSchema.optional().describe("Deprecated: use 'metrics' instead."),
+        metricFilter: ExternalConfigMetricFilterSchema.optional().describe(
+            "Filter to limit report rows by metric value."
         ),
-    currency: z
-        .enum(REPORT_CURRENCY_VALUES)
-        .optional()
-        .describe(`Currency code for monetary values. Accepted values: ${formatEnumValues(REPORT_CURRENCY_VALUES)}.`),
-    sortGroups: z
-        .enum(SORT_VALUES)
-        .optional()
-        .describe(
-            `Sort order for groups. Accepted values: ${formatEnumValues(SORT_VALUES)}. Defaults to 'asc'. No effect when reading via API.`
+        aggregation: z
+            .enum(AGGREGATION_VALUES)
+            .optional()
+            .describe(`How to aggregate data values. Accepted values: ${formatEnumValues(AGGREGATION_VALUES)}.`),
+        advancedAnalysis: AdvancedAnalysisSchema.optional().describe("Advanced analysis options."),
+        timeInterval: z
+            .enum(TIME_INTERVAL_VALUES)
+            .optional()
+            .describe(`Time interval for grouping data. Accepted values: ${formatEnumValues(TIME_INTERVAL_VALUES)}.`),
+        dimensions: z
+            .array(ReportDimensionSchema)
+            .optional()
+            .describe("Dimensions to break down data by (columns in table view)."),
+        timeRange: TimeSettingsSchema.optional().describe("Time range for the report. Preferred over customTimeRange."),
+        secondaryTimeRange: TimeSettingsSecondarySchema.optional().describe(
+            "Secondary time range for comparative reports."
         ),
-    sortDimensions: z
-        .enum(SORT_VALUES)
-        .optional()
-        .describe(
-            `Sort order for dimensions. Accepted values: ${formatEnumValues(SORT_VALUES)}. Defaults to 'desc'. No effect when reading via API.`
-        ),
-    splits: z.array(ExternalSplitSchema).optional().describe("Cost splits to apply to the report."),
-});
+        customTimeRange: z
+            .object({
+                from: z.string().describe("Start timestamp in RFC3339 format. Example: '2024-03-10T23:00:00Z'."),
+                to: z.string().describe("End timestamp in RFC3339 format. Example: '2024-03-12T23:00:00Z'."),
+            })
+            .optional()
+            .describe("Custom time range. Only use when timeRange mode is 'custom'."),
+        includePromotionalCredits: z
+            .boolean()
+            .optional()
+            .describe("Include promotional credits. Requires timeInterval of 'month', 'quarter', or 'year'."),
+        includeSubtotals: z
+            .boolean()
+            .optional()
+            .describe("Include subgroup totals. No effect when reading via API. Defaults to false."),
+        filters: z.array(ExternalConfigFilterSchema).optional().describe("Filters to apply to the report."),
+        group: z.array(GroupSchema).optional().describe("Dimensions that define rows in the report (group-by)."),
+        layout: z
+            .enum(LAYOUT_VALUES)
+            .optional()
+            .describe(`Report layout / visualization type. Accepted values: ${formatEnumValues(LAYOUT_VALUES)}.`),
+        displayValues: z
+            .enum(DISPLAY_VALUES)
+            .optional()
+            .describe(
+                `How to display values in comparative reports. Accepted values: ${formatEnumValues(DISPLAY_VALUES)}.`
+            ),
+        currency: z
+            .enum(REPORT_CURRENCY_VALUES)
+            .optional()
+            .describe(
+                `Currency code for monetary values. Accepted values: ${formatEnumValues(REPORT_CURRENCY_VALUES)}.`
+            ),
+        sortGroups: z
+            .enum(SORT_VALUES)
+            .optional()
+            .describe(
+                `Sort order for groups. Accepted values: ${formatEnumValues(SORT_VALUES)}. Defaults to 'asc'. No effect when reading via API.`
+            ),
+        sortDimensions: z
+            .enum(SORT_VALUES)
+            .optional()
+            .describe(
+                `Sort order for dimensions. Accepted values: ${formatEnumValues(SORT_VALUES)}. Defaults to 'desc'. No effect when reading via API.`
+            ),
+        splits: z.array(ExternalSplitSchema).optional().describe("Cost splits to apply to the report."),
+    })
+    .superRefine((data, ctx) => {
+        if (data.metric && data.metrics && data.metrics.length > 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["metrics"],
+                message: "Specify either 'metrics' or the deprecated 'metric', but not both.",
+            });
+        }
+    });
 
 // ──────────────────────────────────────────────────────────────────────────────
 
