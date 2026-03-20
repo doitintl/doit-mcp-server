@@ -418,16 +418,14 @@ export const CreateReportArgumentsSchema = z.object({
     name: z.string().min(1).describe("The name of the report (required, non-empty)."),
     description: z.string().optional().describe("A brief description of the report."),
     labels: z.array(z.string()).optional().describe("Optional list of label IDs to assign to the report."),
-    config: z
-        .record(z.any())
-        .describe(
-            "Configuration for the report (metrics, filters, dimensions, time range, etc.). " +
-                "Use the same config structure as run_query. " +
-                "Example: { dataSource: 'billing', metric: { type: 'basic', value: 'cost' }, timeRange: { mode: 'last', amount: 1, unit: 'month', includeCurrent: true } }"
-        ),
+    config: RunQueryArgumentsSchema.shape.config.describe(
+        "Configuration for the report (metrics, filters, dimensions, time range, etc.). " +
+            "Use the same config structure as run_query. " +
+            "Example: { dataSource: 'billing', metric: { type: 'basic', value: 'cost' }, timeRange: { mode: 'last', amount: 1, unit: 'month', includeCurrent: true } }"
+    ),
 });
 
-export interface ExternalReport {
+export interface CreateReportResponse {
     id: string;
     name: string;
     description?: string;
@@ -622,7 +620,7 @@ export async function handleCreateReportRequest(args: any, token: string) {
 
         const body = { ...parsed };
 
-        const data = await makeDoitRequest<ExternalReport>(REPORTS_BASE_URL, token, {
+        const data = await makeDoitRequest<CreateReportResponse>(REPORTS_BASE_URL, token, {
             method: "POST",
             body,
             customerContext,
