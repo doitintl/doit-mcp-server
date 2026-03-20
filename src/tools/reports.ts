@@ -236,7 +236,7 @@ export const runQueryTool = {
                         properties: {
                             amount: { type: "number" },
                             includeCurrent: { type: "boolean" },
-                            mode: { type: "string", enum: ["last", "latest", "custom"] },
+                            mode: { type: "string", enum: ["last", "current", "custom"] },
                             unit: {
                                 type: "string",
                                 enum: ["day", "week", "month", "quarter", "year"],
