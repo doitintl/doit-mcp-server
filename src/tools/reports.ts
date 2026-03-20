@@ -450,25 +450,60 @@ const ReportDimensionSchema = z.object({
         .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
 });
 
-const TimeSettingsSchema = z.object({
-    mode: z
-        .enum(TIME_RANGE_MODE_VALUES)
-        .describe(
-            `Time range mode. Accepted values: ${formatEnumValues(TIME_RANGE_MODE_VALUES)}. Use 'custom' with customTimeRange for specific dates.`
-        ),
-    amount: z
-        .number()
-        .int()
-        .min(0)
-        .max(5000)
-        .optional()
-        .describe("Number of time units (0–5000). Required when mode is 'last'."),
-    unit: z
-        .enum(TIME_UNIT_VALUES)
-        .optional()
-        .describe(`Time unit. Accepted values: ${formatEnumValues(TIME_UNIT_VALUES)}. Required when mode is 'last'.`),
-    includeCurrent: z.boolean().optional().describe("Whether to include the current (in-progress) period."),
-});
+const TimeSettingsSchema = z
+    .object({
+        mode: z
+            .enum(TIME_RANGE_MODE_VALUES)
+            .describe(
+                `Time range mode. Accepted values: ${formatEnumValues(TIME_RANGE_MODE_VALUES)}. Use 'custom' with customTimeRange for specific dates.`
+            ),
+        amount: z
+            .number()
+            .int()
+            .min(0)
+            .max(5000)
+            .optional()
+            .describe("Number of time units (0–5000). Required when mode is 'last'."),
+        unit: z
+            .enum(TIME_UNIT_VALUES)
+            .optional()
+            .describe(
+                `Time unit. Accepted values: ${formatEnumValues(TIME_UNIT_VALUES)}. Required when mode is 'last'.`
+            ),
+        includeCurrent: z.boolean().optional().describe("Whether to include the current (in-progress) period."),
+        customTimeRange: z
+            .object({
+                from: z.string().describe("Start date in RFC3339 format."),
+                to: z.string().describe("End date in RFC3339 format."),
+            })
+            .optional()
+            .describe("Custom date range. Required when mode is 'custom'."),
+    })
+    .superRefine((value, ctx) => {
+        if (value.mode === "last") {
+            if (value.amount == null) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["amount"],
+                    message: "amount is required when mode is 'last'.",
+                });
+            }
+            if (value.unit == null) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["unit"],
+                    message: "unit is required when mode is 'last'.",
+                });
+            }
+        }
+        if (value.mode === "custom" && !value.customTimeRange) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["customTimeRange"],
+                message: "customTimeRange is required when mode is 'custom'.",
+            });
+        }
+    });
 
 const TimeSettingsSecondarySchema = z.object({
     amount: z.number().int().optional().describe("Number of periods to shift back."),
@@ -549,24 +584,48 @@ const ExternalSplitTargetSchema = z.object({
         .describe("Percent as float (e.g. 0.3 for 30%). Required only when split mode is 'custom'."),
 });
 
-const ExternalSplitSchema = z.object({
-    id: z.string().describe("ID of the field to split."),
-    type: z
-        .enum(DIMENSION_TYPE_VALUES)
-        .describe(`Type of the split. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
-    mode: z.enum(SPLIT_MODE_VALUES).describe(`Split mode. Accepted values: ${formatEnumValues(SPLIT_MODE_VALUES)}.`),
-    includeOrigin: z.boolean().optional().describe("Whether to include the origin in the split results."),
-    origin: z
-        .object({
-            id: z.string().describe("Origin ID."),
-            type: z
-                .enum(ORIGIN_TYPE_VALUES)
-                .describe(`Origin type. Accepted values: ${formatEnumValues(ORIGIN_TYPE_VALUES)}.`),
-        })
-        .optional()
-        .describe("Origin info for cost splitting."),
-    targets: z.array(ExternalSplitTargetSchema).optional().describe("Targets for the split."),
-});
+const ExternalSplitSchema = z
+    .object({
+        id: z.string().describe("ID of the field to split."),
+        type: z
+            .enum(DIMENSION_TYPE_VALUES)
+            .describe(`Type of the split. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
+        mode: z
+            .enum(SPLIT_MODE_VALUES)
+            .describe(`Split mode. Accepted values: ${formatEnumValues(SPLIT_MODE_VALUES)}.`),
+        includeOrigin: z.boolean().optional().describe("Whether to include the origin in the split results."),
+        origin: z
+            .object({
+                id: z.string().describe("Origin ID."),
+                type: z
+                    .enum(ORIGIN_TYPE_VALUES)
+                    .describe(`Origin type. Accepted values: ${formatEnumValues(ORIGIN_TYPE_VALUES)}.`),
+            })
+            .optional()
+            .describe("Origin info for cost splitting."),
+        targets: z.array(ExternalSplitTargetSchema).optional().describe("Targets for the split."),
+    })
+    .superRefine((data, ctx) => {
+        if (data.mode === "custom") {
+            if (!data.targets || data.targets.length === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["targets"],
+                    message: "Targets are required when split mode is 'custom'.",
+                });
+                return;
+            }
+            data.targets.forEach((target, index) => {
+                if (target.value === undefined) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        path: ["targets", index, "value"],
+                        message: "Target value is required when split mode is 'custom'.",
+                    });
+                }
+            });
+        }
+    });
 
 export const ReportConfigSchema = z.object({
     dataSource: z
@@ -575,6 +634,7 @@ export const ReportConfigSchema = z.object({
         .describe(`Data source for the report. Accepted values: ${formatEnumValues(DATA_SOURCE_VALUES)}.`),
     metrics: z
         .array(ExternalMetricSchema)
+        .max(4)
         .optional()
         .describe("List of metrics to apply (max 4). Preferred over the deprecated 'metric' field."),
     metric: ExternalMetricSchema.optional().describe("Deprecated: use 'metrics' instead."),
