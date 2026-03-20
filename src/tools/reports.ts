@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -412,6 +413,35 @@ export const getReportResultsTool = {
     },
 };
 
+// Create Report Schema Definition
+export const CreateReportArgumentsSchema = z.object({
+    name: z.string().min(1).describe("The name of the report (required, non-empty)."),
+    description: z.string().optional().describe("A brief description of the report."),
+    labels: z.array(z.string()).optional().describe("Optional list of label IDs to assign to the report."),
+    config: z
+        .record(z.any())
+        .describe(
+            "Configuration for the report (metrics, filters, dimensions, time range, etc.). " +
+                "Use the same config structure as run_query. " +
+                "Example: { dataSource: 'billing', metric: { type: 'basic', value: 'cost' }, timeRange: { mode: 'last', amount: 1, unit: 'month', includeCurrent: true } }"
+        ),
+});
+
+export interface ExternalReport {
+    id: string;
+    name: string;
+    description?: string;
+    type: string;
+    config: Record<string, any>;
+    labels?: string[];
+}
+
+export const createReportTool = {
+    name: "create_report",
+    description: "Creates a new Cloud Analytics report with the specified configuration.",
+    inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
+};
+
 // Format a report for display
 export function formatReport(report: Report): string {
     const createDate = new Date(report.createTime).toLocaleString();
@@ -582,6 +612,29 @@ export function formatReportResults(report: GetReportResultsResponse): string {
         .join(`\n\n`);
 
     return `${reportResults}\n\n${createDocumentPrompt}`;
+}
+
+// Handle create report request
+export async function handleCreateReportRequest(args: any, token: string) {
+    try {
+        const parsed = CreateReportArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const body = { ...parsed };
+
+        const data = await makeDoitRequest<ExternalReport>(REPORTS_BASE_URL, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to create report");
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create report request");
+    }
 }
 
 // Handle get report results request

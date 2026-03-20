@@ -29,6 +29,7 @@ describe("MCP Tools Integration", () => {
                 "create_alert",
                 "create_allocation",
                 "create_budget",
+                "create_report",
                 "find_cloud_diagrams",
                 "get_alert",
                 "get_allocation",
@@ -254,6 +255,52 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("alice@example.com");
             expect(text).toContain("1234.56");
             expect(text).toContain("567.89");
+        });
+    });
+
+    describe("create_report", () => {
+        it("creates a new report and returns it", async () => {
+            const result = await client.callTool({
+                name: "create_report",
+                arguments: {
+                    name: "My New Report",
+                    description: "A test report",
+                    config: {
+                        dataSource: "billing",
+                        metric: { type: "basic", value: "cost" },
+                        timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },
+                    },
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("report-new-1");
+            expect(parsed.name).toBe("My New Report"); // ExternalReport uses `name`, not `reportName`
+        });
+
+        it("passes labels through to the API in the request body", async () => {
+            const result = await client.callTool({
+                name: "create_report",
+                arguments: {
+                    name: "Labeled Report",
+                    labels: ["label-1"],
+                    config: { dataSource: "billing" },
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed._requestBody.labels).toEqual(["label-1"]);
+        });
+
+        it("rejects missing name before calling API", async () => {
+            const result = await client.callTool({
+                name: "create_report",
+                arguments: {
+                    config: { dataSource: "billing" },
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("name");
         });
     });
 

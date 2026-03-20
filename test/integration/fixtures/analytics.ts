@@ -321,6 +321,15 @@ export const alertFixture = {
     },
 };
 
+export const createReportFixture = {
+    id: "report-new-1",
+    name: "My New Report",
+    description: "A test report",
+    type: "custom",
+    config: { dataSource: "billing" },
+    labels: [],
+};
+
 export const updateAlertFixture = {
     id: "alert-1",
     name: "Updated Alert",

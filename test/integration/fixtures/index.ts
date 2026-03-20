@@ -8,6 +8,7 @@ import {
     createAlertFixture,
     createAllocationFixture,
     createBudgetFixture,
+    createReportFixture,
     dimensionFixture,
     dimensionsFixture,
     labelFixture,
@@ -44,6 +45,7 @@ export const fixtures = {
     reports: reportsFixture,
     queryResult: queryResultFixture,
     reportResults: reportResultsFixture,
+    createReport: createReportFixture,
     dimensions: dimensionsFixture,
     dimension: dimensionFixture,
 
