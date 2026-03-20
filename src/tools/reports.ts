@@ -41,11 +41,6 @@ export const ReportsArgumentsSchema = z.object({
     pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
 });
 
-// Run Query Schema Definition
-export const RunQueryArgumentsSchema = z.object({
-    config: z.record(z.any()).describe("The configuration for the query, including dimensions, metrics, filters, etc."),
-});
-
 // Get Report Results Schema Definition
 export const GetReportResultsArgumentsSchema = z.object({
     id: z.string().describe("The ID of the report to retrieve results for"),
@@ -126,294 +121,6 @@ export const reportsTool = {
                 description: "Token for pagination. Use this to get the next page of results.",
             },
         },
-    },
-};
-
-export const runQueryTool = {
-    name: "run_query",
-    description: `Runs a report query with the specified configuration without persisting it. 
-    Fields that are not populated will use their default values if needed.
-    You must use the 'limit' field to limit the number of rows in the report, maximum is 25.
-    Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
-    If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
-    Example for cost report:
-    {
-      "config": {
-        "dataSource": "billing",
-        "metric": {"type": "basic", "value": "cost"},
-        "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": true},
-        "group": [{"id": "service_description", "type": "fixed", "limit": {"metric": {"type": "basic", "value": "cost"}, "sort": "desc", "value": 10}}]
-      }
-    }`,
-    inputSchema: {
-        type: "object",
-        properties: {
-            config: {
-                type: "object",
-                description: "The configuration for the query, including dimensions, metrics, filters, etc.",
-                properties: {
-                    metric: {
-                        type: "object",
-                        description: "The metric to apply (e.g., cost, usage, savings)",
-                        properties: {
-                            type: {
-                                type: "string",
-                                enum: ["basic", "custom", "extended"],
-                            },
-                            value: {
-                                type: "string",
-                                description:
-                                    "For basic metrics: 'cost', 'usage', or 'savings'. For custom metrics, the value must refer to an existing custom id.",
-                            },
-                        },
-                    },
-                    metricFilter: {
-                        type: "object",
-                        description: "The metric filter to limit the report results by value",
-                        properties: {
-                            metric: {
-                                type: "object",
-                                description: "Metric definition",
-                                properties: {
-                                    type: {
-                                        type: "string",
-                                        enum: ["basic", "custom", "extended"],
-                                    },
-                                    value: { type: "string" },
-                                },
-                            },
-                            operator: {
-                                type: "string",
-                                enum: ["gt", "lt", "lte", "gte", "b", "nb", "e", "ne"],
-                                description: "Filter operator: gt (greater than), lt (less than), etc.",
-                            },
-                            values: {
-                                type: "array",
-                                items: { type: "number" },
-                                description: "Values to filter by",
-                            },
-                        },
-                    },
-                    aggregation: {
-                        type: "string",
-                        enum: ["total", "percent_total", "percent_col", "percent_row"],
-                        description: "How to aggregate the metric values",
-                    },
-                    timeInterval: {
-                        type: "string",
-                        enum: ["hour", "day", "dayCumSum", "week", "isoweek", "month", "quarter", "year", "week_day"],
-                        description: "Time interval for the report",
-                    },
-                    dimensions: {
-                        type: "array",
-                        description: "Dimensions to include in the report",
-                        items: {
-                            type: "object",
-                            properties: {
-                                id: { type: "string" },
-                                type: { type: "string" },
-                            },
-                        },
-                    },
-                    sortDimensions: {
-                        type: "string",
-                        enum: ["asc", "desc"],
-                        description: "Sort order for dimensions (asc or desc)",
-                    },
-                    advancedAnalysis: {
-                        type: "object",
-                        description: "Advanced analysis configuration",
-                        properties: {
-                            forecast: { type: "boolean" },
-                            notTrending: { type: "boolean" },
-                            trendingDown: { type: "boolean" },
-                            trendingUp: { type: "boolean" },
-                        },
-                    },
-                    timeRange: {
-                        type: "object",
-                        description: "The time range for the report",
-                        properties: {
-                            amount: { type: "number" },
-                            includeCurrent: { type: "boolean" },
-                            mode: { type: "string", enum: ["last", "current", "custom"] },
-                            unit: {
-                                type: "string",
-                                enum: ["day", "week", "month", "quarter", "year"],
-                            },
-                        },
-                    },
-                    includePromotionalCredits: {
-                        type: "boolean",
-                        description:
-                            "Whether to include promotional credits. If true, timeInterval must be month, quarter, or year.",
-                    },
-                    includeSubtotals: {
-                        type: "boolean",
-                        description: "Whether to include subgroup totals",
-                    },
-                    filters: {
-                        type: "array",
-                        description: "Filters to apply to the report",
-                        items: {
-                            type: "object",
-                            properties: {
-                                id: { type: "string", description: "The field to filter on" },
-                                type: {
-                                    type: "string",
-                                    enum: [
-                                        "datetime",
-                                        "fixed",
-                                        "optional",
-                                        "label",
-                                        "tag",
-                                        "project_label",
-                                        "system_label",
-                                        "attribution",
-                                        "attribution_group",
-                                        "gke",
-                                        "gke_label",
-                                    ],
-                                },
-                                inverse: {
-                                    type: "boolean",
-                                    description: "Set to true to exclude the values",
-                                },
-                                values: {
-                                    type: "array",
-                                    items: { type: "string" },
-                                    description: "Values to filter on",
-                                },
-                                mode: {
-                                    type: "string",
-                                    enum: [
-                                        "contains",
-                                        "is",
-                                        "is not",
-                                        "starts withs",
-                                        "does not contain",
-                                        "matches regex",
-                                        "does not match regex",
-                                    ],
-                                    description:
-                                        "Filter mode (contains, is, is not, starts with, does not contain, matches regex, does not match regex)",
-                                },
-                            },
-                        },
-                    },
-                    group: {
-                        type: "array",
-                        description: "The rows that appear in the tabular format of the report",
-                        items: {
-                            type: "object",
-                            properties: {
-                                id: { type: "string" },
-                                type: { type: "string" },
-                                limit: {
-                                    type: "object",
-                                    properties: {
-                                        metric: {
-                                            type: "object",
-                                            properties: {
-                                                type: { type: "string" },
-                                                value: { type: "string" },
-                                            },
-                                        },
-                                        sort: { type: "string" },
-                                        value: { type: "number" },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    sortGroups: {
-                        type: "string",
-                        enum: ["asc", "desc"],
-                        description: "Sor order for groups (asc or desc)",
-                    },
-                    layout: {
-                        type: "string",
-                        enum: [
-                            "column_chart",
-                            "stacked_column_chart",
-                            "bar_chart",
-                            "stacked_bar_chart",
-                            "line_chart",
-                            "spline_chart",
-                            "area_chart",
-                            "area_spline_chart",
-                            "stacked_area_chart",
-                            "treemap_chart",
-                            "table",
-                            "table_heatmap",
-                            "table_row_heatmap",
-                            "table_col_heatmap",
-                            "csv_export",
-                            "sheets_export",
-                        ],
-                        description: "The visualization of the report",
-                    },
-                    displayValues: {
-                        type: "string",
-                        enum: ["actuals_only", "absolute_change", "percentage_change", "absolute_and_percentage"],
-                        description: "How to display comparative data",
-                    },
-                    currency: {
-                        type: "string",
-                        description: "Currency code (e.g., USD)",
-                    },
-                    dataSource: {
-                        type: "string",
-                        enum: ["billing", "bqlens", "billing_datahub"],
-                        description: "Data source of the report",
-                    },
-                    splits: {
-                        type: "array",
-                        description: "The splits to use in the report",
-                        items: {
-                            type: "object",
-                            properties: {
-                                id: { type: "string" },
-                                type: { type: "string" },
-                                includeOrigin: { type: "boolean" },
-                                mode: {
-                                    type: "string",
-                                    enum: ["even", "custom", "proportional"],
-                                },
-                                targets: {
-                                    type: "array",
-                                    items: {
-                                        type: "object",
-                                        properties: {
-                                            id: { type: "string" },
-                                            type: { type: "string" },
-                                            value: { type: "number" },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    customTimeRange: {
-                        type: "object",
-                        description: "Required when the time range is set to 'custom'",
-                        properties: {
-                            from: {
-                                type: "string",
-                                format: "date-time",
-                                description: "The start timestamp in RFC3339 format (e.g., 2024-03-10T23:00:00Z)",
-                            },
-                            to: {
-                                type: "string",
-                                format: "date-time",
-                                description: "The end timestamp in RFC3339 format (e.g., 2024-03-12T23:00:00Z)",
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        required: ["config"],
     },
 };
 
@@ -717,6 +424,32 @@ export const ReportConfigSchema = z
     });
 
 // ──────────────────────────────────────────────────────────────────────────────
+
+// Run Query Schema Definition
+export const RunQueryArgumentsSchema = z.object({
+    config: ReportConfigSchema.describe(
+        "Configuration for the query. Use the dimension tool to look up valid dimension IDs."
+    ),
+});
+
+export const runQueryTool = {
+    name: "run_query",
+    description: `Runs a report query with the specified configuration without persisting it.
+    Fields that are not populated will use their default values if needed.
+    You must use the 'limit' field to limit the number of rows in the report, maximum is 25.
+    Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
+    If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
+    Example for cost report:
+    {
+      "config": {
+        "dataSource": "billing",
+        "metric": {"type": "basic", "value": "cost"},
+        "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": true},
+        "group": [{"id": "service_description", "type": "fixed", "limit": {"metric": {"type": "basic", "value": "cost"}, "sort": "desc", "value": 10}}]
+      }
+    }`,
+    inputSchema: zodToMcpInputSchema(RunQueryArgumentsSchema),
+};
 
 // Create Report Schema Definition
 export const CreateReportArgumentsSchema = z.object({
