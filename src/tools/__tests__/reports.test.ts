@@ -24,6 +24,7 @@ vi.mock("../../utils/util.js", () => ({
     createSuccessResponse: vi.fn((text) => ({
         content: [{ type: "text", text }],
     })),
+    formatEnumValues: (values: readonly string[]) => values.join(", "),
     formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
     handleGeneralError: vi.fn((_error, context) => ({
         content: [{ type: "text", text: `General Error: ${context}` }],
