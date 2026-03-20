@@ -61,6 +61,7 @@ describe("MCP Tools Integration", () => {
                 "update_alert",
                 "update_allocation",
                 "update_budget",
+                "update_report",
                 "validate_user",
             ]);
         });
@@ -301,6 +302,38 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             expect(text).toContain("name");
+        });
+    });
+
+    describe("update_report", () => {
+        it("updates a report via mock API", async () => {
+            const result = await client.callTool({
+                name: "update_report",
+                arguments: { id: "report-1", name: "Updated Report" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("report-1");
+            expect(parsed.name).toBe("Updated Report");
+        });
+
+        it("accepts partial update with only description", async () => {
+            const result = await client.callTool({
+                name: "update_report",
+                arguments: { id: "report-1", description: "New desc" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("report-1");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_report",
+                arguments: { name: "No ID" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("id");
         });
     });
 

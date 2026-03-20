@@ -52,6 +52,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Reports
+    http.patch(`${API_BASE}/analytics/v1/reports/:id`, ({ params }) => {
+        if (params.id === "report-1") {
+            return HttpResponse.json(fixtures.updateReport);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.post(`${API_BASE}/analytics/v1/reports`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({

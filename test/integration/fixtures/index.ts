@@ -19,6 +19,7 @@ import {
     updateAlertFixture,
     updateAllocationFixture,
     updateBudgetFixture,
+    updateReportFixture,
 } from "./analytics.js";
 import { anomaliesFixture, anomalyFixture } from "./anomalies.js";
 import { assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
@@ -46,6 +47,7 @@ export const fixtures = {
     queryResult: queryResultFixture,
     reportResults: reportResultsFixture,
     createReport: createReportFixture,
+    updateReport: updateReportFixture,
     dimensions: dimensionsFixture,
     dimension: dimensionFixture,
 

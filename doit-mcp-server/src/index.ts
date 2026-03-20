@@ -19,13 +19,15 @@ import {
 } from "../../src/tools/anomalies.js";
 import {
   CreateReportArgumentsSchema,
+  GetReportResultsArgumentsSchema,
   ReportsArgumentsSchema,
   RunQueryArgumentsSchema,
-  GetReportResultsArgumentsSchema,
+  UpdateReportArgumentsSchema,
   createReportTool,
+  getReportResultsTool,
   reportsTool,
   runQueryTool,
-  getReportResultsTool,
+  updateReportTool,
 } from "../../src/tools/reports.js";
 import {
   ValidateUserArgumentsSchema,
@@ -315,6 +317,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(runQueryTool, RunQueryArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(createReportTool, CreateReportArgumentsSchema);
+    this.registerTool(updateReportTool, UpdateReportArgumentsSchema);
 
     // Validation tool
     this.registerTool(validateUserTool, ValidateUserArgumentsSchema);

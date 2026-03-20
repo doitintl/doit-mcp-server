@@ -31,6 +31,7 @@ vi.mock(import("../tools/reports.js"), async (importOriginal) => ({
     handleRunQueryRequest: vi.fn(),
     handleGetReportResultsRequest: vi.fn(),
     handleCreateReportRequest: vi.fn(),
+    handleUpdateReportRequest: vi.fn(),
 }));
 vi.mock(import("../tools/validateUser.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -141,6 +142,7 @@ import {
     handleRunQueryRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAllocationRequest,
+    handleUpdateReportRequest,
     handleValidateUserRequest,
 } from "../server.js";
 import { createAlertTool, getAlertTool, listAlertsTool, updateAlertTool } from "../tools/alerts.js";
@@ -164,7 +166,13 @@ import { getLabelTool, listLabelsTool } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
-import { createReportTool, getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
+import {
+    createReportTool,
+    getReportResultsTool,
+    reportsTool,
+    runQueryTool,
+    updateReportTool,
+} from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
 import { listTicketsTool } from "../tools/tickets.js";
 import { listUsersTool } from "../tools/users.js";
@@ -228,6 +236,7 @@ describe("ListToolsRequestSchema handler", () => {
                 runQueryTool,
                 getReportResultsTool,
                 createReportTool,
+                updateReportTool,
                 validateUserTool,
                 dimensionsTool,
                 dimensionTool,
@@ -561,6 +570,7 @@ describe("CallToolRequestSchema handler", () => {
         ["list_reports", "list_reports", { type: "cost" }, handleReportsRequest],
         ["run_query", "run_query", { config: {} }, handleRunQueryRequest],
         ["get_report_results", "get_report_results", { reportId: "report-789" }, handleGetReportResultsRequest],
+        ["update_report", "update_report", { id: "report-1", name: "Updated" }, handleUpdateReportRequest],
         ["validate_user", "validate_user", { email: "test@example.com" }, handleValidateUserRequest],
         ["list_dimensions", "list_dimensions", { filter: "type:fixed" }, handleDimensionsRequest],
         ["get_dimension", "get_dimension", { id: "dimension-abc" }, handleDimensionRequest],

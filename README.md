@@ -140,6 +140,7 @@ This MCP server provides many tools including the following:
 - [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
 - [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID
 - [`create_report`](https://developer.doit.com/reference/createreport): Creates a new Cloud Analytics report with the specified configuration
+- [`update_report`](https://developer.doit.com/reference/updatereport): Updates an existing Cloud Analytics report with the specified configuration
 - [`validate_user`](https://developer.doit.com/reference/validate): Validates the current API user and returns domain and email information
 - [`list_dimensions`](https://developer.doit.com/reference/listdimensions): Lists Cloud Analytics dimensions that your account has access to
 - [`get_dimension`](https://developer.doit.com/reference/getdimensions): Get a specific Cloud Analytics dimension by type and ID
