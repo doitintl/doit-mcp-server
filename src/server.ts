@@ -63,7 +63,9 @@ import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/o
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
 import {
+    createReportTool,
     getReportResultsTool,
+    handleCreateReportRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
@@ -103,6 +105,7 @@ export function createServer() {
                 reportsTool,
                 runQueryTool,
                 getReportResultsTool,
+                createReportTool,
                 validateUserTool,
                 dimensionsTool,
                 dimensionTool,
@@ -218,6 +221,7 @@ export {
     handleReportsRequest,
     handleRunQueryRequest,
     handleGetReportResultsRequest,
+    handleCreateReportRequest,
     handleValidateUserRequest,
     handleDimensionsRequest,
     handleDimensionRequest,

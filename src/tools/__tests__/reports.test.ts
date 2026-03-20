@@ -10,6 +10,7 @@ import {
     formatQueryResult,
     formatReport,
     formatReportResults,
+    handleCreateReportRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
@@ -23,6 +24,7 @@ vi.mock("../../utils/util.js", () => ({
     createSuccessResponse: vi.fn((text) => ({
         content: [{ type: "text", text }],
     })),
+    formatEnumValues: (values: readonly string[]) => values.join(", "),
     formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
     handleGeneralError: vi.fn((_error, context) => ({
         content: [{ type: "text", text: `General Error: ${context}` }],
@@ -479,6 +481,125 @@ Cloud Storage,50`;
                     },
                 ],
             });
+        });
+    });
+
+    describe("handleCreateReportRequest", () => {
+        const mockToken = "fake-token";
+        const validArgs = {
+            name: "My Test Report",
+            config: {
+                dataSource: "billing",
+                metric: { type: "basic", value: "cost" },
+                timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },
+            },
+        };
+        const mockCreatedReport = {
+            id: "report-new-1",
+            name: "My Test Report",
+            description: "A test report",
+            type: "custom",
+            config: { dataSource: "billing" },
+            labels: [],
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("should call makeDoitRequest with correct URL and body and return success response", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreatedReport);
+
+            await handleCreateReportRequest(validArgs, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports",
+                mockToken,
+                expect.objectContaining({ method: "POST", body: validArgs })
+            );
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("report-new-1"));
+        });
+
+        it("should pass customerContext to makeDoitRequest", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreatedReport);
+
+            await handleCreateReportRequest({ ...validArgs, customerContext: "customer-123" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports",
+                mockToken,
+                expect.objectContaining({ method: "POST", customerContext: "customer-123" })
+            );
+        });
+
+        it("should return error response when API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            await handleCreateReportRequest(validArgs, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("Failed to create report"));
+        });
+
+        it("should return error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+            await handleCreateReportRequest(validArgs, mockToken);
+
+            expect(handleGeneralError).toHaveBeenCalledWith(
+                expect.any(Error),
+                expect.stringContaining("handling create report request")
+            );
+        });
+
+        it("should return error response when name is missing", async () => {
+            const { name: _, ...argsWithoutName } = validArgs;
+
+            await handleCreateReportRequest(argsWithoutName, mockToken);
+
+            expect(formatZodError).toHaveBeenCalled();
+            expect(createErrorResponse).toHaveBeenCalled();
+        });
+
+        it("should return error response when name is empty string", async () => {
+            await handleCreateReportRequest({ ...validArgs, name: "" }, mockToken);
+
+            expect(formatZodError).toHaveBeenCalled();
+            expect(createErrorResponse).toHaveBeenCalled();
+        });
+
+        it("should return error response when config is missing", async () => {
+            const { config: _, ...argsWithoutConfig } = validArgs;
+
+            await handleCreateReportRequest(argsWithoutConfig, mockToken);
+
+            expect(formatZodError).toHaveBeenCalled();
+            expect(createErrorResponse).toHaveBeenCalled();
+        });
+
+        it("should include optional description in the request body when provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreatedReport);
+            const argsWithDescription = { ...validArgs, description: "A test report description" };
+
+            await handleCreateReportRequest(argsWithDescription, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports",
+                mockToken,
+                expect.objectContaining({ body: expect.objectContaining({ description: "A test report description" }) })
+            );
+        });
+
+        it("should include optional labels in the request body when provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreatedReport);
+            const argsWithLabels = { ...validArgs, labels: ["label-1", "label-2"] };
+
+            await handleCreateReportRequest(argsWithLabels, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports",
+                mockToken,
+                expect.objectContaining({ body: expect.objectContaining({ labels: ["label-1", "label-2"] }) })
+            );
         });
     });
 });

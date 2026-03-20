@@ -30,6 +30,7 @@ vi.mock(import("../tools/reports.js"), async (importOriginal) => ({
     handleReportsRequest: vi.fn(),
     handleRunQueryRequest: vi.fn(),
     handleGetReportResultsRequest: vi.fn(),
+    handleCreateReportRequest: vi.fn(),
 }));
 vi.mock(import("../tools/validateUser.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -163,7 +164,7 @@ import { getLabelTool, listLabelsTool } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
-import { getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
+import { createReportTool, getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
 import { listTicketsTool } from "../tools/tickets.js";
 import { listUsersTool } from "../tools/users.js";
@@ -226,6 +227,7 @@ describe("ListToolsRequestSchema handler", () => {
                 reportsTool,
                 runQueryTool,
                 getReportResultsTool,
+                createReportTool,
                 validateUserTool,
                 dimensionsTool,
                 dimensionTool,

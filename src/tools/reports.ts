@@ -1,8 +1,28 @@
 import { z } from "zod";
 import {
+    AGGREGATION_VALUES,
+    DATA_SOURCE_VALUES,
+    DIMENSION_TYPE_VALUES,
+    DISPLAY_VALUES,
+    FILTER_MODE_VALUES,
+    LAYOUT_VALUES,
+    METRIC_FILTER_OPERATOR_VALUES,
+    METRIC_TYPE_VALUES,
+    ORIGIN_TYPE_VALUES,
+    REPORT_CURRENCY_VALUES,
+    SECONDARY_TIME_UNIT_VALUES,
+    SORT_VALUES,
+    SPLIT_MODE_VALUES,
+    TIME_INTERVAL_VALUES,
+    TIME_RANGE_MODE_VALUES,
+    TIME_UNIT_VALUES,
+} from "../types/reports.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
+import {
     createErrorResponse,
     createSuccessResponse,
     DOIT_API_BASE,
+    formatEnumValues,
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
@@ -19,11 +39,6 @@ export const ReportsArgumentsSchema = z.object({
             "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'"
         ),
     pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
-});
-
-// Run Query Schema Definition
-export const RunQueryArgumentsSchema = z.object({
-    config: z.record(z.any()).describe("The configuration for the query, including dimensions, metrics, filters, etc."),
 });
 
 // Get Report Results Schema Definition
@@ -109,294 +124,6 @@ export const reportsTool = {
     },
 };
 
-export const runQueryTool = {
-    name: "run_query",
-    description: `Runs a report query with the specified configuration without persisting it. 
-    Fields that are not populated will use their default values if needed.
-    You must use the 'limit' field to limit the number of rows in the report, maximum is 25.
-    Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
-    If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
-    Example for cost report:
-    {
-      "config": {
-        "dataSource": "billing",
-        "metric": {"type": "basic", "value": "cost"},
-        "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": true},
-        "group": [{"id": "service_description", "type": "fixed", "limit": {"metric": {"type": "basic", "value": "cost"}, "sort": "desc", "value": 10}}]
-      }
-    }`,
-    inputSchema: {
-        type: "object",
-        properties: {
-            config: {
-                type: "object",
-                description: "The configuration for the query, including dimensions, metrics, filters, etc.",
-                properties: {
-                    metric: {
-                        type: "object",
-                        description: "The metric to apply (e.g., cost, usage, savings)",
-                        properties: {
-                            type: {
-                                type: "string",
-                                enum: ["basic", "custom", "extended"],
-                            },
-                            value: {
-                                type: "string",
-                                description:
-                                    "For basic metrics: 'cost', 'usage', or 'savings'. For custom metrics, the value must refer to an existing custom id.",
-                            },
-                        },
-                    },
-                    metricFilter: {
-                        type: "object",
-                        description: "The metric filter to limit the report results by value",
-                        properties: {
-                            metric: {
-                                type: "object",
-                                description: "Metric definition",
-                                properties: {
-                                    type: {
-                                        type: "string",
-                                        enum: ["basic", "custom", "extended"],
-                                    },
-                                    value: { type: "string" },
-                                },
-                            },
-                            operator: {
-                                type: "string",
-                                enum: ["gt", "lt", "lte", "gte", "b", "nb", "e", "ne"],
-                                description: "Filter operator: gt (greater than), lt (less than), etc.",
-                            },
-                            values: {
-                                type: "array",
-                                items: { type: "number" },
-                                description: "Values to filter by",
-                            },
-                        },
-                    },
-                    aggregation: {
-                        type: "string",
-                        enum: ["total", "percent_total", "percent_col", "percent_row"],
-                        description: "How to aggregate the metric values",
-                    },
-                    timeInterval: {
-                        type: "string",
-                        enum: ["hour", "day", "dayCumSum", "week", "isoweek", "month", "quarter", "year", "week_day"],
-                        description: "Time interval for the report",
-                    },
-                    dimensions: {
-                        type: "array",
-                        description: "Dimensions to include in the report",
-                        items: {
-                            type: "object",
-                            properties: {
-                                id: { type: "string" },
-                                type: { type: "string" },
-                            },
-                        },
-                    },
-                    sortDimensions: {
-                        type: "string",
-                        enum: ["asc", "desc"],
-                        description: "Sort order for dimensions (asc or desc)",
-                    },
-                    advancedAnalysis: {
-                        type: "object",
-                        description: "Advanced analysis configuration",
-                        properties: {
-                            forecast: { type: "boolean" },
-                            notTrending: { type: "boolean" },
-                            trendingDown: { type: "boolean" },
-                            trendingUp: { type: "boolean" },
-                        },
-                    },
-                    timeRange: {
-                        type: "object",
-                        description: "The time range for the report",
-                        properties: {
-                            amount: { type: "number" },
-                            includeCurrent: { type: "boolean" },
-                            mode: { type: "string", enum: ["last", "latest", "custom"] },
-                            unit: {
-                                type: "string",
-                                enum: ["day", "week", "month", "quarter", "year"],
-                            },
-                        },
-                    },
-                    includePromotionalCredits: {
-                        type: "boolean",
-                        description:
-                            "Whether to include promotional credits. If true, timeInterval must be month, quarter, or year.",
-                    },
-                    includeSubtotals: {
-                        type: "boolean",
-                        description: "Whether to include subgroup totals",
-                    },
-                    filters: {
-                        type: "array",
-                        description: "Filters to apply to the report",
-                        items: {
-                            type: "object",
-                            properties: {
-                                id: { type: "string", description: "The field to filter on" },
-                                type: {
-                                    type: "string",
-                                    enum: [
-                                        "datetime",
-                                        "fixed",
-                                        "optional",
-                                        "label",
-                                        "tag",
-                                        "project_label",
-                                        "system_label",
-                                        "attribution",
-                                        "attribution_group",
-                                        "gke",
-                                        "gke_label",
-                                    ],
-                                },
-                                inverse: {
-                                    type: "boolean",
-                                    description: "Set to true to exclude the values",
-                                },
-                                values: {
-                                    type: "array",
-                                    items: { type: "string" },
-                                    description: "Values to filter on",
-                                },
-                                mode: {
-                                    type: "string",
-                                    enum: [
-                                        "contains",
-                                        "is",
-                                        "is not",
-                                        "starts withs",
-                                        "does not contain",
-                                        "matches regex",
-                                        "does not match regex",
-                                    ],
-                                    description:
-                                        "Filter mode (contains, is, is not, starts with, does not contain, matches regex, does not match regex)",
-                                },
-                            },
-                        },
-                    },
-                    group: {
-                        type: "array",
-                        description: "The rows that appear in the tabular format of the report",
-                        items: {
-                            type: "object",
-                            properties: {
-                                id: { type: "string" },
-                                type: { type: "string" },
-                                limit: {
-                                    type: "object",
-                                    properties: {
-                                        metric: {
-                                            type: "object",
-                                            properties: {
-                                                type: { type: "string" },
-                                                value: { type: "string" },
-                                            },
-                                        },
-                                        sort: { type: "string" },
-                                        value: { type: "number" },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    sortGroups: {
-                        type: "string",
-                        enum: ["asc", "desc"],
-                        description: "Sor order for groups (asc or desc)",
-                    },
-                    layout: {
-                        type: "string",
-                        enum: [
-                            "column_chart",
-                            "stacked_column_chart",
-                            "bar_chart",
-                            "stacked_bar_chart",
-                            "line_chart",
-                            "spline_chart",
-                            "area_chart",
-                            "area_spline_chart",
-                            "stacked_area_chart",
-                            "treemap_chart",
-                            "table",
-                            "table_heatmap",
-                            "table_row_heatmap",
-                            "table_col_heatmap",
-                            "csv_export",
-                            "sheets_export",
-                        ],
-                        description: "The visualization of the report",
-                    },
-                    displayValues: {
-                        type: "string",
-                        enum: ["actuals_only", "absolute_change", "percentage_change", "absolute_and_percentage"],
-                        description: "How to display comparative data",
-                    },
-                    currency: {
-                        type: "string",
-                        description: "Currency code (e.g., USD)",
-                    },
-                    dataSource: {
-                        type: "string",
-                        enum: ["billing", "bqlens", "billing_datahub"],
-                        description: "Data source of the report",
-                    },
-                    splits: {
-                        type: "array",
-                        description: "The splits to use in the report",
-                        items: {
-                            type: "object",
-                            properties: {
-                                id: { type: "string" },
-                                type: { type: "string" },
-                                includeOrigin: { type: "boolean" },
-                                mode: {
-                                    type: "string",
-                                    enum: ["even", "custom", "proportional"],
-                                },
-                                targets: {
-                                    type: "array",
-                                    items: {
-                                        type: "object",
-                                        properties: {
-                                            id: { type: "string" },
-                                            type: { type: "string" },
-                                            value: { type: "number" },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    customTimeRange: {
-                        type: "object",
-                        description: "Required when the time range is set to 'custom'",
-                        properties: {
-                            from: {
-                                type: "string",
-                                format: "date-time",
-                                description: "The start timestamp in RFC3339 format (e.g., 2024-03-10T23:00:00Z)",
-                            },
-                            to: {
-                                type: "string",
-                                format: "date-time",
-                                description: "The end timestamp in RFC3339 format (e.g., 2024-03-12T23:00:00Z)",
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        required: ["config"],
-    },
-};
-
 export const getReportResultsTool = {
     name: "get_report_results",
     description: "Get the results of a specific report by ID",
@@ -410,6 +137,343 @@ export const getReportResultsTool = {
         },
         required: ["id"],
     },
+};
+
+// ─── Report Config Sub-Schemas ────────────────────────────────────────────────
+
+const ExternalMetricSchema = z.object({
+    type: z.enum(METRIC_TYPE_VALUES).describe(`Metric type. Accepted values: ${formatEnumValues(METRIC_TYPE_VALUES)}.`),
+    value: z
+        .string()
+        .describe(
+            "For basic metrics: 'cost', 'usage', or 'savings'. For extended metrics: e.g. 'amortized_cost'. For custom metrics: the custom metric ID."
+        ),
+});
+
+const ReportDimensionSchema = z.object({
+    id: z.string().describe("Dimension identifier. Use the dimension tool to get valid IDs."),
+    type: z
+        .enum(DIMENSION_TYPE_VALUES)
+        .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
+});
+
+const TimeSettingsSchema = z
+    .object({
+        mode: z
+            .enum(TIME_RANGE_MODE_VALUES)
+            .describe(
+                `Time range mode. Accepted values: ${formatEnumValues(TIME_RANGE_MODE_VALUES)}. Use 'custom' with customTimeRange for specific dates.`
+            ),
+        amount: z
+            .number()
+            .int()
+            .min(0)
+            .max(5000)
+            .optional()
+            .describe("Number of time units (0–5000). Required when mode is 'last'."),
+        unit: z
+            .enum(TIME_UNIT_VALUES)
+            .optional()
+            .describe(
+                `Time unit. Accepted values: ${formatEnumValues(TIME_UNIT_VALUES)}. Required when mode is 'last'.`
+            ),
+        includeCurrent: z.boolean().optional().describe("Whether to include the current (in-progress) period."),
+        customTimeRange: z
+            .object({
+                from: z.string().describe("Start date in RFC3339 format."),
+                to: z.string().describe("End date in RFC3339 format."),
+            })
+            .optional()
+            .describe("Custom date range. Required when mode is 'custom'."),
+    })
+    .superRefine((value, ctx) => {
+        if (value.mode === "last") {
+            if (value.amount == null) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["amount"],
+                    message: "amount is required when mode is 'last'.",
+                });
+            }
+            if (value.unit == null) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["unit"],
+                    message: "unit is required when mode is 'last'.",
+                });
+            }
+        }
+        if (value.mode === "custom" && !value.customTimeRange) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["customTimeRange"],
+                message: "customTimeRange is required when mode is 'custom'.",
+            });
+        }
+    });
+
+const TimeSettingsSecondarySchema = z.object({
+    amount: z.number().int().min(0).optional().describe("Number of periods to shift back (non-negative)."),
+    unit: z
+        .enum(SECONDARY_TIME_UNIT_VALUES)
+        .optional()
+        .describe(`Time unit for shifting. Accepted values: ${formatEnumValues(SECONDARY_TIME_UNIT_VALUES)}.`),
+    includeCurrent: z
+        .boolean()
+        .optional()
+        .describe(
+            "When true, selects complete previous periods (e.g. full previous year). When false, shifts dates by amount."
+        ),
+    customTimeRange: z
+        .object({
+            from: z.string().describe("Start date in RFC3339 format."),
+            to: z.string().describe("End date in RFC3339 format."),
+        })
+        .optional()
+        .describe("Custom date range for the secondary time range."),
+});
+
+const ExternalConfigFilterSchema = z.object({
+    id: z.string().describe("The field to filter on. Use the dimension tool to get valid IDs."),
+    type: z
+        .enum(DIMENSION_TYPE_VALUES)
+        .describe(`Dimension type of the filter field. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
+    mode: z
+        .enum(FILTER_MODE_VALUES)
+        .describe(`Filter match mode. Accepted values: ${formatEnumValues(FILTER_MODE_VALUES)}.`),
+    inverse: z.boolean().optional().describe("Set to true to exclude the matched values (negation)."),
+    values: z.array(z.string()).optional().describe("Values to filter on."),
+});
+
+const ExternalConfigMetricFilterSchema = z.object({
+    metric: ExternalMetricSchema.describe("The metric to filter on."),
+    operator: z
+        .enum(METRIC_FILTER_OPERATOR_VALUES)
+        .describe(
+            `Comparison operator. Accepted values: ${formatEnumValues(METRIC_FILTER_OPERATOR_VALUES)}. gt (>), lt (<), lte (<=), gte (>=), b (between), nb (not between), e (equals), ne (not equals).`
+        ),
+    values: z.array(z.number()).describe("Values to compare against."),
+});
+
+const LimitSchema = z.object({
+    metric: ExternalMetricSchema.describe("Metric used for ranking."),
+    sort: z
+        .enum(SORT_VALUES)
+        .describe(`Sort order for the limit ranking. Accepted values: ${formatEnumValues(SORT_VALUES)}.`),
+    value: z.number().int().describe("Number of items to show."),
+});
+
+const GroupSchema = z.object({
+    id: z.string().describe("Dimension ID for the group-by row. Use the dimension tool to get valid IDs."),
+    type: z
+        .enum(DIMENSION_TYPE_VALUES)
+        .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
+    limit: LimitSchema.optional().describe("Limit to top/bottom N results."),
+});
+
+const AdvancedAnalysisSchema = z.object({
+    forecast: z.boolean().optional().describe("Include a cost forecast."),
+    notTrending: z.boolean().optional().describe("Highlight rows that are not trending."),
+    trendingDown: z.boolean().optional().describe("Highlight rows trending down."),
+    trendingUp: z.boolean().optional().describe("Highlight rows trending up."),
+});
+
+const ExternalSplitTargetSchema = z.object({
+    id: z.string().describe("Target ID."),
+    type: z
+        .enum(DIMENSION_TYPE_VALUES)
+        .describe(
+            `Target type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}. Must match the split type unless split type is 'attribution_group', in which case target type must be 'attribution'.`
+        ),
+    value: z
+        .number()
+        .optional()
+        .describe("Percent as float (e.g. 0.3 for 30%). Required only when split mode is 'custom'."),
+});
+
+const ExternalSplitSchema = z
+    .object({
+        id: z.string().describe("ID of the field to split."),
+        type: z
+            .enum(DIMENSION_TYPE_VALUES)
+            .describe(`Type of the split. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
+        mode: z
+            .enum(SPLIT_MODE_VALUES)
+            .describe(`Split mode. Accepted values: ${formatEnumValues(SPLIT_MODE_VALUES)}.`),
+        includeOrigin: z.boolean().optional().describe("Whether to include the origin in the split results."),
+        origin: z
+            .object({
+                id: z.string().describe("Origin ID."),
+                type: z
+                    .enum(ORIGIN_TYPE_VALUES)
+                    .describe(`Origin type. Accepted values: ${formatEnumValues(ORIGIN_TYPE_VALUES)}.`),
+            })
+            .optional()
+            .describe("Origin info for cost splitting."),
+        targets: z.array(ExternalSplitTargetSchema).optional().describe("Targets for the split."),
+    })
+    .superRefine((data, ctx) => {
+        if (data.mode === "custom") {
+            if (!data.targets || data.targets.length === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["targets"],
+                    message: "Targets are required when split mode is 'custom'.",
+                });
+                return;
+            }
+            data.targets.forEach((target, index) => {
+                if (target.value === undefined) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        path: ["targets", index, "value"],
+                        message: "Target value is required when split mode is 'custom'.",
+                    });
+                }
+            });
+        }
+    });
+
+export const ReportConfigSchema = z
+    .object({
+        dataSource: z
+            .enum(DATA_SOURCE_VALUES)
+            .optional()
+            .describe(`Data source for the report. Accepted values: ${formatEnumValues(DATA_SOURCE_VALUES)}.`),
+        metrics: z
+            .array(ExternalMetricSchema)
+            .max(4)
+            .optional()
+            .describe("List of metrics to apply (max 4). Preferred over the deprecated 'metric' field."),
+        metric: ExternalMetricSchema.optional().describe("Deprecated: use 'metrics' instead."),
+        metricFilter: ExternalConfigMetricFilterSchema.optional().describe(
+            "Filter to limit report rows by metric value."
+        ),
+        aggregation: z
+            .enum(AGGREGATION_VALUES)
+            .optional()
+            .describe(`How to aggregate data values. Accepted values: ${formatEnumValues(AGGREGATION_VALUES)}.`),
+        advancedAnalysis: AdvancedAnalysisSchema.optional().describe("Advanced analysis options."),
+        timeInterval: z
+            .enum(TIME_INTERVAL_VALUES)
+            .optional()
+            .describe(`Time interval for grouping data. Accepted values: ${formatEnumValues(TIME_INTERVAL_VALUES)}.`),
+        dimensions: z
+            .array(ReportDimensionSchema)
+            .optional()
+            .describe("Dimensions to break down data by (columns in table view)."),
+        timeRange: TimeSettingsSchema.optional().describe("Time range for the report. Preferred over customTimeRange."),
+        secondaryTimeRange: TimeSettingsSecondarySchema.optional().describe(
+            "Secondary time range for comparative reports."
+        ),
+        customTimeRange: z
+            .object({
+                from: z.string().describe("Start timestamp in RFC3339 format. Example: '2024-03-10T23:00:00Z'."),
+                to: z.string().describe("End timestamp in RFC3339 format. Example: '2024-03-12T23:00:00Z'."),
+            })
+            .optional()
+            .describe("Custom time range. Only use when timeRange mode is 'custom'."),
+        includePromotionalCredits: z
+            .boolean()
+            .optional()
+            .describe("Include promotional credits. Requires timeInterval of 'month', 'quarter', or 'year'."),
+        includeSubtotals: z
+            .boolean()
+            .optional()
+            .describe("Include subgroup totals. No effect when reading via API. Defaults to false."),
+        filters: z.array(ExternalConfigFilterSchema).optional().describe("Filters to apply to the report."),
+        group: z.array(GroupSchema).optional().describe("Dimensions that define rows in the report (group-by)."),
+        layout: z
+            .enum(LAYOUT_VALUES)
+            .optional()
+            .describe(`Report layout / visualization type. Accepted values: ${formatEnumValues(LAYOUT_VALUES)}.`),
+        displayValues: z
+            .enum(DISPLAY_VALUES)
+            .optional()
+            .describe(
+                `How to display values in comparative reports. Accepted values: ${formatEnumValues(DISPLAY_VALUES)}.`
+            ),
+        currency: z
+            .enum(REPORT_CURRENCY_VALUES)
+            .optional()
+            .describe(
+                `Currency code for monetary values. Accepted values: ${formatEnumValues(REPORT_CURRENCY_VALUES)}.`
+            ),
+        sortGroups: z
+            .enum(SORT_VALUES)
+            .optional()
+            .describe(
+                `Sort order for groups. Accepted values: ${formatEnumValues(SORT_VALUES)}. Defaults to 'asc'. No effect when reading via API.`
+            ),
+        sortDimensions: z
+            .enum(SORT_VALUES)
+            .optional()
+            .describe(
+                `Sort order for dimensions. Accepted values: ${formatEnumValues(SORT_VALUES)}. Defaults to 'desc'. No effect when reading via API.`
+            ),
+        splits: z.array(ExternalSplitSchema).optional().describe("Cost splits to apply to the report."),
+    })
+    .superRefine((data, ctx) => {
+        if (data.metric && data.metrics && data.metrics.length > 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["metrics"],
+                message: "Specify either 'metrics' or the deprecated 'metric', but not both.",
+            });
+        }
+    });
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Run Query Schema Definition
+export const RunQueryArgumentsSchema = z.object({
+    config: ReportConfigSchema.describe(
+        "Configuration for the query. Use the dimension tool to look up valid dimension IDs."
+    ),
+});
+
+export const runQueryTool = {
+    name: "run_query",
+    description: `Runs a report query with the specified configuration without persisting it.
+    Fields that are not populated will use their default values if needed.
+    To limit the number of rows returned per group, set the \`limit.value\` field inside each \`config.group[]\` entry (maximum 25).
+    Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
+    If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
+    Example for cost report:
+    {
+      "config": {
+        "dataSource": "billing",
+        "metric": {"type": "basic", "value": "cost"},
+        "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": true},
+        "group": [{"id": "service_description", "type": "fixed", "limit": {"metric": {"type": "basic", "value": "cost"}, "sort": "desc", "value": 10}}]
+      }
+    }`,
+    inputSchema: zodToMcpInputSchema(RunQueryArgumentsSchema),
+};
+
+// Create Report Schema Definition
+export const CreateReportArgumentsSchema = z.object({
+    name: z.string().min(1).describe("The name of the report (required, non-empty)."),
+    description: z.string().optional().describe("A brief description of the report."),
+    labels: z.array(z.string()).optional().describe("Optional list of label IDs to assign to the report."),
+    config: ReportConfigSchema.describe(
+        "Configuration for the report. Use the dimension tool to look up valid dimension IDs."
+    ),
+});
+
+export interface CreateReportResponse {
+    id: string;
+    name: string;
+    description?: string;
+    type: string;
+    config: Record<string, any>;
+    labels?: string[];
+}
+
+export const createReportTool = {
+    name: "create_report",
+    description: "Creates a new Cloud Analytics report with the specified configuration.",
+    inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
 };
 
 // Format a report for display
@@ -582,6 +646,29 @@ export function formatReportResults(report: GetReportResultsResponse): string {
         .join(`\n\n`);
 
     return `${reportResults}\n\n${createDocumentPrompt}`;
+}
+
+// Handle create report request
+export async function handleCreateReportRequest(args: any, token: string) {
+    try {
+        const parsed = CreateReportArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const body = { ...parsed };
+
+        const data = await makeDoitRequest<CreateReportResponse>(REPORTS_BASE_URL, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to create report");
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create report request");
+    }
 }
 
 // Handle get report results request

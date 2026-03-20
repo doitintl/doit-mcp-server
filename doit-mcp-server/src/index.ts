@@ -18,9 +18,11 @@ import {
   anomalyTool,
 } from "../../src/tools/anomalies.js";
 import {
+  CreateReportArgumentsSchema,
   ReportsArgumentsSchema,
   RunQueryArgumentsSchema,
   GetReportResultsArgumentsSchema,
+  createReportTool,
   reportsTool,
   runQueryTool,
   getReportResultsTool,
@@ -312,6 +314,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(reportsTool, ReportsArgumentsSchema);
     this.registerTool(runQueryTool, RunQueryArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
+    this.registerTool(createReportTool, CreateReportArgumentsSchema);
 
     // Validation tool
     this.registerTool(validateUserTool, ValidateUserArgumentsSchema);
