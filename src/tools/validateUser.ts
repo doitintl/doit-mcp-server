@@ -7,6 +7,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const VALIDATE_USER_BASE_URL = `${DOIT_API_BASE}/auth/v1/validate`;
 
@@ -25,7 +26,9 @@ export const validateUserTool = {
     description: "Validates the current API user and returns domain and email information",
     inputSchema: {
         type: "object",
-        properties: {},
+        properties: {
+            ...customerContextProperty,
+        },
     },
 };
 

@@ -9,7 +9,7 @@ import {
     ALERTS_SORT_ORDER_VALUES,
 } from "../types/alerts.js";
 import { CURRENCY_VALUES } from "../types/budgets.js";
-import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
+import { customerContextProperty, zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -71,6 +71,7 @@ export const listAlertsTool = {
                 description:
                     "Expression for filtering results. Syntax: key:[<value>]. Multiple filters joined with |. Available keys: owner, name.",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -90,6 +91,7 @@ export const getAlertTool = {
                 type: "string",
                 description: "The ID of the alert to retrieve.",
             },
+            ...customerContextProperty,
         },
         required: ["id"],
     },

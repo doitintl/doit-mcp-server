@@ -7,6 +7,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const TICKETS_BASE_URL = `${DOIT_API_BASE}/support/v1/tickets`;
 
@@ -52,6 +53,7 @@ export const listTicketsTool = {
                 type: "number",
                 description: "Number of tickets to return per page",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -115,6 +117,7 @@ export const createTicketTool = {
                 },
                 required: ["body", "created", "platform", "product", "severity", "subject"],
             },
+            ...customerContextProperty,
         },
         required: ["ticket"],
     },

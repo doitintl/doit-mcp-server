@@ -7,6 +7,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const CLOUDFLOW_BASE_URL = `${DOIT_API_BASE}/cloudflow/v1`;
 export const CLOUDFLOW_TRIGGER_BASE_URL = `${CLOUDFLOW_BASE_URL}/trigger`;
@@ -47,6 +48,7 @@ export const triggerCloudFlowTool = {
                 type: "object",
                 description: "Optional JSON object to pass as the request body to the flow if the flow requires it",
             },
+            ...customerContextProperty,
         },
         required: ["flowID"],
     },

@@ -17,7 +17,7 @@ import {
     TIME_RANGE_MODE_VALUES,
     TIME_UNIT_VALUES,
 } from "../types/reports.js";
-import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
+import { customerContextProperty, zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -120,6 +120,7 @@ export const reportsTool = {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -134,6 +135,7 @@ export const getReportResultsTool = {
                 type: "string",
                 description: "The ID of the report to retrieve results for",
             },
+            ...customerContextProperty,
         },
         required: ["id"],
     },

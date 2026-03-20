@@ -7,6 +7,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const CLOUD_INCIDENTS_BASE_URL = `${DOIT_API_BASE}/core/v1/cloudincidents`;
 
@@ -84,6 +85,7 @@ export const cloudIncidentsTool = {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -98,6 +100,7 @@ export const cloudIncidentTool = {
                 type: "string",
                 description: "incident ID",
             },
+            ...customerContextProperty,
         },
         required: ["id"],
     },

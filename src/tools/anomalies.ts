@@ -7,6 +7,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const ANOMALIES_BASE_URL = `${DOIT_API_BASE}/anomalies/v1`;
 
@@ -60,6 +61,7 @@ export const anomaliesTool = {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -74,6 +76,7 @@ export const anomalyTool = {
                 type: "string",
                 description: "anomaly ID",
             },
+            ...customerContextProperty,
         },
         required: ["id"],
     },

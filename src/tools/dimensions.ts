@@ -7,6 +7,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const DIMENSIONS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/dimensions`;
 
@@ -51,6 +52,7 @@ export const dimensionsTool = {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
             },
+            ...customerContextProperty,
         },
     },
 };

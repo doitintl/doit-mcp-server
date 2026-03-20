@@ -7,6 +7,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const DIMENSION_BASE_URL = `${DOIT_API_BASE}/analytics/v1/dimension`;
 
@@ -70,6 +71,7 @@ export const dimensionTool = {
                 type: "string",
                 description: "Dimension id",
             },
+            ...customerContextProperty,
         },
         required: ["type", "id"],
     },

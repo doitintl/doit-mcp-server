@@ -27,7 +27,12 @@ function expectSchemaMatch(result: Record<string, unknown>, expected: Record<str
 
     const resultProps = (result.properties ?? {}) as Record<string, any>;
     const expectedProps = (expected.properties ?? {}) as Record<string, any>;
-    expect(Object.keys(resultProps).sort()).toEqual(Object.keys(expectedProps).sort());
+    // zodToMcpInputSchema injects customerContext; exclude it from comparison if not in expected
+    const expectedKeys = Object.keys(expectedProps);
+    const resultKeys = Object.keys(resultProps).filter(
+        (k) => k !== "customerContext" || expectedKeys.includes("customerContext")
+    );
+    expect(resultKeys.sort()).toEqual(expectedKeys.sort());
 
     for (const key of Object.keys(expectedProps)) {
         const rp = pickStructural(resultProps[key]);

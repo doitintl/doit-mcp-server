@@ -7,6 +7,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const INVOICES_BASE_URL = `${DOIT_API_BASE}/billing/v1/invoices`;
 
@@ -45,6 +46,7 @@ export const listInvoicesTool = {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -93,6 +95,7 @@ export const getInvoiceTool = {
                 type: "string",
                 description: "The ID of the invoice to retrieve.",
             },
+            ...customerContextProperty,
         },
         required: ["id"],
     },
