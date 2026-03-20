@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -7,7 +8,6 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
-import { customerContextProperty } from "../utils/schemaHelpers.js";
 
 export const CLOUDFLOW_BASE_URL = `${DOIT_API_BASE}/cloudflow/v1`;
 export const CLOUDFLOW_TRIGGER_BASE_URL = `${CLOUDFLOW_BASE_URL}/trigger`;
