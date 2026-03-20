@@ -436,7 +436,7 @@ export const runQueryTool = {
     name: "run_query",
     description: `Runs a report query with the specified configuration without persisting it.
     Fields that are not populated will use their default values if needed.
-    You must use the 'limit' field to limit the number of rows in the report, maximum is 25.
+    To limit the number of rows returned per group, set the \`limit.value\` field inside each \`config.group[]\` entry (maximum 25).
     Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
     If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
     Example for cost report:
