@@ -292,7 +292,7 @@ describe("MCP Tools Integration", () => {
             expect(parsed._requestBody.labels).toEqual(["label-1"]);
         });
 
-        it("rejects missing name before calling API", async () => {
+        it("returns an error mentioning 'name' when name is missing", async () => {
             const result = await client.callTool({
                 name: "create_report",
                 arguments: {
