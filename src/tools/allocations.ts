@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -178,6 +179,7 @@ export const listAllocationsTool = {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -192,6 +194,7 @@ export const getAllocationTool = {
                 type: "string",
                 description: "The ID of the allocation to retrieve",
             },
+            ...customerContextProperty,
         },
         required: ["id"],
     },
@@ -302,6 +305,7 @@ const createAllocationInputSchema = {
             description:
                 "Custom label for values that do not fit into any allocation rule (required when using 'rules' for group allocations)",
         },
+        ...customerContextProperty,
     },
     required: ["name", "description"],
 } as const;

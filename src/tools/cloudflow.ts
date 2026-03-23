@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -47,6 +48,7 @@ export const triggerCloudFlowTool = {
                 type: "object",
                 description: "Optional JSON object to pass as the request body to the flow if the flow requires it",
             },
+            ...customerContextProperty,
         },
         required: ["flowID"],
     },

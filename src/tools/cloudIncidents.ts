@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -84,6 +85,7 @@ export const cloudIncidentsTool = {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -98,6 +100,7 @@ export const cloudIncidentTool = {
                 type: "string",
                 description: "incident ID",
             },
+            ...customerContextProperty,
         },
         required: ["id"],
     },

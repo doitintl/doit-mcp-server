@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -25,7 +26,9 @@ export const validateUserTool = {
     description: "Validates the current API user and returns domain and email information",
     inputSchema: {
         type: "object",
-        properties: {},
+        properties: {
+            ...customerContextProperty,
+        },
     },
 };
 

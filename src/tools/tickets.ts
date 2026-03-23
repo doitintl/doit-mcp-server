@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TicketPlatform, TicketSeverity } from "../common/types.js";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -52,6 +53,7 @@ export const listTicketsTool = {
                 type: "number",
                 description: "Number of tickets to return per page",
             },
+            ...customerContextProperty,
         },
     },
 };
@@ -115,6 +117,7 @@ export const createTicketTool = {
                 },
                 required: ["body", "created", "platform", "product", "severity", "subject"],
             },
+            ...customerContextProperty,
         },
         required: ["ticket"],
     },

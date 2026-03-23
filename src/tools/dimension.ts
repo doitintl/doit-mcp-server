@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerContextProperty } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -70,6 +71,7 @@ export const dimensionTool = {
                 type: "string",
                 description: "Dimension id",
             },
+            ...customerContextProperty,
         },
         required: ["type", "id"],
     },
