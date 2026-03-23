@@ -3,6 +3,8 @@ import {
     alertsFixture,
     allocationFixture,
     allocationsFixture,
+    annotationFixture,
+    annotationsFixture,
     budgetFixture,
     budgetsFixture,
     createAlertFixture,
@@ -76,4 +78,7 @@ export const fixtures = {
     budget: budgetFixture,
     createBudget: createBudgetFixture,
     updateBudget: updateBudgetFixture,
+
+    annotation: annotationFixture,
+    annotations: annotationsFixture,
 };

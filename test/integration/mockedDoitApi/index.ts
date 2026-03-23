@@ -158,6 +158,17 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.labels);
     }),
 
+    // Annotations
+    http.get(`${API_BASE}/analytics/v1/annotations/:id`, ({ params }) => {
+        if (params.id === "annotation-1") {
+            return HttpResponse.json(fixtures.annotation);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/analytics/v1/annotations`, () => {
+        return HttpResponse.json(fixtures.annotations);
+    }),
+
     // Cloud Diagrams
     http.post(`${API_BASE}/clouddiagrams/v1/scheme/find`, () => {
         return HttpResponse.json(fixtures.cloudDiagrams);
