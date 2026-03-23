@@ -12,6 +12,7 @@ import {
     handleListAllocationsRequest,
     handleUpdateAllocationRequest,
 } from "../tools/allocations.js";
+import { handleGetAnnotationRequest, handleListAnnotationsRequest } from "../tools/annotations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleListAssetsRequest } from "../tools/assets.js";
 import {
@@ -168,6 +169,12 @@ export async function executeToolHandler(
                 break;
             case "update_budget":
                 result = await handleUpdateBudgetRequest(args, token);
+                break;
+            case "list_annotations":
+                result = await handleListAnnotationsRequest(args, token);
+                break;
+            case "get_annotation":
+                result = await handleGetAnnotationRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);
