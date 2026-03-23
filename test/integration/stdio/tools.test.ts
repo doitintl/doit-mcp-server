@@ -33,6 +33,7 @@ describe("MCP Tools Integration", () => {
                 "find_cloud_diagrams",
                 "get_alert",
                 "get_allocation",
+                "get_annotation",
                 "get_anomalies",
                 "get_anomaly",
                 "get_budget",
@@ -44,6 +45,7 @@ describe("MCP Tools Integration", () => {
                 "get_report_results",
                 "list_alerts",
                 "list_allocations",
+                "list_annotations",
                 "list_assets",
                 "list_budgets",
                 "list_dimensions",
@@ -641,6 +643,43 @@ describe("MCP Tools Integration", () => {
             expect(parsed.name).toBe("Engineering");
             expect(parsed.color).toBe("blue");
             expect(parsed.type).toBe("custom");
+            expect(parsed.createTime).toBe("2026-01-01T00:00:00.000Z");
+            expect(parsed.updateTime).toBe("2026-01-02T00:00:00.000Z");
+        });
+    });
+
+    describe("list_annotations", () => {
+        it("returns annotations from mock API", async () => {
+            const result = await client.callTool({ name: "list_annotations", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.annotations).toHaveLength(2);
+            expect(parsed.annotations[0].id).toBe("annotation-1");
+            expect(parsed.annotations[0].content).toBe("Budget threshold reached");
+            expect(parsed.annotations[1].id).toBe("annotation-2");
+            expect(parsed.annotations[1].content).toBe("Cost anomaly detected");
+            expect(parsed.rowCount).toBe(2);
+        });
+
+        it("accepts filter and sort parameters", async () => {
+            const result = await client.callTool({
+                name: "list_annotations",
+                arguments: { sortBy: "timestamp", sortOrder: "asc", filter: "content:budget" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.annotations).toHaveLength(2);
+        });
+    });
+
+    describe("get_annotation", () => {
+        it("returns a specific annotation", async () => {
+            const result = await client.callTool({ name: "get_annotation", arguments: { id: "annotation-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("annotation-1");
+            expect(parsed.content).toBe("Budget threshold reached");
+            expect(parsed.timestamp).toBe("2026-01-15T00:00:00.000Z");
             expect(parsed.createTime).toBe("2026-01-01T00:00:00.000Z");
             expect(parsed.updateTime).toBe("2026-01-02T00:00:00.000Z");
         });

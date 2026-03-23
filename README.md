@@ -155,6 +155,8 @@ This MCP server provides many tools including the following:
 - [`get_alert`](https://developer.doit.com/reference/getalert): Returns a specific alert by ID.
 - [`create_alert`](https://developer.doit.com/reference/createalert): Creates a new alert to notify when cloud costs exceed defined thresholds
 - [`update_alert`](https://developer.doit.com/reference/updatealert): Updates an existing alert by ID
+- [`list_annotations`](https://developer.doit.com/reference/listannotations): Returns a list of annotations that your account has access to
+- [`get_annotation`](https://developer.doit.com/reference/getannotation): Returns a specific annotation by ID
 
 
 ## Usage Examples

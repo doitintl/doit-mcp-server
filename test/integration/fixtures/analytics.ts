@@ -339,6 +339,40 @@ export const updateReportFixture = {
     labels: [],
 };
 
+export const annotationFixture = {
+    id: "annotation-1",
+    content: "Budget threshold reached",
+    timestamp: "2026-01-15T00:00:00.000Z",
+    reports: ["report-1"],
+    labels: [{ id: "label-1", name: "Engineering" }],
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-01-02T00:00:00.000Z",
+};
+
+export const annotationsFixture = {
+    pageToken: "",
+    rowCount: 2,
+    annotations: [
+        {
+            id: "annotation-1",
+            content: "Budget threshold reached",
+            timestamp: "2026-01-15T00:00:00.000Z",
+            reports: ["report-1"],
+            labels: [{ id: "label-1", name: "Engineering" }],
+            createTime: "2026-01-01T00:00:00.000Z",
+            updateTime: "2026-01-02T00:00:00.000Z",
+        },
+        {
+            id: "annotation-2",
+            content: "Cost anomaly detected",
+            timestamp: "2026-02-01T00:00:00.000Z",
+            labels: [],
+            createTime: "2026-02-01T00:00:00.000Z",
+            updateTime: "2026-02-02T00:00:00.000Z",
+        },
+    ],
+};
+
 export const updateAlertFixture = {
     id: "alert-1",
     name: "Updated Alert",
