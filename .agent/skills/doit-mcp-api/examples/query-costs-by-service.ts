@@ -80,7 +80,8 @@ async function main() {
     console.log('================================');
 
     results.rows.forEach(row => {
-      const [service, cost] = row;
+      const service = row[0];
+      const cost = row[3];
       console.log(`${service}: $${cost.toFixed(2)}`);
     });
   } catch (error) {

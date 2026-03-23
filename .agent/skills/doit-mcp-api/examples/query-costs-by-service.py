@@ -65,7 +65,7 @@ def main():
         print('=' * 40)
 
         for row in results.get('rows', []):
-            service, cost = row[0], row[1]
+            service, cost = row[0], row[3]
             print(f'{service}: ${cost:.2f}')
 
     except requests.RequestException as e:
