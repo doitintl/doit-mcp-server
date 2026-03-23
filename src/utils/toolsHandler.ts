@@ -12,8 +12,8 @@ import {
     handleListAllocationsRequest,
     handleUpdateAllocationRequest,
 } from "../tools/allocations.js";
-import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleGetAnnotationRequest, handleListAnnotationsRequest } from "../tools/annotations.js";
+import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleListAssetsRequest } from "../tools/assets.js";
 import {
     handleCreateBudgetRequest,
