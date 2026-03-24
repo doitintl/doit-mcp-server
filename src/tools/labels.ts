@@ -163,12 +163,14 @@ export const UpdateLabelArgumentsSchema = UpdateLabelBaseSchema.extend({
         .describe(
             `The color of the label. Accepted values: ${formatEnumValues(LABEL_COLOR_VALUES)}, or null to clear.`
         ),
+}).refine((data) => data.name !== undefined || data.color !== undefined, {
+    message: "At least one of 'name' or 'color' must be provided for an update.",
 });
 
 export const updateLabelTool = {
     name: "update_label",
     description:
-        "Updates an existing label in the DoiT platform. Supports partial updates — only the fields provided will be changed.",
+        "Updates an existing label in the DoiT platform. Supports partial updates — at least one of 'name' or 'color' must be provided.",
     inputSchema: zodToMcpInputSchema(UpdateLabelArgumentsSchema),
 };
 

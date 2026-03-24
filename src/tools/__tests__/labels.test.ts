@@ -508,4 +508,13 @@ describe("update_label", () => {
             isError: true,
         });
     });
+
+    it("should reject when neither name nor color is provided", async () => {
+        const response = await handleUpdateLabelRequest({ id: "label-123" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("At least one of") }],
+            isError: true,
+        });
+    });
 });
