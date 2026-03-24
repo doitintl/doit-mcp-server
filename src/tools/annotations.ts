@@ -158,26 +158,45 @@ export async function handleCreateAnnotationRequest(args: any, token: string) {
 }
 
 // Schema and metadata for update annotation
-const UpdateAnnotationBaseSchema = CreateAnnotationArgumentsSchema.partial();
-
-export const UpdateAnnotationArgumentsSchema = UpdateAnnotationBaseSchema.extend({
+export const UpdateAnnotationArgumentsSchema = z.object({
     id: z
         .string()
         .transform((val) => val.trim())
         .pipe(z.string().min(1, "Annotation ID is required and cannot be empty."))
         .describe("The ID of the annotation to update (required)."),
-    content: UpdateAnnotationBaseSchema.shape.content.describe(
-        "The content of the annotation. Optional for updates, but must be non-empty if provided."
-    ),
-    timestamp: UpdateAnnotationBaseSchema.shape.timestamp.describe(
-        "The date associated with the annotation in ISO 8601 date-time format. Optional for updates."
-    ),
+    content: z
+        .string()
+        .min(1)
+        .nullable()
+        .optional()
+        .describe("The content of the annotation. Set to null to clear. Must be non-empty if provided as a string."),
+    timestamp: z
+        .string()
+        .min(1)
+        .datetime({
+            message: "Timestamp must be a valid ISO 8601 date-time string (e.g. 2026-01-15T00:00:00.000Z).",
+        })
+        .nullable()
+        .optional()
+        .describe("The date associated with the annotation in ISO 8601 date-time format. Set to null to clear."),
+    reports: z
+        .array(z.string())
+        .nullable()
+        .optional()
+        .describe("List of report IDs to associate with the annotation. Set to null to clear."),
+    labels: z
+        .array(z.string())
+        .nullable()
+        .optional()
+        .describe(
+            "List of label IDs to associate with the annotation. Set to null to clear. Labels must already exist."
+        ),
 });
 
 export const updateAnnotationTool = {
     name: "update_annotation",
     description:
-        "Updates an existing annotation in the DoiT platform. Supports partial updates — only the fields provided will be changed. The annotation ID is required.",
+        "Updates an existing annotation in the DoiT platform. Supports partial updates — only the fields provided will be changed. Set a field to null to clear it. The annotation ID is required.",
     inputSchema: zodToMcpInputSchema(UpdateAnnotationArgumentsSchema),
 };
 

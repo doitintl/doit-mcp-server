@@ -510,4 +510,64 @@ describe("update_annotation", () => {
             isError: true,
         });
     });
+
+    it("should forward null content to clear the field", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
+
+        await handleUpdateAnnotationRequest({ id: "annotation-1", content: null }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/annotation-1"),
+            mockToken,
+            expect.objectContaining({
+                method: "PATCH",
+                body: { content: null },
+            })
+        );
+    });
+
+    it("should forward null labels to clear the field", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
+
+        await handleUpdateAnnotationRequest({ id: "annotation-1", labels: null }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/annotation-1"),
+            mockToken,
+            expect.objectContaining({
+                method: "PATCH",
+                body: { labels: null },
+            })
+        );
+    });
+
+    it("should forward null timestamp to clear the field", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
+
+        await handleUpdateAnnotationRequest({ id: "annotation-1", timestamp: null }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/annotation-1"),
+            mockToken,
+            expect.objectContaining({
+                method: "PATCH",
+                body: { timestamp: null },
+            })
+        );
+    });
+
+    it("should send empty body when only id is provided", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
+
+        await handleUpdateAnnotationRequest({ id: "annotation-1" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/annotation-1"),
+            mockToken,
+            expect.objectContaining({
+                method: "PATCH",
+                body: {},
+            })
+        );
+    });
 });

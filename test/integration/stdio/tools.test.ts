@@ -720,6 +720,15 @@ describe("MCP Tools Integration", () => {
             expect(parsed.id).toBe("annotation-1");
             expect(parsed.content).toBe("Updated annotation content");
         });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_annotation",
+                arguments: { content: "No id provided" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Required");
+        });
     });
 
     describe("find_cloud_diagrams", () => {
