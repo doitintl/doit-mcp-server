@@ -100,10 +100,14 @@ import {
   listRolesTool,
 } from "../../src/tools/roles.js";
 import {
+  CreateLabelArgumentsSchema,
+  createLabelTool,
   GetLabelArgumentsSchema,
   getLabelTool,
   ListLabelsArgumentsSchema,
   listLabelsTool,
+  UpdateLabelArgumentsSchema,
+  updateLabelTool,
 } from "../../src/tools/labels.js";
 import {
   ListProductsArgumentsSchema,
@@ -380,6 +384,8 @@ export class DoitMCPAgent extends McpAgent {
     // Labels tools
     this.registerTool(listLabelsTool, ListLabelsArgumentsSchema);
     this.registerTool(getLabelTool, GetLabelArgumentsSchema);
+    this.registerTool(createLabelTool, CreateLabelArgumentsSchema);
+    this.registerTool(updateLabelTool, UpdateLabelArgumentsSchema);
 
     // Cloud Diagrams tools
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);

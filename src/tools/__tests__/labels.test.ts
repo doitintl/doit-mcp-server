@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LABEL_SORT_BY_VALUES, LABEL_SORT_ORDER_VALUES } from "../../types/labels.js";
+import { LABEL_COLOR_VALUES, LABEL_SORT_BY_VALUES, LABEL_SORT_ORDER_VALUES } from "../../types/labels.js";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
+    createLabelTool,
     DEFAULT_MAX_RESULTS_LABELS,
+    handleCreateLabelRequest,
     handleGetLabelRequest,
     handleListLabelsRequest,
+    handleUpdateLabelRequest,
     LABELS_BASE_URL,
     listLabelsTool,
+    updateLabelTool,
 } from "../labels.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -260,6 +264,247 @@ describe("get_label", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+});
+
+describe("createLabelTool metadata", () => {
+    it("should include color accepted values in description", () => {
+        const colorProp = createLabelTool.inputSchema.properties?.color as { description: string };
+        for (const value of LABEL_COLOR_VALUES) {
+            expect(colorProp.description).toContain(value);
+        }
+    });
+});
+
+describe("create_label", () => {
+    const mockToken = "fake-token";
+    const validArgs = { name: "New Label", color: "teal" as const };
+
+    it("should call makeDoitRequest with POST and correct body", async () => {
+        const mockResponse = { id: "label-new", name: "New Label", color: "teal", type: "custom" };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+        const response = await handleCreateLabelRequest(validArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(LABELS_BASE_URL, mockToken, {
+            method: "POST",
+            body: { name: "New Label", color: "teal" },
+            customerContext: undefined,
+        });
+
+        const text = response.content[0].text;
+        const parsed = JSON.parse(text);
+        expect(parsed.id).toBe("label-new");
+        expect(parsed.name).toBe("New Label");
+        expect(parsed.color).toBe("teal");
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "label-new" });
+
+        await handleCreateLabelRequest({ ...validArgs, customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(LABELS_BASE_URL, mockToken, {
+            method: "POST",
+            body: { name: "New Label", color: "teal" },
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleCreateLabelRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("label") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleCreateLabelRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should reject when name is missing", async () => {
+        const response = await handleCreateLabelRequest({ color: "blue" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should reject empty string name", async () => {
+        const response = await handleCreateLabelRequest({ name: "", color: "blue" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("String must contain at least 1 character") }],
+            isError: true,
+        });
+    });
+
+    it("should reject when color is missing", async () => {
+        const response = await handleCreateLabelRequest({ name: "Test" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should reject invalid color value", async () => {
+        const response = await handleCreateLabelRequest({ name: "Test", color: "red" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Invalid") }],
+            isError: true,
+        });
+    });
+});
+
+describe("updateLabelTool metadata", () => {
+    it("should include color accepted values in description", () => {
+        const colorProp = updateLabelTool.inputSchema.properties?.color as { description: string };
+        for (const value of LABEL_COLOR_VALUES) {
+            expect(colorProp.description).toContain(value);
+        }
+    });
+});
+
+describe("update_label", () => {
+    const mockToken = "fake-token";
+    const validUpdateArgs = { id: "label-123", name: "Updated Name" };
+
+    it("should call makeDoitRequest with PATCH, correct URL, and body without id", async () => {
+        const mockResponse = { id: "label-123", name: "Updated Name", color: "blue", type: "custom" };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+        const response = await handleUpdateLabelRequest(validUpdateArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-123`, mockToken, {
+            method: "PATCH",
+            body: { name: "Updated Name" },
+            customerContext: undefined,
+        });
+
+        const text = response.content[0].text;
+        const parsed = JSON.parse(text);
+        expect(parsed.id).toBe("label-123");
+        expect(parsed.name).toBe("Updated Name");
+    });
+
+    it("should update only color when name is not provided", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "label-123", color: "purple" });
+
+        await handleUpdateLabelRequest({ id: "label-123", color: "purple" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-123`, mockToken, {
+            method: "PATCH",
+            body: { color: "purple" },
+            customerContext: undefined,
+        });
+    });
+
+    it("should accept null for name", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "label-123", name: null });
+
+        await handleUpdateLabelRequest({ id: "label-123", name: null }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-123`, mockToken, {
+            method: "PATCH",
+            body: { name: null },
+            customerContext: undefined,
+        });
+    });
+
+    it("should accept null for color", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "label-123", color: null });
+
+        await handleUpdateLabelRequest({ id: "label-123", color: null }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-123`, mockToken, {
+            method: "PATCH",
+            body: { color: null },
+            customerContext: undefined,
+        });
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "label-123" });
+
+        await handleUpdateLabelRequest({ ...validUpdateArgs, customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-123`, mockToken, {
+            method: "PATCH",
+            body: { name: "Updated Name" },
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleUpdateLabelRequest(validUpdateArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("label") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleUpdateLabelRequest(validUpdateArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should reject when id is missing", async () => {
+        const response = await handleUpdateLabelRequest({ name: "Updated" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should reject empty string id", async () => {
+        const response = await handleUpdateLabelRequest({ id: "", name: "Updated" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+
+    it("should reject whitespace-only id", async () => {
+        const response = await handleUpdateLabelRequest({ id: "   ", name: "Updated" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+
+    it("should reject invalid color value", async () => {
+        const response = await handleUpdateLabelRequest({ id: "label-123", color: "red" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Invalid") }],
             isError: true,
         });
     });

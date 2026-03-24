@@ -136,6 +136,9 @@ This MCP server provides many tools including the following:
 - [`get_cloud_incident`](https://developer.doit.com/reference/getknownissue): Get details about a specific cloud incident by ID
 - [`get_anomalies`](https://developer.doit.com/reference/listanomalies): Retrieve anomalies detected in cloud resources
 - [`get_anomaly`](https://developer.doit.com/reference/getanomaly): Get details about a specific anomaly by ID
+- [`list_assets`](https://developer.doit.com/reference/listassets): Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc.
+- [`trigger_cloud_flow`](https://developer.doit.com/reference/triggercloudflow): Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body
+- [`find_cloud_diagrams`](https://developer.doit.com/reference/findclouddiagrams): Returns diagram URLs matching the provided resource IDs from the DoiT Cloud Diagrams API
 - [`list_reports`](https://developer.doit.com/reference/listreports): Lists Cloud Analytics reports that your account has access to
 - [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
 - [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID
@@ -155,10 +158,23 @@ This MCP server provides many tools including the following:
 - [`get_alert`](https://developer.doit.com/reference/getalert): Returns a specific alert by ID.
 - [`create_alert`](https://developer.doit.com/reference/createalert): Creates a new alert to notify when cloud costs exceed defined thresholds
 - [`update_alert`](https://developer.doit.com/reference/updatealert): Updates an existing alert by ID
+- [`list_budgets`](https://developer.doit.com/reference/listbudgets): Returns the list of budgets that the user has access to
+- [`get_budget`](https://developer.doit.com/reference/getbudget): Returns the details and current utilization of a specified budget
+- [`create_budget`](https://developer.doit.com/reference/createbudget): Creates a new budget to track actual cloud spend against planned spend
+- [`update_budget`](https://developer.doit.com/reference/updatebudget): Updates an existing budget
 - [`list_annotations`](https://developer.doit.com/reference/listannotations): Returns a list of annotations that your account has access to
 - [`get_annotation`](https://developer.doit.com/reference/getannotation): Returns a specific annotation by ID
 - [`create_annotation`](https://developer.doit.com/reference/createannotation): Creates a new annotation with content, timestamp, and optional report/label associations
 - [`update_annotation`](https://developer.doit.com/reference/updateannotation): Updates an existing annotation by ID
+- [`list_organizations`](https://developer.doit.com/reference/listorganizations): Returns a list of organizations accessible to the authenticated user
+- [`list_platforms`](https://developer.doit.com/reference/listplatforms): Returns a list of all available platforms
+- [`list_users`](https://developer.doit.com/reference/listusers): Returns a list of all users in the organization
+- [`list_roles`](https://developer.doit.com/reference/listroles): Returns a list of all IAM roles, including both preset and custom roles
+- [`list_products`](https://developer.doit.com/reference/listproducts): Lists products available for different platforms, optionally filtered by platform name
+- [`list_labels`](https://developer.doit.com/reference/listlabels): Returns a list of labels that the user has access to
+- [`get_label`](https://developer.doit.com/reference/getlabel): Returns details of a specific label by ID
+- [`create_label`](https://developer.doit.com/reference/createlabel): Creates a new label with a name and color
+- [`update_label`](https://developer.doit.com/reference/updatelabel): Updates an existing label's name or color
 
 
 ## Usage Examples
