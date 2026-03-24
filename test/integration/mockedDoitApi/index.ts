@@ -165,11 +165,17 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Annotations
+    http.patch(`${API_BASE}/analytics/v1/annotations/:id`, () => {
+        return HttpResponse.json(fixtures.updateAnnotation);
+    }),
     http.get(`${API_BASE}/analytics/v1/annotations/:id`, ({ params }) => {
         if (params.id === "annotation-1") {
             return HttpResponse.json(fixtures.annotation);
         }
         return new HttpResponse(null, { status: 404 });
+    }),
+    http.post(`${API_BASE}/analytics/v1/annotations`, () => {
+        return HttpResponse.json(fixtures.createAnnotation);
     }),
     http.get(`${API_BASE}/analytics/v1/annotations`, () => {
         return HttpResponse.json(fixtures.annotations);

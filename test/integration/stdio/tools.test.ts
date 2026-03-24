@@ -28,6 +28,7 @@ describe("MCP Tools Integration", () => {
             expect(names).toEqual([
                 "create_alert",
                 "create_allocation",
+                "create_annotation",
                 "create_budget",
                 "create_report",
                 "find_cloud_diagrams",
@@ -62,6 +63,7 @@ describe("MCP Tools Integration", () => {
                 "trigger_cloud_flow",
                 "update_alert",
                 "update_allocation",
+                "update_annotation",
                 "update_budget",
                 "update_report",
                 "validate_user",
@@ -682,6 +684,50 @@ describe("MCP Tools Integration", () => {
             expect(parsed.timestamp).toBe("2026-01-15T00:00:00.000Z");
             expect(parsed.createTime).toBe("2026-01-01T00:00:00.000Z");
             expect(parsed.updateTime).toBe("2026-01-02T00:00:00.000Z");
+        });
+    });
+
+    describe("create_annotation", () => {
+        it("returns created annotation from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_annotation",
+                arguments: { content: "New annotation content", timestamp: "2026-03-01T00:00:00.000Z" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("annotation-new");
+            expect(parsed.content).toBe("New annotation content");
+        });
+
+        it("rejects invalid arguments", async () => {
+            const result = await client.callTool({
+                name: "create_annotation",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_annotation", () => {
+        it("returns updated annotation from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_annotation",
+                arguments: { id: "annotation-1", content: "Updated annotation content" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("annotation-1");
+            expect(parsed.content).toBe("Updated annotation content");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_annotation",
+                arguments: { content: "No id provided" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Required");
         });
     });
 

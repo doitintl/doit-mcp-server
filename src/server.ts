@@ -31,10 +31,14 @@ import {
     updateAllocationTool,
 } from "./tools/allocations.js";
 import {
+    createAnnotationTool,
     getAnnotationTool,
+    handleCreateAnnotationRequest,
     handleGetAnnotationRequest,
     handleListAnnotationsRequest,
+    handleUpdateAnnotationRequest,
     listAnnotationsTool,
+    updateAnnotationTool,
 } from "./tools/annotations.js";
 import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
 import { handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
@@ -146,6 +150,8 @@ export function createServer() {
                 updateBudgetTool,
                 listAnnotationsTool,
                 getAnnotationTool,
+                createAnnotationTool,
+                updateAnnotationTool,
             ],
         };
     });
@@ -264,6 +270,8 @@ export {
     handleUpdateBudgetRequest,
     handleListAnnotationsRequest,
     handleGetAnnotationRequest,
+    handleCreateAnnotationRequest,
+    handleUpdateAnnotationRequest,
     createErrorResponse,
     formatZodError,
     handleGeneralError,
