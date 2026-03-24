@@ -68,7 +68,16 @@ import {
     handleListInvoicesRequest,
     listInvoicesTool,
 } from "./tools/invoices.js";
-import { getLabelTool, handleGetLabelRequest, handleListLabelsRequest, listLabelsTool } from "./tools/labels.js";
+import {
+    createLabelTool,
+    getLabelTool,
+    handleCreateLabelRequest,
+    handleGetLabelRequest,
+    handleListLabelsRequest,
+    handleUpdateLabelRequest,
+    listLabelsTool,
+    updateLabelTool,
+} from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
@@ -143,6 +152,8 @@ export function createServer() {
                 listProductsTool,
                 listLabelsTool,
                 getLabelTool,
+                createLabelTool,
+                updateLabelTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -263,6 +274,8 @@ export {
     handleListProductsRequest,
     handleListLabelsRequest,
     handleGetLabelRequest,
+    handleCreateLabelRequest,
+    handleUpdateLabelRequest,
     handleFindCloudDiagramsRequest,
     handleListBudgetsRequest,
     handleGetBudgetRequest,

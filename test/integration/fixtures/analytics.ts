@@ -393,6 +393,24 @@ export const updateAnnotationFixture = {
     updateTime: "2026-03-01T00:00:00.000Z",
 };
 
+export const createLabelFixture = {
+    id: "label-new",
+    name: "New Label",
+    color: "teal",
+    type: "custom",
+    createTime: "2026-03-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
+export const updateLabelFixture = {
+    id: "label-1",
+    name: "Updated Engineering",
+    color: "purple",
+    type: "custom",
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
 export const updateAlertFixture = {
     id: "alert-1",
     name: "Updated Alert",

@@ -11,6 +11,7 @@ import {
     createAllocationFixture,
     createAnnotationFixture,
     createBudgetFixture,
+    createLabelFixture,
     createReportFixture,
     dimensionFixture,
     dimensionsFixture,
@@ -23,6 +24,7 @@ import {
     updateAllocationFixture,
     updateAnnotationFixture,
     updateBudgetFixture,
+    updateLabelFixture,
     updateReportFixture,
 } from "./analytics.js";
 import { anomaliesFixture, anomalyFixture } from "./anomalies.js";
@@ -77,6 +79,8 @@ export const fixtures = {
 
     label: labelFixture,
     labels: labelsFixture,
+    createLabel: createLabelFixture,
+    updateLabel: updateLabelFixture,
 
     budgets: budgetsFixture,
     budget: budgetFixture,

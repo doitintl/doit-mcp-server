@@ -32,7 +32,12 @@ import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tool
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
-import { handleGetLabelRequest, handleListLabelsRequest } from "../tools/labels.js";
+import {
+    handleCreateLabelRequest,
+    handleGetLabelRequest,
+    handleListLabelsRequest,
+    handleUpdateLabelRequest,
+} from "../tools/labels.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
@@ -163,6 +168,12 @@ export async function executeToolHandler(
                 break;
             case "get_label":
                 result = await handleGetLabelRequest(args, token);
+                break;
+            case "create_label":
+                result = await handleCreateLabelRequest(args, token);
+                break;
+            case "update_label":
+                result = await handleUpdateLabelRequest(args, token);
                 break;
             case "find_cloud_diagrams":
                 result = await handleFindCloudDiagramsRequest(args, token);

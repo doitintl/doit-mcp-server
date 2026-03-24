@@ -88,6 +88,8 @@ vi.mock(import("../tools/labels.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListLabelsRequest: vi.fn(),
     handleGetLabelRequest: vi.fn(),
+    handleCreateLabelRequest: vi.fn(),
+    handleUpdateLabelRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -133,6 +135,7 @@ import {
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAllocationRequest,
+    handleCreateLabelRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
     handleGeneralError,
@@ -149,6 +152,7 @@ import {
     handleRunQueryRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAllocationRequest,
+    handleUpdateLabelRequest,
     handleUpdateReportRequest,
     handleValidateUserRequest,
 } from "../server.js";
@@ -175,7 +179,7 @@ import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.j
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
-import { getLabelTool, listLabelsTool } from "../tools/labels.js";
+import { createLabelTool, getLabelTool, listLabelsTool, updateLabelTool } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
@@ -274,6 +278,8 @@ describe("ListToolsRequestSchema handler", () => {
                 listProductsTool,
                 listLabelsTool,
                 getLabelTool,
+                createLabelTool,
+                updateLabelTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -615,6 +621,8 @@ describe("CallToolRequestSchema handler", () => {
         ["list_assets", "list_assets", { pageToken: "next-page" }, handleListAssetsRequest],
         ["list_alerts", "list_alerts", { sortBy: "name", sortOrder: "asc" }, handleListAlertsRequest],
         ["get_alert", "get_alert", { id: "alert-123" }, handleGetAlertRequest],
+        ["create_label", "create_label", { name: "Test", color: "blue" }, handleCreateLabelRequest],
+        ["update_label", "update_label", { id: "label-1", name: "Updated" }, handleUpdateLabelRequest],
         [
             "trigger_cloud_flow (with body)",
             "trigger_cloud_flow",

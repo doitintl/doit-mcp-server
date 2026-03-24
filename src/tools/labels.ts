@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Label, LabelsResponse } from "../types/labels.js";
-import { LABEL_SORT_BY_VALUES, LABEL_SORT_ORDER_VALUES } from "../types/labels.js";
+import { LABEL_COLOR_VALUES, LABEL_SORT_BY_VALUES, LABEL_SORT_ORDER_VALUES } from "../types/labels.js";
 import { DEFAULT_MAX_RESULTS } from "../utils/consts.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
@@ -109,5 +109,88 @@ export async function handleGetLabelRequest(args: any, token: string) {
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling get label request");
+    }
+}
+
+// Schema and metadata for create label
+export const CreateLabelArgumentsSchema = z.object({
+    name: z.string().min(1).describe("The name of the label (required, non-empty)."),
+    color: z
+        .enum(LABEL_COLOR_VALUES)
+        .describe(`The color of the label (required). Accepted values: ${formatEnumValues(LABEL_COLOR_VALUES)}.`),
+});
+
+export const createLabelTool = {
+    name: "create_label",
+    description: "Creates a new label in the DoiT platform. Labels can be applied to reports and other resources.",
+    inputSchema: zodToMcpInputSchema(CreateLabelArgumentsSchema),
+};
+
+export async function handleCreateLabelRequest(args: any, token: string) {
+    try {
+        const parsed = CreateLabelArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const body = { ...parsed };
+
+        const data = await makeDoitRequest<Label>(LABELS_BASE_URL, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to create label");
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create label request");
+    }
+}
+
+// Schema and metadata for update label
+const UpdateLabelBaseSchema = CreateLabelArgumentsSchema.partial();
+
+export const UpdateLabelArgumentsSchema = UpdateLabelBaseSchema.extend({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Label ID is required and cannot be empty."))
+        .describe("The ID of the label to update (required)."),
+    name: UpdateLabelBaseSchema.shape.name
+        .nullable()
+        .describe("The name of the label. Must be non-empty if provided, or null to clear."),
+    color: UpdateLabelBaseSchema.shape.color
+        .nullable()
+        .describe(
+            `The color of the label. Accepted values: ${formatEnumValues(LABEL_COLOR_VALUES)}, or null to clear.`
+        ),
+}).refine((data) => data.name !== undefined || data.color !== undefined, {
+    message: "At least one of 'name' or 'color' must be provided for an update.",
+});
+
+export const updateLabelTool = {
+    name: "update_label",
+    description:
+        "Updates an existing label in the DoiT platform. Supports partial updates — at least one of 'name' or 'color' must be provided.",
+    inputSchema: zodToMcpInputSchema(UpdateLabelArgumentsSchema),
+};
+
+export async function handleUpdateLabelRequest(args: any, token: string) {
+    try {
+        const parsed = UpdateLabelArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const { id, ...body } = parsed;
+        const url = `${LABELS_BASE_URL}/${encodeURIComponent(id)}`;
+
+        const data = await makeDoitRequest<Label>(url, token, {
+            method: "PATCH",
+            body,
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to update label");
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling update label request");
     }
 }

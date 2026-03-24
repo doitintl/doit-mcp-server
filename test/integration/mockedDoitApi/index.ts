@@ -154,6 +154,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Labels
+    http.post(`${API_BASE}/analytics/v1/labels`, () => {
+        return HttpResponse.json(fixtures.createLabel);
+    }),
+    http.patch(`${API_BASE}/analytics/v1/labels/:id`, () => {
+        return HttpResponse.json(fixtures.updateLabel);
+    }),
     http.get(`${API_BASE}/analytics/v1/labels/:id`, ({ params }) => {
         if (params.id === "label-1") {
             return HttpResponse.json(fixtures.label);

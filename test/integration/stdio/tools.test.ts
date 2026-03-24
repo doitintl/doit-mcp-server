@@ -30,6 +30,7 @@ describe("MCP Tools Integration", () => {
                 "create_allocation",
                 "create_annotation",
                 "create_budget",
+                "create_label",
                 "create_report",
                 "find_cloud_diagrams",
                 "get_alert",
@@ -65,6 +66,7 @@ describe("MCP Tools Integration", () => {
                 "update_allocation",
                 "update_annotation",
                 "update_budget",
+                "update_label",
                 "update_report",
                 "validate_user",
             ]);
@@ -647,6 +649,50 @@ describe("MCP Tools Integration", () => {
             expect(parsed.type).toBe("custom");
             expect(parsed.createTime).toBe("2026-01-01T00:00:00.000Z");
             expect(parsed.updateTime).toBe("2026-01-02T00:00:00.000Z");
+        });
+    });
+
+    describe("create_label", () => {
+        it("returns created label from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_label",
+                arguments: { name: "New Label", color: "teal" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("label-new");
+            expect(parsed.name).toBe("New Label");
+            expect(parsed.color).toBe("teal");
+        });
+
+        it("rejects invalid arguments", async () => {
+            const result = await client.callTool({
+                name: "create_label",
+                arguments: { name: "Missing Color" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_label", () => {
+        it("returns updated label from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_label",
+                arguments: { id: "label-1", name: "Updated Engineering" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("label-1");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_label",
+                arguments: { name: "No ID" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 
