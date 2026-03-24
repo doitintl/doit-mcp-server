@@ -36,6 +36,7 @@ import {
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleUpdateReportRequest,
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
 import { handleListTicketsRequest } from "../tools/tickets.js";
@@ -84,6 +85,9 @@ export async function executeToolHandler(
                 break;
             case "create_report":
                 result = await handleCreateReportRequest(args, token);
+                break;
+            case "update_report":
+                result = await handleUpdateReportRequest(args, token);
                 break;
             case "validate_user":
                 result = await handleValidateUserRequest(args, token);

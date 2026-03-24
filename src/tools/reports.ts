@@ -476,6 +476,24 @@ export const createReportTool = {
     inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
 };
 
+// Update Report Schema Definition
+export const UpdateReportArgumentsSchema = z.object({
+    id: z.string().min(1).describe("The ID of the report to update (required)."),
+    name: z.string().min(1).optional().describe("Report name."),
+    description: z.string().optional().describe("Report description."),
+    labels: z.array(z.string()).optional().describe("Array of label IDs to assign to the report."),
+    config: ReportConfigSchema.optional().describe(
+        "Configuration for the report. Only specified fields will be updated. Use the dimension tool to look up valid dimension IDs."
+    ),
+});
+
+export const updateReportTool = {
+    name: "update_report",
+    description:
+        "Updates an existing Cloud Analytics report. Supports partial updates — only the fields provided will be changed. The report ID is required.",
+    inputSchema: zodToMcpInputSchema(UpdateReportArgumentsSchema),
+};
+
 // Format a report for display
 export function formatReport(report: Report): string {
     const createDate = new Date(report.createTime).toLocaleString();
@@ -700,5 +718,29 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
             return createErrorResponse(formatZodError(error));
         }
         return handleGeneralError(error, "handling get report results request");
+    }
+}
+
+// Handle update report request
+export async function handleUpdateReportRequest(args: any, token: string) {
+    try {
+        const parsed = UpdateReportArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const { id, ...body } = parsed;
+        const url = `${REPORTS_BASE_URL}/${encodeURIComponent(id)}`;
+
+        const data = await makeDoitRequest<CreateReportResponse>(url, token, {
+            method: "PATCH",
+            body,
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to update report");
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling update report request");
     }
 }

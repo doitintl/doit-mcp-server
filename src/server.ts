@@ -75,8 +75,10 @@ import {
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleUpdateReportRequest,
     reportsTool,
     runQueryTool,
+    updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
@@ -112,6 +114,7 @@ export function createServer() {
                 runQueryTool,
                 getReportResultsTool,
                 createReportTool,
+                updateReportTool,
                 validateUserTool,
                 dimensionsTool,
                 dimensionTool,
@@ -230,6 +233,7 @@ export {
     handleRunQueryRequest,
     handleGetReportResultsRequest,
     handleCreateReportRequest,
+    handleUpdateReportRequest,
     handleValidateUserRequest,
     handleDimensionsRequest,
     handleDimensionRequest,

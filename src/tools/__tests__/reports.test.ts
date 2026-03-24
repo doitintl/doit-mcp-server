@@ -14,6 +14,7 @@ import {
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleUpdateReportRequest,
 } from "../reports.js";
 
 // Mock the utility functions
@@ -599,6 +600,95 @@ Cloud Storage,50`;
                 "https://api.doit.com/analytics/v1/reports",
                 mockToken,
                 expect.objectContaining({ body: expect.objectContaining({ labels: ["label-1", "label-2"] }) })
+            );
+        });
+    });
+
+    describe("handleUpdateReportRequest", () => {
+        const mockToken = "fake-token";
+        const validArgs = {
+            id: "report-1",
+            name: "Updated Report",
+        };
+        const mockUpdatedReport = {
+            id: "report-1",
+            name: "Updated Report",
+            description: "An update via API",
+            type: "custom",
+            config: { dataSource: "billing" },
+            labels: [],
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("should call makeDoitRequest with correct PATCH URL and body and return success response", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdatedReport);
+
+            await handleUpdateReportRequest(validArgs, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-1",
+                mockToken,
+                expect.objectContaining({ method: "PATCH", body: { name: "Updated Report" } })
+            );
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("report-1"));
+        });
+
+        it("should pass customerContext to makeDoitRequest", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdatedReport);
+
+            await handleUpdateReportRequest({ ...validArgs, customerContext: "customer-123" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-1",
+                mockToken,
+                expect.objectContaining({ method: "PATCH", customerContext: "customer-123" })
+            );
+        });
+
+        it("should return error response when API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            await handleUpdateReportRequest(validArgs, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("Failed to update report"));
+        });
+
+        it("should return error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+            await handleUpdateReportRequest(validArgs, mockToken);
+
+            expect(handleGeneralError).toHaveBeenCalledWith(
+                expect.any(Error),
+                expect.stringContaining("handling update report request")
+            );
+        });
+
+        it("should return error response when id is missing", async () => {
+            const { id: _, ...argsWithoutId } = validArgs;
+
+            await handleUpdateReportRequest(argsWithoutId, mockToken);
+
+            expect(formatZodError).toHaveBeenCalled();
+            expect(createErrorResponse).toHaveBeenCalled();
+        });
+
+        it("should send only provided fields in the body (partial update)", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdatedReport);
+            const partialArgs = { id: "report-1", name: "Only Name" };
+
+            await handleUpdateReportRequest(partialArgs, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-1",
+                mockToken,
+                expect.objectContaining({
+                    method: "PATCH",
+                    body: { name: "Only Name" },
+                })
             );
         });
     });

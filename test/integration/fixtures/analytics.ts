@@ -330,6 +330,15 @@ export const createReportFixture = {
     labels: [],
 };
 
+export const updateReportFixture = {
+    id: "report-1",
+    name: "Updated Report",
+    description: "An update via API",
+    type: "custom",
+    config: { dataSource: "billing" },
+    labels: [],
+};
+
 export const annotationFixture = {
     id: "annotation-1",
     content: "Budget threshold reached",
