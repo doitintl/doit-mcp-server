@@ -157,6 +157,8 @@ This MCP server provides many tools including the following:
 - [`update_alert`](https://developer.doit.com/reference/updatealert): Updates an existing alert by ID
 - [`list_annotations`](https://developer.doit.com/reference/listannotations): Returns a list of annotations that your account has access to
 - [`get_annotation`](https://developer.doit.com/reference/getannotation): Returns a specific annotation by ID
+- [`create_annotation`](https://developer.doit.com/reference/createannotation): Creates a new annotation with content, timestamp, and optional report/label associations
+- [`update_annotation`](https://developer.doit.com/reference/updateannotation): Updates an existing annotation by ID
 
 
 ## Usage Examples

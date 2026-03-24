@@ -124,10 +124,14 @@ import {
   updateBudgetTool,
 } from "../../src/tools/budgets.js";
 import {
+  CreateAnnotationArgumentsSchema,
+  createAnnotationTool,
   GetAnnotationArgumentsSchema,
   getAnnotationTool,
   ListAnnotationsArgumentsSchema,
   listAnnotationsTool,
+  UpdateAnnotationArgumentsSchema,
+  updateAnnotationTool,
 } from "../../src/tools/annotations.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
@@ -389,6 +393,8 @@ export class DoitMCPAgent extends McpAgent {
     // Annotations tools
     this.registerTool(listAnnotationsTool, ListAnnotationsArgumentsSchema);
     this.registerTool(getAnnotationTool, GetAnnotationArgumentsSchema);
+    this.registerTool(createAnnotationTool, CreateAnnotationArgumentsSchema);
+    this.registerTool(updateAnnotationTool, UpdateAnnotationArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {

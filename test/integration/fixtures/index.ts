@@ -9,6 +9,7 @@ import {
     budgetsFixture,
     createAlertFixture,
     createAllocationFixture,
+    createAnnotationFixture,
     createBudgetFixture,
     createReportFixture,
     dimensionFixture,
@@ -20,6 +21,7 @@ import {
     reportsFixture,
     updateAlertFixture,
     updateAllocationFixture,
+    updateAnnotationFixture,
     updateBudgetFixture,
     updateReportFixture,
 } from "./analytics.js";
@@ -83,4 +85,6 @@ export const fixtures = {
 
     annotation: annotationFixture,
     annotations: annotationsFixture,
+    createAnnotation: createAnnotationFixture,
+    updateAnnotation: updateAnnotationFixture,
 };

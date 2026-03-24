@@ -373,6 +373,26 @@ export const annotationsFixture = {
     ],
 };
 
+export const createAnnotationFixture = {
+    id: "annotation-new",
+    content: "New annotation content",
+    timestamp: "2026-03-01T00:00:00.000Z",
+    reports: ["report-1"],
+    labels: [{ id: "label-1", name: "Engineering" }],
+    createTime: "2026-03-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
+export const updateAnnotationFixture = {
+    id: "annotation-1",
+    content: "Updated annotation content",
+    timestamp: "2026-01-15T00:00:00.000Z",
+    reports: ["report-1"],
+    labels: [{ id: "label-1", name: "Engineering" }],
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
 export const updateAlertFixture = {
     id: "alert-1",
     name: "Updated Alert",

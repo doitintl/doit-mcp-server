@@ -4,8 +4,10 @@ import { makeDoitRequest } from "../../utils/util.js";
 import {
     ANNOTATIONS_BASE_URL,
     DEFAULT_MAX_RESULTS_ANNOTATIONS,
+    handleCreateAnnotationRequest,
     handleGetAnnotationRequest,
     handleListAnnotationsRequest,
+    handleUpdateAnnotationRequest,
     listAnnotationsTool,
 } from "../annotations.js";
 
@@ -261,6 +263,229 @@ describe("get_annotation", () => {
 
     it("should return error when id is only whitespace", async () => {
         const response = await handleGetAnnotationRequest({ id: "   " }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Annotation ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+});
+
+describe("create_annotation", () => {
+    const mockToken = "fake-token";
+
+    const validArgs = {
+        content: "Budget threshold reached",
+        timestamp: "2026-01-15T00:00:00.000Z",
+    };
+
+    const mockCreatedAnnotation = {
+        id: "annotation-new",
+        content: "Budget threshold reached",
+        timestamp: "2026-01-15T00:00:00.000Z",
+        createTime: "2026-01-15T00:00:00.000Z",
+        updateTime: "2026-01-15T00:00:00.000Z",
+    };
+
+    it("should call makeDoitRequest with POST and correct body", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreatedAnnotation);
+
+        const response = await handleCreateAnnotationRequest(validArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            ANNOTATIONS_BASE_URL,
+            mockToken,
+            expect.objectContaining({
+                method: "POST",
+                body: expect.objectContaining({
+                    content: "Budget threshold reached",
+                    timestamp: "2026-01-15T00:00:00.000Z",
+                }),
+                customerContext: undefined,
+            })
+        );
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.id).toBe("annotation-new");
+        expect(parsed.content).toBe("Budget threshold reached");
+    });
+
+    it("should include optional reports and labels in body", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreatedAnnotation);
+
+        const argsWithOptionals = {
+            ...validArgs,
+            reports: ["report-1"],
+            labels: ["label-1"],
+        };
+
+        await handleCreateAnnotationRequest(argsWithOptionals, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            ANNOTATIONS_BASE_URL,
+            mockToken,
+            expect.objectContaining({
+                method: "POST",
+                body: expect.objectContaining({
+                    content: "Budget threshold reached",
+                    reports: ["report-1"],
+                    labels: ["label-1"],
+                }),
+            })
+        );
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreatedAnnotation);
+
+        await handleCreateAnnotationRequest({ ...validArgs, customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ customerContext: "customer-123" })
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleCreateAnnotationRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("annotation") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleCreateAnnotationRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when content is missing", async () => {
+        const response = await handleCreateAnnotationRequest({ timestamp: "2026-01-15T00:00:00.000Z" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when timestamp is missing", async () => {
+        const response = await handleCreateAnnotationRequest({ content: "Test" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+});
+
+describe("update_annotation", () => {
+    const mockToken = "fake-token";
+
+    const validUpdateArgs = { id: "annotation-1", content: "Updated content" };
+
+    const mockUpdatedAnnotation = {
+        id: "annotation-1",
+        content: "Updated content",
+        timestamp: "2026-01-15T00:00:00.000Z",
+        createTime: "2026-01-01T00:00:00.000Z",
+        updateTime: "2026-01-16T00:00:00.000Z",
+    };
+
+    it("should call makeDoitRequest with PATCH, correct URL, and body without id", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
+
+        await handleUpdateAnnotationRequest(validUpdateArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/annotation-1"),
+            mockToken,
+            expect.objectContaining({
+                method: "PATCH",
+                body: { content: "Updated content" },
+                customerContext: undefined,
+            })
+        );
+    });
+
+    it("should send only provided fields in body", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
+
+        await handleUpdateAnnotationRequest({ id: "annotation-1", labels: ["label-2"] }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/annotation-1"),
+            mockToken,
+            expect.objectContaining({
+                method: "PATCH",
+                body: { labels: ["label-2"] },
+            })
+        );
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
+
+        await handleUpdateAnnotationRequest({ ...validUpdateArgs, customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ customerContext: "customer-123" })
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleUpdateAnnotationRequest(validUpdateArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("annotation") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleUpdateAnnotationRequest(validUpdateArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is missing", async () => {
+        const response = await handleUpdateAnnotationRequest({ content: "Updated" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is empty", async () => {
+        const response = await handleUpdateAnnotationRequest({ id: "" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Annotation ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is only whitespace", async () => {
+        const response = await handleUpdateAnnotationRequest({ id: "   " }, mockToken);
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("Annotation ID is required and cannot be empty") }],

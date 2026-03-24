@@ -111,3 +111,89 @@ export async function handleGetAnnotationRequest(args: any, token: string) {
         return handleGeneralError(error, "handling get annotation request");
     }
 }
+
+// Schema and metadata for create annotation
+export const CreateAnnotationArgumentsSchema = z.object({
+    content: z.string().min(1).describe("The content of the annotation (required, non-empty)."),
+    timestamp: z.string().describe("The date associated with the annotation in ISO 8601 date-time format (required)."),
+    reports: z.array(z.string()).optional().describe("List of report IDs to associate with the annotation."),
+    labels: z
+        .array(z.string())
+        .optional()
+        .describe("List of label IDs to associate with the annotation. Labels must already exist."),
+});
+
+export const createAnnotationTool = {
+    name: "create_annotation",
+    description:
+        "Creates a new annotation in the DoiT platform. Annotations allow users to mark specific points in time with notes, and can be associated with reports and labels.",
+    inputSchema: zodToMcpInputSchema(CreateAnnotationArgumentsSchema),
+};
+
+export async function handleCreateAnnotationRequest(args: any, token: string) {
+    try {
+        const parsed = CreateAnnotationArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const body = { ...parsed };
+
+        const data = await makeDoitRequest<Annotation>(ANNOTATIONS_BASE_URL, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to create annotation");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create annotation request");
+    }
+}
+
+// Schema and metadata for update annotation
+const UpdateAnnotationBaseSchema = CreateAnnotationArgumentsSchema.partial();
+
+export const UpdateAnnotationArgumentsSchema = UpdateAnnotationBaseSchema.extend({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Annotation ID is required and cannot be empty."))
+        .describe("The ID of the annotation to update (required)."),
+    content: UpdateAnnotationBaseSchema.shape.content.describe(
+        "The content of the annotation. Must be non-empty if provided."
+    ),
+});
+
+export const updateAnnotationTool = {
+    name: "update_annotation",
+    description:
+        "Updates an existing annotation in the DoiT platform. Supports partial updates — only the fields provided will be changed. The annotation ID is required.",
+    inputSchema: zodToMcpInputSchema(UpdateAnnotationArgumentsSchema),
+};
+
+export async function handleUpdateAnnotationRequest(args: any, token: string) {
+    try {
+        const parsed = UpdateAnnotationArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const { id, ...body } = parsed;
+        const url = `${ANNOTATIONS_BASE_URL}/${encodeURIComponent(id)}`;
+
+        const data = await makeDoitRequest<Annotation>(url, token, {
+            method: "PATCH",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to update annotation");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling update annotation request");
+    }
+}

@@ -104,6 +104,8 @@ vi.mock(import("../tools/annotations.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListAnnotationsRequest: vi.fn(),
     handleGetAnnotationRequest: vi.fn(),
+    handleCreateAnnotationRequest: vi.fn(),
+    handleUpdateAnnotationRequest: vi.fn(),
 }));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -158,7 +160,12 @@ import {
     listAllocationsTool,
     updateAllocationTool,
 } from "../tools/allocations.js";
-import { getAnnotationTool, listAnnotationsTool } from "../tools/annotations.js";
+import {
+    createAnnotationTool,
+    getAnnotationTool,
+    listAnnotationsTool,
+    updateAnnotationTool,
+} from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { listAssetsTool } from "../tools/assets.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
@@ -274,6 +281,8 @@ describe("ListToolsRequestSchema handler", () => {
                 updateBudgetTool,
                 listAnnotationsTool,
                 getAnnotationTool,
+                createAnnotationTool,
+                updateAnnotationTool,
             ],
         });
     });
