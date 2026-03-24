@@ -167,7 +167,10 @@ export const UpdateAnnotationArgumentsSchema = UpdateAnnotationBaseSchema.extend
         .pipe(z.string().min(1, "Annotation ID is required and cannot be empty."))
         .describe("The ID of the annotation to update (required)."),
     content: UpdateAnnotationBaseSchema.shape.content.describe(
-        "The content of the annotation. Must be non-empty if provided."
+        "The content of the annotation. Optional for updates, but must be non-empty if provided."
+    ),
+    timestamp: UpdateAnnotationBaseSchema.shape.timestamp.describe(
+        "The date associated with the annotation in ISO 8601 date-time format. Optional for updates."
     ),
 });
 
