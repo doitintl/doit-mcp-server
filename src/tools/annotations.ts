@@ -115,7 +115,11 @@ export async function handleGetAnnotationRequest(args: any, token: string) {
 // Schema and metadata for create annotation
 export const CreateAnnotationArgumentsSchema = z.object({
     content: z.string().min(1).describe("The content of the annotation (required, non-empty)."),
-    timestamp: z.string().describe("The date associated with the annotation in ISO 8601 date-time format (required)."),
+    timestamp: z
+        .string()
+        .min(1, "Timestamp is required and cannot be empty.")
+        .datetime({ message: "Timestamp must be a valid ISO 8601 date-time string (e.g. 2026-01-15T00:00:00.000Z)." })
+        .describe("The date associated with the annotation in ISO 8601 date-time format (required)."),
     reports: z.array(z.string()).optional().describe("List of report IDs to associate with the annotation."),
     labels: z
         .array(z.string())

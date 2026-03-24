@@ -386,6 +386,24 @@ describe("create_annotation", () => {
             isError: true,
         });
     });
+
+    it("should return error when timestamp is empty", async () => {
+        const response = await handleCreateAnnotationRequest({ content: "Test", timestamp: "" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Timestamp is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when timestamp is not a valid ISO 8601 date-time", async () => {
+        const response = await handleCreateAnnotationRequest({ content: "Test", timestamp: "not-a-date" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("ISO 8601") }],
+            isError: true,
+        });
+    });
 });
 
 describe("update_annotation", () => {
