@@ -37,6 +37,7 @@ async function getCostsByService(apiKey: string): Promise<QueryResults> {
         unit: 'day',
         includeCurrent: false
       },
+      timeInterval: 'month',
       group: [{
         id: 'service_description',
         type: 'fixed',
@@ -79,8 +80,10 @@ async function main() {
     console.log('Costs by Service (Last 30 Days):');
     console.log('================================');
 
+    const costIdx = results.schema.findIndex(col => col.name === 'cost');
     results.rows.forEach(row => {
-      const [service, cost] = row;
+      const service = row[0];
+      const cost = row[costIdx] as number;
       console.log(`${service}: $${cost.toFixed(2)}`);
     });
   } catch (error) {

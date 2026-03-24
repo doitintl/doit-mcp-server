@@ -27,6 +27,7 @@ curl -s -X POST 'https://api.doit.com/analytics/v1/reports/query' \
         "unit": "day",
         "includeCurrent": false
       },
+      "timeInterval": "month",
       "group": [{
         "id": "service_description",
         "type": "fixed",

@@ -101,6 +101,6 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 
 **Query Pattern:**
 
-- Group: `resource_name`
+- Group: `resource_id`
 - Limit: `{ sort: 'desc', value: 10 }`
 - Time Range: As specified or default to last 30 days

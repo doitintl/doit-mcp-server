@@ -28,6 +28,7 @@ def get_costs_by_service(api_key: str) -> dict[str, Any]:
                 'unit': 'day',
                 'includeCurrent': False
             },
+            'timeInterval': 'month',
             'group': [{
                 'id': 'service_description',
                 'type': 'fixed',
@@ -64,8 +65,11 @@ def main():
         print('Costs by Service (Last 30 Days):')
         print('=' * 40)
 
+        schema = results.get('schema', [])
+        cost_idx = next(i for i, col in enumerate(schema) if col['name'] == 'cost')
         for row in results.get('rows', []):
-            service, cost = row[0], row[1]
+            service = row[0]
+            cost = row[cost_idx]
             print(f'{service}: ${cost:.2f}')
 
     except requests.RequestException as e:
