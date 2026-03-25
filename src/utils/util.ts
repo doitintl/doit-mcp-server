@@ -113,7 +113,7 @@ export function formatZodError(error: any): string {
         return "Invalid arguments provided";
     }
 
-    return `Invalid arguments: ${error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ")}`;
+    return `Invalid arguments: ${error.errors.map((e: any) => (e.path.length > 0 ? `${e.path.join(".")}: ${e.message}` : e.message)).join(", ")}`;
 }
 
 /**
