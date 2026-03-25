@@ -411,6 +411,13 @@ export const updateLabelFixture = {
     updateTime: "2026-03-01T00:00:00.000Z",
 };
 
+export const labelAssignmentsFixture = {
+    assignments: [
+        { objectId: "report-1", objectType: "report" },
+        { objectId: "budget-1", objectType: "budget" },
+    ],
+};
+
 export const updateAlertFixture = {
     id: "alert-1",
     name: "Updated Alert",

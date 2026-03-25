@@ -90,6 +90,8 @@ vi.mock(import("../tools/labels.js"), async (importOriginal) => ({
     handleGetLabelRequest: vi.fn(),
     handleCreateLabelRequest: vi.fn(),
     handleUpdateLabelRequest: vi.fn(),
+    handleGetLabelAssignmentsRequest: vi.fn(),
+    handleAssignObjectsToLabelRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -132,6 +134,7 @@ import {
     createServer,
     handleAnomaliesRequest,
     handleAnomalyRequest,
+    handleAssignObjectsToLabelRequest,
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAllocationRequest,
@@ -142,6 +145,7 @@ import {
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetInvoiceRequest,
+    handleGetLabelAssignmentsRequest,
     handleGetReportResultsRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
@@ -179,7 +183,14 @@ import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.j
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
-import { createLabelTool, getLabelTool, listLabelsTool, updateLabelTool } from "../tools/labels.js";
+import {
+    assignObjectsToLabelTool,
+    createLabelTool,
+    getLabelAssignmentsTool,
+    getLabelTool,
+    listLabelsTool,
+    updateLabelTool,
+} from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
@@ -280,6 +291,8 @@ describe("ListToolsRequestSchema handler", () => {
                 getLabelTool,
                 createLabelTool,
                 updateLabelTool,
+                getLabelAssignmentsTool,
+                assignObjectsToLabelTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -623,6 +636,13 @@ describe("CallToolRequestSchema handler", () => {
         ["get_alert", "get_alert", { id: "alert-123" }, handleGetAlertRequest],
         ["create_label", "create_label", { name: "Test", color: "blue" }, handleCreateLabelRequest],
         ["update_label", "update_label", { id: "label-1", name: "Updated" }, handleUpdateLabelRequest],
+        ["get_label_assignments", "get_label_assignments", { id: "label-1" }, handleGetLabelAssignmentsRequest],
+        [
+            "assign_objects_to_label",
+            "assign_objects_to_label",
+            { id: "label-1", add: [{ objectId: "report-1", objectType: "report" }] },
+            handleAssignObjectsToLabelRequest,
+        ],
         [
             "trigger_cloud_flow (with body)",
             "trigger_cloud_flow",

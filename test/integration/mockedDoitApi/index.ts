@@ -153,6 +153,17 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.alerts);
     }),
 
+    // Label Assignments (must be before /labels/:id)
+    http.get(`${API_BASE}/analytics/v1/labels/:id/assignments`, ({ params }) => {
+        if (params.id === "label-1") {
+            return HttpResponse.json(fixtures.labelAssignments);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.post(`${API_BASE}/analytics/v1/labels/:id/assignments`, () => {
+        return new HttpResponse(null, { status: 200 });
+    }),
+
     // Labels
     http.post(`${API_BASE}/analytics/v1/labels`, () => {
         return HttpResponse.json(fixtures.createLabel);

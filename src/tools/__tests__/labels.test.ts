@@ -1,10 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LABEL_COLOR_VALUES, LABEL_SORT_BY_VALUES, LABEL_SORT_ORDER_VALUES } from "../../types/labels.js";
+import {
+    LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES,
+    LABEL_COLOR_VALUES,
+    LABEL_SORT_BY_VALUES,
+    LABEL_SORT_ORDER_VALUES,
+} from "../../types/labels.js";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
+    assignObjectsToLabelTool,
     createLabelTool,
     DEFAULT_MAX_RESULTS_LABELS,
+    getLabelAssignmentsTool,
+    handleAssignObjectsToLabelRequest,
     handleCreateLabelRequest,
+    handleGetLabelAssignmentsRequest,
     handleGetLabelRequest,
     handleListLabelsRequest,
     handleUpdateLabelRequest,
@@ -514,6 +523,240 @@ describe("update_label", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("At least one of") }],
+            isError: true,
+        });
+    });
+});
+
+describe("getLabelAssignmentsTool metadata", () => {
+    it("should have correct tool name", () => {
+        expect(getLabelAssignmentsTool.name).toBe("get_label_assignments");
+    });
+});
+
+describe("get_label_assignments", () => {
+    const mockToken = "fake-token";
+
+    it("should call makeDoitRequest with label ID in URL and return assignments", async () => {
+        const mockResponse = {
+            assignments: [
+                { objectId: "report-1", objectType: "report" },
+                { objectId: "budget-1", objectType: "budget" },
+            ],
+        };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+        const response = await handleGetLabelAssignmentsRequest({ id: "label-1" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-1/assignments`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
+
+        const text = response.content[0].text;
+        const parsed = JSON.parse(text);
+        expect(parsed.assignments).toHaveLength(2);
+        expect(parsed.assignments[0].objectId).toBe("report-1");
+        expect(parsed.assignments[1].objectType).toBe("budget");
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ assignments: [] });
+
+        await handleGetLabelAssignmentsRequest({ id: "label-1", customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-1/assignments`, mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleGetLabelAssignmentsRequest({ id: "label-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("label assignments") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleGetLabelAssignmentsRequest({ id: "label-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is missing", async () => {
+        const response = await handleGetLabelAssignmentsRequest({}, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is empty string", async () => {
+        const response = await handleGetLabelAssignmentsRequest({ id: "" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is whitespace only", async () => {
+        const response = await handleGetLabelAssignmentsRequest({ id: "   " }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            isError: true,
+        });
+    });
+});
+
+describe("assignObjectsToLabelTool metadata", () => {
+    it("should include objectType accepted values in description", () => {
+        const schema = assignObjectsToLabelTool.inputSchema;
+        const addProp = schema.properties?.add as { items?: { properties?: { objectType?: { description: string } } } };
+        for (const value of LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES) {
+            expect(addProp.items?.properties?.objectType?.description).toContain(value);
+        }
+    });
+});
+
+describe("assign_objects_to_label", () => {
+    const mockToken = "fake-token";
+    const validArgs = {
+        id: "label-1",
+        add: [{ objectId: "report-1", objectType: "report" }],
+    };
+
+    it("should call makeDoitRequest with POST and correct body", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        const response = await handleAssignObjectsToLabelRequest(validArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${LABELS_BASE_URL}/label-1/assignments`, mockToken, {
+            method: "POST",
+            body: { add: [{ objectId: "report-1", objectType: "report" }] },
+            customerContext: undefined,
+            parseResponse: false,
+        });
+
+        const text = response.content[0].text;
+        expect(text).toContain("Successfully");
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        await handleAssignObjectsToLabelRequest({ ...validArgs, customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "POST",
+            body: { add: [{ objectId: "report-1", objectType: "report" }] },
+            customerContext: "customer-123",
+            parseResponse: false,
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleAssignObjectsToLabelRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("label") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleAssignObjectsToLabelRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should support remove array", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        await handleAssignObjectsToLabelRequest(
+            { id: "label-1", remove: [{ objectId: "budget-1", objectType: "budget" }] },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "POST",
+            body: { remove: [{ objectId: "budget-1", objectType: "budget" }] },
+            customerContext: undefined,
+            parseResponse: false,
+        });
+    });
+
+    it("should support both add and remove arrays", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        await handleAssignObjectsToLabelRequest(
+            {
+                id: "label-1",
+                add: [{ objectId: "report-1", objectType: "report" }],
+                remove: [{ objectId: "budget-1", objectType: "budget" }],
+            },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "POST",
+            body: {
+                add: [{ objectId: "report-1", objectType: "report" }],
+                remove: [{ objectId: "budget-1", objectType: "budget" }],
+            },
+            customerContext: undefined,
+            parseResponse: false,
+        });
+    });
+
+    it("should reject when id is missing", async () => {
+        const response = await handleAssignObjectsToLabelRequest(
+            { add: [{ objectId: "report-1", objectType: "report" }] },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should reject when neither add nor remove is provided", async () => {
+        const response = await handleAssignObjectsToLabelRequest({ id: "label-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("At least one") }],
+            isError: true,
+        });
+    });
+
+    it("should reject invalid objectType", async () => {
+        const response = await handleAssignObjectsToLabelRequest(
+            { id: "label-1", add: [{ objectId: "x", objectType: "invalid" }] },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Invalid") }],
             isError: true,
         });
     });

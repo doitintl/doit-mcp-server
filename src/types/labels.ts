@@ -30,3 +30,21 @@ export type LabelsResponse = {
     rowCount: number;
     labels: Label[];
 };
+
+export const LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES = [
+    "alert",
+    "allocation",
+    "budget",
+    "metric",
+    "report",
+    "annotation",
+] as const;
+
+export type LabelAssignmentObject = {
+    objectId: string;
+    objectType: (typeof LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES)[number];
+};
+
+export type LabelAssignmentsResponse = {
+    assignments: LabelAssignmentObject[];
+};

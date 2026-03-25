@@ -175,6 +175,8 @@ This MCP server provides many tools including the following:
 - [`get_label`](https://developer.doit.com/reference/getlabel): Returns details of a specific label by ID
 - [`create_label`](https://developer.doit.com/reference/createlabel): Creates a new label with a name and color
 - [`update_label`](https://developer.doit.com/reference/updatelabel): Updates an existing label's name or color
+- [`get_label_assignments`](https://developer.doit.com/reference/getlabelassignments): Returns the list of objects assigned to a specific label
+- [`assign_objects_to_label`](https://developer.doit.com/reference/assignobjectstolabel): Assigns or unassigns objects to a label
 
 
 ## Usage Examples
