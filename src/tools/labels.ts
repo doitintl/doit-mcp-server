@@ -237,7 +237,11 @@ export async function handleGetLabelAssignmentsRequest(args: any, token: string)
 
 // Schema and metadata for assign objects to label
 const LabelAssignmentObjectSchema = z.object({
-    objectId: z.string().min(1, "objectId is required and cannot be empty.").describe("The ID of the object."),
+    objectId: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "objectId is required and cannot be empty."))
+        .describe("The ID of the object."),
     objectType: z
         .enum(LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES)
         .describe(`The type of the object. Accepted values: ${formatEnumValues(LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES)}.`),
