@@ -15,6 +15,7 @@ import {
     createReportFixture,
     dimensionFixture,
     dimensionsFixture,
+    labelAssignmentsFixture,
     labelFixture,
     labelsFixture,
     queryResultFixture,
@@ -81,6 +82,7 @@ export const fixtures = {
     labels: labelsFixture,
     createLabel: createLabelFixture,
     updateLabel: updateLabelFixture,
+    labelAssignments: labelAssignmentsFixture,
 
     budgets: budgetsFixture,
     budget: budgetFixture,

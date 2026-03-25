@@ -26,6 +26,7 @@ describe("MCP Tools Integration", () => {
             const names = result.tools.map((t) => t.name).sort();
 
             expect(names).toEqual([
+                "assign_objects_to_label",
                 "create_alert",
                 "create_allocation",
                 "create_annotation",
@@ -44,6 +45,7 @@ describe("MCP Tools Integration", () => {
                 "get_dimension",
                 "get_invoice",
                 "get_label",
+                "get_label_assignments",
                 "get_report_results",
                 "list_alerts",
                 "list_allocations",
@@ -690,6 +692,45 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "update_label",
                 arguments: { name: "No ID" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("get_label_assignments", () => {
+        it("returns assignments from mock API", async () => {
+            const result = await client.callTool({
+                name: "get_label_assignments",
+                arguments: { id: "label-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.assignments).toHaveLength(2);
+            expect(parsed.assignments[0].objectId).toBe("report-1");
+            expect(parsed.assignments[0].objectType).toBe("report");
+            expect(parsed.assignments[1].objectId).toBe("budget-1");
+            expect(parsed.assignments[1].objectType).toBe("budget");
+        });
+    });
+
+    describe("assign_objects_to_label", () => {
+        it("assigns objects to label successfully with empty response", async () => {
+            const result = await client.callTool({
+                name: "assign_objects_to_label",
+                arguments: {
+                    id: "label-1",
+                    add: [{ objectId: "report-1", objectType: "report" }],
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Successfully");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "assign_objects_to_label",
+                arguments: { add: [{ objectId: "report-1", objectType: "report" }] },
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");

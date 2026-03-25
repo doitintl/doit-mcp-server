@@ -1,6 +1,11 @@
 import { z } from "zod";
-import type { Label, LabelsResponse } from "../types/labels.js";
-import { LABEL_COLOR_VALUES, LABEL_SORT_BY_VALUES, LABEL_SORT_ORDER_VALUES } from "../types/labels.js";
+import type { Label, LabelAssignmentsResponse, LabelsResponse } from "../types/labels.js";
+import {
+    LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES,
+    LABEL_COLOR_VALUES,
+    LABEL_SORT_BY_VALUES,
+    LABEL_SORT_ORDER_VALUES,
+} from "../types/labels.js";
 import { DEFAULT_MAX_RESULTS } from "../utils/consts.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
@@ -192,5 +197,104 @@ export async function handleUpdateLabelRequest(args: any, token: string) {
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling update label request");
+    }
+}
+
+// Schema and metadata for get label assignments
+export const GetLabelAssignmentsArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Label ID is required and cannot be empty."))
+        .describe("The ID of the label to retrieve assignments for."),
+});
+
+export const getLabelAssignmentsTool = {
+    name: "get_label_assignments",
+    description:
+        "Returns the list of objects (alerts, allocations, budgets, metrics, reports, annotations) currently assigned to a specific label.",
+    inputSchema: zodToMcpInputSchema(GetLabelAssignmentsArgumentsSchema),
+};
+
+export async function handleGetLabelAssignmentsRequest(args: any, token: string) {
+    try {
+        const { id } = GetLabelAssignmentsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${LABELS_BASE_URL}/${encodeURIComponent(id)}/assignments`;
+
+        const data = await makeDoitRequest<LabelAssignmentsResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to retrieve label assignments");
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get label assignments request");
+    }
+}
+
+// Schema and metadata for assign objects to label
+const LabelAssignmentObjectSchema = z.object({
+    objectId: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "objectId is required and cannot be empty."))
+        .describe("The ID of the object."),
+    objectType: z
+        .enum(LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES)
+        .describe(`The type of the object. Accepted values: ${formatEnumValues(LABEL_ASSIGNMENT_OBJECT_TYPE_VALUES)}.`),
+});
+
+export const AssignObjectsToLabelArgumentsSchema = z
+    .object({
+        id: z
+            .string()
+            .transform((val) => val.trim())
+            .pipe(z.string().min(1, "Label ID is required and cannot be empty."))
+            .describe("The ID of the label to assign or unassign objects to."),
+        add: z
+            .array(LabelAssignmentObjectSchema)
+            .optional()
+            .describe("Array of objects to assign to the label. Each object must have objectId and objectType."),
+        remove: z
+            .array(LabelAssignmentObjectSchema)
+            .optional()
+            .describe("Array of objects to unassign from the label. Each object must have objectId and objectType."),
+    })
+    .refine((data) => (data.add && data.add.length > 0) || (data.remove && data.remove.length > 0), {
+        message: "At least one of 'add' or 'remove' must be provided with at least one object.",
+    });
+
+export const assignObjectsToLabelTool = {
+    name: "assign_objects_to_label",
+    description:
+        "Assigns or unassigns objects (alerts, allocations, budgets, metrics, reports, annotations) to a label. At least one of 'add' or 'remove' must be provided.",
+    inputSchema: zodToMcpInputSchema(AssignObjectsToLabelArgumentsSchema),
+};
+
+export async function handleAssignObjectsToLabelRequest(args: any, token: string) {
+    try {
+        const { id, add, remove } = AssignObjectsToLabelArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${LABELS_BASE_URL}/${encodeURIComponent(id)}/assignments`;
+
+        const body: Record<string, unknown> = {};
+        if (add && add.length > 0) body.add = add;
+        if (remove && remove.length > 0) body.remove = remove;
+
+        const data = await makeDoitRequest<Record<string, unknown>>(url, token, {
+            method: "POST",
+            body,
+            customerContext,
+            parseResponse: false,
+        });
+
+        if (!data) return createErrorResponse("Failed to assign objects to label");
+        return createSuccessResponse("Successfully updated label assignments.");
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling assign objects to label request");
     }
 }

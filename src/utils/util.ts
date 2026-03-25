@@ -113,7 +113,7 @@ export function formatZodError(error: any): string {
         return "Invalid arguments provided";
     }
 
-    return `Invalid arguments: ${error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ")}`;
+    return `Invalid arguments: ${error.errors.map((e: any) => (e.path.length > 0 ? `${e.path.join(".")}: ${e.message}` : e.message)).join(", ")}`;
 }
 
 /**
@@ -173,9 +173,10 @@ export async function makeDoitRequest<T>(
         body?: any;
         appendParams?: boolean;
         customerContext?: string;
+        parseResponse?: boolean;
     } = {}
 ): Promise<T | null> {
-    const { method = "GET", body = undefined, appendParams = true, customerContext } = options;
+    const { method = "GET", body = undefined, appendParams = true, customerContext, parseResponse = true } = options;
 
     const headers = {
         Authorization: `Bearer ${token}`,
@@ -221,6 +222,9 @@ export async function makeDoitRequest<T>(
                 // use bodyText as-is
             }
             throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+        }
+        if (!parseResponse) {
+            return {} as T;
         }
         return (await response.json()) as T;
     } catch (error) {

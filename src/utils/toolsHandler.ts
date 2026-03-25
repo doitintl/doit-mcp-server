@@ -33,7 +33,9 @@ import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
 import {
+    handleAssignObjectsToLabelRequest,
     handleCreateLabelRequest,
+    handleGetLabelAssignmentsRequest,
     handleGetLabelRequest,
     handleListLabelsRequest,
     handleUpdateLabelRequest,
@@ -174,6 +176,12 @@ export async function executeToolHandler(
                 break;
             case "update_label":
                 result = await handleUpdateLabelRequest(args, token);
+                break;
+            case "get_label_assignments":
+                result = await handleGetLabelAssignmentsRequest(args, token);
+                break;
+            case "assign_objects_to_label":
+                result = await handleAssignObjectsToLabelRequest(args, token);
                 break;
             case "find_cloud_diagrams":
                 result = await handleFindCloudDiagramsRequest(args, token);
