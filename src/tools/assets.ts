@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { AssetDetailed, ListAssetsResponse } from "../types/assets.js";
-import { DEFAULT_MAX_RESULTS } from "../utils/consts.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
@@ -12,13 +11,24 @@ import {
 } from "../utils/util.js";
 
 export const ASSETS_BASE_URL = `${DOIT_API_BASE}/billing/v1/assets`;
+export const DEFAULT_MAX_RESULTS_ASSETS = "100";
+export const MAX_MAX_RESULTS_ASSETS = 249;
 
 // Schema definitions
 export const ListAssetsArgumentsSchema = z.object({
     maxResults: z
         .string()
+        .trim()
         .optional()
-        .describe(`The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS}.`),
+        .refine(
+            (value) => value === undefined || (/^\d+$/.test(value) && Number(value) > 0 && Number(value) <= MAX_MAX_RESULTS_ASSETS),
+            {
+                message: `Must be a positive integer no greater than ${MAX_MAX_RESULTS_ASSETS}.`,
+            }
+        )
+        .describe(
+            `The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS_ASSETS}. Maximum allowed value is ${MAX_MAX_RESULTS_ASSETS}.`
+        ),
     pageToken: z
         .string()
         .optional()
@@ -44,7 +54,7 @@ export async function handleListAssetsRequest(args: any, token: string) {
         const { customerContext } = args;
 
         const params = new URLSearchParams();
-        params.append("maxResults", maxResults || DEFAULT_MAX_RESULTS);
+        params.append("maxResults", maxResults || DEFAULT_MAX_RESULTS_ASSETS);
         if (pageToken) params.append("pageToken", pageToken);
         if (filter) params.append("filter", filter);
 

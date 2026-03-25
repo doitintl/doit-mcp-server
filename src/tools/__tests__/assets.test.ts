@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
-import { ASSETS_BASE_URL, handleGetAssetRequest, handleListAssetsRequest } from "../assets.js";
+import {
+    ASSETS_BASE_URL,
+    DEFAULT_MAX_RESULTS_ASSETS,
+    handleGetAssetRequest,
+    handleListAssetsRequest,
+} from "../assets.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
@@ -34,7 +39,7 @@ describe("handleListAssetsRequest", () => {
         const response = await handleListAssetsRequest({}, mockToken);
 
         expect(makeDoitRequest).toHaveBeenCalledWith(
-            expect.stringContaining(`${ASSETS_BASE_URL}?maxResults=`),
+            `${ASSETS_BASE_URL}?maxResults=${DEFAULT_MAX_RESULTS_ASSETS}`,
             mockToken,
             { method: "GET", customerContext: undefined }
         );
@@ -95,6 +100,16 @@ describe("handleListAssetsRequest", () => {
             content: [{ type: "text", text: expect.stringContaining("Network error") }],
             isError: true,
         });
+    });
+
+    it("should reject maxResults values above the API limit", async () => {
+        const response = await handleListAssetsRequest({ maxResults: "250" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("maxResults: Must be a positive integer no greater than 249") }],
+            isError: true,
+        });
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });
 
