@@ -281,8 +281,8 @@ export async function handleAssignObjectsToLabelRequest(args: any, token: string
         const url = `${LABELS_BASE_URL}/${encodeURIComponent(id)}/assignments`;
 
         const body: Record<string, unknown> = {};
-        if (add) body.add = add;
-        if (remove) body.remove = remove;
+        if (add && add.length > 0) body.add = add;
+        if (remove && remove.length > 0) body.remove = remove;
 
         const data = await makeDoitRequest<Record<string, unknown>>(url, token, {
             method: "POST",
