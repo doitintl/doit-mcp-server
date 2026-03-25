@@ -106,7 +106,12 @@ describe("handleListAssetsRequest", () => {
         const response = await handleListAssetsRequest({ maxResults: "250" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("maxResults: Must be a positive integer no greater than 249") }],
+            content: [
+                {
+                    type: "text",
+                    text: expect.stringContaining("maxResults: Must be a positive integer no greater than 249"),
+                },
+            ],
             isError: true,
         });
         expect(makeDoitRequest).not.toHaveBeenCalled();

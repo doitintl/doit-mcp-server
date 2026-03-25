@@ -21,7 +21,9 @@ export const ListAssetsArgumentsSchema = z.object({
         .trim()
         .optional()
         .refine(
-            (value) => value === undefined || (/^\d+$/.test(value) && Number(value) > 0 && Number(value) <= MAX_MAX_RESULTS_ASSETS),
+            (value) =>
+                value === undefined ||
+                (/^\d+$/.test(value) && Number(value) > 0 && Number(value) <= MAX_MAX_RESULTS_ASSETS),
             {
                 message: `Must be a positive integer no greater than ${MAX_MAX_RESULTS_ASSETS}.`,
             }
