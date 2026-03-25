@@ -63,8 +63,10 @@ vi.mock(import("../tools/allocations.js"), async (importOriginal) => ({
 }));
 vi.mock(import("../tools/assets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
+    handleCreateAssetRequest: vi.fn(),
     handleGetAssetRequest: vi.fn(),
     handleListAssetsRequest: vi.fn(),
+    handleUpdateAssetRequest: vi.fn(),
 }));
 vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -139,6 +141,7 @@ import {
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAllocationRequest,
+    handleCreateAssetRequest,
     handleCreateLabelRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
@@ -158,6 +161,7 @@ import {
     handleRunQueryRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAllocationRequest,
+    handleUpdateAssetRequest,
     handleUpdateLabelRequest,
     handleUpdateReportRequest,
     handleValidateUserRequest,
@@ -177,7 +181,7 @@ import {
     updateAnnotationTool,
 } from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
-import { getAssetTool, listAssetsTool } from "../tools/assets.js";
+import { createAssetTool, getAssetTool, listAssetsTool, updateAssetTool } from "../tools/assets.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
@@ -279,6 +283,8 @@ describe("ListToolsRequestSchema handler", () => {
                 updateAllocationTool,
                 listAssetsTool,
                 getAssetTool,
+                createAssetTool,
+                updateAssetTool,
                 listAlertsTool,
                 getAlertTool,
                 createAlertTool,
@@ -636,6 +642,13 @@ describe("CallToolRequestSchema handler", () => {
         ],
         ["list_assets", "list_assets", { pageToken: "next-page" }, handleListAssetsRequest],
         ["get_asset", "get_asset", { id: "asset-123" }, handleGetAssetRequest],
+        [
+            "create_asset",
+            "create_asset",
+            { type: "amazon-web-services", accountName: "Test" },
+            handleCreateAssetRequest,
+        ],
+        ["update_asset", "update_asset", { id: "asset-123", quantity: 5 }, handleUpdateAssetRequest],
         ["list_alerts", "list_alerts", { sortBy: "name", sortOrder: "asc" }, handleListAlertsRequest],
         ["get_alert", "get_alert", { id: "alert-123" }, handleGetAlertRequest],
         ["create_label", "create_label", { name: "Test", color: "blue" }, handleCreateLabelRequest],

@@ -63,3 +63,21 @@ export const assetDetailedFixture = {
         },
     },
 };
+
+export const createAssetFixture = {
+    accountID: "new-account-123",
+};
+
+export const updateAssetFixture = {
+    id: "asset-1",
+    properties: {
+        customerDomain: "example.com",
+        customerID: "cust-123",
+        reseller: "doit",
+        subscription: {
+            id: "sub-1",
+            status: "ACTIVE",
+        },
+    },
+    type: "commitment",
+};

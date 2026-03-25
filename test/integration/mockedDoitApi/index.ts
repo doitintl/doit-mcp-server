@@ -131,6 +131,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Assets
+    http.post(`${API_BASE}/billing/v1/createAsset`, () => {
+        return HttpResponse.json(fixtures.createAsset);
+    }),
+    http.patch(`${API_BASE}/billing/v1/assets/:id`, () => {
+        return HttpResponse.json(fixtures.updateAsset);
+    }),
     http.get(`${API_BASE}/billing/v1/assets/:id`, ({ params }) => {
         if (params.id === "asset-1") {
             return HttpResponse.json(fixtures.assetDetailed);

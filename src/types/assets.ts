@@ -58,3 +58,13 @@ export type ListAssetsResponse = {
     pageToken?: string;
     rowCount: number;
 };
+
+export type CreateAssetResponse = {
+    accountID: string;
+};
+
+export type UpdateAssetResponse = {
+    id: string;
+    properties: AssetProperties;
+    type: string;
+};
