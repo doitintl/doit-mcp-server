@@ -29,7 +29,7 @@ import {
     updateReportFixture,
 } from "./analytics.js";
 import { anomaliesFixture, anomalyFixture } from "./anomalies.js";
-import { assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
+import { assetDetailedFixture, assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
 import { cloudDiagramsFixture } from "./cloudDiagrams.js";
 import { cloudflowTriggerFixture } from "./cloudflow.js";
 import { cloudIncidentFixture, cloudIncidentsFixture } from "./cloudIncidents.js";
@@ -71,6 +71,7 @@ export const fixtures = {
     invoices: invoicesFixture,
     invoice: invoiceFixture,
     assets: assetsFixture,
+    assetDetailed: assetDetailedFixture,
 
     tickets: ticketsFixture,
 

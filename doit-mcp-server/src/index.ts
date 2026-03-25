@@ -62,6 +62,8 @@ import {
   updateAllocationTool,
 } from "../../src/tools/allocations.js";
 import {
+  GetAssetArgumentsSchema,
+  getAssetTool,
   ListAssetsArgumentsSchema,
   listAssetsTool,
 } from "../../src/tools/assets.js";
@@ -359,6 +361,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // Assets tools
     this.registerTool(listAssetsTool, ListAssetsArgumentsSchema);
+    this.registerTool(getAssetTool, GetAssetArgumentsSchema);
 
     // CloudFlow tools
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);

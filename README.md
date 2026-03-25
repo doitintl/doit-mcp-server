@@ -137,6 +137,7 @@ This MCP server provides many tools including the following:
 - [`get_anomalies`](https://developer.doit.com/reference/listanomalies): Retrieve anomalies detected in cloud resources
 - [`get_anomaly`](https://developer.doit.com/reference/getanomaly): Get details about a specific anomaly by ID
 - [`list_assets`](https://developer.doit.com/reference/listassets): Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc.
+- [`get_asset`](https://developer.doit.com/reference/getasset): Returns details of a specific customer asset by ID, including properties such as customer domain, subscription, and reseller information
 - [`trigger_cloud_flow`](https://developer.doit.com/reference/triggercloudflow): Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body
 - [`find_cloud_diagrams`](https://developer.doit.com/reference/findclouddiagrams): Returns diagram URLs matching the provided resource IDs from the DoiT Cloud Diagrams API
 - [`list_reports`](https://developer.doit.com/reference/listreports): Lists Cloud Analytics reports that your account has access to

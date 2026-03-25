@@ -39,6 +39,7 @@ describe("MCP Tools Integration", () => {
                 "get_annotation",
                 "get_anomalies",
                 "get_anomaly",
+                "get_asset",
                 "get_budget",
                 "get_cloud_incident",
                 "get_cloud_incidents",
@@ -498,9 +499,24 @@ describe("MCP Tools Integration", () => {
         it("returns assets list", async () => {
             const result = await client.callTool({ name: "list_assets", arguments: {} });
             const text = getTextContent(result);
-            expect(text).toContain("asset-1");
-            expect(text).toContain("My Billing Account");
-            expect(text).toContain("commitment");
+            const parsed = JSON.parse(text);
+            expect(parsed.assets).toHaveLength(1);
+            expect(parsed.assets[0].id).toBe("asset-1");
+            expect(parsed.assets[0].name).toBe("My Billing Account");
+            expect(parsed.assets[0].type).toBe("commitment");
+        });
+    });
+
+    describe("get_asset", () => {
+        it("returns a specific asset with properties", async () => {
+            const result = await client.callTool({ name: "get_asset", arguments: { id: "asset-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("asset-1");
+            expect(parsed.name).toBe("My Billing Account");
+            expect(parsed.properties.customerDomain).toBe("example.com");
+            expect(parsed.properties.customerID).toBe("cust-123");
+            expect(parsed.properties.subscription.status).toBe("ACTIVE");
         });
     });
 

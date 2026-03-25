@@ -1,182 +1,187 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-    createErrorResponse,
-    createSuccessResponse,
-    formatZodError,
-    handleGeneralError,
-    makeDoitRequest,
-} from "../../utils/util.js";
-import { formatAsset, handleListAssetsRequest } from "../assets.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeDoitRequest } from "../../utils/util.js";
+import { ASSETS_BASE_URL, handleGetAssetRequest, handleListAssetsRequest } from "../assets.js";
 
-// Mock the utility functions
-vi.mock("../../utils/util.js", () => ({
-    createErrorResponse: vi.fn((msg) => ({
-        content: [{ type: "text", text: msg }],
-    })),
-    createSuccessResponse: vi.fn((text) => ({
-        content: [{ type: "text", text }],
-    })),
-    formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-    handleGeneralError: vi.fn((_error, context) => ({
-        content: [{ type: "text", text: `General Error: ${context}` }],
-    })),
-    makeDoitRequest: vi.fn(),
-    DOIT_API_BASE: "https://api.doit.com",
-}));
+vi.mock("../../utils/util.js", async (importOriginal) => {
+    const actual = await importOriginal();
+    return { ...actual, makeDoitRequest: vi.fn() };
+});
 
-describe("assets", () => {
-    describe("formatAsset", () => {
-        it("should format an asset object correctly", () => {
-            const mockAsset = {
-                createTime: 1640995200,
-                id: "asset-123",
-                name: "Test Asset",
-                quantity: 5,
-                type: "billing_account",
-                url: "https://console.cloud.google.com/billing/123",
-            };
+beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+});
 
-            const expected = `ID: asset-123
-Name: Test Asset
-Type: billing_account
-Quantity: 5
-URL: https://console.cloud.google.com/billing/123
-Created: 2022-01-01T00:00:00.000Z
------------`;
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
-            expect(formatAsset(mockAsset)).toBe(expected);
+describe("handleListAssetsRequest", () => {
+    const mockToken = "test-token";
+
+    const mockAsset = {
+        id: "asset-1",
+        name: "My Billing Account",
+        type: "google-cloud",
+        quantity: 1,
+        url: "https://console.doit.com/assets/asset-1",
+        createTime: 1700000000,
+    };
+
+    it("should call makeDoitRequest with base URL + default maxResults and return JSON response", async () => {
+        const mockApiResponse = { assets: [mockAsset], pageToken: "", rowCount: 1 };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockApiResponse);
+
+        const response = await handleListAssetsRequest({}, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining(`${ASSETS_BASE_URL}?maxResults=`),
+            mockToken,
+            { method: "GET", customerContext: undefined }
+        );
+
+        const text = response.content[0].text;
+        const parsed = JSON.parse(text);
+        expect(parsed.assets).toHaveLength(1);
+        expect(parsed.assets[0].id).toBe("asset-1");
+        expect(parsed.assets[0].name).toBe("My Billing Account");
+        expect(parsed.rowCount).toBe(1);
+    });
+
+    it("should append all query params when provided", async () => {
+        const mockApiResponse = { assets: [mockAsset], pageToken: "next", rowCount: 1 };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockApiResponse);
+
+        await handleListAssetsRequest({ maxResults: "10", pageToken: "token-1", filter: "type:g-suite" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("maxResults=10"),
+            mockToken,
+            expect.any(Object)
+        );
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("pageToken=token-1"),
+            mockToken,
+            expect.any(Object)
+        );
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("filter=type%3Ag-suite"),
+            mockToken,
+            expect.any(Object)
+        );
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ assets: [], rowCount: 0 });
+        await handleListAssetsRequest({ customerContext: "customer-123" }, mockToken);
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
         });
     });
 
-    describe("handleListAssetsRequest", () => {
-        const mockToken = "fake-token";
-
-        beforeEach(() => {
-            vi.clearAllMocks();
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+        const response = await handleListAssetsRequest({}, mockToken);
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("assets") }],
+            isError: true,
         });
+    });
 
-        it("should call makeDoitRequest with correct parameters and return success response", async () => {
-            const mockArgs = { pageToken: "next-page" };
-            const mockApiResponse = {
-                assets: [
-                    {
-                        createTime: 1640995200,
-                        id: "asset-123",
-                        name: "Test Asset",
-                        quantity: 5,
-                        type: "billing_account",
-                        url: "https://console.cloud.google.com/billing/123",
-                    },
-                ],
-                pageToken: "another-page",
-                rowCount: 1,
-            };
-            (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
-
-            const response = await handleListAssetsRequest(mockArgs, mockToken);
-
-            expect(makeDoitRequest).toHaveBeenCalledWith(
-                "https://api.doit.com/billing/v1/assets?pageToken=next-page",
-                mockToken,
-                { method: "GET", customerContext: undefined }
-            );
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Found 1 assets:"));
-            expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Found 1 assets:") }],
-            });
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+        const response = await handleListAssetsRequest({}, mockToken);
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
         });
+    });
+});
 
-        it("should handle no assets found", async () => {
-            const mockArgs = {};
-            const mockApiResponse = {
-                assets: [],
-                pageToken: "",
-                rowCount: 0,
-            };
-            (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+describe("handleGetAssetRequest", () => {
+    const mockToken = "test-token";
 
-            const response = await handleListAssetsRequest(mockArgs, mockToken);
+    const mockAssetDetailed = {
+        id: "asset-1",
+        name: "My Billing Account",
+        type: "google-cloud",
+        quantity: 1,
+        url: "https://console.doit.com/assets/asset-1",
+        createTime: 1700000000,
+        properties: {
+            customerDomain: "example.com",
+            customerID: "cust-123",
+            reseller: "doit",
+            subscription: {
+                id: "sub-1",
+                status: "ACTIVE",
+            },
+        },
+    };
 
-            expect(makeDoitRequest).toHaveBeenCalledWith("https://api.doit.com/billing/v1/assets", mockToken, {
-                method: "GET",
-                customerContext: undefined,
-            });
-            expect(createSuccessResponse).toHaveBeenCalledWith("No assets found for this customer context.");
-            expect(response).toEqual({
-                content: [
-                    {
-                        type: "text",
-                        text: "No assets found for this customer context.",
-                    },
-                ],
-            });
+    it("should call makeDoitRequest with asset ID in URL and return asset data", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockAssetDetailed);
+        const response = await handleGetAssetRequest({ id: "asset-1" }, mockToken);
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${ASSETS_BASE_URL}/asset-1`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
         });
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.id).toBe("asset-1");
+        expect(parsed.properties.customerDomain).toBe("example.com");
+    });
 
-        it("should handle API request failure", async () => {
-            const mockArgs = {};
-            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
-
-            const response = await handleListAssetsRequest(mockArgs, mockToken);
-
-            expect(makeDoitRequest).toHaveBeenCalledWith("https://api.doit.com/billing/v1/assets", mockToken, {
-                method: "GET",
-                customerContext: undefined,
-            });
-            expect(createErrorResponse).toHaveBeenCalledWith("Failed to retrieve assets data");
-            expect(response).toEqual({
-                content: [{ type: "text", text: "Failed to retrieve assets data" }],
-            });
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockAssetDetailed);
+        await handleGetAssetRequest({ id: "asset-1", customerContext: "customer-123" }, mockToken);
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
         });
+    });
 
-        it("should handle ZodError for invalid arguments", async () => {
-            const mockArgs = { pageToken: 123 }; // Invalid pageToken type
-            const response = await handleListAssetsRequest(mockArgs, mockToken);
-
-            expect(formatZodError).toHaveBeenCalled();
-            expect(createErrorResponse).toHaveBeenCalled();
-            expect(response).toEqual({
-                content: [
-                    {
-                        type: "text",
-                        text: expect.stringContaining("Formatted Zod Error:"),
-                    },
-                ],
-            });
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+        const response = await handleGetAssetRequest({ id: "asset-1" }, mockToken);
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("asset") }],
+            isError: true,
         });
+    });
 
-        it("should handle general errors", async () => {
-            const mockArgs = {};
-            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
-
-            const response = await handleListAssetsRequest(mockArgs, mockToken);
-
-            expect(handleGeneralError).toHaveBeenCalledWith(expect.any(Error), "making DoiT API request");
-            expect(response).toEqual({
-                content: [{ type: "text", text: "General Error: making DoiT API request" }],
-            });
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+        const response = await handleGetAssetRequest({ id: "asset-1" }, mockToken);
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
         });
+    });
 
-        it("should include page token in response when provided", async () => {
-            const mockArgs = {};
-            const mockApiResponse = {
-                assets: [
-                    {
-                        createTime: 1640995200,
-                        id: "asset-123",
-                        name: "Test Asset",
-                        quantity: 5,
-                        type: "billing_account",
-                        url: "https://console.cloud.google.com/billing/123",
-                    },
-                ],
-                pageToken: "next-page-token",
-                rowCount: 1,
-            };
-            (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
-
-            const _response = await handleListAssetsRequest(mockArgs, mockToken);
-
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Page token: next-page-token"));
+    it("should return error when id is missing", async () => {
+        const response = await handleGetAssetRequest({}, mockToken);
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
         });
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should return error when id is empty string", async () => {
+        const response = await handleGetAssetRequest({ id: "" }, mockToken);
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Asset ID is required") }],
+            isError: true,
+        });
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should return error when id is whitespace only", async () => {
+        const response = await handleGetAssetRequest({ id: "   " }, mockToken);
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Asset ID is required") }],
+            isError: true,
+        });
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });

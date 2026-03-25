@@ -1,4 +1,7 @@
 import { z } from "zod";
+import type { AssetDetailed, ListAssetsResponse } from "../types/assets.js";
+import { DEFAULT_MAX_RESULTS } from "../utils/consts.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -12,106 +15,85 @@ export const ASSETS_BASE_URL = `${DOIT_API_BASE}/billing/v1/assets`;
 
 // Schema definitions
 export const ListAssetsArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    maxResults: z
+        .string()
+        .optional()
+        .describe(`The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS}.`),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Page token, returned by a previous call, to request the next page of results."),
+    filter: z
+        .string()
+        .optional()
+        .describe(
+            'An expression for filtering the results. Uses key:[value] syntax, e.g. "type:g-suite". Multiple filters can be connected using a pipe |. Different keys result in AND; same key multiple times results in OR.'
+        ),
 });
 
-// Interfaces
-export interface Asset {
-    createTime: number;
-    id: string;
-    name: string;
-    quantity: number;
-    type: string;
-    url: string;
-}
-
-export interface ListAssetsResponse {
-    assets: Asset[];
-    pageToken: string;
-    rowCount: number;
-}
-
-// Tool metadata
 export const listAssetsTool = {
     name: "list_assets",
     description:
         "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
-    inputSchema: {
-        type: "object",
-        properties: {
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(ListAssetsArgumentsSchema),
 };
 
-// Format an asset for display
-export function formatAsset(asset: Asset): string {
-    return [
-        `ID: ${asset.id}`,
-        `Name: ${asset.name}`,
-        `Type: ${asset.type}`,
-        `Quantity: ${asset.quantity}`,
-        `URL: ${asset.url}`,
-        `Created: ${new Date(asset.createTime * 1000).toISOString()}`,
-        "-----------",
-    ].join("\n");
-}
-
-// Handle list assets request
 export async function handleListAssetsRequest(args: any, token: string) {
     try {
-        // Validate arguments
-        const { pageToken } = ListAssetsArgumentsSchema.parse(args);
+        const { maxResults, pageToken, filter } = ListAssetsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
-        // Create API URL with query parameters
         const params = new URLSearchParams();
-        if (pageToken) {
-            params.append("pageToken", pageToken);
+        params.append("maxResults", maxResults || DEFAULT_MAX_RESULTS);
+        if (pageToken) params.append("pageToken", pageToken);
+        if (filter) params.append("filter", filter);
+
+        const url = `${ASSETS_BASE_URL}?${params}`;
+
+        const data = await makeDoitRequest<ListAssetsResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve assets");
         }
 
-        let assetsUrl = ASSETS_BASE_URL;
-        if (params.toString()) {
-            assetsUrl += `?${params.toString()}`;
-        }
-
-        try {
-            const assetsData = await makeDoitRequest<ListAssetsResponse>(assetsUrl, token, {
-                method: "GET",
-                customerContext,
-            });
-
-            if (!assetsData) {
-                return createErrorResponse("Failed to retrieve assets data");
-            }
-
-            const assets = assetsData.assets || [];
-            const rowCount = assetsData.rowCount || 0;
-
-            if (assets.length === 0) {
-                return createSuccessResponse("No assets found for this customer context.");
-            }
-
-            const formattedAssets = assets.map(formatAsset);
-
-            let assetsText = `Found ${rowCount} assets:\n\n`;
-            assetsText += formattedAssets.join("\n");
-
-            if (assetsData.pageToken) {
-                assetsText += `\n\nPage token: ${assetsData.pageToken}`;
-            }
-
-            return createSuccessResponse(assetsText);
-        } catch (error) {
-            return handleGeneralError(error, "making DoiT API request");
-        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
     } catch (error) {
-        if (error instanceof z.ZodError) {
-            return createErrorResponse(formatZodError(error));
-        }
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling list assets request");
+    }
+}
+
+// Schema and metadata for get asset
+export const GetAssetArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Asset ID is required and cannot be empty."))
+        .describe("The ID of the asset to retrieve."),
+});
+
+export const getAssetTool = {
+    name: "get_asset",
+    description:
+        "Returns details of a specific customer asset from the DoiT API by its ID, including properties such as customer domain, customer ID, reseller, and subscription details.",
+    inputSchema: zodToMcpInputSchema(GetAssetArgumentsSchema),
+};
+
+export async function handleGetAssetRequest(args: any, token: string) {
+    try {
+        const { id } = GetAssetArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${ASSETS_BASE_URL}/${encodeURIComponent(id)}`;
+        const data = await makeDoitRequest<AssetDetailed>(url, token, { method: "GET", customerContext });
+        if (!data) {
+            return createErrorResponse("Failed to retrieve asset");
+        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get asset request");
     }
 }
