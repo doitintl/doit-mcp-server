@@ -41,7 +41,7 @@ import {
     updateAnnotationTool,
 } from "./tools/annotations.js";
 import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
-import { handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
+import { getAssetTool, handleGetAssetRequest, handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
 import {
     createBudgetTool,
     getBudgetTool,
@@ -143,6 +143,7 @@ export function createServer() {
                 createAllocationTool,
                 updateAllocationTool,
                 listAssetsTool,
+                getAssetTool,
                 listAlertsTool,
                 getAlertTool,
                 createAlertTool,
@@ -276,6 +277,7 @@ export {
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAnnotationsRequest,
+    handleGetAssetRequest,
     handleListAssetsRequest,
     handleListBudgetsRequest,
     handleListInvoicesRequest,

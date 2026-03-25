@@ -19,7 +19,7 @@ import {
     handleUpdateAnnotationRequest,
 } from "../tools/annotations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
-import { handleListAssetsRequest } from "../tools/assets.js";
+import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
 import {
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
@@ -133,6 +133,9 @@ export async function executeToolHandler(
                 break;
             case "list_assets":
                 result = await handleListAssetsRequest(args, token);
+                break;
+            case "get_asset":
+                result = await handleGetAssetRequest(args, token);
                 break;
             case "trigger_cloud_flow":
                 result = await handleTriggerCloudFlowRequest(args, token);

@@ -63,6 +63,7 @@ vi.mock(import("../tools/allocations.js"), async (importOriginal) => ({
 }));
 vi.mock(import("../tools/assets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
+    handleGetAssetRequest: vi.fn(),
     handleListAssetsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
@@ -144,6 +145,7 @@ import {
     handleGeneralError,
     handleGetAlertRequest,
     handleGetAllocationRequest,
+    handleGetAssetRequest,
     handleGetInvoiceRequest,
     handleGetLabelAssignmentsRequest,
     handleGetReportResultsRequest,
@@ -175,7 +177,7 @@ import {
     updateAnnotationTool,
 } from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
-import { listAssetsTool } from "../tools/assets.js";
+import { getAssetTool, listAssetsTool } from "../tools/assets.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
@@ -276,6 +278,7 @@ describe("ListToolsRequestSchema handler", () => {
                 createAllocationTool,
                 updateAllocationTool,
                 listAssetsTool,
+                getAssetTool,
                 listAlertsTool,
                 getAlertTool,
                 createAlertTool,
@@ -632,6 +635,7 @@ describe("CallToolRequestSchema handler", () => {
             handleUpdateAllocationRequest,
         ],
         ["list_assets", "list_assets", { pageToken: "next-page" }, handleListAssetsRequest],
+        ["get_asset", "get_asset", { id: "asset-123" }, handleGetAssetRequest],
         ["list_alerts", "list_alerts", { sortBy: "name", sortOrder: "asc" }, handleListAlertsRequest],
         ["get_alert", "get_alert", { id: "alert-123" }, handleGetAlertRequest],
         ["create_label", "create_label", { name: "Test", color: "blue" }, handleCreateLabelRequest],

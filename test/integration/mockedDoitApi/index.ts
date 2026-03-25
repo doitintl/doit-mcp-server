@@ -131,6 +131,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Assets
+    http.get(`${API_BASE}/billing/v1/assets/:id`, ({ params }) => {
+        if (params.id === "asset-1") {
+            return HttpResponse.json(fixtures.assetDetailed);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/billing/v1/assets`, () => {
         return HttpResponse.json(fixtures.assets);
     }),
