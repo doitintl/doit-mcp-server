@@ -220,6 +220,7 @@ describe("handleCreateAssetRequest", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(expect.stringContaining(`${CREATE_ASSET_URL}?`), mockToken, {
             method: "POST",
+            appendParams: false,
             customerContext: undefined,
         });
         expect(makeDoitRequest).toHaveBeenCalledWith(
@@ -253,6 +254,7 @@ describe("handleCreateAssetRequest", () => {
         await handleCreateAssetRequest({ customerContext: "customer-123" }, mockToken);
         expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
             method: "POST",
+            appendParams: false,
             customerContext: "customer-123",
         });
     });

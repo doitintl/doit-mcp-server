@@ -184,6 +184,7 @@ export async function makeDoitRequest<T>(
         Accept: "application/json",
     };
 
+    const resolvedCustomerContext = customerContext || process.env.CUSTOMER_CONTEXT;
     let requestUrl = appendParams ? appendUrlParameters(url, customerContext) : url;
 
     try {
@@ -198,13 +199,16 @@ export async function makeDoitRequest<T>(
             debugLog("API request body: ", DebugLevel.TRACE, requestOptions.body);
         }
 
-        // add mcp params to the url
-        requestUrl += `&mcp=true`;
-
+        const urlObject = new URL(requestUrl);
+        if (resolvedCustomerContext && !urlObject.searchParams.has("customerContext")) {
+            urlObject.searchParams.set("customerContext", resolvedCustomerContext);
+        }
+        urlObject.searchParams.set("mcp", "true");
         if (!process.env.CUSTOMER_CONTEXT) {
             // request from the sse server
-            requestUrl += `&sse=true`;
+            urlObject.searchParams.set("sse", "true");
         }
+        requestUrl = urlObject.toString();
 
         debugLog("API request URL: ", DebugLevel.VERBOSE, requestUrl);
         const response = await fetch(requestUrl, requestOptions);

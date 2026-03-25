@@ -155,6 +155,7 @@ export async function handleCreateAssetRequest(args: any, token: string) {
 
         const data = await makeDoitRequest<CreateAssetResponse>(url, token, {
             method: "POST",
+            appendParams: false,
             customerContext,
         });
 
