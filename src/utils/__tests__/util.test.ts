@@ -141,22 +141,21 @@ describe("formatEnumValues", () => {
 });
 
 describe("appendUrlParameters", () => {
-    it("adds maxResults and customerContext", () => {
-        const url = appendUrlParameters("https://example.com/test?foo=bar", "customer-123");
+    it("adds maxResults to a URL with existing query params", () => {
+        const url = appendUrlParameters("https://example.com/test?foo=bar");
         expect(url).toContain("foo=bar");
         expect(url).toContain("maxResults=40");
-        expect(url).toContain("customerContext=customer-123");
     });
 
-    it("uses CUSTOMER_CONTEXT from the environment when no explicit value is passed", () => {
-        process.env.CUSTOMER_CONTEXT = "env-customer";
-        const url = appendUrlParameters("https://example.com/test");
-        expect(url).toContain("customerContext=env-customer");
+    it("does not add maxResults if already present", () => {
+        const url = appendUrlParameters("https://example.com/test?maxResults=10");
+        expect(url).toBe("https://example.com/test?maxResults=10");
     });
 });
 
 describe("makeDoitRequest", () => {
     it("keeps customerContext when appendParams is false", async () => {
+        process.env.CUSTOMER_CONTEXT = "customer-123";
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
             status: 200,

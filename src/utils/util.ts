@@ -129,11 +129,11 @@ export function handleGeneralError(error: any, context: string): ReturnType<type
 }
 
 /**
- * Helper function to append customer context to URL if available
+ * Helper function to append default query parameters (maxResults) to a URL.
  * @param baseUrl The base URL to append parameters to
- * @returns URL with maxResults and optional customerContext parameters
+ * @returns URL with maxResults parameter added (if not already present)
  */
-export function appendUrlParameters(baseUrl: string, customerContextId?: string): string {
+export function appendUrlParameters(baseUrl: string): string {
     // Check if the URL already has query parameters
     const separator = baseUrl.includes("?") ? "&" : "?";
     let url = baseUrl;
@@ -141,13 +141,6 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
     // Only add maxResults if it's not already in the URL
     if (!baseUrl.includes("maxResults=")) {
         url += `${separator}maxResults=40`;
-    }
-
-    const customerContext = customerContextId || process.env.CUSTOMER_CONTEXT;
-
-    if (customerContext) {
-        // Use & as separator since we know the URL now has parameters
-        url += `&customerContext=${customerContext}`;
     }
 
     return url;
@@ -184,8 +177,7 @@ export async function makeDoitRequest<T>(
         Accept: "application/json",
     };
 
-    const resolvedCustomerContext = customerContext || process.env.CUSTOMER_CONTEXT;
-    let requestUrl = appendParams ? appendUrlParameters(url, customerContext) : url;
+    let requestUrl = appendParams ? appendUrlParameters(url) : url;
 
     try {
         const requestOptions: RequestInit = {
@@ -200,7 +192,8 @@ export async function makeDoitRequest<T>(
         }
 
         const urlObject = new URL(requestUrl);
-        if (resolvedCustomerContext && !urlObject.searchParams.has("customerContext")) {
+        const resolvedCustomerContext = customerContext || process.env.CUSTOMER_CONTEXT;
+        if (resolvedCustomerContext) {
             urlObject.searchParams.set("customerContext", resolvedCustomerContext);
         }
         urlObject.searchParams.set("mcp", "true");
