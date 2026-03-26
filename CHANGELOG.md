@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.9.0 (2026-03-26)
+
+### Features
+
+- feat: add doit-mcp-api agent skill (#131) (`c0010d6`)
+- feat: add get_asset tool and update assets handling (#135) (`3619b5f`)
+- feat: add label assignment tools and update documentation (#134) (`2c49a7e`)
+- feat: add create_label and update_label tools (#133) (`a7ceb24`)
+- feat: add create_annotation and update_annotation tools with corresponding request handlers and tests (`3695051`)
+- feat(mcp): add skills (#123) (`1eeeb25`)
+- feat: add list_annotations and get_annotation tools (#130) (`e77fb29`)
+- feat: add update_report tool and related functionality (`96885fc`)
+- feat: add create_report tool and related functionality (#127) (`25e83b8`)
+- feat: add create_alert tool and related functionality (#125) (`97bf079`)
+- Feat update alert (#126) (`4a487f2`)
+
 ## v0.8.0 (2026-03-19)
 
 ### Features
