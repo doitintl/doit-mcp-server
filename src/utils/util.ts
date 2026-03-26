@@ -155,7 +155,7 @@ export function appendUrlParameters(baseUrl: string): string {
  * @param options Additional request options
  * @param options.method HTTP method (GET, POST, etc.)
  * @param options.body Request body for POST/PUT requests
- * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
+ * @param options.appendParams Whether to append default maxResults parameter (default: true). customerContext, mcp, and sse are always appended regardless of this flag.
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
