@@ -2,6 +2,21 @@
 
 Project uses semantic versioning, and the CHANGELOG.md is used as a source of truth for release notes.
 
+Use the prepare-release script to prepare the release, which includes handling
+the changelog, etc. Follow the steps suggested by the script, and make sure to
+review the generated changelog entry before committing it.
+This helps automate the release process and ensures that the release notes are consistent with the commit history.
+
+```bash
+# Preview the release preparation steps without making any changes
+./scripts/release/prepare-release.sh --tag v0.10.0 --dry-run
+
+# Run the release preparation steps, --tag is the NEW tag not created yet
+./scripts/release/prepare-release.sh --tag v0.10.0
+```
+
+## Detailed Steps
+
 1. **Write the changelog** — generate a changelog entry from commits since the latest tag (pass the new tag as argument)
 
 ```bash
