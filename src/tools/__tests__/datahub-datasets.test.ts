@@ -98,14 +98,10 @@ describe("get_datahub_dataset", () => {
 
         const response = await handleGetDatahubDatasetRequest({ name: "My Custom Dataset" }, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(
-            `${DATAHUB_DATASETS_BASE_URL}/My%20Custom%20Dataset`,
-            mockToken,
-            {
-                method: "GET",
-                customerContext: undefined,
-            }
-        );
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${DATAHUB_DATASETS_BASE_URL}/My%20Custom%20Dataset`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
 
         const text = response.content[0].text;
         const parsed = JSON.parse(text);
@@ -117,10 +113,7 @@ describe("get_datahub_dataset", () => {
     it("should pass customerContext to makeDoitRequest", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockDataset);
 
-        await handleGetDatahubDatasetRequest(
-            { name: "My Custom Dataset", customerContext: "customer-123" },
-            mockToken
-        );
+        await handleGetDatahubDatasetRequest({ name: "My Custom Dataset", customerContext: "customer-123" }, mockToken);
 
         expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
             method: "GET",

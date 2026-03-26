@@ -54,7 +54,8 @@ export const GetDatahubDatasetArgumentsSchema = z.object({
 
 export const getDatahubDatasetTool = {
     name: "get_datahub_dataset",
-    description: "Returns details of a specific DataHub dataset by its name, including description, record count, last updated time, and who last updated it.",
+    description:
+        "Returns details of a specific DataHub dataset by its name, including description, record count, last updated time, and who last updated it.",
     inputSchema: zodToMcpInputSchema(GetDatahubDatasetArgumentsSchema),
 };
 
