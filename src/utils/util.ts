@@ -155,7 +155,7 @@ export function appendUrlParameters(baseUrl: string): string {
  * @param options Additional request options
  * @param options.method HTTP method (GET, POST, etc.)
  * @param options.body Request body for POST/PUT requests
- * @param options.appendParams Whether to append default maxResults parameter (default: true). customerContext, mcp, and sse are always appended regardless of this flag.
+ * @param options.appendParams Whether to append the default maxResults query parameter (default: true). This flag only controls maxResults: customerContext is appended when provided in options or via process.env.CUSTOMER_CONTEXT, mcp is always appended, and sse is appended only when process.env.CUSTOMER_CONTEXT is not set.
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
