@@ -82,14 +82,34 @@ check_clean_working_tree() {
   fi
 }
 
+check_node() {
+  if command -v node >/dev/null 2>&1; then
+    info "node: $(node --version)"
+    return 0
+  else
+    warn "node not found in PATH — package.json files will NOT be updated automatically."
+    warn "you will need to manually set \"version\": \"${1}\" in:"
+    warn "  package.json"
+    warn "  doit-mcp-server/package.json"
+    warn "  test/integration/package.json"
+    return 1
+  fi
+}
+
 check_tag() {
   local new_tag="$1"
 
-  # Ensure the new tag does not already exist
+  # Ensure the tag does not already exist locally
   if git -C "$REPO_ROOT" tag --list | grep -qx "$new_tag"; then
-    die "tag '${new_tag}' already exists. Delete it first with: git tag -d ${new_tag}"
+    die "tag '${new_tag}' already exists locally."
   fi
-  info "tag '${new_tag}': available"
+  info "tag '${new_tag}': not found locally"
+
+  # Ensure the tag does not already exist on origin
+  if git -C "$REPO_ROOT" ls-remote --tags origin "refs/tags/${new_tag}" | grep -q .; then
+    die "tag '${new_tag}' already exists on origin. It cannot be pushed again."
+  fi
+  info "tag '${new_tag}': not found on origin"
 
   # Find the latest existing tag and ask user to confirm the range
   local latest_tag
@@ -99,7 +119,7 @@ check_tag() {
     confirm_or_exit "No previous tag found. Release ${new_tag} as first release?"
   else
     info "previous tag: ${latest_tag}"
-    confirm_or_exit "Changelog will cover '${latest_tag}..${new_tag}'. Continue?"
+    confirm_or_exit "Changelog will cover from '${latest_tag}'. Continue?"
   fi
 }
 
@@ -153,18 +173,22 @@ main() {
   check_branch
   check_clean_working_tree
   check_tag "$tag"
+  local has_node=true
+  check_node "$version" || has_node=false
 
   if $dry_run; then
     section "[dry-run] Current versions (would be updated to ${version})"
     echo ""
-    echo "  package.json files:"
-    find "$REPO_ROOT" -name "package.json" -not -path "*/node_modules/*" | sort | \
+    if $has_node; then
+      echo "  package.json files:"
       while IFS= read -r f; do
-        local rel_path="${f#${REPO_ROOT}/}"
-        local cur_version
+        rel_path="${f#${REPO_ROOT}/}"
         cur_version="$(node -p "require('${f}').version")"
         info "${rel_path}: ${cur_version}"
-      done
+      done < <(find "$REPO_ROOT" -name "package.json" -not -path "*/node_modules/*" | sort)
+    else
+      warn "skipping package.json version display (node unavailable)"
+    fi
     echo ""
     echo "  src/utils/consts.ts:"
     grep "SERVER_VERSION" "${REPO_ROOT}/src/utils/consts.ts" | sed 's/^/    /'
@@ -178,9 +202,16 @@ main() {
 
   section "Updating versions to ${version}"
 
-  update_package_json_version "${REPO_ROOT}/package.json" "$version"
-  update_package_json_version "${REPO_ROOT}/doit-mcp-server/package.json" "$version"
-  update_package_json_version "${REPO_ROOT}/test/integration/package.json" "$version"
+  if $has_node; then
+    update_package_json_version "${REPO_ROOT}/package.json" "$version"
+    update_package_json_version "${REPO_ROOT}/doit-mcp-server/package.json" "$version"
+    update_package_json_version "${REPO_ROOT}/test/integration/package.json" "$version"
+  else
+    warn "skipping package.json updates — update these manually to \"${version}\":"
+    warn "  package.json"
+    warn "  doit-mcp-server/package.json"
+    warn "  test/integration/package.json"
+  fi
   update_consts_version "${REPO_ROOT}/src/utils/consts.ts" "$version"
 
   section "Drafting changelog for ${tag}"
@@ -197,6 +228,13 @@ main() {
   echo "Files changed:"
   git -C "$REPO_ROOT" diff --name-only | sed 's/^/  /'
   echo ""
+  if ! $has_node; then
+    echo "  *** ACTION REQUIRED: manually set \"version\": \"${version}\" in:"
+    echo "        package.json"
+    echo "        doit-mcp-server/package.json"
+    echo "        test/integration/package.json"
+    echo ""
+  fi
   echo "Next steps:"
   echo ""
   echo "  1. Review and edit the changelog entry in CHANGELOG.md if needed."

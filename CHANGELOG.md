@@ -14,7 +14,7 @@
 - feat: add update_report tool and related functionality (`96885fc`)
 - feat: add create_report tool and related functionality (#127) (`25e83b8`)
 - feat: add create_alert tool and related functionality (#125) (`97bf079`)
-- Feat update alert (#126) (`4a487f2`)
+- feat: update alert (#126) (`4a487f2`)
 
 ## v0.8.0 (2026-03-19)
 
