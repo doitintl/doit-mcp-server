@@ -317,6 +317,7 @@ describe("handleUpdateAssetRequest", () => {
         expect(makeDoitRequest).toHaveBeenCalledWith(`${ASSETS_BASE_URL}/asset-1`, mockToken, {
             method: "PATCH",
             body: { quantity: 10 },
+            appendParams: false,
             customerContext: undefined,
         });
 
@@ -331,6 +332,7 @@ describe("handleUpdateAssetRequest", () => {
         expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
             method: "PATCH",
             body: { quantity: 5 },
+            appendParams: false,
             customerContext: "customer-123",
         });
     });

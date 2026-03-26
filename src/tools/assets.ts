@@ -201,6 +201,7 @@ export async function handleUpdateAssetRequest(args: any, token: string) {
         const data = await makeDoitRequest<UpdateAssetResponse>(url, token, {
             method: "PATCH",
             body,
+            appendParams: false,
             customerContext,
         });
 
