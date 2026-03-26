@@ -43,6 +43,7 @@ describe("MCP Tools Integration", () => {
                 "get_budget",
                 "get_cloud_incident",
                 "get_cloud_incidents",
+                "get_datahub_dataset",
                 "get_dimension",
                 "get_invoice",
                 "get_label",
@@ -53,6 +54,7 @@ describe("MCP Tools Integration", () => {
                 "list_annotations",
                 "list_assets",
                 "list_budgets",
+                "list_datahub_datasets",
                 "list_dimensions",
                 "list_invoices",
                 "list_labels",
@@ -627,6 +629,31 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("list_datahub_datasets", () => {
+        it("returns datasets from mock API", async () => {
+            const result = await client.callTool({ name: "list_datahub_datasets", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.datasets).toHaveLength(2);
+            expect(parsed.datasets[0].name).toBe("My Custom Dataset");
+            expect(parsed.datasets[1].name).toBe("Revenue Tracking");
+        });
+    });
+
+    describe("get_datahub_dataset", () => {
+        it("returns a specific dataset by name", async () => {
+            const result = await client.callTool({
+                name: "get_datahub_dataset",
+                arguments: { name: "My Custom Dataset" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("My Custom Dataset");
+            expect(parsed.records).toBe(1500);
+            expect(parsed.updatedBy).toBe("user@example.com");
         });
     });
 

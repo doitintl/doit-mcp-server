@@ -172,6 +172,8 @@ This MCP server provides many tools including the following:
 - [`list_users`](https://developer.doit.com/reference/listusers): Returns a list of all users in the organization
 - [`list_roles`](https://developer.doit.com/reference/listroles): Returns a list of all IAM roles, including both preset and custom roles
 - [`list_products`](https://developer.doit.com/reference/listproducts): Lists products available for different platforms, optionally filtered by platform name
+- [`list_datahub_datasets`](https://developer.doit.com/reference/listdatahubdatasets): Returns a list of all DataHub datasets for the customer
+- [`get_datahub_dataset`](https://developer.doit.com/reference/getdatahubdataset): Returns details of a specific DataHub dataset by name
 - [`list_labels`](https://developer.doit.com/reference/listlabels): Returns a list of labels that the user has access to
 - [`get_label`](https://developer.doit.com/reference/getlabel): Returns details of a specific label by ID
 - [`create_label`](https://developer.doit.com/reference/createlabel): Creates a new label with a name and color

@@ -52,6 +52,7 @@ import {
     listBudgetsTool,
     updateBudgetTool,
 } from "./tools/budgets.js";
+import { getDatahubDatasetTool, listDatahubDatasetsTool } from "./tools/datahub-datasets.js";
 import { findCloudDiagramsTool, handleFindCloudDiagramsRequest } from "./tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest, triggerCloudFlowTool } from "./tools/cloudflow.js";
 import {
@@ -161,6 +162,8 @@ export function createServer() {
                 updateLabelTool,
                 getLabelAssignmentsTool,
                 assignObjectsToLabelTool,
+                listDatahubDatasetsTool,
+                getDatahubDatasetTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,

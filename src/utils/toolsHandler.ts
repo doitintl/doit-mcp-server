@@ -26,6 +26,10 @@ import {
     handleListBudgetsRequest,
     handleUpdateBudgetRequest,
 } from "../tools/budgets.js";
+import {
+    handleGetDatahubDatasetRequest,
+    handleListDatahubDatasetsRequest,
+} from "../tools/datahub-datasets.js";
 import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
@@ -185,6 +189,12 @@ export async function executeToolHandler(
                 break;
             case "assign_objects_to_label":
                 result = await handleAssignObjectsToLabelRequest(args, token);
+                break;
+            case "list_datahub_datasets":
+                result = await handleListDatahubDatasetsRequest(args, token);
+                break;
+            case "get_datahub_dataset":
+                result = await handleGetDatahubDatasetRequest(args, token);
                 break;
             case "find_cloud_diagrams":
                 result = await handleFindCloudDiagramsRequest(args, token);

@@ -143,6 +143,12 @@ import {
   UpdateAnnotationArgumentsSchema,
   updateAnnotationTool,
 } from "../../src/tools/annotations.js";
+import {
+  GetDatahubDatasetArgumentsSchema,
+  ListDatahubDatasetsArgumentsSchema,
+  getDatahubDatasetTool,
+  listDatahubDatasetsTool,
+} from "../../src/tools/datahub-datasets.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -395,6 +401,10 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(updateLabelTool, UpdateLabelArgumentsSchema);
     this.registerTool(getLabelAssignmentsTool, GetLabelAssignmentsArgumentsSchema);
     this.registerTool(assignObjectsToLabelTool, AssignObjectsToLabelArgumentsSchema);
+
+    // DataHub Datasets tools
+    this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
+    this.registerTool(getDatahubDatasetTool, GetDatahubDatasetArgumentsSchema);
 
     // Cloud Diagrams tools
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);
