@@ -13,6 +13,19 @@ export const DATAHUB_DATASETS_BASE_URL = `${DOIT_API_BASE}/datahub/v1/datasets`;
 
 export const DATASET_NAME_PATTERN = /^[a-zA-Z0-9_-]+( [a-zA-Z0-9_-]+)*$/;
 
+const DatasetNameSchema = z
+    .string()
+    .transform((val) => val.trim())
+    .pipe(
+        z
+            .string()
+            .min(1, "Dataset name is required and cannot be empty.")
+            .regex(
+                DATASET_NAME_PATTERN,
+                "Dataset name may only contain alphanumeric characters (0-9,a-z,A-Z), underscores (_), dashes (-), and spaces between words."
+            )
+    );
+
 // Schema and metadata for list datahub datasets
 export const ListDatahubDatasetsArgumentsSchema = z.object({});
 
@@ -46,11 +59,7 @@ export async function handleListDatahubDatasetsRequest(args: any, token: string)
 
 // Schema and metadata for get datahub dataset
 export const GetDatahubDatasetArgumentsSchema = z.object({
-    name: z
-        .string()
-        .transform((val) => val.trim())
-        .pipe(z.string().min(1, "Dataset name is required and cannot be empty."))
-        .describe("The name of the dataset to retrieve."),
+    name: DatasetNameSchema.describe("The name of the dataset to retrieve."),
 });
 
 export const getDatahubDatasetTool = {
@@ -81,21 +90,9 @@ export async function handleGetDatahubDatasetRequest(args: any, token: string) {
 
 // Schema and metadata for create datahub dataset
 export const CreateDatahubDatasetArgumentsSchema = z.object({
-    name: z
-        .string()
-        .transform((val) => val.trim())
-        .pipe(
-            z
-                .string()
-                .min(1, "Dataset name is required and cannot be empty.")
-                .regex(
-                    DATASET_NAME_PATTERN,
-                    "Dataset name may only contain alphanumeric characters (0-9,a-z,A-Z), underscores (_), dashes (-), and spaces between words."
-                )
-        )
-        .describe(
-            "The name of the dataset (required). Allowed characters: alphanumeric (0-9,a-z,A-Z), underscore (_), dash (-), and spaces between words."
-        ),
+    name: DatasetNameSchema.describe(
+        "The name of the dataset (required). Allowed characters: alphanumeric (0-9,a-z,A-Z), underscore (_), dash (-), and spaces between words."
+    ),
     description: z.string().optional().describe("An optional description for the dataset."),
 });
 
@@ -131,19 +128,9 @@ export async function handleCreateDatahubDatasetRequest(args: any, token: string
 
 // Schema and metadata for update datahub dataset
 const UpdateDatahubDatasetBaseSchema = z.object({
-    name: z
-        .string()
-        .transform((val) => val.trim())
-        .pipe(
-            z
-                .string()
-                .min(1, "Dataset name is required and cannot be empty.")
-                .regex(
-                    DATASET_NAME_PATTERN,
-                    "Dataset name may only contain alphanumeric characters (0-9,a-z,A-Z), underscores (_), dashes (-), and spaces between words."
-                )
-        )
-        .describe("The name of the dataset to update (required). Used for identification; the name cannot be changed."),
+    name: DatasetNameSchema.describe(
+        "The name of the dataset to update (required). Used for identification; the name cannot be changed."
+    ),
     description: z
         .string()
         .optional()
