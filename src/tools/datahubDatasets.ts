@@ -147,7 +147,7 @@ export const UpdateDatahubDatasetArgumentsSchema = UpdateDatahubDatasetBaseSchem
 export const updateDatahubDatasetTool = {
     name: "update_datahub_dataset",
     description:
-        "Updates an existing DataHub dataset in the DoiT platform. The dataset name is required to identify the dataset. Only the description can be changed; at least description must be provided.",
+        "Updates an existing DataHub dataset in the DoiT platform. The dataset name is required to identify the dataset. Only the description can be changed; at least a description must be provided.",
     inputSchema: zodToMcpInputSchema(UpdateDatahubDatasetArgumentsSchema),
 };
 
