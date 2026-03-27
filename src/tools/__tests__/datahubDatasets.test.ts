@@ -115,6 +115,15 @@ describe("handleGetDatahubDatasetRequest", () => {
             isError: true,
         });
     });
+
+    it("should reject whitespace-only dataset names", async () => {
+        const response = await handleGetDatahubDatasetRequest({ name: "   " }, mockToken);
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
+            isError: true,
+        });
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
 });
 
 describe("handleCreateDatahubDatasetRequest", () => {
