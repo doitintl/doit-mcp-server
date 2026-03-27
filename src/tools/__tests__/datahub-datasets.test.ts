@@ -65,7 +65,7 @@ describe("list_datahub_datasets", () => {
         const response = await handleListDatahubDatasetsRequest({}, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("datahub datasets") }],
+            content: [{ type: "text", text: expect.stringContaining("DataHub datasets") }],
             isError: true,
         });
     });
@@ -127,7 +127,7 @@ describe("get_datahub_dataset", () => {
         const response = await handleGetDatahubDatasetRequest({ name: "My Custom Dataset" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("datahub dataset") }],
+            content: [{ type: "text", text: expect.stringContaining("DataHub dataset") }],
             isError: true,
         });
     });

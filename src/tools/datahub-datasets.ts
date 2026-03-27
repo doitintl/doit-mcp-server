@@ -32,7 +32,7 @@ export async function handleListDatahubDatasetsRequest(args: any, token: string)
         });
 
         if (!data) {
-            return createErrorResponse("Failed to retrieve datahub datasets");
+            return createErrorResponse("Failed to retrieve DataHub datasets");
         }
 
         return createSuccessResponse(JSON.stringify(data, null, 2));
@@ -67,7 +67,7 @@ export async function handleGetDatahubDatasetRequest(args: any, token: string) {
         const data = await makeDoitRequest(url, token, { method: "GET", customerContext });
 
         if (!data) {
-            return createErrorResponse("Failed to retrieve datahub dataset");
+            return createErrorResponse("Failed to retrieve DataHub dataset");
         }
 
         return createSuccessResponse(JSON.stringify(data, null, 2));
