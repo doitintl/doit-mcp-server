@@ -29,7 +29,7 @@ import {
 import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
-import { handleGetDatahubDatasetRequest, handleListDatahubDatasetsRequest } from "../tools/datahub-datasets.js";
+import { handleGetDatahubDatasetRequest, handleListDatahubDatasetsRequest } from "../tools/datahubDatasets.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";

@@ -65,7 +65,7 @@ import {
     handleGetDatahubDatasetRequest,
     handleListDatahubDatasetsRequest,
     listDatahubDatasetsTool,
-} from "./tools/datahub-datasets.js";
+} from "./tools/datahubDatasets.js";
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
 import {

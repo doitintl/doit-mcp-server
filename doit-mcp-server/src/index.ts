@@ -148,7 +148,7 @@ import {
   ListDatahubDatasetsArgumentsSchema,
   getDatahubDatasetTool,
   listDatahubDatasetsTool,
-} from "../../src/tools/datahub-datasets.js";
+} from "../../src/tools/datahubDatasets.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";

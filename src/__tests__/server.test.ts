@@ -94,7 +94,7 @@ vi.mock(import("../tools/labels.js"), async (importOriginal) => ({
     handleGetLabelAssignmentsRequest: vi.fn(),
     handleAssignObjectsToLabelRequest: vi.fn(),
 }));
-vi.mock(import("../tools/datahub-datasets.js"), async (importOriginal) => ({
+vi.mock(import("../tools/datahubDatasets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListDatahubDatasetsRequest: vi.fn(),
     handleGetDatahubDatasetRequest: vi.fn(),
@@ -189,7 +189,7 @@ import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } fr
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
-import { getDatahubDatasetTool, listDatahubDatasetsTool } from "../tools/datahub-datasets.js";
+import { getDatahubDatasetTool, listDatahubDatasetsTool } from "../tools/datahubDatasets.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";

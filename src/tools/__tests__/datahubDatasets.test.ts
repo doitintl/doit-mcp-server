@@ -4,7 +4,7 @@ import {
     DATAHUB_DATASETS_BASE_URL,
     handleGetDatahubDatasetRequest,
     handleListDatahubDatasetsRequest,
-} from "../datahub-datasets.js";
+} from "../datahubDatasets.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
