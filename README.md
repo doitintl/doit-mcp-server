@@ -174,6 +174,8 @@ This MCP server provides many tools including the following:
 - [`list_products`](https://developer.doit.com/reference/listproducts): Lists products available for different platforms, optionally filtered by platform name
 - [`list_datahub_datasets`](https://developer.doit.com/reference/listdatahubdatasets): Returns a list of all DataHub datasets for the customer
 - [`get_datahub_dataset`](https://developer.doit.com/reference/getdatahubdataset): Returns details of a specific DataHub dataset by name
+- [`create_datahub_dataset`](https://developer.doit.com/reference/createdatahubdataset): Creates a new DataHub dataset with a name and optional description
+- [`update_datahub_dataset`](https://developer.doit.com/reference/updatedatahubdataset): Updates an existing DataHub dataset's description
 - [`list_labels`](https://developer.doit.com/reference/listlabels): Returns a list of labels that the user has access to
 - [`get_label`](https://developer.doit.com/reference/getlabel): Returns details of a specific label by ID
 - [`create_label`](https://developer.doit.com/reference/createlabel): Creates a new label with a name and color

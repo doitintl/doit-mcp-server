@@ -34,6 +34,7 @@ describe("MCP Tools Integration", () => {
                 "create_allocation",
                 "create_annotation",
                 "create_budget",
+                "create_datahub_dataset",
                 "create_label",
                 "create_report",
                 "find_cloud_diagrams",
@@ -74,6 +75,7 @@ describe("MCP Tools Integration", () => {
                 "update_allocation",
                 "update_annotation",
                 "update_budget",
+                "update_datahub_dataset",
                 "update_label",
                 "update_report",
                 "validate_user",
@@ -697,6 +699,41 @@ describe("MCP Tools Integration", () => {
             expect(parsed.name).toBe("My Custom Dataset");
             expect(parsed.records).toBe(1500);
             expect(parsed.updatedBy).toBe("user@example.com");
+        });
+    });
+
+    describe("create_datahub_dataset", () => {
+        it("returns created dataset from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_datahub_dataset",
+                arguments: { name: "New Dataset", description: "A new dataset for tracking metrics" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("New Dataset");
+            expect(parsed.updatedBy).toBe("user@example.com");
+        });
+
+        it("rejects invalid arguments (missing name)", async () => {
+            const result = await client.callTool({
+                name: "create_datahub_dataset",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_datahub_dataset", () => {
+        it("returns updated dataset from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_datahub_dataset",
+                arguments: { name: "My Custom Dataset", description: "Updated description for the dataset" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("My Custom Dataset");
+            expect(parsed.description).toBe("Updated description for the dataset");
         });
     });
 
