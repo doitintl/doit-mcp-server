@@ -36,13 +36,21 @@ describe("STDIO ↔ SSE tool registration sync", () => {
         return names;
     }
 
-    it("STDIO and SSE servers register the same tools", () => {
-        const stdioTools = extractStdioToolNames().sort();
-        const sseTools = extractSseToolNames().sort();
+    it("STDIO and SSE servers register the same tools with no duplicates", () => {
+        const stdioTools = extractStdioToolNames();
+        const sseTools = extractSseToolNames();
 
-        const missingFromSse = stdioTools.filter((t) => !sseTools.includes(t));
-        const missingFromStdio = sseTools.filter((t) => !stdioTools.includes(t));
+        // Detect duplicates
+        const stdioDups = stdioTools.filter((t, i) => stdioTools.indexOf(t) !== i);
+        const sseDups = sseTools.filter((t, i) => sseTools.indexOf(t) !== i);
+        expect(stdioDups, `Duplicate tools in STDIO: ${stdioDups.join(", ")}`).toEqual([]);
+        expect(sseDups, `Duplicate tools in SSE: ${sseDups.join(", ")}`).toEqual([]);
 
+        // Detect missing
+        const sortedStdio = stdioTools.sort();
+        const sortedSse = sseTools.sort();
+        const missingFromSse = sortedStdio.filter((t) => !sortedSse.includes(t));
+        const missingFromStdio = sortedSse.filter((t) => !sortedStdio.includes(t));
         expect(missingFromSse, `Tools in STDIO but missing from SSE: ${missingFromSse.join(", ")}`).toEqual([]);
         expect(missingFromStdio, `Tools in SSE but missing from STDIO: ${missingFromStdio.join(", ")}`).toEqual([]);
     });
