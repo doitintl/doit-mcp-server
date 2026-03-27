@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Ensures the STDIO server (src/server.ts) and the SSE/web server
