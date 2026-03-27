@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { DatahubDataset, DatahubDatasetsResponse } from "../types/datahub-datasets.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
@@ -27,7 +26,7 @@ export async function handleListDatahubDatasetsRequest(args: any, token: string)
         ListDatahubDatasetsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
-        const data = await makeDoitRequest<DatahubDatasetsResponse>(DATAHUB_DATASETS_BASE_URL, token, {
+        const data = await makeDoitRequest(DATAHUB_DATASETS_BASE_URL, token, {
             method: "GET",
             customerContext,
         });
@@ -65,7 +64,7 @@ export async function handleGetDatahubDatasetRequest(args: any, token: string) {
         const { customerContext } = args;
         const url = `${DATAHUB_DATASETS_BASE_URL}/${encodeURIComponent(name)}`;
 
-        const data = await makeDoitRequest<DatahubDataset>(url, token, { method: "GET", customerContext });
+        const data = await makeDoitRequest(url, token, { method: "GET", customerContext });
 
         if (!data) {
             return createErrorResponse("Failed to retrieve datahub dataset");
