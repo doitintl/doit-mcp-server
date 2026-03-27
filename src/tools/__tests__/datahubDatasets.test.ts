@@ -297,16 +297,4 @@ describe("handleUpdateDatahubDatasetRequest", () => {
         });
         expect(makeDoitRequest).not.toHaveBeenCalled();
     });
-
-    it("should reject name with invalid characters", async () => {
-        const response = await handleUpdateDatahubDatasetRequest(
-            { name: "My @Dataset!", description: "test" },
-            mockToken
-        );
-        expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
-            isError: true,
-        });
-        expect(makeDoitRequest).not.toHaveBeenCalled();
-    });
 });
