@@ -33,6 +33,7 @@ import { assetDetailedFixture, assetsFixture, invoiceFixture, invoicesFixture } 
 import { cloudDiagramsFixture } from "./cloudDiagrams.js";
 import { cloudflowTriggerFixture } from "./cloudflow.js";
 import { cloudIncidentFixture, cloudIncidentsFixture } from "./cloudIncidents.js";
+import { datahubDatasetFixture, datahubDatasetsFixture } from "./datahub.js";
 import { organizationsFixture, rolesFixture, usersFixture, validateUserFixture } from "./iam.js";
 import { platformsFixture, productsFixture, ticketsFixture } from "./support.js";
 
@@ -76,6 +77,9 @@ export const fixtures = {
     tickets: ticketsFixture,
 
     cloudDiagrams: cloudDiagramsFixture,
+
+    datahubDatasets: datahubDatasetsFixture,
+    datahubDataset: datahubDatasetFixture,
 
     cloudflowTrigger: cloudflowTriggerFixture,
 

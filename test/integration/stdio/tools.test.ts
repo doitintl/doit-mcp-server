@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { HttpResponse, http } from "msw";
@@ -43,6 +46,7 @@ describe("MCP Tools Integration", () => {
                 "get_budget",
                 "get_cloud_incident",
                 "get_cloud_incidents",
+                "get_datahub_dataset",
                 "get_dimension",
                 "get_invoice",
                 "get_label",
@@ -53,6 +57,7 @@ describe("MCP Tools Integration", () => {
                 "list_annotations",
                 "list_assets",
                 "list_budgets",
+                "list_datahub_datasets",
                 "list_dimensions",
                 "list_invoices",
                 "list_labels",
@@ -83,6 +88,46 @@ describe("MCP Tools Integration", () => {
                 expect(tool.inputSchema).toBeDefined();
                 expect(tool.inputSchema.type).toBe("object");
             }
+        });
+    });
+
+    describe("STDIO ↔ SSE tool registration sync", () => {
+        function extractToolVarNames(source: string, pattern: RegExp): string[] {
+            const names: string[] = [];
+            for (const m of source.matchAll(pattern)) {
+                names.push(m[1]);
+            }
+            return names;
+        }
+
+        it("STDIO and SSE servers register the same tools with no duplicates", async () => {
+            const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+
+            // STDIO: extract tool variable names from the tools array in server.ts
+            const stdioSource = readFileSync(resolve(rootDir, "src/server.ts"), "utf-8");
+            const toolsArrayMatch = stdioSource.match(/tools:\s*\[([\s\S]*?)\]/);
+            if (!toolsArrayMatch) throw new Error("Could not find tools array in server.ts");
+            const stdioTools = extractToolVarNames(toolsArrayMatch[1], /(\w+Tool)\b/g);
+
+            // SSE: extract tool variable names from registerTool() calls
+            const sseSource = readFileSync(resolve(rootDir, "doit-mcp-server/src/index.ts"), "utf-8");
+            const sseTools = extractToolVarNames(sseSource, /this\.registerTool\((\w+Tool)\b/g);
+
+            // No duplicates
+            const stdioDups = stdioTools.filter((t, i) => stdioTools.indexOf(t) !== i);
+            const sseDups = sseTools.filter((t, i) => sseTools.indexOf(t) !== i);
+            expect(stdioDups, `Duplicate tools in STDIO: ${stdioDups.join(", ")}`).toEqual([]);
+            expect(sseDups, `Duplicate tools in SSE: ${sseDups.join(", ")}`).toEqual([]);
+
+            // Same tools in both
+            const missingFromSse = stdioTools.filter((t) => !sseTools.includes(t));
+            const missingFromStdio = sseTools.filter((t) => !stdioTools.includes(t));
+            expect(missingFromSse, `In STDIO but missing from SSE: ${missingFromSse.join(", ")}`).toEqual([]);
+            expect(missingFromStdio, `In SSE but missing from STDIO: ${missingFromStdio.join(", ")}`).toEqual([]);
+
+            // Cross-check: STDIO variable count matches MCP client tool count
+            const result = await client.listTools();
+            expect(result.tools).toHaveLength(stdioTools.length);
         });
     });
 
@@ -627,6 +672,31 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("list_datahub_datasets", () => {
+        it("returns datasets from mock API", async () => {
+            const result = await client.callTool({ name: "list_datahub_datasets", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.datasets).toHaveLength(2);
+            expect(parsed.datasets[0].name).toBe("My Custom Dataset");
+            expect(parsed.datasets[1].name).toBe("Revenue Tracking");
+        });
+    });
+
+    describe("get_datahub_dataset", () => {
+        it("returns a specific dataset by name", async () => {
+            const result = await client.callTool({
+                name: "get_datahub_dataset",
+                arguments: { name: "My Custom Dataset" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("My Custom Dataset");
+            expect(parsed.records).toBe(1500);
+            expect(parsed.updatedBy).toBe("user@example.com");
         });
     });
 

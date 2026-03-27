@@ -94,6 +94,11 @@ vi.mock(import("../tools/labels.js"), async (importOriginal) => ({
     handleGetLabelAssignmentsRequest: vi.fn(),
     handleAssignObjectsToLabelRequest: vi.fn(),
 }));
+vi.mock(import("../tools/datahubDatasets.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListDatahubDatasetsRequest: vi.fn(),
+    handleGetDatahubDatasetRequest: vi.fn(),
+}));
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleFindCloudDiagramsRequest: vi.fn(),
@@ -146,12 +151,14 @@ import {
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetAssetRequest,
+    handleGetDatahubDatasetRequest,
     handleGetInvoiceRequest,
     handleGetLabelAssignmentsRequest,
     handleGetReportResultsRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAssetsRequest,
+    handleListDatahubDatasetsRequest,
     handleListInvoicesRequest,
     handleListTicketsRequest,
     handleReportsRequest,
@@ -182,6 +189,7 @@ import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } fr
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
+import { getDatahubDatasetTool, listDatahubDatasetsTool } from "../tools/datahubDatasets.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
@@ -296,6 +304,8 @@ describe("ListToolsRequestSchema handler", () => {
                 updateLabelTool,
                 getLabelAssignmentsTool,
                 assignObjectsToLabelTool,
+                listDatahubDatasetsTool,
+                getDatahubDatasetTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -647,6 +657,8 @@ describe("CallToolRequestSchema handler", () => {
             { id: "label-1", add: [{ objectId: "report-1", objectType: "report" }] },
             handleAssignObjectsToLabelRequest,
         ],
+        ["list_datahub_datasets", "list_datahub_datasets", {}, handleListDatahubDatasetsRequest],
+        ["get_datahub_dataset", "get_datahub_dataset", { name: "My Custom Dataset" }, handleGetDatahubDatasetRequest],
         [
             "trigger_cloud_flow (with body)",
             "trigger_cloud_flow",

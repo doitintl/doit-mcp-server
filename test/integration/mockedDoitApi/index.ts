@@ -207,6 +207,17 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.annotations);
     }),
 
+    // DataHub Datasets
+    http.get(`${API_BASE}/datahub/v1/datasets/:name`, ({ params }) => {
+        if (params.name === "My Custom Dataset") {
+            return HttpResponse.json(fixtures.datahubDataset);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/datahub/v1/datasets`, () => {
+        return HttpResponse.json(fixtures.datahubDatasets);
+    }),
+
     // Cloud Diagrams
     http.post(`${API_BASE}/clouddiagrams/v1/scheme/find`, () => {
         return HttpResponse.json(fixtures.cloudDiagrams);

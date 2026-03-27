@@ -60,6 +60,12 @@ import {
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
 } from "./tools/cloudIncidents.js";
+import {
+    getDatahubDatasetTool,
+    handleGetDatahubDatasetRequest,
+    handleListDatahubDatasetsRequest,
+    listDatahubDatasetsTool,
+} from "./tools/datahubDatasets.js";
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
 import {
@@ -161,6 +167,8 @@ export function createServer() {
                 updateLabelTool,
                 getLabelAssignmentsTool,
                 assignObjectsToLabelTool,
+                listDatahubDatasetsTool,
+                getDatahubDatasetTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -278,8 +286,10 @@ export {
     handleListAllocationsRequest,
     handleListAnnotationsRequest,
     handleGetAssetRequest,
+    handleGetDatahubDatasetRequest,
     handleListAssetsRequest,
     handleListBudgetsRequest,
+    handleListDatahubDatasetsRequest,
     handleListInvoicesRequest,
     handleListLabelsRequest,
     handleListOrganizationsRequest,
