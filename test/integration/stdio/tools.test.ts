@@ -33,6 +33,7 @@ describe("MCP Tools Integration", () => {
                 "create_alert",
                 "create_allocation",
                 "create_annotation",
+                "create_asset",
                 "create_budget",
                 "create_label",
                 "create_report",
@@ -73,6 +74,7 @@ describe("MCP Tools Integration", () => {
                 "update_alert",
                 "update_allocation",
                 "update_annotation",
+                "update_asset",
                 "update_budget",
                 "update_label",
                 "update_report",
@@ -562,6 +564,31 @@ describe("MCP Tools Integration", () => {
             expect(parsed.properties.customerDomain).toBe("example.com");
             expect(parsed.properties.customerID).toBe("cust-123");
             expect(parsed.properties.subscription.status).toBe("ACTIVE");
+        });
+    });
+
+    describe("create_asset", () => {
+        it("creates an asset and returns accountID", async () => {
+            const result = await client.callTool({
+                name: "create_asset",
+                arguments: { type: "amazon-web-services", accountName: "Test Account" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.accountID).toBe("new-account-123");
+        });
+    });
+
+    describe("update_asset", () => {
+        it("updates an asset and returns updated data", async () => {
+            const result = await client.callTool({
+                name: "update_asset",
+                arguments: { id: "asset-1", quantity: 10 },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("asset-1");
+            expect(parsed.type).toBe("commitment");
         });
     });
 

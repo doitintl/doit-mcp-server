@@ -1,12 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugLevel, debugLog, formatEnumValues, toSnakeCase } from "../util.js";
+import { appendUrlParameters, DebugLevel, debugLog, formatEnumValues, makeDoitRequest, toSnakeCase } from "../util.js";
+
+const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
+    process.env = { ...ORIGINAL_ENV };
 });
 
 afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    process.env = { ...ORIGINAL_ENV };
 });
 
 describe("DebugLevel enum", () => {
@@ -132,5 +137,64 @@ describe("formatEnumValues", () => {
 
     it("works with plain arrays", () => {
         expect(formatEnumValues(["a", "b", "c"])).toBe("a, b, c");
+    });
+});
+
+describe("appendUrlParameters", () => {
+    it("adds maxResults to a URL with existing query params", () => {
+        const url = appendUrlParameters("https://example.com/test?foo=bar");
+        expect(url).toContain("foo=bar");
+        expect(url).toContain("maxResults=40");
+    });
+
+    it("does not add maxResults if already present", () => {
+        const url = appendUrlParameters("https://example.com/test?maxResults=10");
+        expect(url).toBe("https://example.com/test?maxResults=10");
+    });
+});
+
+describe("makeDoitRequest", () => {
+    it("keeps customerContext when appendParams is false", async () => {
+        process.env.CUSTOMER_CONTEXT = "customer-123";
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            headers: new Headers(),
+            json: vi.fn().mockResolvedValue({ ok: true }),
+        });
+        vi.stubGlobal("fetch", fetchMock);
+
+        await makeDoitRequest("https://example.com/test?foo=bar", "token-123", {
+            method: "POST",
+            appendParams: false,
+            customerContext: "customer-123",
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            "https://example.com/test?foo=bar&customerContext=customer-123&mcp=true",
+            expect.objectContaining({ method: "POST" })
+        );
+    });
+
+    it("does not add maxResults when appendParams is false", async () => {
+        process.env.CUSTOMER_CONTEXT = "env-customer";
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            headers: new Headers(),
+            json: vi.fn().mockResolvedValue({ ok: true }),
+        });
+        vi.stubGlobal("fetch", fetchMock);
+
+        await makeDoitRequest("https://example.com/test?foo=bar", "token-123", {
+            appendParams: false,
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            "https://example.com/test?foo=bar&customerContext=env-customer&mcp=true",
+            expect.objectContaining({ method: "GET" })
+        );
     });
 });

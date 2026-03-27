@@ -129,11 +129,11 @@ export function handleGeneralError(error: any, context: string): ReturnType<type
 }
 
 /**
- * Helper function to append customer context to URL if available
+ * Helper function to append default query parameters (maxResults) to a URL.
  * @param baseUrl The base URL to append parameters to
- * @returns URL with maxResults and optional customerContext parameters
+ * @returns URL with maxResults parameter added (if not already present)
  */
-export function appendUrlParameters(baseUrl: string, customerContextId?: string): string {
+export function appendUrlParameters(baseUrl: string): string {
     // Check if the URL already has query parameters
     const separator = baseUrl.includes("?") ? "&" : "?";
     let url = baseUrl;
@@ -141,13 +141,6 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
     // Only add maxResults if it's not already in the URL
     if (!baseUrl.includes("maxResults=")) {
         url += `${separator}maxResults=40`;
-    }
-
-    const customerContext = customerContextId || process.env.CUSTOMER_CONTEXT;
-
-    if (customerContext) {
-        // Use & as separator since we know the URL now has parameters
-        url += `&customerContext=${customerContext}`;
     }
 
     return url;
@@ -162,7 +155,7 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options Additional request options
  * @param options.method HTTP method (GET, POST, etc.)
  * @param options.body Request body for POST/PUT requests
- * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
+ * @param options.appendParams Whether to append the default maxResults query parameter (default: true). This flag only controls maxResults: customerContext is appended when provided in options or via process.env.CUSTOMER_CONTEXT, mcp is always appended, and sse is appended only when process.env.CUSTOMER_CONTEXT is not set.
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
@@ -184,7 +177,7 @@ export async function makeDoitRequest<T>(
         Accept: "application/json",
     };
 
-    let requestUrl = appendParams ? appendUrlParameters(url, customerContext) : url;
+    let requestUrl = appendParams ? appendUrlParameters(url) : url;
 
     try {
         const requestOptions: RequestInit = {
@@ -198,13 +191,17 @@ export async function makeDoitRequest<T>(
             debugLog("API request body: ", DebugLevel.TRACE, requestOptions.body);
         }
 
-        // add mcp params to the url
-        requestUrl += `&mcp=true`;
-
+        const urlObject = new URL(requestUrl);
+        const resolvedCustomerContext = customerContext || process.env.CUSTOMER_CONTEXT;
+        if (resolvedCustomerContext) {
+            urlObject.searchParams.set("customerContext", resolvedCustomerContext);
+        }
+        urlObject.searchParams.set("mcp", "true");
         if (!process.env.CUSTOMER_CONTEXT) {
             // request from the sse server
-            requestUrl += `&sse=true`;
+            urlObject.searchParams.set("sse", "true");
         }
+        requestUrl = urlObject.toString();
 
         debugLog("API request URL: ", DebugLevel.VERBOSE, requestUrl);
         const response = await fetch(requestUrl, requestOptions);
