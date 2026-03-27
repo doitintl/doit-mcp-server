@@ -208,6 +208,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // DataHub Datasets
+    http.post(`${API_BASE}/datahub/v1/datasets`, () => {
+        return HttpResponse.json(fixtures.createDatahubDataset);
+    }),
+    http.patch(`${API_BASE}/datahub/v1/datasets/:name`, () => {
+        return HttpResponse.json(fixtures.updateDatahubDataset);
+    }),
     http.get(`${API_BASE}/datahub/v1/datasets/:name`, ({ params }) => {
         if (params.name === "My Custom Dataset") {
             return HttpResponse.json(fixtures.datahubDataset);

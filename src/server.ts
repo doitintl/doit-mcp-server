@@ -61,10 +61,14 @@ import {
     handleCloudIncidentsRequest,
 } from "./tools/cloudIncidents.js";
 import {
+    createDatahubDatasetTool,
     getDatahubDatasetTool,
+    handleCreateDatahubDatasetRequest,
     handleGetDatahubDatasetRequest,
     handleListDatahubDatasetsRequest,
+    handleUpdateDatahubDatasetRequest,
     listDatahubDatasetsTool,
+    updateDatahubDatasetTool,
 } from "./tools/datahubDatasets.js";
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
@@ -169,6 +173,8 @@ export function createServer() {
                 assignObjectsToLabelTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
+                createDatahubDatasetTool,
+                updateDatahubDatasetTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -268,6 +274,7 @@ export {
     handleCreateAllocationRequest,
     handleCreateAnnotationRequest,
     handleCreateBudgetRequest,
+    handleCreateDatahubDatasetRequest,
     handleCreateLabelRequest,
     handleCreateReportRequest,
     handleDimensionRequest,
@@ -305,6 +312,7 @@ export {
     handleUpdateAllocationRequest,
     handleUpdateAnnotationRequest,
     handleUpdateBudgetRequest,
+    handleUpdateDatahubDatasetRequest,
     handleUpdateLabelRequest,
     handleUpdateReportRequest,
     handleValidateUserRequest,
