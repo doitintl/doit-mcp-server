@@ -60,7 +60,12 @@ import {
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
 } from "./tools/cloudIncidents.js";
-import { getDatahubDatasetTool, listDatahubDatasetsTool } from "./tools/datahub-datasets.js";
+import {
+    getDatahubDatasetTool,
+    handleGetDatahubDatasetRequest,
+    handleListDatahubDatasetsRequest,
+    listDatahubDatasetsTool,
+} from "./tools/datahub-datasets.js";
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
 import {
@@ -281,8 +286,10 @@ export {
     handleListAllocationsRequest,
     handleListAnnotationsRequest,
     handleGetAssetRequest,
+    handleGetDatahubDatasetRequest,
     handleListAssetsRequest,
     handleListBudgetsRequest,
+    handleListDatahubDatasetsRequest,
     handleListInvoicesRequest,
     handleListLabelsRequest,
     handleListOrganizationsRequest,
