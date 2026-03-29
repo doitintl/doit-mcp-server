@@ -1,15 +1,31 @@
 /**
  * Fields to strip from all responses.
- * These cause review rejection if present in structuredContent or content.
+ * Guideline: "Do not include diagnostic, telemetry, or internal identifiers—such as
+ * session IDs, trace IDs, request IDs, timestamps, or logging metadata—unless they are
+ * strictly required to fulfill the user's query."
+ * Also: never include access credentials or authentication secrets.
  */
 const STRIP_PATTERNS = [
+    // Internal identifier prefixes
     /^_trace/i,
     /^_request/i,
     /^x-/i,
+    // Identifier types (exact forms and variants)
     /session[_-]?id/i,
     /trace[_-]?id/i,
     /request[_-]?id/i,
     /correlation[_-]?id/i,
+    // Diagnostic timing / logging metadata
+    /^requestTime/i,
+    /^responseTime/i,
+    /^serverTime/i,
+    /^processingTime/i,
+    /^latency/i,
+    /^_ts$/i,
+    // Credentials and secrets — must never appear in tool responses
+    /password/i,
+    /^secret/i,
+    /api[_-]?key/i,
 ];
 
 export function sanitize(obj: Record<string, unknown>): Record<string, unknown> {
@@ -49,6 +65,7 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
                 totalCount: (d.data as unknown[]).length,
                 items: (d.data as unknown[]).slice(0, 10),
                 hasMore: !!d.pageToken,
+                nextPageToken: d.pageToken,
             };
         }
     }
@@ -56,26 +73,39 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
 }
 
 /**
- * Generate human-readable narration.
+ * Generate human-readable narration. Indicates when results are paginated.
  */
 export function narrate(toolName: string, data: unknown): string {
     const summary = summarize(toolName, data);
     const count = (summary.totalCount ?? summary.rowCount ?? 1) as number;
-    if (toolName === "run_query") return `Analytics query returned ${count} rows of data.`;
-    if (toolName === "get_anomalies") return `Found ${count} cost anomalies.`;
-    if (toolName === "list_budgets") return `Found ${count} budgets.`;
-    if (toolName === "list_invoices") return `Found ${count} invoices.`;
-    if (toolName === "list_tickets") return `Found ${count} support tickets.`;
-    if (toolName === "get_cloud_incidents") return `Found ${count} cloud platform incidents.`;
+    const hasMore = (summary.hasMore as boolean | undefined) ?? false;
+    const shown = Math.min(count, (summary.items as unknown[] | undefined)?.length ?? count);
+    const pagination = hasMore || (shown < count) ? ` Showing first ${shown}; use pageToken to retrieve more.` : "";
+
+    if (toolName === "run_query") {
+        const rowCount = summary.rowCount as number;
+        const rowShown = Math.min(rowCount, ((summary.rows as unknown[]) ?? []).length);
+        const rowPage = rowShown < rowCount ? ` Showing first ${rowShown}; use pageToken to retrieve more.` : "";
+        return `Analytics query returned ${rowCount} rows.${rowPage}`;
+    }
+    if (toolName === "get_anomalies") return `Found ${count} cost anomalies.${pagination}`;
+    if (toolName === "list_budgets") return `Found ${count} budgets.${pagination}`;
+    if (toolName === "list_invoices") return `Found ${count} invoices.${pagination}`;
+    if (toolName === "list_tickets") return `Found ${count} support tickets.${pagination}`;
+    if (toolName === "get_cloud_incidents") return `Found ${count} cloud platform incidents.${pagination}`;
     if (toolName === "validate_user") return `User validated successfully.`;
     if (toolName.startsWith("create_")) return `Successfully created ${toolName.replace("create_", "")}.`;
     if (toolName.startsWith("update_")) return `Successfully updated ${toolName.replace("update_", "")}.`;
-    if (toolName.startsWith("list_")) return `Found ${count} ${toolName.replace("list_", "")}.`;
+    if (toolName.startsWith("list_")) return `Found ${count} ${toolName.replace("list_", "")}.${pagination}`;
     return `Operation completed.`;
 }
 
 /**
  * Main adapter. Wraps raw response into Apps SDK three-field format.
+ *
+ * - structuredContent: machine-readable summary (first 10 items for lists)
+ * - content: human-readable narration with pagination hints
+ * - _meta: protocol metadata only (toolName); rawData excluded per data minimization rules
  */
 export function adaptToolResponse(toolName: string, rawResponse: unknown) {
     const cleaned =
@@ -85,6 +115,6 @@ export function adaptToolResponse(toolName: string, rawResponse: unknown) {
     return {
         structuredContent: summarize(toolName, cleaned),
         content: [{ type: "text" as const, text: narrate(toolName, cleaned) }],
-        _meta: { rawData: cleaned, toolName },
+        _meta: { toolName },
     };
 }
