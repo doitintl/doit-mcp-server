@@ -107,7 +107,8 @@ export interface GetReportResultsResponse {
 // Tool metadata
 export const reportsTool = {
     name: "list_reports",
-    description: "Lists Cloud Analytics reports that your account has access to",
+    description:
+        "Use this when the user wants to see their saved Cloud Analytics reports or browse available reports. Returns a paginated list of reports with their IDs and metadata. Do NOT use this for running queries (use run_query) or getting report results (use get_report_results).",
     inputSchema: {
         type: "object",
         properties: {
@@ -122,11 +123,23 @@ export const reportsTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading reports...",
+        "openai/toolInvocation/invoked": "Reports loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export const getReportResultsTool = {
     name: "get_report_results",
-    description: "Get the results of a specific report by ID",
+    description:
+        "Use this when the user wants to retrieve the data results of a specific saved report by its ID. Returns rows and columns of report data. Do NOT use this for listing all reports (use list_reports) or running ad-hoc queries (use run_query).",
     inputSchema: {
         type: "object",
         properties: {
@@ -137,6 +150,17 @@ export const getReportResultsTool = {
         },
         required: ["id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Fetching report data...",
+        "openai/toolInvocation/invoked": "Report data ready",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // ─── Report Config Sub-Schemas ────────────────────────────────────────────────
@@ -434,7 +458,7 @@ export const RunQueryArgumentsSchema = z.object({
 
 export const runQueryTool = {
     name: "run_query",
-    description: `Runs a report query with the specified configuration without persisting it.
+    description: `Use this when the user wants to analyze cloud costs, generate a cost breakdown, view spending trends, or run a custom analytics query across their cloud providers. Accepts a structured config with data source, metrics, dimensions, time range, and filters. Do NOT use this for listing saved reports (use list_reports), checking anomalies (use get_anomalies), or viewing budgets (use list_budgets).
     Fields that are not populated will use their default values if needed.
     To limit the number of rows returned per group, set the \`limit.value\` field inside each \`config.group[]\` entry (maximum 25).
     Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
@@ -449,6 +473,17 @@ export const runQueryTool = {
       }
     }`,
     inputSchema: zodToMcpInputSchema(RunQueryArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Running analytics query...",
+        "openai/toolInvocation/invoked": "Analytics results ready",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Create Report Schema Definition
@@ -472,8 +507,20 @@ export interface CreateReportResponse {
 
 export const createReportTool = {
     name: "create_report",
-    description: "Creates a new Cloud Analytics report with the specified configuration.",
+    description:
+        "Use this when the user wants to save a new Cloud Analytics report with a specific configuration. Ask the user to confirm the report parameters before executing. Do NOT use this for one-time queries without saving (use run_query).",
     inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating report...",
+        "openai/toolInvocation/invoked": "Report created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 // Update Report Schema Definition
@@ -490,8 +537,19 @@ export const UpdateReportArgumentsSchema = z.object({
 export const updateReportTool = {
     name: "update_report",
     description:
-        "Updates an existing Cloud Analytics report. Supports partial updates — only the fields provided will be changed. The report ID is required.",
+        "Use this when the user wants to modify an existing saved Cloud Analytics report. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for running ad-hoc queries (use run_query).",
     inputSchema: zodToMcpInputSchema(UpdateReportArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating report...",
+        "openai/toolInvocation/invoked": "Report updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 // Format a report for display

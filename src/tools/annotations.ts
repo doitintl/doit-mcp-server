@@ -47,8 +47,19 @@ export const ListAnnotationsArgumentsSchema = z.object({
 export const listAnnotationsTool = {
     name: "list_annotations",
     description:
-        "Returns a list of annotations from the DoiT API that the user has access to. Annotations are listed in reverse chronological order by default.",
+        "Use this when the user wants to see calendar annotations or notes on cost data. Returns a list of annotations. Do NOT use this for labels (use list_labels) or alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(ListAnnotationsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading annotations...",
+        "openai/toolInvocation/invoked": "Annotations loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListAnnotationsRequest(args: any, token: string) {
@@ -92,8 +103,20 @@ export const GetAnnotationArgumentsSchema = z.object({
 
 export const getAnnotationTool = {
     name: "get_annotation",
-    description: "Returns details of a specific annotation from the DoiT API by its ID.",
+    description:
+        "Use this when the user wants to view details of a specific annotation by its ID. Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
     inputSchema: zodToMcpInputSchema(GetAnnotationArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading annotation...",
+        "openai/toolInvocation/invoked": "Annotation loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleGetAnnotationRequest(args: any, token: string) {
@@ -130,8 +153,19 @@ export const CreateAnnotationArgumentsSchema = z.object({
 export const createAnnotationTool = {
     name: "create_annotation",
     description:
-        "Creates a new annotation in the DoiT platform. Annotations allow users to mark specific points in time with notes, and can be associated with reports and labels.",
+        "Use this when the user wants to add a new annotation to mark a specific date or event in cost data. Ask the user to confirm the annotation details before executing. Do NOT use this for creating labels (use create_label) or alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateAnnotationArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating annotation...",
+        "openai/toolInvocation/invoked": "Annotation created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleCreateAnnotationRequest(args: any, token: string) {
@@ -196,8 +230,19 @@ export const UpdateAnnotationArgumentsSchema = z.object({
 export const updateAnnotationTool = {
     name: "update_annotation",
     description:
-        "Updates an existing annotation in the DoiT platform. Supports partial updates — only the fields provided will be changed. Set a field to null to clear it. The annotation ID is required.",
+        "Use this when the user wants to modify an existing annotation. Ask the user to confirm changes before executing. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
     inputSchema: zodToMcpInputSchema(UpdateAnnotationArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating annotation...",
+        "openai/toolInvocation/invoked": "Annotation updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleUpdateAnnotationRequest(args: any, token: string) {

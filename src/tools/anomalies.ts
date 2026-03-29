@@ -52,7 +52,8 @@ export interface AnomaliesResponse {
 // Tool metadata
 export const anomaliesTool = {
     name: "get_anomalies",
-    description: "List anomalies detected in cloud costs",
+    description:
+        "Use this when the user wants to check for unexpected cost spikes, billing anomalies, or unusual spending patterns. Returns recent anomalies with severity and impact. Do NOT use this for regular cost analysis (use run_query) or viewing alerts (use list_alerts).",
     inputSchema: {
         type: "object",
         properties: {
@@ -62,11 +63,23 @@ export const anomaliesTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Checking for anomalies...",
+        "openai/toolInvocation/invoked": "Anomaly check complete",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export const anomalyTool = {
     name: "get_anomaly",
-    description: "Get a specific anomaly by ID",
+    description:
+        "Use this when the user wants to view details of a specific cost anomaly by its ID. Returns full anomaly data including affected resources and cost impact. Do NOT use this for listing all anomalies (use get_anomalies).",
     inputSchema: {
         type: "object",
         properties: {
@@ -77,6 +90,17 @@ export const anomalyTool = {
         },
         required: ["id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading anomaly details...",
+        "openai/toolInvocation/invoked": "Anomaly details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format anomaly data

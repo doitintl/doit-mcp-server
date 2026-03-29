@@ -19,8 +19,19 @@ export const ListProductsArgumentsSchema = z.object({
 export const listProductsTool = {
     name: "list_products",
     description:
-        "Lists products available for different platforms from the DoiT API, optionally filtered by platform name. If no platform is specified, it returns products from all platforms.",
+        "Use this when the user wants to see available DoiT products or services. Returns a list of products. Do NOT use this for cloud incidents (use get_cloud_incidents) or platforms (use list_platforms).",
     inputSchema: zodToMcpInputSchema(ListProductsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading products...",
+        "openai/toolInvocation/invoked": "Products loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListProductsRequest(args: any, token: string) {

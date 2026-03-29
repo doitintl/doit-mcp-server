@@ -46,8 +46,19 @@ export const ListAssetsArgumentsSchema = z.object({
 export const listAssetsTool = {
     name: "list_assets",
     description:
-        "Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc. Assets are returned in reverse chronological order by default.",
+        "Use this when the user wants to browse their cloud assets, subscriptions, or resources. Returns a paginated list of assets. Do NOT use this for cost analysis (use run_query) or checking invoices (use list_invoices).",
     inputSchema: zodToMcpInputSchema(ListAssetsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading cloud assets...",
+        "openai/toolInvocation/invoked": "Assets loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListAssetsRequest(args: any, token: string) {
@@ -90,8 +101,19 @@ export const GetAssetArgumentsSchema = z.object({
 export const getAssetTool = {
     name: "get_asset",
     description:
-        "Returns details of a specific customer asset from the DoiT API by its ID, including properties such as customer domain, customer ID, reseller, and subscription details.",
+        "Use this when the user wants to view details of a specific cloud asset by its ID. Do NOT use this for listing all assets (use list_assets) or cost analysis (use run_query).",
     inputSchema: zodToMcpInputSchema(GetAssetArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading asset details...",
+        "openai/toolInvocation/invoked": "Asset details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleGetAssetRequest(args: any, token: string) {

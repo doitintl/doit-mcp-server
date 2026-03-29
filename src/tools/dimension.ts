@@ -45,7 +45,8 @@ export interface DimensionResponse {
 // Tool metadata
 export const dimensionTool = {
     name: "get_dimension",
-    description: "Get a specific Cloud Analytics dimension by type and ID",
+    description:
+        "Use this when the user wants to view details and values of a specific dimension type. Returns dimension metadata and available filter values. Do NOT use this for listing all dimensions (use list_dimensions) or running queries (use run_query).",
     inputSchema: {
         type: "object",
         properties: {
@@ -73,6 +74,17 @@ export const dimensionTool = {
         },
         required: ["type", "id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading dimension...",
+        "openai/toolInvocation/invoked": "Dimension loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format the dimension values if they exist

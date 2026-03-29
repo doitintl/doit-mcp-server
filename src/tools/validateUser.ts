@@ -22,11 +22,23 @@ export interface ValidateUserResponse {
 // Tool metadata
 export const validateUserTool = {
     name: "validate_user",
-    description: "Validates the current API user and returns domain and email information",
+    description:
+        "Use this when the user wants to verify their account connection, check who they are logged in as, or confirm their DoiT account details. Returns email, domain, and validation status. Do NOT use this for listing users in the organization (use list_users).",
     inputSchema: {
         type: "object",
         properties: {},
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Validating user...",
+        "openai/toolInvocation/invoked": "User validated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handle validate user request

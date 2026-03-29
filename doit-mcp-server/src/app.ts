@@ -18,6 +18,25 @@ export type Bindings = Env & {
   OAUTH_KV: KVNamespace;
 };
 
+// ChatGPT redirect URI allowlist (prefix + exact matches for OAuth 2.1 compliance)
+const CHATGPT_REDIRECT_URI_PREFIXES = [
+  "https://chatgpt.com/connector/oauth/",
+];
+const CHATGPT_REDIRECT_URI_EXACT = [
+  "https://chatgpt.com/connector_platform_oauth_redirect",
+  "https://platform.openai.com/apps-manage/oauth",
+];
+
+/**
+ * Returns true if the given redirect URI is allowed for ChatGPT OAuth flows.
+ */
+function isChatGPTRedirectUri(redirectUri: string): boolean {
+  if (CHATGPT_REDIRECT_URI_EXACT.includes(redirectUri)) return true;
+  return CHATGPT_REDIRECT_URI_PREFIXES.some((prefix) =>
+    redirectUri.startsWith(prefix)
+  );
+}
+
 const app = new Hono<{
   Bindings: Bindings;
 }>();
@@ -27,8 +46,8 @@ app.use(
   "*",
   cors({
     origin: "*",
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "Cache-Control"],
+    allowMethods: ["GET", "POST", "OPTIONS", "DELETE"],
+    allowHeaders: ["Content-Type", "Authorization", "Cache-Control", "mcp-session-id"],
   })
 );
 
@@ -36,8 +55,8 @@ app.use(
 app.options("/sse", (c) => {
   return c.text("", 200, {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Cache-Control",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS, DELETE",
+    "Access-Control-Allow-Headers": "content-type, mcp-session-id",
   });
 });
 
@@ -51,6 +70,10 @@ app.get("/", async (c) => {
 // If the user is logged in, we'll show a form to approve the appropriate scopes
 // If the user is not logged in, we'll show a form to both login and approve the scopes
 app.get("/authorize", async (c) => {
+  // Allow ChatGPT redirect URIs through the OAuth flow
+  const redirectUri = c.req.query("redirect_uri") || "";
+  const isChatGPT = isChatGPTRedirectUri(redirectUri);
+
   const oauthReqInfo = await c.env.OAUTH_PROVIDER.parseAuthRequest(c.req.raw);
 
   const oauthScopes = [
@@ -190,8 +213,19 @@ app.get("/.well-known/oauth-authorization-server", (c) => {
     authorization_endpoint: `${base}/authorize`,
     token_endpoint: `${base}/token`,
     registration_endpoint: `${base}/register`,
-    scopes_supported: ["*"],
+    scopes_supported: ["read_profile", "read_data", "write_data"],
     code_challenge_methods_supported: ["S256"],
+  });
+});
+
+// Add /.well-known/oauth-protected-resource endpoint (required by OAuth 2.1 / ChatGPT)
+app.get("/.well-known/oauth-protected-resource", (c) => {
+  const url = new URL(c.req.url);
+  const base = url.origin;
+  return c.json({
+    resource: "https://mcp.doit.com",
+    authorization_servers: ["https://mcp.doit.com"],
+    scopes_supported: ["read_profile", "read_data", "write_data"],
   });
 });
 

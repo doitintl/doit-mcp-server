@@ -17,8 +17,19 @@ export const ListUsersArgumentsSchema = z.object({});
 export const listUsersTool = {
     name: "list_users",
     description:
-        "Returns a list of all users in the organization from DoiT API, including both active users and invited users.",
+        "Use this when the user wants to see users in their DoiT organization or check who has access. Returns a list of users with roles. Do NOT use this for listing roles (use list_roles) or validating the current user (use validate_user).",
     inputSchema: zodToMcpInputSchema(ListUsersArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading users...",
+        "openai/toolInvocation/invoked": "Users loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListUsersRequest(args: any, token: string) {

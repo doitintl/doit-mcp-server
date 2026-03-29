@@ -52,8 +52,19 @@ export const ListLabelsArgumentsSchema = z.object({
 export const listLabelsTool = {
     name: "list_labels",
     description:
-        "Returns a list of labels from the DoiT API that the user has access to. Labels are listed in reverse chronological order by default.",
+        "Use this when the user wants to see their resource labels or label configurations. Returns a list of labels with their metadata. Do NOT use this for annotations (use list_annotations) or label assignments (use get_label_assignments).",
     inputSchema: zodToMcpInputSchema(ListLabelsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading labels...",
+        "openai/toolInvocation/invoked": "Labels loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListLabelsRequest(args: any, token: string) {
@@ -97,8 +108,20 @@ export const GetLabelArgumentsSchema = z.object({
 
 export const getLabelTool = {
     name: "get_label",
-    description: "Returns details of a specific label from the DoiT API by its ID.",
+    description:
+        "Use this when the user wants to view details of a specific label by its ID. Do NOT use this for listing all labels (use list_labels) or annotations (use list_annotations).",
     inputSchema: zodToMcpInputSchema(GetLabelArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading label...",
+        "openai/toolInvocation/invoked": "Label loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleGetLabelRequest(args: any, token: string) {
@@ -127,8 +150,20 @@ export const CreateLabelArgumentsSchema = z.object({
 
 export const createLabelTool = {
     name: "create_label",
-    description: "Creates a new label in the DoiT platform. Labels can be applied to reports and other resources.",
+    description:
+        "Use this when the user wants to create a new resource label. Ask the user to confirm the label details before executing. Do NOT use this for viewing existing labels (use list_labels) or annotations (use create_annotation).",
     inputSchema: zodToMcpInputSchema(CreateLabelArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating label...",
+        "openai/toolInvocation/invoked": "Label created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleCreateLabelRequest(args: any, token: string) {
@@ -175,8 +210,19 @@ export const UpdateLabelArgumentsSchema = UpdateLabelBaseSchema.extend({
 export const updateLabelTool = {
     name: "update_label",
     description:
-        "Updates an existing label in the DoiT platform. Supports partial updates — at least one of 'name' or 'color' must be provided.",
+        "Use this when the user wants to modify an existing label. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for creating new labels (use create_label) or annotations (use update_annotation).",
     inputSchema: zodToMcpInputSchema(UpdateLabelArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating label...",
+        "openai/toolInvocation/invoked": "Label updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleUpdateLabelRequest(args: any, token: string) {
@@ -212,8 +258,19 @@ export const GetLabelAssignmentsArgumentsSchema = z.object({
 export const getLabelAssignmentsTool = {
     name: "get_label_assignments",
     description:
-        "Returns the list of objects (alerts, allocations, budgets, metrics, reports, annotations) currently assigned to a specific label.",
+        "Use this when the user wants to see which resources are assigned to a specific label. Returns a list of assigned objects. Do NOT use this for viewing label details (use get_label) or allocations (use list_allocations).",
     inputSchema: zodToMcpInputSchema(GetLabelAssignmentsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading label assignments...",
+        "openai/toolInvocation/invoked": "Assignments loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleGetLabelAssignmentsRequest(args: any, token: string) {
@@ -270,8 +327,19 @@ export const AssignObjectsToLabelArgumentsSchema = z
 export const assignObjectsToLabelTool = {
     name: "assign_objects_to_label",
     description:
-        "Assigns or unassigns objects (alerts, allocations, budgets, metrics, reports, annotations) to a label. At least one of 'add' or 'remove' must be provided.",
+        "Use this when the user wants to assign or unassign cloud resources to a label. Ask the user to confirm the assignments before executing. Do NOT use this for creating labels (use create_label) or viewing assignments (use get_label_assignments).",
     inputSchema: zodToMcpInputSchema(AssignObjectsToLabelArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating label assignments...",
+        "openai/toolInvocation/invoked": "Assignments updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleAssignObjectsToLabelRequest(args: any, token: string) {

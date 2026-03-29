@@ -30,6 +30,7 @@
     "check:fix": "biome check --write src/ test/"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",

@@ -38,13 +38,13 @@ export interface DimensionsResponse {
 export const dimensionsTool = {
     name: "list_dimensions",
     description:
-        "Lists Cloud Analytics dimensions that your account has access to. Use this tool to get the dimensions that you can use in the run_query tool. Use filter to narrow down the results.",
+        "Use this when the user wants to see available dimensions for cost analysis queries. Returns a list of dimension types and values that can be used with run_query. Do NOT use this for running cost queries directly (use run_query) or viewing allocations (use list_allocations).",
     inputSchema: {
         type: "object",
         properties: {
             filter: {
                 type: "string",
-                description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. 
+                description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key.
           use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty.`,
             },
             pageToken: {
@@ -53,6 +53,17 @@ export const dimensionsTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading dimensions...",
+        "openai/toolInvocation/invoked": "Dimensions loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format a dimension for display

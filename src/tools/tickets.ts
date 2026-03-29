@@ -40,7 +40,8 @@ export const ListTicketsArgumentsSchema = z.object({
 // Tool definition
 export const listTicketsTool = {
     name: "list_tickets",
-    description: "List support tickets from DoiT using the support API.",
+    description:
+        "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, priority, and platform. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
     inputSchema: {
         type: "object",
         properties: {
@@ -54,6 +55,17 @@ export const listTicketsTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading support tickets...",
+        "openai/toolInvocation/invoked": "Tickets loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handler for the tool
@@ -79,7 +91,8 @@ export async function handleListTicketsRequest(args: any, token: string) {
 // Tool definition for creating a ticket
 export const createTicketTool = {
     name: "create_ticket",
-    description: "Create a new support ticket in DoiT using the support API.",
+    description:
+        "Use this when the user wants to create a new support ticket. Ask the user to confirm the ticket details before executing. Do NOT use this for viewing existing tickets (use list_tickets) or cloud incidents (use get_cloud_incidents).",
     inputSchema: {
         type: "object",
         properties: {
@@ -118,6 +131,17 @@ export const createTicketTool = {
         },
         required: ["ticket"],
     },
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating support ticket...",
+        "openai/toolInvocation/invoked": "Ticket created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 // Arguments schema for creating a ticket

@@ -151,7 +151,7 @@ import {
 } from "../../src/tools/datahubDatasets.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
-import { executeToolHandler } from "../../src/utils/toolsHandler.js";
+import { executeToolHandler, adaptToolResponse } from "../../src/utils/toolsHandler.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
 
@@ -263,7 +263,7 @@ export class DoitMCPAgent extends McpAgent {
         toolName,
         argsWithCustomerContext,
         token,
-        convertToMcpResponse
+        (rawResult) => adaptToolResponse(toolName, rawResult)
       );
     };
   }
@@ -290,7 +290,7 @@ export class DoitMCPAgent extends McpAgent {
         updateCustomerContext
       );
 
-      return convertToMcpResponse(response);
+      return adaptToolResponse("change_customer", response);
     };
   }
 

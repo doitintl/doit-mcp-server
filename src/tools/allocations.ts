@@ -169,8 +169,8 @@ export interface AllocationsResponse {
 // Tool metadata
 export const listAllocationsTool = {
     name: "list_allocations",
-    description: `List allocations for the report or run_query configuration that your account has access to from the DoiT API.
-    Allocations in the DoiT Cloud Intelligence Platform are a powerful feature that allows you to group and attribute cloud costs to specific business units, teams, projects, or any other logical grouping relevant to your organization.`,
+    description:
+        "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
     inputSchema: {
         type: "object",
         properties: {
@@ -180,11 +180,23 @@ export const listAllocationsTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading allocations...",
+        "openai/toolInvocation/invoked": "Allocations loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export const getAllocationTool = {
     name: "get_allocation",
-    description: "Get a specific allocation by ID from the DoiT API",
+    description:
+        "Use this when the user wants to view details of a specific cost allocation by its ID. Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
     inputSchema: {
         type: "object",
         properties: {
@@ -195,6 +207,17 @@ export const getAllocationTool = {
         },
         required: ["id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading allocation...",
+        "openai/toolInvocation/invoked": "Allocation loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Schema for a single allocation component (used within 'components' array) of
@@ -308,11 +331,20 @@ const createAllocationInputSchema = {
 
 export const createAllocationTool = {
     name: "create_allocation",
-    description: `Create a new allocation via the DoiT API
-    Allocations let you group and segment cloud costs using allocation rules.
-    For a single-rule allocation, provide 'rule' (a single rule object).
-    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).`,
+    description:
+        "Use this when the user wants to create a new cost allocation rule. Ask the user to confirm the allocation parameters before executing. Do NOT use this for viewing existing allocations (use list_allocations) or labels (use create_label).",
     inputSchema: createAllocationInputSchema,
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating allocation...",
+        "openai/toolInvocation/invoked": "Allocation created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 const updateAllocationInputSchema = {
@@ -329,12 +361,20 @@ const updateAllocationInputSchema = {
 
 export const updateAllocationTool = {
     name: "update_allocation",
-    description: `Update an existing allocation
-    Provide the allocation ID and the updated allocation configuration.
-    Allows partial updates only specify the fields needed to be updated,
-    overrides the existing allocation configuration.
-    The 'rule' and 'rules' fields are mutually exclusive.`,
+    description:
+        "Use this when the user wants to modify an existing cost allocation. Ask the user to confirm changes before executing. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
     inputSchema: updateAllocationInputSchema,
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating allocation...",
+        "openai/toolInvocation/invoked": "Allocation updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 // Handle list allocations request

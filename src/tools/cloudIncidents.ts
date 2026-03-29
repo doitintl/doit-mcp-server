@@ -66,7 +66,8 @@ export interface CloudIncidentsResponse {
 // Tool metadata
 export const cloudIncidentsTool = {
     name: "get_cloud_incidents",
-    description: "Get cloud incidents",
+    description:
+        "Use this when the user wants to check for active cloud platform outages, service disruptions, or incidents from AWS, Google Cloud, or Azure. Do NOT use this for cost anomalies (use get_anomalies) or support tickets (use list_tickets).",
     inputSchema: {
         type: "object",
         properties: {
@@ -86,11 +87,23 @@ export const cloudIncidentsTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Checking cloud incidents...",
+        "openai/toolInvocation/invoked": "Incidents loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export const cloudIncidentTool = {
     name: "get_cloud_incident",
-    description: "Get a specific cloud incident by ID",
+    description:
+        "Use this when the user wants to view details of a specific cloud platform incident by its ID. Returns full incident data including affected services and timeline. Do NOT use this for listing all incidents (use get_cloud_incidents) or anomalies (use get_anomalies).",
     inputSchema: {
         type: "object",
         properties: {
@@ -101,6 +114,17 @@ export const cloudIncidentTool = {
         },
         required: ["id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    // @ts-ignore
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading incident details...",
+        "openai/toolInvocation/invoked": "Incident details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format cloud incident data
