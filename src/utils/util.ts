@@ -125,6 +125,19 @@ export function formatZodError(error: any): string {
 export function handleGeneralError(error: any, context: string): ReturnType<typeof createErrorResponse> {
     console.error(`Error ${context}:`, error);
     const message = error instanceof Error ? error.message : String(error);
+    // For HTTP 401 errors, include a WWW-Authenticate challenge in _meta so ChatGPT
+    // can trigger its native OAuth re-linking UI (MCP Apps SDK requirement).
+    if (message.startsWith("HTTP 401")) {
+        return {
+            content: [{ type: "text", text: message || "Unauthorized" }],
+            isError: true,
+            // @ts-ignore
+            _meta: {
+                "mcp/www_authenticate":
+                    'Bearer error="invalid_token", error_description="Token expired or invalid"',
+            },
+        };
+    }
     return createErrorResponse(message || "An error occurred while processing your request");
 }
 

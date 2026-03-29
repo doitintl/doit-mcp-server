@@ -104,7 +104,7 @@ import {
     updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
-import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
+import { createTicketTool, handleCreateTicketRequest, handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleListUsersRequest, listUsersTool } from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
@@ -142,6 +142,7 @@ export function createServer() {
                 dimensionsTool,
                 dimensionTool,
                 listTicketsTool,
+                createTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -296,6 +297,7 @@ export {
     handleListPlatformsRequest,
     handleListProductsRequest,
     handleListRolesRequest,
+    handleCreateTicketRequest,
     handleListTicketsRequest,
     handleListUsersRequest,
     handleReportsRequest,

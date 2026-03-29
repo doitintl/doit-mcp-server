@@ -70,10 +70,6 @@ app.get("/", async (c) => {
 // If the user is logged in, we'll show a form to approve the appropriate scopes
 // If the user is not logged in, we'll show a form to both login and approve the scopes
 app.get("/authorize", async (c) => {
-  // Allow ChatGPT redirect URIs through the OAuth flow
-  const redirectUri = c.req.query("redirect_uri") || "";
-  const isChatGPT = isChatGPTRedirectUri(redirectUri);
-
   const oauthReqInfo = await c.env.OAUTH_PROVIDER.parseAuthRequest(c.req.raw);
 
   const oauthScopes = [
@@ -94,13 +90,19 @@ app.get("/authorize", async (c) => {
 
 // Reusable approve handler function
 async function handleApprove(c: any) {
+  const formBody = await c.req.parseBody();
   const { action, oauthReqInfo, apiKey, customerContext, isDoitUser } =
-    await parseApproveFormBody(await c.req.parseBody());
+    await parseApproveFormBody(formBody);
 
   if (!oauthReqInfo) {
     // Add WWW-Authenticate header with resource_metadata
     const url = new URL(c.req.url);
     const base = url.origin;
+    // Allow ChatGPT redirect URIs: log for observability, return proper error
+    const redirectUri = (formBody.redirect_uri as string) || "";
+    if (isChatGPTRedirectUri(redirectUri)) {
+      console.log("ChatGPT OAuth flow detected for redirect_uri:", redirectUri);
+    }
     return c.html("INVALID LOGIN", 401, {
       "WWW-Authenticate": `Bearer resource_metadata=\"${base}/.well-known/oauth-authorization-server\"`,
     });
