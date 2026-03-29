@@ -153,17 +153,25 @@ const WIDGET_URI = "ui://doit/cloud-intelligence-v1.html";
 /**
  * Main adapter. Wraps a raw tool result into the Apps SDK three-field format.
  *
- * - structuredContent: machine-readable summary (first 10 items for lists)
- * - content:           human-readable narration with pagination hints
+ * - structuredContent: summarized data for the widget iframe to display
+ * - content:           original raw JSON content (unchanged) so the model can read the data
  * - _meta:             protocol metadata; includes "ui/resourceUri" to trigger widget iframe
  */
 export function adaptToolResponse(toolName: string, rawResponse: unknown) {
     // Unwrap the MCP tool result wrapper before sanitizing
     const data = unwrapMcpResult(rawResponse);
     const cleaned = Array.isArray(data) ? (sanitizeValue(data) as unknown[]) : sanitizeValue(data);
+
+    // Preserve original content so ChatGPT can read the raw data and generate text responses.
+    // Only add structuredContent (for the widget) and _meta (for the iframe trigger) on top.
+    const resp = rawResponse as Record<string, unknown> | null;
+    const originalContent = Array.isArray(resp?.content)
+        ? resp!.content
+        : [{ type: "text" as const, text: JSON.stringify(cleaned) }];
+
     return {
         structuredContent: summarize(toolName, cleaned),
-        content: [{ type: "text" as const, text: narrate(toolName, cleaned) }],
+        content: originalContent,
         _meta: {
             toolName,
             "ui/resourceUri": WIDGET_URI,

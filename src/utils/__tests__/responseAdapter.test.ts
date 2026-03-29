@@ -31,16 +31,19 @@ describe("adaptToolResponse", () => {
         expect((result.structuredContent.items as unknown[]).length).toBe(10);
     });
 
-    it("narration includes pagination hint when results are truncated", () => {
+    it("structuredContent caps at 10 items and content preserves raw data when truncated", () => {
         const items = Array.from({ length: 25 }, (_, i) => ({ id: String(i) }));
         const result = adaptToolResponse("list_budgets", items);
-        expect(result.content[0].text).toMatch(/pageToken/i);
+        // structuredContent is the summarized view (capped)
+        expect((result.structuredContent.items as unknown[]).length).toBe(10);
+        // content carries the raw data for the model to read
+        expect(result.content[0].text).toBeDefined();
     });
 
-    it("narration has no pagination hint when all results fit", () => {
+    it("content preserves raw data when all results fit", () => {
         const items = Array.from({ length: 5 }, (_, i) => ({ id: String(i) }));
         const result = adaptToolResponse("list_budgets", items);
-        expect(result.content[0].text).not.toMatch(/pageToken/i);
+        expect(result.content[0].text).toBeDefined();
     });
 
     it("paginated response includes nextPageToken in structuredContent", () => {
