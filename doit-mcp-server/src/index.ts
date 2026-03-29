@@ -154,6 +154,7 @@ import {
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler, adaptToolResponse } from "../../src/utils/toolsHandler.js";
+import { WIDGET_HTML } from "./widgetHtml.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
 
@@ -307,9 +308,15 @@ export class DoitMCPAgent extends McpAgent {
   }
 
   async init() {
+    // Guard: this.props may be undefined on the very first connection because
+    // McpAgent.onStart() calls _init(stored_props) → init() BEFORE the Worker-side
+    // doStub._init(ctx.props) RPC delivers the OAuth props. Tool callbacks read
+    // this.props at call-time (after props are set), so registration still works.
+    this.props = (this.props ?? {}) as typeof this.props;
+
     console.log("Initializing Doit MCP Agent", this.props.customerContext);
 
-    // Load persisted props first
+    // Load persisted props first (no-op if apiKey not available yet)
     await this.loadPersistedProps();
 
     console.log("After loading persisted props:", this.props.customerContext);
@@ -331,6 +338,17 @@ export class DoitMCPAgent extends McpAgent {
         })),
       }));
     });
+
+    // Register the widget as an MCP resource so ChatGPT can load it in the iframe
+    const WIDGET_URI = "ui://doit/cloud-intelligence-v1.html";
+    this.server.resource(
+      "cloud-intelligence-widget",
+      WIDGET_URI,
+      { mimeType: "text/html;profile=mcp-app" },
+      async () => ({
+        contents: [{ uri: WIDGET_URI, mimeType: "text/html;profile=mcp-app", text: WIDGET_HTML }],
+      })
+    );
 
     // Cloud Incidents tools
     this.registerTool(cloudIncidentsTool, CloudIncidentsArgumentsSchema);
@@ -527,18 +545,32 @@ function wrapSSEResponseWithKeepAlive(
 }
 
 async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
-  const { pathname } = new URL(req.url);
+  const url = new URL(req.url);
+  const { pathname } = url;
 
-  if (pathname === "/sse") {
+  // SSE transport: GET /sse opens the event stream; POST /sse/message sends messages
+  if (pathname === "/sse" && req.method === "GET") {
     const response = await DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
     return wrapSSEResponseWithKeepAlive(response);
   }
   if (pathname === "/sse/message") {
     return DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
   }
-  if (pathname === "/mcp") {
-    return DoitMCPAgent.serve("/mcp").fetch(req, env, ctx);
+
+  // StreamableHTTP transport: POST /mcp (native) or POST /sse (ChatGPT tries the
+  // configured MCP URL with POST first per the new MCP spec).
+  // Rewrite /sse → /mcp so the agents SDK basePattern matches.
+  if (pathname === "/mcp" || (pathname === "/sse" && req.method === "POST")) {
+    const mcpReq =
+      pathname === "/sse"
+        ? new Request(
+            Object.assign(new URL(req.url), { pathname: "/mcp" }).toString(),
+            req
+          )
+        : req;
+    return DoitMCPAgent.serve("/mcp").fetch(mcpReq, env, ctx);
   }
+
   return new Response("Not found", { status: 404 });
 }
 
@@ -565,7 +597,7 @@ const oauthProvider = new OAuthProvider({
   authorizeEndpoint: "/authorize",
   tokenEndpoint: "/token",
   clientRegistrationEndpoint: "/register",
-  accessTokenTTL: 1000 * 60 * 60 * 24 * 24, // 24 days (2,073,600,000 - within 32-bit range)
+  accessTokenTTL: 60 * 60 * 24 * 30, // 30 days in seconds (OAuthProvider uses seconds, not ms)
   tokenExchangeCallback: async ({ grantType, props }) => {
     console.log("tokenExchangeCallback", grantType, props);
     if (grantType === "refresh_token" || grantType === "authorization_code") {
@@ -621,6 +653,47 @@ async function handleRequest(
         return DoitMCPAgent.serve("/mcp").fetch(req, env, ctx);
       }
     }
+  }
+
+  // Serve OAuth discovery endpoints unauthenticated at ANY path prefix.
+  // Per RFC 9728/8414, ChatGPT appends these well-known paths to the MCP server URL
+  // (e.g. /sse/.well-known/oauth-protected-resource), but the OAuthProvider
+  // intercepts /sse/* and demands auth. We handle them here before the provider sees it.
+  //
+  // Use the Host request header (not url.origin) because wrangler dev rewrites request.url
+  // to use the route pattern host (mcp.doit.com) regardless of the actual incoming host.
+  // The Host header correctly reflects the public URL (ngrok, cloudflare tunnel, or prod).
+  if (url.pathname.endsWith("/.well-known/oauth-protected-resource") ||
+      url.pathname.endsWith("/.well-known/oauth-authorization-server")) {
+    // PUBLIC_URL overrides everything — required for local dev via tunnel because
+    // wrangler dev rewrites request.url and Host to the route pattern (mcp.doit.com).
+    const base = (env as any).PUBLIC_URL ||
+      (() => {
+        const host = req.headers.get("host") || url.host;
+        const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+        return `${isLocal ? "http" : "https"}://${host}`;
+      })();
+
+    if (url.pathname.endsWith("/.well-known/oauth-protected-resource")) {
+      return Response.json({
+        resource: base,
+        authorization_servers: [base],
+        scopes_supported: ["read_profile", "read_data", "write_data"],
+      });
+    }
+    return Response.json({
+      issuer: base,
+      authorization_endpoint: `${base}/authorize`,
+      token_endpoint: `${base}/token`,
+      registration_endpoint: `${base}/register`,
+      revocation_endpoint: `${base}/token`,
+      scopes_supported: ["read_profile", "read_data", "write_data"],
+      response_types_supported: ["code"],
+      response_modes_supported: ["query"],
+      grant_types_supported: ["authorization_code", "refresh_token"],
+      token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post", "none"],
+      code_challenge_methods_supported: ["S256"],
+    });
   }
 
   // If no Authorization header or not an API route, use the OAuth provider

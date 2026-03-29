@@ -148,12 +148,14 @@ export function narrate(toolName: string, data: unknown): string {
     return `Operation completed.`;
 }
 
+const WIDGET_URI = "ui://doit/cloud-intelligence-v1.html";
+
 /**
  * Main adapter. Wraps a raw tool result into the Apps SDK three-field format.
  *
  * - structuredContent: machine-readable summary (first 10 items for lists)
  * - content:           human-readable narration with pagination hints
- * - _meta:             protocol metadata only (toolName); no payload per data-minimization rules
+ * - _meta:             protocol metadata; includes "ui/resourceUri" to trigger widget iframe
  */
 export function adaptToolResponse(toolName: string, rawResponse: unknown) {
     // Unwrap the MCP tool result wrapper before sanitizing
@@ -162,6 +164,9 @@ export function adaptToolResponse(toolName: string, rawResponse: unknown) {
     return {
         structuredContent: summarize(toolName, cleaned),
         content: [{ type: "text" as const, text: narrate(toolName, cleaned) }],
-        _meta: { toolName },
+        _meta: {
+            toolName,
+            "ui/resourceUri": WIDGET_URI,
+        },
     };
 }
