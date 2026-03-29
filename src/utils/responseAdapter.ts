@@ -89,6 +89,9 @@ function unwrapMcpResult(raw: unknown): unknown {
  *  4. Single item or opaque object: returned as-is
  */
 export function summarize(toolName: string, data: unknown): Record<string, unknown> {
+    // Guard: if data is a plain string (JSON.parse failed upstream), we can't summarize it
+    if (typeof data === "string" || data === null || data === undefined) return {};
+
     if (Array.isArray(data)) {
         return { totalCount: data.length, items: data.slice(0, 10) };
     }
