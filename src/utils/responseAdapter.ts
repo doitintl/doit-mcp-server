@@ -28,24 +28,65 @@ const STRIP_PATTERNS = [
     /api[_-]?key/i,
 ];
 
+/**
+ * Deep-sanitize a plain object, stripping banned keys and cleaning URL strings.
+ * Arrays nested inside the object are sanitized element-by-element.
+ */
 export function sanitize(obj: Record<string, unknown>): Record<string, unknown> {
     const cleaned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
         if (STRIP_PATTERNS.some((p) => p.test(key))) continue;
-        if (typeof value === "string" && value.includes("mcp=true")) {
-            cleaned[key] = value.replace(/[?&]mcp=true/g, "").replace(/[?&]sse=true/g, "");
-        } else if (value && typeof value === "object" && !Array.isArray(value)) {
-            cleaned[key] = sanitize(value as Record<string, unknown>);
-        } else {
-            cleaned[key] = value;
-        }
+        cleaned[key] = sanitizeValue(value);
     }
     return cleaned;
 }
 
 /**
- * Summarize raw data into concise structuredContent.
- * Keep small — visible to model, counts toward context.
+ * Recursively sanitize any value (object, array, or primitive).
+ */
+function sanitizeValue(value: unknown): unknown {
+    if (typeof value === "string" && value.includes("mcp=true")) {
+        return value.replace(/[?&]mcp=true/g, "").replace(/[?&]sse=true/g, "");
+    }
+    if (Array.isArray(value)) {
+        return value.map((item) => sanitizeValue(item));
+    }
+    if (value && typeof value === "object") {
+        return sanitize(value as Record<string, unknown>);
+    }
+    return value;
+}
+
+/**
+ * Extract the actual business data from an MCP tool result wrapper.
+ *
+ * Tool handlers return: { content: [{ type: "text", text: "...JSON..." }] }
+ * This unwraps to the parsed JSON so summarize/narrate can work with real data.
+ * Error responses ({ isError: true }) are returned as-is.
+ */
+function unwrapMcpResult(raw: unknown): unknown {
+    if (Array.isArray(raw) || !raw || typeof raw !== "object") return raw;
+    const resp = raw as Record<string, unknown>;
+    if (resp.isError) return raw; // pass error responses through unchanged
+    const contentArr = resp.content;
+    if (!Array.isArray(contentArr) || contentArr.length === 0) return raw;
+    const first = contentArr[0] as Record<string, unknown>;
+    if (first?.type !== "text" || typeof first.text !== "string") return raw;
+    try {
+        return JSON.parse(first.text);
+    } catch {
+        return first.text; // plain-text response
+    }
+}
+
+/**
+ * Summarize data into concise structuredContent.
+ *
+ * Handles four response shapes from the DoiT API:
+ *  1. Raw arrays: [{ ... }, ...]
+ *  2. Analytics query: { rowCount, rows, columns }
+ *  3. Paginated list: { [collectionKey]: [...], pageToken?, rowCount? }
+ *  4. Single item or opaque object: returned as-is
  */
 export function summarize(toolName: string, data: unknown): Record<string, unknown> {
     if (Array.isArray(data)) {
@@ -53,6 +94,8 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
     }
     if (data && typeof data === "object") {
         const d = data as Record<string, unknown>;
+
+        // Analytics query result: { rowCount, rows, columns }
         if ("rowCount" in d && "rows" in d) {
             return {
                 rowCount: d.rowCount,
@@ -60,12 +103,17 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
                 columns: d.columns,
             };
         }
-        if ("pageToken" in d && Array.isArray(d.data)) {
+
+        // Paginated DoiT list response: { [collectionKey]: [...], pageToken?, rowCount? }
+        // Find the first array-valued property that is not "pageToken"
+        const arrayKey = Object.keys(d).find((k) => k !== "pageToken" && Array.isArray(d[k]));
+        if (arrayKey) {
+            const items = d[arrayKey] as unknown[];
             return {
-                totalCount: (d.data as unknown[]).length,
-                items: (d.data as unknown[]).slice(0, 10),
+                totalCount: typeof d.rowCount === "number" ? d.rowCount : items.length,
+                items: items.slice(0, 10),
                 hasMore: !!d.pageToken,
-                nextPageToken: d.pageToken,
+                nextPageToken: d.pageToken ?? undefined,
             };
         }
     }
@@ -73,45 +121,44 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
 }
 
 /**
- * Generate human-readable narration. Indicates when results are paginated.
+ * Generate human-readable narration. Includes pagination hint when results are truncated.
  */
 export function narrate(toolName: string, data: unknown): string {
     const summary = summarize(toolName, data);
     const count = (summary.totalCount ?? summary.rowCount ?? 1) as number;
     const hasMore = (summary.hasMore as boolean | undefined) ?? false;
     const shown = Math.min(count, (summary.items as unknown[] | undefined)?.length ?? count);
-    const pagination = hasMore || (shown < count) ? ` Showing first ${shown}; use pageToken to retrieve more.` : "";
+    const moreHint = hasMore || shown < count ? ` Showing first ${shown}; use pageToken to retrieve more.` : "";
 
     if (toolName === "run_query") {
-        const rowCount = summary.rowCount as number;
+        const rowCount = (summary.rowCount as number) ?? 0;
         const rowShown = Math.min(rowCount, ((summary.rows as unknown[]) ?? []).length);
-        const rowPage = rowShown < rowCount ? ` Showing first ${rowShown}; use pageToken to retrieve more.` : "";
-        return `Analytics query returned ${rowCount} rows.${rowPage}`;
+        const rowHint = rowShown < rowCount ? ` Showing first ${rowShown}; use pageToken to retrieve more.` : "";
+        return `Analytics query returned ${rowCount} rows.${rowHint}`;
     }
-    if (toolName === "get_anomalies") return `Found ${count} cost anomalies.${pagination}`;
-    if (toolName === "list_budgets") return `Found ${count} budgets.${pagination}`;
-    if (toolName === "list_invoices") return `Found ${count} invoices.${pagination}`;
-    if (toolName === "list_tickets") return `Found ${count} support tickets.${pagination}`;
-    if (toolName === "get_cloud_incidents") return `Found ${count} cloud platform incidents.${pagination}`;
+    if (toolName === "get_anomalies") return `Found ${count} cost anomalies.${moreHint}`;
+    if (toolName === "list_budgets") return `Found ${count} budgets.${moreHint}`;
+    if (toolName === "list_invoices") return `Found ${count} invoices.${moreHint}`;
+    if (toolName === "list_tickets") return `Found ${count} support tickets.${moreHint}`;
+    if (toolName === "get_cloud_incidents") return `Found ${count} cloud platform incidents.${moreHint}`;
     if (toolName === "validate_user") return `User validated successfully.`;
     if (toolName.startsWith("create_")) return `Successfully created ${toolName.replace("create_", "")}.`;
     if (toolName.startsWith("update_")) return `Successfully updated ${toolName.replace("update_", "")}.`;
-    if (toolName.startsWith("list_")) return `Found ${count} ${toolName.replace("list_", "")}.${pagination}`;
+    if (toolName.startsWith("list_")) return `Found ${count} ${toolName.replace("list_", "")}.${moreHint}`;
     return `Operation completed.`;
 }
 
 /**
- * Main adapter. Wraps raw response into Apps SDK three-field format.
+ * Main adapter. Wraps a raw tool result into the Apps SDK three-field format.
  *
  * - structuredContent: machine-readable summary (first 10 items for lists)
- * - content: human-readable narration with pagination hints
- * - _meta: protocol metadata only (toolName); rawData excluded per data minimization rules
+ * - content:           human-readable narration with pagination hints
+ * - _meta:             protocol metadata only (toolName); no payload per data-minimization rules
  */
 export function adaptToolResponse(toolName: string, rawResponse: unknown) {
-    const cleaned =
-        typeof rawResponse === "object" && rawResponse !== null
-            ? sanitize(rawResponse as Record<string, unknown>)
-            : rawResponse;
+    // Unwrap the MCP tool result wrapper before sanitizing
+    const data = unwrapMcpResult(rawResponse);
+    const cleaned = Array.isArray(data) ? (sanitizeValue(data) as unknown[]) : sanitizeValue(data);
     return {
         structuredContent: summarize(toolName, cleaned),
         content: [{ type: "text" as const, text: narrate(toolName, cleaned) }],
