@@ -98,6 +98,8 @@ vi.mock(import("../tools/datahubDatasets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListDatahubDatasetsRequest: vi.fn(),
     handleGetDatahubDatasetRequest: vi.fn(),
+    handleCreateDatahubDatasetRequest: vi.fn(),
+    handleUpdateDatahubDatasetRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -144,6 +146,7 @@ import {
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAllocationRequest,
+    handleCreateDatahubDatasetRequest,
     handleCreateLabelRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
@@ -165,6 +168,7 @@ import {
     handleRunQueryRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAllocationRequest,
+    handleUpdateDatahubDatasetRequest,
     handleUpdateLabelRequest,
     handleUpdateReportRequest,
     handleValidateUserRequest,
@@ -189,7 +193,12 @@ import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } fr
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
-import { getDatahubDatasetTool, listDatahubDatasetsTool } from "../tools/datahubDatasets.js";
+import {
+    createDatahubDatasetTool,
+    getDatahubDatasetTool,
+    listDatahubDatasetsTool,
+    updateDatahubDatasetTool,
+} from "../tools/datahubDatasets.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
@@ -306,6 +315,8 @@ describe("ListToolsRequestSchema handler", () => {
                 assignObjectsToLabelTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
+                createDatahubDatasetTool,
+                updateDatahubDatasetTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -659,6 +670,18 @@ describe("CallToolRequestSchema handler", () => {
         ],
         ["list_datahub_datasets", "list_datahub_datasets", {}, handleListDatahubDatasetsRequest],
         ["get_datahub_dataset", "get_datahub_dataset", { name: "My Custom Dataset" }, handleGetDatahubDatasetRequest],
+        [
+            "create_datahub_dataset",
+            "create_datahub_dataset",
+            { name: "New Dataset", description: "A dataset" },
+            handleCreateDatahubDatasetRequest,
+        ],
+        [
+            "update_datahub_dataset",
+            "update_datahub_dataset",
+            { name: "My Dataset", description: "Updated" },
+            handleUpdateDatahubDatasetRequest,
+        ],
         [
             "trigger_cloud_flow (with body)",
             "trigger_cloud_flow",

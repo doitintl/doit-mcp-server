@@ -144,10 +144,14 @@ import {
   updateAnnotationTool,
 } from "../../src/tools/annotations.js";
 import {
+  CreateDatahubDatasetArgumentsSchema,
   GetDatahubDatasetArgumentsSchema,
   ListDatahubDatasetsArgumentsSchema,
+  UpdateDatahubDatasetArgumentsSchema,
+  createDatahubDatasetTool,
   getDatahubDatasetTool,
   listDatahubDatasetsTool,
+  updateDatahubDatasetTool,
 } from "../../src/tools/datahubDatasets.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
@@ -405,6 +409,8 @@ export class DoitMCPAgent extends McpAgent {
     // DataHub Datasets tools
     this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
     this.registerTool(getDatahubDatasetTool, GetDatahubDatasetArgumentsSchema);
+    this.registerTool(createDatahubDatasetTool, CreateDatahubDatasetArgumentsSchema);
+    this.registerTool(updateDatahubDatasetTool, UpdateDatahubDatasetArgumentsSchema);
 
     // Cloud Diagrams tools
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);
