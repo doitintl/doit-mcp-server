@@ -41,6 +41,7 @@ import {
     updateAnnotationTool,
 } from "./tools/annotations.js";
 import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
+import { cloudOverviewTool, handleCloudOverviewRequest } from "./tools/overview.js";
 import { getAssetTool, handleGetAssetRequest, handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
 import {
     createBudgetTool,
@@ -129,6 +130,7 @@ export function createServer() {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
             tools: [
+                cloudOverviewTool,
                 cloudIncidentsTool,
                 cloudIncidentTool,
                 anomaliesTool,

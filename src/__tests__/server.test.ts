@@ -15,6 +15,10 @@ import { prompts } from "../prompts/index.js";
 import { SERVER_VERSION } from "../utils/consts.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/index.js");
+vi.mock(import("../tools/overview.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleCloudOverviewRequest: vi.fn(),
+}));
 vi.mock(import("../tools/cloudIncidents.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleCloudIncidentsRequest: vi.fn(),
@@ -184,6 +188,7 @@ import {
     updateAnnotationTool,
 } from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
+import { cloudOverviewTool } from "../tools/overview.js";
 import { getAssetTool, listAssetsTool } from "../tools/assets.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
@@ -266,6 +271,7 @@ describe("ListToolsRequestSchema handler", () => {
 
         expect(response).toEqual({
             tools: [
+                cloudOverviewTool,
                 cloudIncidentsTool,
                 cloudIncidentTool,
                 anomaliesTool,
