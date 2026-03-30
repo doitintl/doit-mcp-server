@@ -155,7 +155,7 @@ import {
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler, adaptToolResponse } from "../../src/utils/toolsHandler.js";
-import { WIDGET_HTML } from "./widgetHtml.js";
+import { WIDGET_URI } from "../../src/utils/responseAdapter.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
 
@@ -241,17 +241,6 @@ function buildWidgetStub(workerUrl: string): string {
 </html>`;
 }
 
-// Helper function to convert DoiT handler response to MCP format
-function convertToMcpResponse(doitResponse: any) {
-  if (doitResponse.content && Array.isArray(doitResponse.content)) {
-    return doitResponse;
-  }
-  // If it's a simple response, wrap it
-  return {
-    content: [{ type: "text", text: JSON.stringify(doitResponse) }],
-  };
-}
-
 export class DoitMCPAgent extends McpAgent {
   server = new McpServer({
     name: SERVER_NAME_WEB,
@@ -310,7 +299,6 @@ export class DoitMCPAgent extends McpAgent {
         token,
         (rawResult) => adaptToolResponse(toolName, rawResult)
       );
-      console.log(`[tool:${toolName}] result keys:`, Object.keys(result ?? {}), "_meta:", JSON.stringify(result?._meta));
       return result;
     };
   }
@@ -345,7 +333,6 @@ export class DoitMCPAgent extends McpAgent {
   // Both "ui/resourceUri" (flat key) and "ui.resourceUri" (nested) are set to match what
   // registerAppTool() from @modelcontextprotocol/ext-apps normalises.
   private registerTool(tool: any, schema: any) {
-    const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
     (this.server as any).registerTool(
       tool.name,
       {
@@ -399,7 +386,6 @@ export class DoitMCPAgent extends McpAgent {
     // The resource returns a tiny loader stub (~600 B) that fetches the real widget
     // HTML from GET /widget on every render. This means widget updates never require
     // ChatGPT app re-registration — only the served HTML at /widget changes.
-    const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
     const workerUrl = (this.env as any).WORKER_URL ?? "https://mcp.doit.com";
     this.server.resource(
       "cloud-intelligence-widget",
@@ -526,7 +512,6 @@ export class DoitMCPAgent extends McpAgent {
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
-      const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
       (this.server as any).registerTool(
         changeCustomerTool.name,
         {
@@ -666,19 +651,6 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
   return new Response("Not found", { status: 404 });
 }
 
-// Helper function to extract token from Authorization header
-function extractTokenFromAuthHeader(authHeader: string): string | null {
-  if (!authHeader) return null;
-
-  // Support both "Bearer <token>" and just "<token>" formats
-  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
-  if (bearerMatch) {
-    return bearerMatch[1];
-  }
-
-  // If no Bearer prefix, assume the whole header is the token
-  return authHeader;
-}
 
 // Create the OAuth provider instance
 const oauthProvider = new OAuthProvider({
@@ -694,12 +666,7 @@ const oauthProvider = new OAuthProvider({
     console.log("tokenExchangeCallback", grantType, props);
     if (grantType === "refresh_token" || grantType === "authorization_code") {
       return {
-        newProps: {
-          ...props,
-          customerContext: props.customerContext,
-          apiKey: props.apiKey,
-          isDoitUser: props.isDoitUser,
-        },
+        newProps: { ...props },
       };
     }
   },
@@ -712,40 +679,6 @@ async function handleRequest(
   ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(req.url);
-  const authHeader = req.headers.get("Authorization");
-
-  // Check if this is an API route and has Authorization header
-  if (
-    (url.pathname === "/sse" ||
-      url.pathname === "/sse/message" ||
-      url.pathname === "/mcp") &&
-    authHeader
-  ) {
-    const token = extractTokenFromAuthHeader(authHeader);
-    const customerContext = url.searchParams.get("customerContext") || "";
-
-    if (token && customerContext) {
-      console.log("Using Authorization header for authentication");
-
-      ctx.props = {
-        ...ctx.props,
-        apiKey: token,
-        customerContext: customerContext,
-      };
-
-      if (url.pathname === "/sse") {
-        // Handle the request directly with the modified request
-        const response = await DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
-        return wrapSSEResponseWithKeepAlive(response);
-      } else if (url.pathname === "/sse/message") {
-        const response = await DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
-        return response;
-      }
-      if (url.pathname === "/mcp") {
-        return DoitMCPAgent.serve("/mcp").fetch(req, env, ctx);
-      }
-    }
-  }
 
   // Serve OAuth discovery endpoints unauthenticated at ANY path prefix.
   // Per RFC 9728/8414, ChatGPT appends these well-known paths to the MCP server URL

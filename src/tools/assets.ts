@@ -58,7 +58,6 @@ export const listAssetsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading cloud assets...",
         "openai/toolInvocation/invoked": "Assets loaded",
@@ -133,7 +132,6 @@ export const getAssetTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading asset details...",
         "openai/toolInvocation/invoked": "Asset details loaded",

@@ -190,11 +190,11 @@ export function ReportChart({ data, meta }: ViewProps) {
     return <GenericTable data={data} meta={meta} />;
   }
 
-  const plan    = useMemo(() => analyzePlan(schema), []);
+  const plan    = useMemo(() => analyzePlan(schema), [schema]);
   const pivoted = useMemo<PivotResult | null>(() => {
     if (plan.type !== "stacked-area") return null;
     return pivotData(rows, plan);
-  }, []);
+  }, [rows, plan]);
 
   // Build uplot-compatible aligned data
   const uplotData = useMemo<uPlot.AlignedData | null>(() => {
@@ -223,7 +223,7 @@ export function ReportChart({ data, meta }: ViewProps) {
       return [xSeries, ...ySeries] as uPlot.AlignedData;
     }
     return null;
-  }, []);
+  }, [rows, plan, pivoted, schema]);
 
   const hasChart = !!uplotData && rows.length >= 2;
 
@@ -309,7 +309,7 @@ export function ReportChart({ data, meta }: ViewProps) {
           <span style={{ fontSize: "0.75rem", color: "var(--dci-text-secondary)" }}>
             {rowCount ?? rows.length} rows
           </span>
-          {urlUI && (
+          {urlUI && typeof urlUI === "string" && urlUI.startsWith("https://") && (
             <a
               href={urlUI}
               target="_blank"

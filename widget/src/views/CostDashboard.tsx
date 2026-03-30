@@ -121,7 +121,7 @@ export function CostDashboard({ data, meta }: ViewProps) {
   const pivot = useMemo<PivotResult | null>(() => {
     if (!hasChart || !isPivoted || !rows) return null;
     return pivotRows(rows, timeIdx, groupIdx, metricIdx);
-  }, []);
+  }, [hasChart, isPivoted, rows, timeIdx, groupIdx, metricIdx]);
 
   // Build uplot data
   const uplotData = useMemo<uPlot.AlignedData | null>(() => {
@@ -145,7 +145,7 @@ export function CostDashboard({ data, meta }: ViewProps) {
     const xSeries = sorted.map(r => parseToUnixSec(r[timeIdx]) ?? 0);
     const ySeries = sorted.map(r => { const v = Number(r[metricIdx]); return isNaN(v) ? null : v; });
     return [xSeries, ySeries] as uPlot.AlignedData;
-  }, []);
+  }, [hasChart, isPivoted, pivot, rows, timeIdx, metricIdx]);
 
   useEffect(() => {
     if (!chartRef.current || !uplotData || !hasChart) return;

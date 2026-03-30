@@ -165,6 +165,8 @@ function renderCell(
 
     case "image": {
       const src = String(value);
+      // Only allow https: URLs to prevent javascript:/data: injection
+      if (!src.startsWith("https://")) return <span>—</span>;
       return (
         <img
           src={src}
@@ -254,7 +256,10 @@ export function GenericTable({ data }: ViewProps) {
               return (
                 <tr
                   key={i}
+                  role={drilldown ? "button" : undefined}
+                  tabIndex={drilldown ? 0 : undefined}
                   onClick={drilldown ? () => handleRowClick(item) : undefined}
+                  onKeyDown={drilldown ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleRowClick(item); } } : undefined}
                   style={{
                     cursor: drilldown ? "pointer" : "default",
                     transition: "background 0.1s",

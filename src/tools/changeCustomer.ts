@@ -33,7 +33,6 @@ export const changeCustomerTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Switching customer...",
         "openai/toolInvocation/invoked": "Customer switched",

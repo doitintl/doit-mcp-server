@@ -65,7 +65,6 @@ export const listTicketsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading support tickets...",
         "openai/toolInvocation/invoked": "Tickets loaded",
@@ -77,12 +76,13 @@ export const listTicketsTool = {
 export async function handleListTicketsRequest(args: any, token: string) {
     try {
         const { customerContext } = args;
-        const { subject } = ListTicketsArgumentsSchema.parse(args);
+        const { subject, pageToken, pageSize } = ListTicketsArgumentsSchema.parse(args);
         const params = new URLSearchParams();
-        if (args.pageToken) params.append("pageToken", args.pageToken);
-        if (args.pageSize) params.append("pageSize", args.pageSize.toString());
+        if (pageToken) params.append("pageToken", pageToken);
+        if (pageSize) params.append("pageSize", pageSize.toString());
         const url = `${TICKETS_BASE_URL}?${params.toString()}`;
         const data = await makeDoitRequest<TicketsResponse>(url, token, {
+            method: "GET",
             customerContext,
         });
         if (!data) {
@@ -148,7 +148,6 @@ export const createTicketTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Creating support ticket...",
         "openai/toolInvocation/invoked": "Ticket created",
@@ -171,11 +170,12 @@ export const CreateTicketArgumentsSchema = z.object({
 // Handler for creating a ticket
 export async function handleCreateTicketRequest(args: any, token: string) {
     try {
+        const parsed = CreateTicketArgumentsSchema.parse(args);
         const { customerContext } = args;
         const url = TICKETS_BASE_URL;
         const response = await makeDoitRequest(url, token, {
             method: "POST",
-            body: { ticket: args.ticket },
+            body: { ticket: parsed.ticket },
             customerContext,
         });
         if (!response) {

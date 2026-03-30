@@ -44,7 +44,6 @@ export const CloudIncidentArgumentsSchema = z
     .object({
         id: z.string().optional().describe("The ID of the cloud incident."),
         title: z.string().optional().describe("Partial title match (case-insensitive). Used to find the incident when ID is unknown."),
-        customerContext: z.string().optional(),
     })
     .refine((d) => d.id || d.title, { message: "Either id or title must be provided." });
 
@@ -96,7 +95,6 @@ export const cloudIncidentsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Checking cloud incidents...",
         "openai/toolInvocation/invoked": "Incidents loaded",
@@ -126,7 +124,6 @@ export const cloudIncidentTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading incident details...",
         "openai/toolInvocation/invoked": "Incident details loaded",
@@ -218,11 +215,12 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
 export async function handleCloudIncidentRequest(args: any, token: string) {
     try {
         const parsed = CloudIncidentArgumentsSchema.parse(args);
-        const { customerContext } = parsed;
+        const { customerContext } = args;
         let resolvedId = parsed.id;
 
         if (!resolvedId && parsed.title) {
-            const listData = await makeDoitRequest<CloudIncidentsResponse>(CLOUD_INCIDENTS_BASE_URL, token, {
+            const listData = await makeDoitRequest<CloudIncidentsResponse>(
+                `${CLOUD_INCIDENTS_BASE_URL}?maxResults=200`, token, {
                 method: "GET",
                 customerContext,
             });
@@ -233,7 +231,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
             resolvedId = result.resolved;
         }
 
-        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${resolvedId}`;
+        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
 
         try {
             // Explicitly set appendParams to true to ensure URL parameters are added

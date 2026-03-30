@@ -28,6 +28,8 @@ const STRIP_PATTERNS = [
     /password/i,
     /^secret/i,
     /api[_-]?key/i,
+    /^(access|refresh|id)[_-]?token$/i,
+    /^authorization$/i,
 ];
 
 /**
@@ -165,9 +167,7 @@ export function narrate(toolName: string, data: unknown): string {
     }
     if (toolName === "run_query") {
         const rowCount = (summary.rowCount as number) ?? 0;
-        const rowShown = Math.min(rowCount, ((summary.rows as unknown[]) ?? []).length);
-        const rowHint = rowShown < rowCount ? ` Showing first ${rowShown}; use pageToken to retrieve more.` : "";
-        return `Analytics query returned ${rowCount} rows.${rowHint}`;
+        return `Analytics query returned ${rowCount} rows.`;
     }
     if (toolName === "get_anomalies") return `Found ${count} cost anomalies.${moreHint}`;
     if (toolName === "list_budgets") return `Found ${count} budgets.${moreHint}`;
@@ -181,7 +181,7 @@ export function narrate(toolName: string, data: unknown): string {
     return `Operation completed.`;
 }
 
-const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
+export const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
 
 /**
  * Main adapter. Wraps a raw tool result into the Apps SDK three-field format.

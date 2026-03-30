@@ -24,7 +24,6 @@ export const listRolesTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading roles...",
         "openai/toolInvocation/invoked": "Roles loaded",

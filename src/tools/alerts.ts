@@ -79,7 +79,6 @@ export const listAlertsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading alerts...",
         "openai/toolInvocation/invoked": "Alerts loaded",
@@ -120,7 +119,6 @@ export const getAlertTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading alert details...",
         "openai/toolInvocation/invoked": "Alert details loaded",
@@ -136,7 +134,7 @@ export async function handleGetAlertRequest(args: any, token: string) {
 
         if (!resolvedId && parsed.name) {
             const listData = await makeDoitRequest<AlertsResponse>(
-                `${ALERTS_BASE_URL}?maxResults=100`,
+                `${ALERTS_BASE_URL}?maxResults=200`,
                 token,
                 { method: "GET", customerContext }
             );
@@ -272,7 +270,6 @@ export const createAlertTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Creating alert...",
         "openai/toolInvocation/invoked": "Alert created",
@@ -326,7 +323,6 @@ export const updateAlertTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Updating alert...",
         "openai/toolInvocation/invoked": "Alert updated",

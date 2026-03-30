@@ -24,7 +24,6 @@ export const listUsersTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading users...",
         "openai/toolInvocation/invoked": "Users loaded",

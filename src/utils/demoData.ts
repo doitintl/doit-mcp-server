@@ -432,8 +432,8 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
         return { email: DEMO_USER.email, domain: DEMO_USER.domain };
     }
 
-    // cloud overview — three internal POST /analytics/v1/reports/query calls,
-    // differentiated by the group dimensions in the request body.
+    // POST /analytics/v1/reports/query — used by both cloud overview (internal)
+    // and run_query (standalone). Differentiate by group dimensions in body.
     if (path.includes("/analytics/v1/reports/query") && POST) {
         const groups: string[] = (body?.config?.group ?? []).map((g: any) => g.id);
         if (groups.includes("project_id")) {
@@ -442,8 +442,11 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
         if (groups.includes("service_description")) {
             return { result: { schema: DEMO_CLOUD_OVERVIEW.topServices.columns, rows: DEMO_CLOUD_OVERVIEW.topServices.rows } };
         }
-        // cost by cloud provider (or run_query fallback)
-        return { result: { schema: DEMO_CLOUD_OVERVIEW.costByCloud.columns, rows: DEMO_CLOUD_OVERVIEW.costByCloud.rows } };
+        if (groups.includes("cloud_provider") && groups.length === 1) {
+            return { result: { schema: DEMO_CLOUD_OVERVIEW.costByCloud.columns, rows: DEMO_CLOUD_OVERVIEW.costByCloud.rows } };
+        }
+        // Standalone run_query fallback — return generic time-series data
+        return { result: { schema: DEMO_QUERY_RESULT.columns, rows: DEMO_QUERY_RESULT.rows } };
     }
 
     // reports — individual (must be before list check)
@@ -477,7 +480,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
         const id = path.split("/").pop()!;
         return DEMO_BUDGETS.find((b) => b.id === id) ?? DEMO_BUDGETS[0];
     }
-    if (path.includes("/analytics\/v1\/budgets") && (POST || method === "PATCH")) {
+    if (path.includes("/analytics/v1/budgets") && (POST || method === "PATCH")) {
         return { ...DEMO_BUDGETS[0], id: "budget-new" };
     }
     // budgets — list
@@ -549,11 +552,6 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     // dimensions — list
     if (path.includes("/analytics/v1/dimensions") && GET) {
         return { rowCount: DEMO_DIMENSIONS.length, dimensions: DEMO_DIMENSIONS };
-    }
-
-    // run_query (standalone, not overview's internal query)
-    if (path.includes("/analytics/v1/query") && POST) {
-        return DEMO_QUERY_RESULT;
     }
 
     // invoices — individual
@@ -643,14 +641,6 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     }
 
     return null;
-}
-
-/**
- * Returns structured cloud overview demo data used directly by handleCloudOverviewRequest.
- * This bypasses makeDoitRequest since the overview tool makes multiple internal calls.
- */
-export function getDemoCloudOverview(): typeof DEMO_CLOUD_OVERVIEW {
-    return DEMO_CLOUD_OVERVIEW;
 }
 
 export const DEMO_TOKEN = "demo_key";

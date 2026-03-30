@@ -30,6 +30,7 @@ export class McpApp {
     number | string,
     { resolve: (v: unknown) => void; reject: (e: unknown) => void }
   >();
+  private hostOrigin: string | null = null;
 
   constructor() {
     window.addEventListener("message", this._onMessage.bind(this));
@@ -38,6 +39,14 @@ export class McpApp {
   private _onMessage(ev: MessageEvent) {
     const msg = ev.data;
     if (typeof msg !== "object" || msg?.jsonrpc !== "2.0") return;
+
+    // Capture the host origin from the first valid message (the ui/initialize response).
+    // Subsequent messages from other origins are ignored.
+    if (!this.hostOrigin) {
+      this.hostOrigin = ev.origin;
+    } else if (ev.origin !== this.hostOrigin) {
+      return;
+    }
 
     if ("id" in msg && this.pending.has(msg.id)) {
       const p = this.pending.get(msg.id)!;
@@ -51,7 +60,9 @@ export class McpApp {
   }
 
   private _send(msg: object) {
-    window.parent.postMessage(msg, "*");
+    // Use the captured host origin instead of wildcard "*".
+    // Falls back to "*" only for the initial handshake before origin is known.
+    window.parent.postMessage(msg, this.hostOrigin ?? "*");
   }
 
   private _request(method: string, params: object): Promise<unknown> {

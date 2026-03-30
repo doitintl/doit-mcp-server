@@ -29,7 +29,6 @@ export const findCloudDiagramsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Finding diagrams...",
         "openai/toolInvocation/invoked": "Diagrams found",

@@ -26,7 +26,6 @@ export const listProductsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading products...",
         "openai/toolInvocation/invoked": "Products loaded",

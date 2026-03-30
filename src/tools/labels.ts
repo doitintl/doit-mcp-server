@@ -60,7 +60,6 @@ export const listLabelsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading labels...",
         "openai/toolInvocation/invoked": "Labels loaded",
@@ -130,7 +129,6 @@ export const getLabelTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading label...",
         "openai/toolInvocation/invoked": "Label loaded",
@@ -187,7 +185,6 @@ export const createLabelTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Creating label...",
         "openai/toolInvocation/invoked": "Label created",
@@ -246,7 +243,6 @@ export const updateLabelTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Updating label...",
         "openai/toolInvocation/invoked": "Label updated",
@@ -294,7 +290,6 @@ export const getLabelAssignmentsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading label assignments...",
         "openai/toolInvocation/invoked": "Assignments loaded",
@@ -363,7 +358,6 @@ export const assignObjectsToLabelTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Updating label assignments...",
         "openai/toolInvocation/invoked": "Assignments updated",

@@ -24,7 +24,6 @@ export const listDatahubDatasetsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading datasets...",
         "openai/toolInvocation/invoked": "Datasets loaded",
@@ -72,7 +71,6 @@ export const getDatahubDatasetTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading dataset...",
         "openai/toolInvocation/invoked": "Dataset loaded",

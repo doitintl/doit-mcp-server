@@ -55,7 +55,6 @@ export const listAnnotationsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading annotations...",
         "openai/toolInvocation/invoked": "Annotations loaded",
@@ -125,7 +124,6 @@ export const getAnnotationTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading annotation...",
         "openai/toolInvocation/invoked": "Annotation loaded",
@@ -189,7 +187,6 @@ export const createAnnotationTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Creating annotation...",
         "openai/toolInvocation/invoked": "Annotation created",
@@ -266,7 +263,6 @@ export const updateAnnotationTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Updating annotation...",
         "openai/toolInvocation/invoked": "Annotation updated",

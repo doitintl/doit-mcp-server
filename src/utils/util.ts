@@ -193,6 +193,8 @@ export async function makeDoitRequest<T>(
     const { method = "GET", body = undefined, appendParams = true, customerContext, parseResponse = true } = options;
 
     // Demo mode: return canned data without hitting the real API.
+    // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
+    // If the token is DEMO_TOKEN here, the user already passed that gate.
     if (token === DEMO_TOKEN) {
         if (!parseResponse) return {} as T;
         const demo = getDemoResponse(url, method, body);
@@ -222,7 +224,8 @@ export async function makeDoitRequest<T>(
         }
 
         // add mcp params to the url
-        requestUrl += `&mcp=true`;
+        const sep = requestUrl.includes("?") ? "&" : "?";
+        requestUrl += `${sep}mcp=true`;
 
         if (!process.env.CUSTOMER_CONTEXT) {
             // request from the sse server
@@ -271,27 +274,29 @@ export function formatDate(timestamp: number): string {
  * @param token The JWT token string
  * @returns The decoded JWT object containing header, payload, and signature
  */
+/**
+ * Decode (but NOT verify) a JWT. Used only for extracting metadata labels
+ * (email, DoitEmployee flag) during the OAuth authorization form flow.
+ * The actual authentication is handled by the OAuthProvider; this function
+ * is NOT a security boundary.
+ */
 export function decodeJWT(token: string): {
     header: any;
     payload: any;
     signature: string;
 } | null {
     try {
-        // Split the token into its three parts
         const parts = token.split(".");
 
         if (parts.length !== 3) {
-            console.error("Invalid JWT format: token must have 3 parts");
             return null;
         }
 
-        // Decode header (first part)
-        const header = JSON.parse(atob(parts[0]));
+        // JWT uses base64url encoding — convert to standard base64 before decoding
+        const b64url = (s: string) => s.replace(/-/g, "+").replace(/_/g, "/");
 
-        // Decode payload (second part)
-        const payload = JSON.parse(atob(parts[1]));
-
-        // Keep signature as is (third part)
+        const header = JSON.parse(atob(b64url(parts[0])));
+        const payload = JSON.parse(atob(b64url(parts[1])));
         const signature = parts[2];
 
         return {
@@ -331,7 +336,8 @@ export function toSnakeCase(str: string): string {
 export function matchByName<T extends Record<string, any>>(
     items: T[],
     query: string,
-    nameKey: string = "name"
+    nameKey: string = "name",
+    idKey: string = "id"
 ): { resolved: string } | { error: string } {
     const q = query.toLowerCase();
     const matches = items.filter((item) => {
@@ -339,7 +345,11 @@ export function matchByName<T extends Record<string, any>>(
         return typeof val === "string" && val.toLowerCase().includes(q);
     });
     if (matches.length === 0) return { error: `No items found matching "${query}".` };
-    if (matches.length === 1) return { resolved: matches[0].id as string };
+    if (matches.length === 1) {
+        const id = matches[0][idKey];
+        if (!id) return { error: `Found "${matches[0][nameKey]}" but it has no ${idKey} field.` };
+        return { resolved: String(id) };
+    }
     const names = matches.map((m) => `"${m[nameKey]}"`).join(", ");
     return { error: `Multiple items match "${query}": ${names}. Please provide a more specific name.` };
 }

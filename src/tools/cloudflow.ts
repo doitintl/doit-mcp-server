@@ -55,7 +55,6 @@ export const triggerCloudFlowTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Triggering CloudFlow...",
         "openai/toolInvocation/invoked": "CloudFlow triggered",

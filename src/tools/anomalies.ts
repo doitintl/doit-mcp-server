@@ -68,7 +68,6 @@ export const anomaliesTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Checking for anomalies...",
         "openai/toolInvocation/invoked": "Anomaly check complete",
@@ -95,7 +94,6 @@ export const anomalyTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading anomaly details...",
         "openai/toolInvocation/invoked": "Anomaly details loaded",

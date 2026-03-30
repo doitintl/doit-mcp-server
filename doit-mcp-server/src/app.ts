@@ -107,14 +107,8 @@ async function handleApprove(c: any) {
     await parseApproveFormBody(formBody);
 
   if (!oauthReqInfo) {
-    // Add WWW-Authenticate header with resource_metadata
     const url = new URL(c.req.url);
     const base = url.origin;
-    // Allow ChatGPT redirect URIs: log for observability, return proper error
-    const redirectUri = (formBody.redirect_uri as string) || "";
-    if (isChatGPTRedirectUri(redirectUri)) {
-      console.log("ChatGPT OAuth flow detected for redirect_uri:", redirectUri);
-    }
     return c.html("INVALID LOGIN", 401, {
       "WWW-Authenticate": `Bearer resource_metadata=\"${base}/.well-known/oauth-authorization-server\"`,
     });
@@ -138,15 +132,34 @@ async function handleApprove(c: any) {
     },
   });
 
-  // Use HTTP 302 redirect so ChatGPT's OAuth popup receives the authorization code.
-  // A JS-based redirect (window.location.href) is blocked in sandboxed iframes.
+  // Defense-in-depth: verify the redirect URL uses https before redirecting.
+  if (!redirectTo.startsWith("https://")) {
+    return c.html("Invalid redirect URI", 400);
+  }
   return c.redirect(redirectTo, 302);
+}
+
+// Validate that a redirect URI is safe to redirect to.
+// Only allows URIs registered with the OAuthProvider (via oauthReqInfo.redirectUri)
+// or explicitly allowlisted ChatGPT URIs.
+function isSafeRedirectUri(uri: string): boolean {
+  try {
+    const parsed = new URL(uri);
+    if (parsed.protocol !== "https:") return false;
+    return isChatGPTRedirectUri(uri);
+  } catch {
+    return false;
+  }
 }
 
 // Helper function to render authorization rejection response
 async function renderAuthorizationRejection(c: any, redirectUri: string) {
+  // Only redirect to validated URIs; fall back to a plain 403 for unknown origins.
+  if (!isSafeRedirectUri(redirectUri)) {
+    return c.html("Authorization denied", 403);
+  }
   // Use HTTP 302 so ChatGPT's OAuth popup receives the error response.
-  const url = new URL(redirectUri.startsWith("http") ? redirectUri : `https://example.com${redirectUri}`);
+  const url = new URL(redirectUri);
   url.searchParams.set("error", "access_denied");
   return c.redirect(url.toString(), 302);
 }
@@ -157,7 +170,8 @@ app.post("/customer-context", async (c) => {
   );
 
   // Demo mode: bypass JWT validation and complete OAuth with demo props.
-  if (apiKey === DEMO_TOKEN) {
+  // Gated behind DEMO_MODE_ENABLED env var so it can be disabled in production.
+  if (apiKey === DEMO_TOKEN && (c.env as any).DEMO_MODE_ENABLED === "true") {
     if (!oauthReqInfo) return c.html("INVALID LOGIN", 401);
     const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
       request: oauthReqInfo,
@@ -210,12 +224,11 @@ app.post("/customer-context", async (c) => {
         return c.html("INVALID LOGIN", 401);
       }
 
-      const jwtInfoForApprove = decodeJWT(apiKey);
       const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
         request: oauthReqInfo,
         userId: apiKey,
         metadata: {
-          label: jwtInfoForApprove?.payload?.sub || "User label",
+          label: payload?.sub || "User label",
         },
         scope: oauthReqInfo.scope,
         props: {
@@ -247,33 +260,7 @@ app.post("/customer-context", async (c) => {
 // then completing the authorization request with the OAUTH_PROVIDER
 app.post("/approve", handleApprove);
 
-// Add /.well-known/oauth-authorization-server endpoint
-app.get("/.well-known/oauth-authorization-server", (c) => {
-  const host = c.req.header("host") || new URL(c.req.url).host;
-  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
-  const base = `${isLocal ? "http" : "https"}://${host}`;
-  return c.json({
-    issuer: base,
-    authorization_endpoint: `${base}/authorize`,
-    token_endpoint: `${base}/token`,
-    registration_endpoint: `${base}/register`,
-    scopes_supported: ["read_profile", "read_data", "write_data"],
-    code_challenge_methods_supported: ["S256"],
-  });
-});
-
-// Add /.well-known/oauth-protected-resource endpoint (required by OAuth 2.1 / ChatGPT)
-// Uses Host header (not url.origin) because wrangler dev rewrites request.url to the
-// route pattern host regardless of the actual incoming host (tunnel URL, prod, etc).
-app.get("/.well-known/oauth-protected-resource", (c) => {
-  const host = c.req.header("host") || new URL(c.req.url).host;
-  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
-  const base = `${isLocal ? "http" : "https"}://${host}`;
-  return c.json({
-    resource: base,
-    authorization_servers: [base],
-    scopes_supported: ["read_profile", "read_data", "write_data"],
-  });
-});
+// Note: /.well-known/oauth-authorization-server and /.well-known/oauth-protected-resource
+// are handled in handleRequest() in index.ts to support all path prefixes (e.g. /sse/.well-known/...).
 
 export default app;

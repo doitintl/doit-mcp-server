@@ -286,7 +286,10 @@ function AnomaliesList({ items }: { items: unknown[] }) {
         return (
           <div
             key={i}
+            role={clickable ? "button" : undefined}
+            tabIndex={clickable ? 0 : undefined}
             onClick={handleClick}
+            onKeyDown={clickable ? e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick?.(); } } : undefined}
             style={{
               padding: "6px 0",
               borderBottom: "1px solid var(--dci-border)",
@@ -345,7 +348,10 @@ function IncidentsList({ items }: { items: unknown[] }) {
         return (
           <div
             key={i}
+            role={clickable ? "button" : undefined}
+            tabIndex={clickable ? 0 : undefined}
             onClick={handleClick}
+            onKeyDown={clickable ? e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick?.(); } } : undefined}
             style={{
               padding: "6px 0",
               borderBottom: "1px solid var(--dci-border)",

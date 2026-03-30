@@ -24,7 +24,6 @@ export const listPlatformsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading platforms...",
         "openai/toolInvocation/invoked": "Platforms loaded",

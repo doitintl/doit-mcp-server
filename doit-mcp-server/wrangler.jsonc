@@ -67,7 +67,7 @@
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
   // Production override: wrangler deploy sets WORKER_URL=https://mcp.doit.com via CF dashboard
-  "vars": { "WORKER_URL": "https://dci-mcp.ngrok.app" },
+  "vars": { "WORKER_URL": "https://dci-mcp.ngrok.app", "DEMO_MODE_ENABLED": "true" },
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/

@@ -53,7 +53,6 @@ export const listInvoicesTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading invoices...",
         "openai/toolInvocation/invoked": "Invoices loaded",
@@ -114,7 +113,6 @@ export const getInvoiceTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading invoice details...",
         "openai/toolInvocation/invoked": "Invoice details loaded",

@@ -135,7 +135,6 @@ export const reportsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading reports...",
         "openai/toolInvocation/invoked": "Reports loaded",
@@ -165,7 +164,6 @@ export const getReportResultsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Fetching report data...",
         "openai/toolInvocation/invoked": "Report data ready",
@@ -503,7 +501,6 @@ export const runQueryTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Running analytics query...",
         "openai/toolInvocation/invoked": "Analytics results ready",
@@ -540,7 +537,6 @@ export const createReportTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Creating report...",
         "openai/toolInvocation/invoked": "Report created",
@@ -569,7 +565,6 @@ export const updateReportTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Updating report...",
         "openai/toolInvocation/invoked": "Report updated",
@@ -717,7 +712,6 @@ export async function handleRunQueryRequest(args: any, token: string) {
         const queryUrl = `${REPORTS_BASE_URL}/query`;
 
         try {
-            console.error("[run_query] config:", JSON.stringify(config, null, 2));
             // Use enhanced makeDoitRequest for POST request
             const queryResponse = await makeDoitRequest<QueryResponse>(queryUrl, token, {
                 method: "POST",

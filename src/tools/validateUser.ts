@@ -33,7 +33,6 @@ export const validateUserTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Validating user...",
         "openai/toolInvocation/invoked": "User validated",

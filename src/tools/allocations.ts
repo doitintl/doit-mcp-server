@@ -200,7 +200,6 @@ export const listAllocationsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading allocations...",
         "openai/toolInvocation/invoked": "Allocations loaded",
@@ -230,7 +229,6 @@ export const getAllocationTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading allocation...",
         "openai/toolInvocation/invoked": "Allocation loaded",
@@ -357,7 +355,6 @@ export const createAllocationTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Creating allocation...",
         "openai/toolInvocation/invoked": "Allocation created",
@@ -387,7 +384,6 @@ export const updateAllocationTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Updating allocation...",
         "openai/toolInvocation/invoked": "Allocation updated",
@@ -569,7 +565,8 @@ export async function handleGetAllocationRequest(args: any, token: string) {
         let resolvedId = parsed.id;
 
         if (!resolvedId && parsed.name) {
-            const listData = await makeDoitRequest<AllocationsResponse>(ALLOCATIONS_URL, token, {
+            const listData = await makeDoitRequest<AllocationsResponse>(
+                `${ALLOCATIONS_URL}?maxResults=200`, token, {
                 method: "GET",
                 customerContext,
             });

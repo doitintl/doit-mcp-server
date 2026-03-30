@@ -79,7 +79,6 @@ export const dimensionTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading dimension...",
         "openai/toolInvocation/invoked": "Dimension loaded",

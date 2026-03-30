@@ -24,7 +24,6 @@ export const listOrganizationsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading organizations...",
         "openai/toolInvocation/invoked": "Organizations loaded",

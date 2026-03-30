@@ -71,7 +71,6 @@ export const listBudgetsTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading budgets...",
         "openai/toolInvocation/invoked": "Budgets loaded",
@@ -99,7 +98,6 @@ export const getBudgetTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Loading budget details...",
         "openai/toolInvocation/invoked": "Budget details loaded",
@@ -249,7 +247,6 @@ export const createBudgetTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Creating budget...",
         "openai/toolInvocation/invoked": "Budget created",
@@ -415,7 +412,6 @@ export const updateBudgetTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Updating budget...",
         "openai/toolInvocation/invoked": "Budget updated",

@@ -27,7 +27,6 @@ export const cloudOverviewTool = {
         destructiveHint: false,
         openWorldHint: true,
     },
-    // @ts-ignore
     _meta: {
         "openai/toolInvocation/invoking": "Building cloud overview...",
         "openai/toolInvocation/invoked": "Cloud overview ready",

@@ -2,10 +2,10 @@
  * Tests the demo_key interceptor by calling makeDoitRequest-equivalent
  * URLs and validating the data shapes the CloudOverview widget needs.
  *
- * Run: node scripts/test-demo-key.mjs
+ * Run: npx tsx scripts/test-demo-key.mjs
  */
 
-import { getDemoResponse } from "../dist/utils/demoData.js";
+import { getDemoResponse } from "../src/utils/demoData.js";
 
 let passed = 0;
 let failed = 0;
