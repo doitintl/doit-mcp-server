@@ -66,6 +66,12 @@ export const mockedDoitApiHandlers = [
             _requestBody: body,
         });
     }),
+    http.get(`${API_BASE}/analytics/v1/reports/:id/config`, ({ params }) => {
+        if (params.id === "report-1") {
+            return HttpResponse.json(fixtures.reportConfig);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/analytics/v1/reports/:id`, ({ params }) => {
         if (params.id === "report-1") {
             return HttpResponse.json(fixtures.reportResults);

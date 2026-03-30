@@ -52,6 +52,7 @@ import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
 import {
     handleCreateReportRequest,
+    handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
@@ -101,6 +102,9 @@ export async function executeToolHandler(
                 break;
             case "get_report_results":
                 result = await handleGetReportResultsRequest(args, token);
+                break;
+            case "get_report_config":
+                result = await handleGetReportConfigRequest(args, token);
                 break;
             case "create_report":
                 result = await handleCreateReportRequest(args, token);

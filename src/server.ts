@@ -98,8 +98,10 @@ import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
 import {
     createReportTool,
+    getReportConfigTool,
     getReportResultsTool,
     handleCreateReportRequest,
+    handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
@@ -141,6 +143,7 @@ export function createServer() {
                 reportsTool,
                 runQueryTool,
                 getReportResultsTool,
+                getReportConfigTool,
                 createReportTool,
                 updateReportTool,
                 validateUserTool,
@@ -290,6 +293,7 @@ export {
     handleGetInvoiceRequest,
     handleGetLabelAssignmentsRequest,
     handleGetLabelRequest,
+    handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
