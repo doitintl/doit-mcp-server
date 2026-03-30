@@ -41,13 +41,14 @@ import {
     sendDatahubEventsFixture,
     updateDatahubDatasetFixture,
 } from "./datahub.js";
-import { organizationsFixture, rolesFixture, usersFixture, validateUserFixture } from "./iam.js";
+import { organizationsFixture, rolesFixture, updateUserFixture, usersFixture, validateUserFixture } from "./iam.js";
 import { platformsFixture, productsFixture, ticketsFixture } from "./support.js";
 
 export const fixtures = {
     organizations: organizationsFixture,
     roles: rolesFixture,
     users: usersFixture,
+    updateUser: updateUserFixture,
     platforms: platformsFixture,
     products: productsFixture,
     validateUser: validateUserFixture,

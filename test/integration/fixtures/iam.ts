@@ -58,6 +58,24 @@ export const usersFixture = {
     ],
 };
 
+export const updateUserFixture = {
+    message: "User updated successfully",
+    user: {
+        id: "user-1",
+        displayName: "Alice Johnson",
+        firstName: "Alice",
+        lastName: "Johnson",
+        email: "alice@example.com",
+        jobFunction: "Management",
+        phone: "+1234567890",
+        phoneExtension: "",
+        language: "en",
+        roleId: "role-1",
+        organizationId: "org-1",
+        status: "active",
+    },
+};
+
 export const validateUserFixture = {
     domain: "example.com",
     email: "alice@example.com",
