@@ -8,6 +8,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
+import { DATASET_NAME_PATTERN } from "./datahubDatasets.js";
 
 export const DATAHUB_EVENTS_BASE_URL = `${DOIT_API_BASE}/datahub/v1/events`;
 
@@ -34,7 +35,7 @@ const DatahubEventSchema = z.object({
         .string()
         .min(1)
         .regex(
-            /^[a-zA-Z0-9_-]+( [a-zA-Z0-9_-]+)*$/,
+            DATASET_NAME_PATTERN,
             "Provider may only contain alphanumeric characters, underscores, dashes, and spaces between words."
         )
         .describe(
