@@ -7,43 +7,64 @@ import { routeToView } from "./router";
 import type { ViewProps } from "./router";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Onboarding } from "./views/Onboarding";
+import { McpApp } from "./app";
+import type { ToolResultParams } from "./app";
 import "./global.css";
+
+// Create the McpApp instance immediately so message listeners are registered
+// before ChatGPT sends the first notification.
+const app = new McpApp();
 
 function App() {
   const [viewProps, setViewProps] = useState<(ViewProps & { toolName: string }) | null>(null);
-  const bridge = window.openai;
+
+  const handleResult = (result: ToolResultParams) => {
+    const toolName = (result._meta?.toolName as string) ?? "unknown";
+    const data = (result.structuredContent ?? {}) as Record<string, unknown>;
+    setViewProps({ data, meta: result._meta ?? {}, toolName });
+  };
 
   useEffect(() => {
-    // Apply theme on mount
+    // --- New MCP Apps bridge: ui/notifications/tool-result ---
+    app.on("ui/notifications/tool-result", (params) => {
+      handleResult(params as ToolResultParams);
+    });
+
+    app.on("ui/notifications/host-context-changed", (params: any) => {
+      if (params?.theme?.mode) applyTheme(params.theme.mode);
+    });
+
+    // Connect (performs ui/initialize handshake)
+    app.connect().then((ctx) => {
+      if (ctx.theme?.mode) applyTheme(ctx.theme.mode);
+    }).catch(() => {
+      // Not in an MCP Apps host — fall through to legacy path
+    });
+
+    // --- Legacy ChatGPT path: window.openai.toolOutput ---
+    // Data may arrive synchronously (pre-populated) or via the openai:set_globals event.
+    const tryLegacy = () => {
+      const w = window as any;
+      const toolOutput = w.openai?.toolOutput;
+      if (toolOutput) {
+        handleResult({
+          structuredContent: toolOutput,
+          _meta: { toolName: w.openai?.toolName ?? "unknown" },
+        });
+        applyTheme(w.openai?.theme?.mode);
+      }
+    };
+
+    tryLegacy();
+    window.addEventListener("openai:set_globals", tryLegacy);
+
     applyTheme();
 
-    // If tool output is already available (synchronous delivery)
-    if (bridge?.toolOutput) {
-      const meta = (bridge.toolResponseMetadata ?? {}) as Record<string, unknown>;
-      const toolName = (meta.toolName as string) ?? "unknown";
-      setViewProps({
-        data: bridge.toolOutput as Record<string, unknown>,
-        meta,
-        toolName,
-      });
-    }
+    return () => {
+      window.removeEventListener("openai:set_globals", tryLegacy);
+    };
   }, []);
 
-  // Report height after every render
-  useEffect(() => {
-    if (bridge) {
-      requestAnimationFrame(() => {
-        bridge.notifyIntrinsicHeight(document.body.scrollHeight);
-      });
-    }
-  });
-
-  // No bridge = not in ChatGPT iframe (dev mode)
-  if (!bridge) {
-    return <div style={{ padding: "16px" }}>Development mode — not in ChatGPT iframe.</div>;
-  }
-
-  // No tool output yet = show onboarding
   if (!viewProps) {
     return <Onboarding />;
   }

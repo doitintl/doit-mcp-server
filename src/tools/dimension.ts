@@ -126,9 +126,7 @@ export async function handleDimensionRequest(args: any, token: string) {
                 return createErrorResponse(`Failed to retrieve dimension with type: ${type} and id: ${id}`);
             }
 
-            // Format the dimension data for display
-            const formattedDimension = formatDimension(dimensionData);
-            return createSuccessResponse(formattedDimension);
+            return createSuccessResponse(JSON.stringify(dimensionData));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request for dimension");
         }

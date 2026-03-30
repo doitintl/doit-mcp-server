@@ -112,19 +112,11 @@ export async function handleDimensionsRequest(args: any, token: string) {
                 );
             }
 
-            const formattedDimensions = dimensions.map(formatDimension);
-
-            // Create a descriptive message that includes filter information if provided
-            let dimensionsText = `Found ${rowCount} dimensions`;
-            if (filter) {
-                dimensionsText += ` (filtered by: ${filter})`;
-            }
-            dimensionsText += `:`;
-            dimensionsText += `\n\n${formattedDimensions.join("\n")} \n\n${
-                dimensionsData.pageToken ? `Page token: ${dimensionsData.pageToken}` : ""
-            }`;
-
-            return createSuccessResponse(dimensionsText);
+            return createSuccessResponse(JSON.stringify({
+                rowCount,
+                dimensions,
+                pageToken: dimensionsData.pageToken ?? null,
+            }));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

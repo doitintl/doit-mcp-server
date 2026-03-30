@@ -118,7 +118,7 @@ Created: ${new Date(mockIncident.createTime).toLocaleString()}
                 { method: "GET" }
             );
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Cloud incidents") }],
+                content: [{ type: "text", text: expect.stringContaining("incidents") }],
             });
         });
 
@@ -155,7 +155,7 @@ Created: ${new Date(mockIncident.createTime).toLocaleString()}
             const responseText = (createSuccessResponse as vi.Mock).mock.calls[0][0];
             expect(responseText).not.toContain("Issue 2"); // Ensure GCP incident is filtered out
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Cloud incidents") }],
+                content: [{ type: "text", text: expect.stringContaining("incidents") }],
             });
         });
 
@@ -271,7 +271,7 @@ Created: ${new Date(mockIncident.createTime).toLocaleString()}
                 content: [
                     {
                         type: "text",
-                        text: expect.stringContaining("Cloud incident details:"),
+                        text: expect.stringContaining("google-cloud"),
                     },
                 ],
             });

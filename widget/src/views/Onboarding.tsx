@@ -2,15 +2,6 @@ import { Layout } from "../components/Layout";
 import { ActionButton } from "../components/ActionButton";
 
 export function Onboarding() {
-  const bridge = window.openai;
-
-  const handleConnect = () => {
-    bridge?.sendFollowUpMessage({
-      prompt: "Connect my DoiT Cloud Intelligence account",
-      scrollToBottom: true,
-    });
-  };
-
   return (
     <Layout>
       <div style={{
@@ -41,7 +32,7 @@ export function Onboarding() {
         <p style={{ fontSize: "0.8125rem", color: "var(--dci-text-secondary)", maxWidth: "320px" }}>
           Connect your DoiT account to analyze cloud costs, track budgets, and monitor anomalies.
         </p>
-        <ActionButton label="Connect Account" onClick={handleConnect} variant="primary" />
+        <ActionButton label="Ask about your cloud costs" onClick={() => {}} variant="primary" />
       </div>
     </Layout>
   );

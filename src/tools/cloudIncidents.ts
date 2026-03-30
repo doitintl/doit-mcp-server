@@ -191,22 +191,11 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
                 );
             }
 
-            const formattedIncidents = incidents.map(formatCloudIncident);
-
-            // Create a descriptive message that includes filter information if provided
-            let incidentsText = "Cloud incidents";
-            if (platform) {
-                incidentsText += ` for ${platform}`;
-            }
-            if (filter) {
-                incidentsText += ` (filtered by: ${filter})`;
-            }
-
-            incidentsText += `:\n\n${formattedIncidents.join("\n")} \n\n${
-                incidentsData.pageToken ? `Page token: ${incidentsData.pageToken}` : ""
-            }`;
-
-            return createSuccessResponse(incidentsText);
+            return createSuccessResponse(JSON.stringify({
+                rowCount: incidents.length,
+                incidents,
+                pageToken: incidentsData.pageToken ?? null,
+            }));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
@@ -237,8 +226,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
                 return createErrorResponse(`Failed to retrieve cloud incident with ID: ${id}`);
             }
 
-            const formattedIncident = formatCloudIncident(incident);
-            return createSuccessResponse(`Cloud incident details:\n\n${formattedIncident}`);
+            return createSuccessResponse(JSON.stringify(incident));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

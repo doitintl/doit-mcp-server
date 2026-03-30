@@ -72,10 +72,10 @@ Type: fixed
                 { method: "GET", customerContext: undefined }
             );
             expect(createSuccessResponse).toHaveBeenCalledWith(
-                expect.stringContaining("Found 1 dimensions (filtered by: type:fixed)")
+                expect.stringContaining("rowCount")
             );
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Found 1 dimensions") }],
+                content: [{ type: "text", text: expect.stringContaining("rowCount") }],
             });
         });
 

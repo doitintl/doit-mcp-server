@@ -12,6 +12,7 @@ import {
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { handleValidateUserRequest } from "../../src/tools/validateUser";
 import { decodeJWT } from "../../src/utils/util";
+import { WIDGET_HTML } from "./widgetHtml";
 
 export type Bindings = Env & {
   OAUTH_PROVIDER: OAuthHelpers;
@@ -66,6 +67,16 @@ app.get("/", async (c) => {
   return c.html(layout(content, "DoiT MCP Remote - Home"));
 });
 
+// Serve the full widget HTML at a stable URL so the cached stub can fetch
+// the latest version without requiring ChatGPT app re-registration.
+app.get("/widget", (c) => {
+  return c.body(WIDGET_HTML, 200, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
+    "Access-Control-Allow-Origin": "*",
+  });
+});
+
 // Render an authorization page
 // If the user is logged in, we'll show a form to approve the appropriate scopes
 // If the user is not logged in, we'll show a form to both login and approve the scopes
@@ -75,10 +86,10 @@ app.get("/authorize", async (c) => {
   const oauthScopes = [
     {
       name: "read_profile",
-      description: "Read your DoiT basic profile information",
+      description: "Read your DoiT Cloud Intelligence profile information",
     },
-    { name: "read_data", description: "Access your DoiT data" },
-    { name: "write_data", description: "Create and modify your DoiT data" },
+    { name: "read_data", description: "Access your DoiT Cloud Intelligence data (anomalies, reports, allocations, etc.)" },
+    { name: "write_data", description: "Create and modify your DoiT Cloud Intelligence data" },
   ];
 
   const content = await renderLoggedInAuthorizeScreen(
@@ -126,22 +137,17 @@ async function handleApprove(c: any) {
     },
   });
 
-  return c.html(
-    layout(
-      await renderAuthorizationApprovedContent(redirectTo),
-      "MCP Remote Auth Demo - Authorization Status"
-    )
-  );
+  // Use HTTP 302 redirect so ChatGPT's OAuth popup receives the authorization code.
+  // A JS-based redirect (window.location.href) is blocked in sandboxed iframes.
+  return c.redirect(redirectTo, 302);
 }
 
 // Helper function to render authorization rejection response
 async function renderAuthorizationRejection(c: any, redirectUri: string) {
-  return c.html(
-    layout(
-      await renderAuthorizationRejectedContent(redirectUri),
-      "DoiT MCP Remote - Authorization Status"
-    )
-  );
+  // Use HTTP 302 so ChatGPT's OAuth popup receives the error response.
+  const url = new URL(redirectUri.startsWith("http") ? redirectUri : `https://example.com${redirectUri}`);
+  url.searchParams.set("error", "access_denied");
+  return c.redirect(url.toString(), 302);
 }
 
 app.post("/customer-context", async (c) => {
@@ -181,8 +187,30 @@ app.post("/customer-context", async (c) => {
     }
 
     if (!payload.DoitEmployee) {
-      // request validation for non-doit employees
-      return await handleApprove(c);
+      // For non-DoiT employees, extract the domain from the validate response
+      // and use it as customerContext (the DoiT API identifies their account by domain).
+      const domainMatch = result.match(/Domain:\s*(\S+)/);
+      const customerContext = domainMatch ? domainMatch[1] : undefined;
+
+      if (!oauthReqInfo) {
+        return c.html("INVALID LOGIN", 401);
+      }
+
+      const jwtInfoForApprove = decodeJWT(apiKey);
+      const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
+        request: oauthReqInfo,
+        userId: apiKey,
+        metadata: {
+          label: jwtInfoForApprove?.payload?.sub || "User label",
+        },
+        scope: oauthReqInfo.scope,
+        props: {
+          apiKey,
+          customerContext,
+          isDoitUser: "false",
+        },
+      });
+      return c.redirect(redirectTo, 302);
     }
 
     const content = await renderCustomerContextScreen(
@@ -207,9 +235,9 @@ app.post("/approve", handleApprove);
 
 // Add /.well-known/oauth-authorization-server endpoint
 app.get("/.well-known/oauth-authorization-server", (c) => {
-  // Extract base URL (protocol + host)
-  const url = new URL(c.req.url);
-  const base = url.origin;
+  const host = c.req.header("host") || new URL(c.req.url).host;
+  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  const base = `${isLocal ? "http" : "https"}://${host}`;
   return c.json({
     issuer: base,
     authorization_endpoint: `${base}/authorize`,
@@ -221,12 +249,15 @@ app.get("/.well-known/oauth-authorization-server", (c) => {
 });
 
 // Add /.well-known/oauth-protected-resource endpoint (required by OAuth 2.1 / ChatGPT)
+// Uses Host header (not url.origin) because wrangler dev rewrites request.url to the
+// route pattern host regardless of the actual incoming host (tunnel URL, prod, etc).
 app.get("/.well-known/oauth-protected-resource", (c) => {
-  const url = new URL(c.req.url);
-  const base = url.origin;
+  const host = c.req.header("host") || new URL(c.req.url).host;
+  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  const base = `${isLocal ? "http" : "https"}://${host}`;
   return c.json({
-    resource: "https://mcp.doit.com",
-    authorization_servers: ["https://mcp.doit.com"],
+    resource: base,
+    authorization_servers: [base],
     scopes_supported: ["read_profile", "read_data", "write_data"],
   });
 });

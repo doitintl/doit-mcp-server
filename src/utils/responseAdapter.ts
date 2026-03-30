@@ -1,3 +1,5 @@
+import { TOOL_VIEW_CONFIG } from "./widgetConfig.js";
+
 /**
  * Fields to strip from all responses.
  * Guideline: "Do not include diagnostic, telemetry, or internal identifiers—such as
@@ -151,33 +153,47 @@ export function narrate(toolName: string, data: unknown): string {
     return `Operation completed.`;
 }
 
-const WIDGET_URI = "ui://doit/cloud-intelligence-v1.html";
+const WIDGET_URI = "ui://doit/cloud-intelligence-v7.html";
 
 /**
  * Main adapter. Wraps a raw tool result into the Apps SDK three-field format.
  *
  * - structuredContent: summarized data for the widget iframe to display
- * - content:           original raw JSON content (unchanged) so the model can read the data
+ * - content:           JSON of structuredContent so ChatGPT derives toolOutput correctly
  * - _meta:             protocol metadata; includes "ui/resourceUri" to trigger widget iframe
+ *
+ * IMPORTANT: ChatGPT ignores our explicit structuredContent field and instead derives
+ * toolOutput (passed to the widget) by parsing content[0].text as JSON. If content[0].text
+ * is not valid JSON, ChatGPT wraps it as { text: "..." } which breaks the widget display.
+ * Therefore content[0].text must always be JSON.stringify(structuredContent).
  */
 export function adaptToolResponse(toolName: string, rawResponse: unknown) {
     // Unwrap the MCP tool result wrapper before sanitizing
     const data = unwrapMcpResult(rawResponse);
     const cleaned = Array.isArray(data) ? (sanitizeValue(data) as unknown[]) : sanitizeValue(data);
+    const structured = summarize(toolName, cleaned);
 
-    // Preserve original content so ChatGPT can read the raw data and generate text responses.
-    // Only add structuredContent (for the widget) and _meta (for the iframe trigger) on top.
-    const resp = rawResponse as Record<string, unknown> | null;
-    const originalContent = Array.isArray(resp?.content)
-        ? resp!.content
-        : [{ type: "text" as const, text: JSON.stringify(cleaned) }];
+    // The LLM reads structuredContent; embed an instruction so it gives a one-liner.
+    // _-prefixed keys are filtered by the widget's GenericTable view.
+    const viewConfig = TOOL_VIEW_CONFIG[toolName];
+    const structuredWithHint = {
+        ...structured,
+        _llmInstruction:
+            "Results are displayed in the DoiT Cloud Intelligence widget. " +
+            "Respond with ONE short sentence only (e.g. 'Found 20 anomalies — see widget.'). " +
+            "Do NOT list, enumerate, or describe individual items.",
+        ...(viewConfig ? { _columns: viewConfig.columns } : {}),
+        ...(viewConfig?.emptyMessage ? { _emptyMessage: viewConfig.emptyMessage } : {}),
+        ...(viewConfig?.drilldown ? { _drilldown: viewConfig.drilldown } : {}),
+    };
 
     return {
-        structuredContent: summarize(toolName, cleaned),
-        content: originalContent,
+        structuredContent: structuredWithHint,
+        content: [{ type: "text" as const, text: JSON.stringify(structuredWithHint) }],
         _meta: {
             toolName,
             "ui/resourceUri": WIDGET_URI,
+            ui: { resourceUri: WIDGET_URI },
         },
     };
 }

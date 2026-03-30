@@ -168,31 +168,28 @@ export async function handleAnomaliesRequest(args: any, token: string) {
                 return createErrorResponse("No anomalies found");
             }
 
-            // Map anomalies to the required format
             const formattedAnomalies = anomalies.map((anomaly) => ({
+                platform: anomaly.platform || "",
+                serviceName: anomaly.serviceName || "",
+                scope: anomaly.scope || "",
+                costOfAnomaly: anomaly.costOfAnomaly,
+                severityLevel: anomaly.severityLevel || "",
+                status: anomaly.status || null,
+                startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
+                endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
+                top3SKUs: anomaly.top3SKUs && anomaly.top3SKUs.length > 0 ? anomaly.top3SKUs : null,
                 id: anomaly.id || null,
                 billingAccount: anomaly.billingAccount || "",
                 attribution: anomaly.attribution || "",
-                costOfAnomaly: anomaly.costOfAnomaly,
-                platform: anomaly.platform || "",
-                scope: anomaly.scope || "",
-                serviceName: anomaly.serviceName || "",
-                top3SKUs: anomaly.top3SKUs && anomaly.top3SKUs.length > 0 ? anomaly.top3SKUs : null,
-                severityLevel: anomaly.severityLevel || "",
                 timeFrame: anomaly.timeFrame || "",
-                startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
-                status: anomaly.status || null,
-                endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
                 acknowledged: anomaly.acknowledged,
             }));
 
-            let anomaliesText = `Found ${rowCount} anomalies`;
-
-            anomaliesText += `:\n\n${formattedAnomalies.map((a) => JSON.stringify(a, null, 2)).join("\n")}\n\n${
-                anomaliesData.pageToken ? `Page token: ${anomaliesData.pageToken}` : ""
-            }`;
-
-            return createSuccessResponse(anomaliesText);
+            return createSuccessResponse(JSON.stringify({
+                rowCount,
+                anomalies: formattedAnomalies,
+                pageToken: anomaliesData.pageToken ?? null,
+            }));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
@@ -227,8 +224,23 @@ export async function handleAnomalyRequest(args: any, token: string) {
             // Let's add it for consistency in the formatted output
             const anomaly = { ...anomalyData, id };
 
-            const formattedAnomaly = formatAnomaly(anomaly);
-            return createSuccessResponse(`Anomaly details:\n\n${formattedAnomaly}`);
+            return createSuccessResponse(JSON.stringify({
+                id: anomaly.id,
+                billingAccount: anomaly.billingAccount,
+                attribution: anomaly.attribution,
+                costOfAnomaly: anomaly.costOfAnomaly,
+                platform: anomaly.platform,
+                scope: anomaly.scope,
+                serviceName: anomaly.serviceName,
+                top3SKUs: anomaly.top3SKUs,
+                severityLevel: anomaly.severityLevel,
+                timeFrame: anomaly.timeFrame,
+                startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
+                endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
+                status: anomaly.status,
+                acknowledged: anomaly.acknowledged,
+                anomalyChartUrl: anomaly.anomalyChartUrl,
+            }));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

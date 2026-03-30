@@ -4,12 +4,9 @@
  * Apply ChatGPT theme to CSS custom properties.
  * Called once on init and whenever theme changes.
  */
-export function applyTheme(): void {
-  const bridge = window.openai;
-  if (!bridge) return;
-
+export function applyTheme(mode?: "light" | "dark"): void {
   const root = document.documentElement;
-  const isDark = bridge.theme?.mode === "dark";
+  const isDark = mode === "dark" || (!mode && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
 
   // System theme hint for browser
   root.style.colorScheme = isDark ? "dark" : "light";

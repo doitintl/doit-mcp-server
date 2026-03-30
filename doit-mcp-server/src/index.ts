@@ -199,6 +199,47 @@ export class ContextStorage extends DurableObject {
   }
 }
 
+/**
+ * Generates the tiny loader stub cached by ChatGPT as widget HTML.
+ * The stub fetches the real widget from GET /widget on every render, so
+ * future widget updates require zero ChatGPT app re-registrations.
+ *
+ * The stub is intentionally minimal and stable — it should never need to change.
+ * If workerUrl ever moves, bump WIDGET_URI and re-register once.
+ */
+function buildWidgetStub(workerUrl: string): string {
+  const widgetUrl = `${workerUrl}/widget`;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>*{box-sizing:border-box}body{margin:0;padding:0;font-family:system-ui,sans-serif}</style>
+</head>
+<body>
+<div id="app"><p style="padding:16px;color:#888;font-size:0.8125rem">Loading…</p></div>
+<script type="module">
+(async()=>{
+  try{
+    const html=await fetch(${JSON.stringify(widgetUrl)},{cache:"no-store"}).then(r=>{if(!r.ok)throw r;return r.text()});
+    const doc=new DOMParser().parseFromString(html,"text/html");
+    for(const e of doc.querySelectorAll("style"))document.head.appendChild(document.adoptNode(e));
+    document.getElementById("app").textContent='';
+    for(const s of doc.querySelectorAll("script")){
+      const n=document.createElement("script");
+      if(s.type)n.type=s.type;
+      n.textContent=s.textContent;
+      document.head.appendChild(n);
+    }
+  }catch(err){
+    document.getElementById("app").innerHTML='<p style="padding:16px;color:#888;font-size:0.8125rem">Widget unavailable — check MCP server connectivity.</p>';
+    console.error("[doit-widget] load failed",err);
+  }
+})();
+</script>
+</body>
+</html>`;
+}
+
 // Helper function to convert DoiT handler response to MCP format
 function convertToMcpResponse(doitResponse: any) {
   if (doitResponse.content && Array.isArray(doitResponse.content)) {
@@ -262,12 +303,14 @@ export class DoitMCPAgent extends McpAgent {
         ...args,
         customerContext,
       };
-      return await executeToolHandler(
+      const result = await executeToolHandler(
         toolName,
         argsWithCustomerContext,
         token,
         (rawResult) => adaptToolResponse(toolName, rawResult)
       );
+      console.log(`[tool:${toolName}] result keys:`, Object.keys(result ?? {}), "_meta:", JSON.stringify(result?._meta));
+      return result;
     };
   }
 
@@ -297,12 +340,24 @@ export class DoitMCPAgent extends McpAgent {
     };
   }
 
-  // Generic tool registration helper
+  // Generic tool registration helper — includes _meta so ChatGPT knows to open the widget.
+  // Both "ui/resourceUri" (flat key) and "ui.resourceUri" (nested) are set to match what
+  // registerAppTool() from @modelcontextprotocol/ext-apps normalises.
   private registerTool(tool: any, schema: any) {
-    (this.server.tool as any)(
+    const WIDGET_URI = "ui://doit/cloud-intelligence-v7.html";
+    (this.server as any).registerTool(
       tool.name,
-      tool.description,
-      zodSchemaToMcpTool(schema),
+      {
+        description: tool.description,
+        inputSchema: zodSchemaToMcpTool(schema),
+        annotations: tool.annotations,
+        _meta: {
+          ...tool._meta,
+          "ui/resourceUri": WIDGET_URI,
+          "openai/outputTemplate": WIDGET_URI,
+          ui: { ...(tool._meta?.ui ?? {}), resourceUri: WIDGET_URI },
+        },
+      },
       this.createToolCallback(tool.name)
     );
   }
@@ -339,15 +394,26 @@ export class DoitMCPAgent extends McpAgent {
       }));
     });
 
-    // Register the widget as an MCP resource so ChatGPT can load it in the iframe
-    const WIDGET_URI = "ui://doit/cloud-intelligence-v1.html";
+    // Register the widget as an MCP resource so ChatGPT can load it in the iframe.
+    // The resource returns a tiny loader stub (~600 B) that fetches the real widget
+    // HTML from GET /widget on every render. This means widget updates never require
+    // ChatGPT app re-registration — only the served HTML at /widget changes.
+    const WIDGET_URI = "ui://doit/cloud-intelligence-v7.html";
+    const workerUrl = (this.env as any).WORKER_URL ?? "https://mcp.doit.com";
     this.server.resource(
       "cloud-intelligence-widget",
       WIDGET_URI,
       { mimeType: "text/html;profile=mcp-app" },
-      async () => ({
-        contents: [{ uri: WIDGET_URI, mimeType: "text/html;profile=mcp-app", text: WIDGET_HTML }],
-      })
+      async () => {
+        console.log("[widget] resources/read called for", WIDGET_URI);
+        return {
+          contents: [{
+            uri: WIDGET_URI,
+            mimeType: "text/html;profile=mcp-app",
+            text: buildWidgetStub(workerUrl),
+          }],
+        };
+      }
     );
 
     // Cloud Incidents tools
@@ -444,10 +510,20 @@ export class DoitMCPAgent extends McpAgent {
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
-      (this.server.tool as any)(
+      const WIDGET_URI = "ui://doit/cloud-intelligence-v7.html";
+      (this.server as any).registerTool(
         changeCustomerTool.name,
-        changeCustomerTool.description,
-        zodSchemaToMcpTool(ChangeCustomerArgumentsSchema),
+        {
+          description: changeCustomerTool.description,
+          inputSchema: zodSchemaToMcpTool(ChangeCustomerArgumentsSchema),
+          annotations: changeCustomerTool.annotations,
+          _meta: {
+            ...changeCustomerTool._meta,
+            "ui/resourceUri": WIDGET_URI,
+            "openai/outputTemplate": WIDGET_URI,
+            ui: { ...(changeCustomerTool._meta?.ui ?? {}), resourceUri: WIDGET_URI },
+          },
+        },
         this.createChangeCustomerCallback()
       );
     }

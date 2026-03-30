@@ -627,19 +627,11 @@ export async function handleReportsRequest(args: any, token: string) {
                 return createErrorResponse("No reports found");
             }
 
-            const formattedReports = reports.map(formatReport);
-
-            // Create a descriptive message that includes filter information if provided
-            let reportsText = `Found ${rowCount} reports`;
-            if (filter) {
-                reportsText += ` (filtered by: ${filter})`;
-            }
-            reportsText += `:`;
-            reportsText += `\n\n${formattedReports.join("\n")} \n\n${
-                reportsData.pageToken ? `Page token: ${reportsData.pageToken}` : ""
-            }`;
-
-            return createSuccessResponse(reportsText);
+            return createSuccessResponse(JSON.stringify({
+                rowCount,
+                reports,
+                pageToken: reportsData.pageToken ?? null,
+            }));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
@@ -678,9 +670,11 @@ export async function handleRunQueryRequest(args: any, token: string) {
                 );
             }
 
-            const formattedResult = formatQueryResult(queryResponse.result);
-
-            return createSuccessResponse(formattedResult);
+            return createSuccessResponse(JSON.stringify({
+                rowCount: queryResponse.result.rows.length,
+                rows: queryResponse.result.rows,
+                columns: queryResponse.result.schema,
+            }));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API query request");
         }
@@ -766,8 +760,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
                 return createErrorResponse("Failed to retrieve report results");
             }
 
-            const formattedResult = formatReportResults(reportData);
-            return createSuccessResponse(formattedResult);
+            return createSuccessResponse(JSON.stringify(reportData));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request for report results");
         }

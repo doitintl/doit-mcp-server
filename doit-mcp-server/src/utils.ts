@@ -150,15 +150,15 @@ export const layout = (
     >
       <header class="bg-slate-900 shadow-sm mb-8 border-b border-gray-700">
         <div
-          class="container mx-auto px-4 py-4 flex justify-between items-center"
+          class="container mx-auto px-4 py-2 flex justify-center items-center"
         >
-          <img src="/doit/doit-logo.svg" alt="DoiT MCP" class="h-8" />
+          <img src="/doit/doit-logo.svg" alt="DoiT MCP" class="h-4" />
         </div>
       </header>
       <main class="container mx-auto px-4 pb-12 flex-grow">${content}</main>
-      <footer class="bg-gray-100 py-6 mt-12">
+      <footer class="bg-gray-100 py-3 mt-12">
         <div class="container mx-auto px-4 text-center text-gray-600">
-          <p>DoiT Cloud Intelligence™</p>
+          <p class="text-xs">DoiT Cloud Intelligence™</p>
         </div>
       </footer>
     </body>
@@ -177,14 +177,14 @@ export const renderLoggedInAuthorizeScreen = async (
   oauthReqInfo: AuthRequest
 ) => {
   return html`
-    <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+    <div class="w-4/5 max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
       <h1 class="text-2xl font-heading font-bold mb-6 text-gray-900">
         Authorization Request
       </h1>
 
       <div class="mb-8">
         <h2 class="text-lg font-semibold mb-3 text-gray-800">
-          DoiT MCP Remote would like permission to:
+          DoiT Cloud Intelligence MCP would like permission to:
         </h2>
         <ul class="space-y-2">
           ${oauthScopes.map(
@@ -206,17 +206,36 @@ export const renderLoggedInAuthorizeScreen = async (
           name="oauthReqInfo"
           value="${JSON.stringify(oauthReqInfo)}"
         />
-        <input
-          type="text"
+        <p class="text-sm text-gray-600">
+          Enter your DoiT API Key. You can find it in the
+          <a href="https://developer.doit.com/docs/start" target="_blank" class="text-blue-600 hover:underline font-medium">developer portal</a>.
+          See also the <a href="https://help.doit.com/docs/integrations/app-integrations/mcp/mcp-server" target="_blank" class="text-blue-600 hover:underline font-medium">MCP Server help page</a>.
+        </p>
+        <textarea
           name="apiKey"
+          id="apiKeyInput"
           placeholder="Enter your DoiT API Key"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-secondary"
-        />
+          rows="5"
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-secondary font-mono text-sm resize-none"
+        ></textarea>
+        ${raw(`<script>
+          (function() {
+            try {
+              var saved = localStorage.getItem('doit_api_key');
+              if (saved) {
+                document.getElementById('apiKeyInput').value = saved;
+              }
+              document.getElementById('apiKeyInput').addEventListener('input', function() {
+                try { localStorage.setItem('doit_api_key', this.value); } catch(e) {}
+              });
+            } catch(e) {}
+          })();
+        </script>`)}
         <button
           type="submit"
           name="action"
           value="approve"
-          class="w-full py-3 px-4 bg-purple text-white rounded-md font-medium hover:bg-purple/90 transition-colors"
+          class="w-full py-3 px-4 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors"
         >
           Approve
         </button>
