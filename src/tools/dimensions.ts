@@ -111,11 +111,13 @@ export async function handleDimensionsRequest(args: any, token: string) {
                 );
             }
 
-            return createSuccessResponse(JSON.stringify({
-                rowCount,
-                dimensions,
-                pageToken: dimensionsData.pageToken ?? null,
-            }));
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount,
+                    dimensions,
+                    pageToken: dimensionsData.pageToken ?? null,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

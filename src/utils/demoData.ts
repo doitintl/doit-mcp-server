@@ -368,7 +368,12 @@ const DEMO_PRODUCTS = [
 ];
 
 const DEMO_DATASETS = [
-    { id: "ds-001", name: "Cloud Billing Export", description: "Raw billing data exported from GCP.", status: "active" },
+    {
+        id: "ds-001",
+        name: "Cloud Billing Export",
+        description: "Raw billing data exported from GCP.",
+        status: "active",
+    },
     { id: "ds-002", name: "AWS Cost & Usage Report", description: "AWS CUR data for cost analysis.", status: "active" },
 ];
 
@@ -376,21 +381,14 @@ const DEMO_DATASETS = [
 // widget renders the same columns regardless of which tool produced the data.
 const DEMO_CLOUD_OVERVIEW = {
     costByCloud: {
-        columns: [
-            { name: "cloud_provider" },
-            { name: "cost" },
-        ],
+        columns: [{ name: "cloud_provider" }, { name: "cost" }],
         rows: [
             ["google-cloud", 62400],
             ["amazon-web-services", 38200],
         ],
     },
     topServices: {
-        columns: [
-            { name: "cloud_provider" },
-            { name: "service_description" },
-            { name: "cost" },
-        ],
+        columns: [{ name: "cloud_provider" }, { name: "service_description" }, { name: "cost" }],
         rows: [
             ["google-cloud", "Compute Engine", 38420],
             ["google-cloud", "BigQuery", 12340],
@@ -401,11 +399,7 @@ const DEMO_CLOUD_OVERVIEW = {
         ],
     },
     topProjects: {
-        columns: [
-            { name: "cloud_provider" },
-            { name: "project_id" },
-            { name: "cost" },
-        ],
+        columns: [{ name: "cloud_provider" }, { name: "project_id" }, { name: "cost" }],
         rows: [
             ["google-cloud", "acme-prod", 38420],
             ["google-cloud", "acme-analytics", 12340],
@@ -437,13 +431,19 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     if (path.includes("/analytics/v1/reports/query") && POST) {
         const groups: string[] = (body?.config?.group ?? []).map((g: any) => g.id);
         if (groups.includes("project_id")) {
-            return { result: { schema: DEMO_CLOUD_OVERVIEW.topProjects.columns, rows: DEMO_CLOUD_OVERVIEW.topProjects.rows } };
+            return {
+                result: { schema: DEMO_CLOUD_OVERVIEW.topProjects.columns, rows: DEMO_CLOUD_OVERVIEW.topProjects.rows },
+            };
         }
         if (groups.includes("service_description")) {
-            return { result: { schema: DEMO_CLOUD_OVERVIEW.topServices.columns, rows: DEMO_CLOUD_OVERVIEW.topServices.rows } };
+            return {
+                result: { schema: DEMO_CLOUD_OVERVIEW.topServices.columns, rows: DEMO_CLOUD_OVERVIEW.topServices.rows },
+            };
         }
         if (groups.includes("cloud_provider") && groups.length === 1) {
-            return { result: { schema: DEMO_CLOUD_OVERVIEW.costByCloud.columns, rows: DEMO_CLOUD_OVERVIEW.costByCloud.rows } };
+            return {
+                result: { schema: DEMO_CLOUD_OVERVIEW.costByCloud.columns, rows: DEMO_CLOUD_OVERVIEW.costByCloud.rows },
+            };
         }
         // Standalone run_query fallback — return generic time-series data
         return { result: { schema: DEMO_QUERY_RESULT.columns, rows: DEMO_QUERY_RESULT.rows } };
@@ -452,12 +452,11 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     // reports — individual (must be before list check)
     if (path.match(/\/analytics\/v1\/reports\/[^/]+\/results/)) {
         const id = path.split("/")[5]; // /analytics/v1/reports/<id>/results
-        const result = DEMO_REPORT_RESULTS[id as keyof typeof DEMO_REPORT_RESULTS]
-            ?? DEMO_REPORT_RESULTS["report-001"];
+        const result = DEMO_REPORT_RESULTS[id as keyof typeof DEMO_REPORT_RESULTS] ?? DEMO_REPORT_RESULTS["report-001"];
         return result;
     }
     if (path.match(/\/analytics\/v1\/reports\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_REPORTS.find((r) => r.id === id) ?? DEMO_REPORTS[0];
     }
     // reports — list
@@ -467,7 +466,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // anomalies — individual
     if (path.match(/\/anomalies\/v1\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_ANOMALIES.find((a) => a.id === id) ?? DEMO_ANOMALIES[0];
     }
     // anomalies — list / run_query
@@ -477,7 +476,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // budgets — individual
     if (path.match(/\/analytics\/v1\/budgets\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_BUDGETS.find((b) => b.id === id) ?? DEMO_BUDGETS[0];
     }
     if (path.includes("/analytics/v1/budgets") && (POST || method === "PATCH")) {
@@ -490,7 +489,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // alerts — individual
     if (path.match(/\/analytics\/v1\/alerts\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_ALERTS.find((a) => a.id === id) ?? DEMO_ALERTS[0];
     }
     if (path.includes("/analytics/v1/alerts") && (POST || method === "PATCH")) {
@@ -507,7 +506,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     }
     // labels — individual
     if (path.match(/\/analytics\/v1\/labels\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_LABELS.find((l) => l.id === id) ?? DEMO_LABELS[0];
     }
     if (path.includes("/analytics/v1/labels") && (POST || method === "PATCH")) {
@@ -520,7 +519,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // annotations — individual
     if (path.match(/\/analytics\/v1\/annotations\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_ANNOTATIONS.find((a) => a.id === id) ?? DEMO_ANNOTATIONS[0];
     }
     if (path.includes("/analytics/v1/annotations") && (POST || method === "PATCH")) {
@@ -533,7 +532,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // allocations — individual
     if (path.match(/\/analytics\/v1\/allocations\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_ALLOCATIONS.find((a) => a.id === id) ?? DEMO_ALLOCATIONS[0];
     }
     if (path.includes("/analytics/v1/allocations") && (POST || method === "PATCH")) {
@@ -546,7 +545,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // dimensions — single dimension (must precede /dimensions list)
     if (path.includes("/analytics/v1/dimension/") && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_DIMENSIONS.find((d) => d.id === id) ?? DEMO_DIMENSIONS[0];
     }
     // dimensions — list
@@ -556,7 +555,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // invoices — individual
     if (path.match(/\/billing\/v1\/invoices\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_INVOICES.find((i) => i.id === id) ?? DEMO_INVOICES[0];
     }
     // invoices — list
@@ -566,7 +565,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // assets — individual
     if (path.match(/\/billing\/v1\/assets\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_ASSETS.find((a) => a.id === id) ?? DEMO_ASSETS[0];
     }
     // assets — list
@@ -576,7 +575,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // tickets — individual
     if (path.match(/\/support\/v1\/tickets\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_TICKETS.find((t) => t.id === id) ?? DEMO_TICKETS[0];
     }
     // tickets — list / create
@@ -587,7 +586,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // cloud incidents — individual
     if (path.match(/\/core\/v1\/cloudincidents\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_INCIDENTS.find((i) => i.id === id) ?? DEMO_INCIDENTS[0];
     }
     // cloud incidents — list
@@ -622,7 +621,7 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
 
     // datahub datasets — individual
     if (path.match(/\/datahub\/v1\/datasets\/[^/]+$/) && GET) {
-        const id = path.split("/").pop()!;
+        const id = path.split("/").pop() ?? "";
         return DEMO_DATASETS.find((d) => d.id === id) ?? DEMO_DATASETS[0];
     }
     // datahub datasets — list

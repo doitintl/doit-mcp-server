@@ -1,10 +1,5 @@
 import { z } from "zod";
-import {
-    createSuccessResponse,
-    DOIT_API_BASE,
-    handleGeneralError,
-    makeDoitRequest,
-} from "../utils/util.js";
+import { createSuccessResponse, DOIT_API_BASE, handleGeneralError, makeDoitRequest } from "../utils/util.js";
 
 export const CloudOverviewArgumentsSchema = z.object({});
 
@@ -100,12 +95,10 @@ export async function handleCloudOverviewRequest(args: any, token: string) {
                 }),
 
                 // 5. Recent cloud incidents (last 5)
-                makeDoitRequest<{ incidents: unknown[] }>(
-                    `${INCIDENTS_URL}?maxResults=5`,
-                    token,
-                    { method: "GET", customerContext }
-                ),
-
+                makeDoitRequest<{ incidents: unknown[] }>(`${INCIDENTS_URL}?maxResults=5`, token, {
+                    method: "GET",
+                    customerContext,
+                }),
             ]);
 
         // Extract query results safely
@@ -131,9 +124,7 @@ export async function handleCloudOverviewRequest(args: any, token: string) {
                 ? (incidentsResult.value.incidents as unknown[]).slice(0, 5)
                 : [];
 
-        return createSuccessResponse(
-            JSON.stringify({ costByCloud, topServices, topProjects, anomalies, incidents })
-        );
+        return createSuccessResponse(JSON.stringify({ costByCloud, topServices, topProjects, anomalies, incidents }));
     } catch (error) {
         return handleGeneralError(error, "handling cloud overview request");
     }

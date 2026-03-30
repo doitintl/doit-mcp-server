@@ -43,7 +43,10 @@ export const CloudIncidentsArgumentsSchema = z.object({
 export const CloudIncidentArgumentsSchema = z
     .object({
         id: z.string().optional().describe("The ID of the cloud incident."),
-        title: z.string().optional().describe("Partial title match (case-insensitive). Used to find the incident when ID is unknown."),
+        title: z
+            .string()
+            .optional()
+            .describe("Partial title match (case-insensitive). Used to find the incident when ID is unknown."),
     })
     .refine((d) => d.id || d.title, { message: "Either id or title must be provided." });
 
@@ -195,11 +198,13 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
                 );
             }
 
-            return createSuccessResponse(JSON.stringify({
-                rowCount: incidents.length,
-                incidents,
-                pageToken: incidentsData.pageToken ?? null,
-            }));
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount: incidents.length,
+                    incidents,
+                    pageToken: incidentsData.pageToken ?? null,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
@@ -220,10 +225,13 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
 
         if (!resolvedId && parsed.title) {
             const listData = await makeDoitRequest<CloudIncidentsResponse>(
-                `${CLOUD_INCIDENTS_BASE_URL}?maxResults=200`, token, {
-                method: "GET",
-                customerContext,
-            });
+                `${CLOUD_INCIDENTS_BASE_URL}?maxResults=200`,
+                token,
+                {
+                    method: "GET",
+                    customerContext,
+                }
+            );
             const items = (listData?.incidents ?? []).map((i) => ({ ...i, name: i.title }));
             const result = matchByName(items, parsed.title, "name");
             if ("error" in result) return createErrorResponse(result.error);
@@ -231,7 +239,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
             resolvedId = result.resolved;
         }
 
-        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
+        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
 
         try {
             // Explicitly set appendParams to true to ensure URL parameters are added

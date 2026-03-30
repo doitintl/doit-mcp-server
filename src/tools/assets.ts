@@ -124,7 +124,10 @@ export const getAssetTool = {
         type: "object",
         properties: {
             id: { type: "string", description: "The ID of the asset to retrieve." },
-            name: { type: "string", description: "Partial name match (case-insensitive). Used to find the asset when ID is unknown." },
+            name: {
+                type: "string",
+                description: "Partial name match (case-insensitive). Used to find the asset when ID is unknown.",
+            },
         },
     },
     annotations: {
@@ -146,11 +149,10 @@ export async function handleGetAssetRequest(args: any, token: string) {
         let resolvedId = parsed.id;
 
         if (!resolvedId && parsed.name) {
-            const listData = await makeDoitRequest<ListAssetsResponse>(
-                `${ASSETS_BASE_URL}?maxResults=249`,
-                token,
-                { method: "GET", customerContext }
-            );
+            const listData = await makeDoitRequest<ListAssetsResponse>(`${ASSETS_BASE_URL}?maxResults=249`, token, {
+                method: "GET",
+                customerContext,
+            });
             const items = ((listData as any)?.assets ?? []) as Array<{ id: string; name: string }>;
             const result = matchByName(items, parsed.name);
             if ("error" in result) return createErrorResponse(result.error);
@@ -158,7 +160,7 @@ export async function handleGetAssetRequest(args: any, token: string) {
             resolvedId = result.resolved;
         }
 
-        const url = `${ASSETS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
+        const url = `${ASSETS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         const data = await makeDoitRequest<AssetDetailed>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve asset");

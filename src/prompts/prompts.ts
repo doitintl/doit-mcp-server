@@ -26,13 +26,16 @@ const canonicalPrompts: Prompt[] = [
     {
         name: "cloud_overview",
         description: "Get a high-level overview dashboard of your entire cloud infrastructure",
-        messages: [{
-            role: "user",
-            text: "Call get_cloud_overview to retrieve a high-level overview of my cloud infrastructure. " +
-                "Once the widget is displayed, respond with a single sentence summarising the key findings " +
-                "(e.g. total spend, top cloud, any active anomalies or incidents). " +
-                "Do NOT list individual rows or enumerate costs — the widget shows the details.",
-        }],
+        messages: [
+            {
+                role: "user",
+                text:
+                    "Call get_cloud_overview to retrieve a high-level overview of my cloud infrastructure. " +
+                    "Once the widget is displayed, respond with a single sentence summarising the key findings " +
+                    "(e.g. total spend, top cloud, any active anomalies or incidents). " +
+                    "Do NOT list individual rows or enumerate costs — the widget shows the details.",
+            },
+        ],
     },
     {
         name: "expert_inquiries",

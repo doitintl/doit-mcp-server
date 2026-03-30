@@ -133,11 +133,10 @@ export async function handleGetAlertRequest(args: any, token: string) {
         let resolvedId = parsed.id;
 
         if (!resolvedId && parsed.name) {
-            const listData = await makeDoitRequest<AlertsResponse>(
-                `${ALERTS_BASE_URL}?maxResults=200`,
-                token,
-                { method: "GET", customerContext }
-            );
+            const listData = await makeDoitRequest<AlertsResponse>(`${ALERTS_BASE_URL}?maxResults=200`, token, {
+                method: "GET",
+                customerContext,
+            });
             const items = listData?.alerts ?? [];
             const result = matchByName(items, parsed.name);
             if ("error" in result) return createErrorResponse(result.error);
@@ -145,7 +144,7 @@ export async function handleGetAlertRequest(args: any, token: string) {
             resolvedId = result.resolved;
         }
 
-        const url = `${ALERTS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
+        const url = `${ALERTS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         try {
             const data = await makeDoitRequest<Alert>(url, token, { method: "GET", customerContext });
             if (!data) {

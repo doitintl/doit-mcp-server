@@ -71,9 +71,7 @@ Type: fixed
                 mockToken,
                 { method: "GET", customerContext: undefined }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(
-                expect.stringContaining("rowCount")
-            );
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("rowCount"));
             expect(response).toEqual({
                 content: [{ type: "text", text: expect.stringContaining("rowCount") }],
             });

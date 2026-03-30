@@ -261,11 +261,10 @@ export async function handleGetBudgetRequest(args: any, token: string) {
         let resolvedId = parsed.id;
 
         if (!resolvedId && parsed.name) {
-            const listData = await makeDoitRequest<BudgetsResponse>(
-                `${BUDGETS_BASE_URL}?maxResults=200`,
-                token,
-                { method: "GET", customerContext }
-            );
+            const listData = await makeDoitRequest<BudgetsResponse>(`${BUDGETS_BASE_URL}?maxResults=200`, token, {
+                method: "GET",
+                customerContext,
+            });
             const items = (listData?.budgets ?? []) as Array<{ id: string; budgetName: string }>;
             const result = matchByName(
                 items.map((b) => ({ ...b, name: b.budgetName })),
@@ -276,7 +275,7 @@ export async function handleGetBudgetRequest(args: any, token: string) {
             resolvedId = result.resolved;
         }
 
-        const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
+        const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         const data = await makeDoitRequest<BudgetDetails>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve budget details");
@@ -314,8 +313,8 @@ export async function handleListBudgetsRequest(args: any, token: string) {
 
         if (name) {
             const q = name.toLowerCase();
-            data.budgets = (data.budgets ?? []).filter((b: any) =>
-                typeof b.budgetName === "string" && b.budgetName.toLowerCase().includes(q)
+            data.budgets = (data.budgets ?? []).filter(
+                (b: any) => typeof b.budgetName === "string" && b.budgetName.toLowerCase().includes(q)
             );
         }
 

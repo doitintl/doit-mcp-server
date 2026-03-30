@@ -59,7 +59,10 @@ describe("handleListTicketsRequest", () => {
 
         const response = await handleListTicketsRequest({}, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?`, mockToken, { method: "GET", customerContext: undefined });
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
 
         const text = response.content[0].text;
         const parsed = JSON.parse(text);

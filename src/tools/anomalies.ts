@@ -183,11 +183,13 @@ export async function handleAnomaliesRequest(args: any, token: string) {
                 acknowledged: anomaly.acknowledged,
             }));
 
-            return createSuccessResponse(JSON.stringify({
-                rowCount,
-                anomalies: formattedAnomalies,
-                pageToken: anomaliesData.pageToken ?? null,
-            }));
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount,
+                    anomalies: formattedAnomalies,
+                    pageToken: anomaliesData.pageToken ?? null,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
@@ -222,23 +224,25 @@ export async function handleAnomalyRequest(args: any, token: string) {
             // Let's add it for consistency in the formatted output
             const anomaly = { ...anomalyData, id };
 
-            return createSuccessResponse(JSON.stringify({
-                id: anomaly.id,
-                billingAccount: anomaly.billingAccount,
-                attribution: anomaly.attribution,
-                costOfAnomaly: anomaly.costOfAnomaly,
-                platform: anomaly.platform,
-                scope: anomaly.scope,
-                serviceName: anomaly.serviceName,
-                top3SKUs: anomaly.top3SKUs,
-                severityLevel: anomaly.severityLevel,
-                timeFrame: anomaly.timeFrame,
-                startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
-                endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
-                status: anomaly.status,
-                acknowledged: anomaly.acknowledged,
-                anomalyChartUrl: anomaly.anomalyChartUrl,
-            }));
+            return createSuccessResponse(
+                JSON.stringify({
+                    id: anomaly.id,
+                    billingAccount: anomaly.billingAccount,
+                    attribution: anomaly.attribution,
+                    costOfAnomaly: anomaly.costOfAnomaly,
+                    platform: anomaly.platform,
+                    scope: anomaly.scope,
+                    serviceName: anomaly.serviceName,
+                    top3SKUs: anomaly.top3SKUs,
+                    severityLevel: anomaly.severityLevel,
+                    timeFrame: anomaly.timeFrame,
+                    startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
+                    endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
+                    status: anomaly.status,
+                    acknowledged: anomaly.acknowledged,
+                    anomalyChartUrl: anomaly.anomalyChartUrl,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

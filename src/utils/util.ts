@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { getDemoResponse, DEMO_TOKEN } from "./demoData.js";
+import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
 
@@ -132,10 +132,9 @@ export function handleGeneralError(error: any, context: string): ReturnType<type
         return {
             content: [{ type: "text", text: message || "Unauthorized" }],
             isError: true,
-            // @ts-ignore
+            // @ts-expect-error
             _meta: {
-                "mcp/www_authenticate":
-                    'Bearer error="invalid_token", error_description="Token expired or invalid"',
+                "mcp/www_authenticate": 'Bearer error="invalid_token", error_description="Token expired or invalid"',
             },
         };
     }

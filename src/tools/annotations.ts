@@ -116,7 +116,11 @@ export const getAnnotationTool = {
         type: "object",
         properties: {
             id: { type: "string", description: "The ID of the annotation to retrieve." },
-            content: { type: "string", description: "Partial content match (case-insensitive). Used to find the annotation when ID is unknown." },
+            content: {
+                type: "string",
+                description:
+                    "Partial content match (case-insensitive). Used to find the annotation when ID is unknown.",
+            },
         },
     },
     annotations: {
@@ -150,7 +154,7 @@ export async function handleGetAnnotationRequest(args: any, token: string) {
             resolvedId = result.resolved;
         }
 
-        const url = `${ANNOTATIONS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
+        const url = `${ANNOTATIONS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         const data = await makeDoitRequest<Annotation>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve annotation");

@@ -40,9 +40,7 @@ describe("validateUser", () => {
                 appendParams: true,
                 method: "GET",
             });
-            expect(createSuccessResponse).toHaveBeenCalledWith(
-                expect.stringContaining("example.com")
-            );
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("example.com"));
             expect(response).toEqual({
                 content: [
                     {

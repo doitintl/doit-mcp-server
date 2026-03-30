@@ -210,9 +210,7 @@ Cloud Storage,50`;
                 mockToken,
                 { method: "GET" }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(
-                expect.stringContaining("rowCount")
-            );
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("rowCount"));
             expect(response).toEqual({
                 content: [{ type: "text", text: expect.stringContaining("rowCount") }],
             });

@@ -121,7 +121,10 @@ export const getLabelTool = {
         type: "object",
         properties: {
             id: { type: "string", description: "The ID of the label to retrieve." },
-            name: { type: "string", description: "Partial name match (case-insensitive). Used to find the label when ID is unknown." },
+            name: {
+                type: "string",
+                description: "Partial name match (case-insensitive). Used to find the label when ID is unknown.",
+            },
         },
     },
     annotations: {
@@ -143,11 +146,10 @@ export async function handleGetLabelRequest(args: any, token: string) {
         let resolvedId = parsed.id;
 
         if (!resolvedId && parsed.name) {
-            const listData = await makeDoitRequest<LabelsResponse>(
-                `${LABELS_BASE_URL}?maxResults=200`,
-                token,
-                { method: "GET", customerContext }
-            );
+            const listData = await makeDoitRequest<LabelsResponse>(`${LABELS_BASE_URL}?maxResults=200`, token, {
+                method: "GET",
+                customerContext,
+            });
             const items = listData?.labels ?? [];
             const result = matchByName(items, parsed.name);
             if ("error" in result) return createErrorResponse(result.error);
@@ -155,7 +157,7 @@ export async function handleGetLabelRequest(args: any, token: string) {
             resolvedId = result.resolved;
         }
 
-        const url = `${LABELS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
+        const url = `${LABELS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         const data = await makeDoitRequest<Label>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve label");

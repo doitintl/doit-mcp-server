@@ -155,7 +155,8 @@ export const getReportResultsTool = {
             },
             name: {
                 type: "string",
-                description: "Partial report name match (case-insensitive). Used to find the report when ID is unknown.",
+                description:
+                    "Partial report name match (case-insensitive). Used to find the report when ID is unknown.",
             },
         },
     },
@@ -647,11 +648,13 @@ export async function handleReportsRequest(args: any, token: string) {
                 return createErrorResponse("No reports found");
             }
 
-            return createSuccessResponse(JSON.stringify({
-                rowCount,
-                reports,
-                pageToken: reportsData.pageToken ?? null,
-            }));
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount,
+                    reports,
+                    pageToken: reportsData.pageToken ?? null,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
@@ -669,20 +672,20 @@ export async function handleReportsRequest(args: any, token: string) {
  */
 const CLOUD_PROVIDER_ALIASES: Record<string, string> = {
     // AWS
-    "aws": "amazon-web-services",
-    "amazon": "amazon-web-services",
+    aws: "amazon-web-services",
+    amazon: "amazon-web-services",
     "amazon web services": "amazon-web-services",
-    "amazon_web_services": "amazon-web-services",
+    amazon_web_services: "amazon-web-services",
     // GCP
-    "gcp": "google-cloud",
-    "google": "google-cloud",
+    gcp: "google-cloud",
+    google: "google-cloud",
     "google cloud": "google-cloud",
     "google cloud platform": "google-cloud",
-    "google_cloud": "google-cloud",
+    google_cloud: "google-cloud",
     // Azure
-    "azure": "microsoft-azure",
+    azure: "microsoft-azure",
     "microsoft azure": "microsoft-azure",
-    "microsoft_azure": "microsoft-azure",
+    microsoft_azure: "microsoft-azure",
 };
 
 function normalizeConfig(config: any): any {
@@ -693,9 +696,7 @@ function normalizeConfig(config: any): any {
             if (f.id !== "cloud_provider" || !Array.isArray(f.values)) return f;
             return {
                 ...f,
-                values: f.values.map((v: string) =>
-                    CLOUD_PROVIDER_ALIASES[v.toLowerCase()] ?? v
-                ),
+                values: f.values.map((v: string) => CLOUD_PROVIDER_ALIASES[v.toLowerCase()] ?? v),
             };
         }),
     };
@@ -720,7 +721,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
                 customerContext,
             });
 
-            if (!queryResponse || !queryResponse.result || queryResponse?.error) {
+            if (!queryResponse?.result || queryResponse?.error) {
                 return createErrorResponse(
                     `Failed to run query. Try one of the following:
   1. Use 'list_dimensions' with a filter like 'filter:type:fixed' to get relevant dimensions or 'list_allocations' to get relevant allocations
@@ -729,11 +730,13 @@ export async function handleRunQueryRequest(args: any, token: string) {
                 );
             }
 
-            return createSuccessResponse(JSON.stringify({
-                rowCount: queryResponse.result.rows.length,
-                rows: queryResponse.result.rows,
-                columns: queryResponse.result.schema,
-            }));
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount: queryResponse.result.rows.length,
+                    rows: queryResponse.result.rows,
+                    columns: queryResponse.result.schema,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API query request");
         }
@@ -821,7 +824,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
         }
 
         // Create API URL
-        const reportUrl = `${REPORTS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
+        const reportUrl = `${REPORTS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
 
         try {
             const reportData = await makeDoitRequest<GetReportResultsResponse>(reportUrl, token, {

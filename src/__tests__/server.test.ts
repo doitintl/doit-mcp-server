@@ -188,7 +188,6 @@ import {
     updateAnnotationTool,
 } from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
-import { cloudOverviewTool } from "../tools/overview.js";
 import { getAssetTool, listAssetsTool } from "../tools/assets.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
@@ -207,6 +206,7 @@ import {
     updateLabelTool,
 } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
+import { cloudOverviewTool } from "../tools/overview.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import {

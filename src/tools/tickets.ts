@@ -35,7 +35,12 @@ export interface TicketsResponse {
 export const ListTicketsArgumentsSchema = z.object({
     pageToken: z.string().optional().describe("Page token for pagination"),
     pageSize: z.number().optional().describe("Number of tickets to return per page"),
-    subject: z.string().optional().describe("Partial subject filter (case-insensitive). Returns only tickets whose subject contains this string."),
+    subject: z
+        .string()
+        .optional()
+        .describe(
+            "Partial subject filter (case-insensitive). Returns only tickets whose subject contains this string."
+        ),
 });
 
 // Tool definition
@@ -56,7 +61,8 @@ export const listTicketsTool = {
             },
             subject: {
                 type: "string",
-                description: "Partial subject filter (case-insensitive). Returns only tickets whose subject contains this string.",
+                description:
+                    "Partial subject filter (case-insensitive). Returns only tickets whose subject contains this string.",
             },
         },
     },

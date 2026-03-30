@@ -62,10 +62,12 @@ export async function handleValidateUserRequest(args: any, token: string) {
                 return createErrorResponse("Failed to validate user");
             }
 
-            return createSuccessResponse(JSON.stringify({
-                domain: userData.domain,
-                email: userData.email,
-            }));
+            return createSuccessResponse(
+                JSON.stringify({
+                    domain: userData.domain,
+                    email: userData.email,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

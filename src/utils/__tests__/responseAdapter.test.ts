@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { adaptToolResponse, sanitize } from "../responseAdapter.js";
 
 describe("adaptToolResponse", () => {
@@ -138,7 +138,10 @@ describe("sanitize — response hygiene", () => {
     });
 
     it("does not alter arrays — only sanitizes object keys", () => {
-        const payload = [{ id: "1", sessionId: "s1" }, { id: "2", traceId: "t2" }];
+        const payload = [
+            { id: "1", sessionId: "s1" },
+            { id: "2", traceId: "t2" },
+        ];
         // sanitize operates on objects, adaptToolResponse handles top-level
         const result = adaptToolResponse("list_budgets", payload);
         // structuredContent items should have sanitized objects

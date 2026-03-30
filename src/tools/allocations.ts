@@ -191,7 +191,8 @@ export const listAllocationsTool = {
             },
             name: {
                 type: "string",
-                description: "Partial name filter (case-insensitive). Returns only allocations whose name contains this string.",
+                description:
+                    "Partial name filter (case-insensitive). Returns only allocations whose name contains this string.",
             },
         },
     },
@@ -565,8 +566,7 @@ export async function handleGetAllocationRequest(args: any, token: string) {
         let resolvedId = parsed.id;
 
         if (!resolvedId && parsed.name) {
-            const listData = await makeDoitRequest<AllocationsResponse>(
-                `${ALLOCATIONS_URL}?maxResults=200`, token, {
+            const listData = await makeDoitRequest<AllocationsResponse>(`${ALLOCATIONS_URL}?maxResults=200`, token, {
                 method: "GET",
                 customerContext,
             });
@@ -577,7 +577,7 @@ export async function handleGetAllocationRequest(args: any, token: string) {
             resolvedId = result.resolved;
         }
 
-        const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(resolvedId!)}`;
+        const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(resolvedId as string)}`;
 
         try {
             const allocationData = await makeDoitRequest<AllocationDetails>(allocationUrl, token, {
