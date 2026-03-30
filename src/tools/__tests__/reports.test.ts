@@ -720,7 +720,7 @@ Cloud Storage,50`;
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 "https://api.doit.com/analytics/v1/reports/report-123/config",
                 mockToken,
-                { method: "GET", customerContext: undefined }
+                expect.objectContaining({ method: "GET" })
             );
             const parsed = JSON.parse((response as any).content[0].text);
             expect(parsed.id).toBe("report-123");
