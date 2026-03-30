@@ -70,6 +70,7 @@ import {
     listDatahubDatasetsTool,
     updateDatahubDatasetTool,
 } from "./tools/datahubDatasets.js";
+import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "./tools/datahubEvents.js";
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
 import {
@@ -175,6 +176,7 @@ export function createServer() {
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,
                 updateDatahubDatasetTool,
+                sendDatahubEventsTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -307,6 +309,7 @@ export {
     handleListUsersRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleSendDatahubEventsRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAlertRequest,
     handleUpdateAllocationRequest,

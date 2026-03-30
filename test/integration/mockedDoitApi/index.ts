@@ -224,6 +224,11 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.datahubDatasets);
     }),
 
+    // DataHub Events
+    http.post(`${API_BASE}/datahub/v1/events`, () => {
+        return HttpResponse.json(fixtures.sendDatahubEvents, { status: 201 });
+    }),
+
     // Cloud Diagrams
     http.post(`${API_BASE}/clouddiagrams/v1/scheme/find`, () => {
         return HttpResponse.json(fixtures.cloudDiagrams);

@@ -37,6 +37,7 @@ import {
     createDatahubDatasetFixture,
     datahubDatasetFixture,
     datahubDatasetsFixture,
+    sendDatahubEventsFixture,
     updateDatahubDatasetFixture,
 } from "./datahub.js";
 import { organizationsFixture, rolesFixture, usersFixture, validateUserFixture } from "./iam.js";
@@ -87,6 +88,7 @@ export const fixtures = {
     datahubDataset: datahubDatasetFixture,
     createDatahubDataset: createDatahubDatasetFixture,
     updateDatahubDataset: updateDatahubDatasetFixture,
+    sendDatahubEvents: sendDatahubEventsFixture,
 
     cloudflowTrigger: cloudflowTriggerFixture,
 

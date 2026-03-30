@@ -35,6 +35,7 @@ import {
     handleListDatahubDatasetsRequest,
     handleUpdateDatahubDatasetRequest,
 } from "../tools/datahubDatasets.js";
+import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
@@ -203,6 +204,9 @@ export async function executeToolHandler(
                 break;
             case "update_datahub_dataset":
                 result = await handleUpdateDatahubDatasetRequest(args, token);
+                break;
+            case "send_datahub_events":
+                result = await handleSendDatahubEventsRequest(args, token);
                 break;
             case "find_cloud_diagrams":
                 result = await handleFindCloudDiagramsRequest(args, token);

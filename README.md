@@ -176,6 +176,7 @@ This MCP server provides many tools including the following:
 - [`get_datahub_dataset`](https://developer.doit.com/reference/getdatahubdataset): Returns details of a specific DataHub dataset by name
 - [`create_datahub_dataset`](https://developer.doit.com/reference/createdatahubdataset): Creates a new DataHub dataset with a name and optional description
 - [`update_datahub_dataset`](https://developer.doit.com/reference/updatedatahubdataset): Updates an existing DataHub dataset's description
+- [`send_datahub_events`](https://developer.doit.com/reference/datahubevents): Sends one or more DataHub events for ingestion (1–50,000 events per call)
 - [`list_labels`](https://developer.doit.com/reference/listlabels): Returns a list of labels that the user has access to
 - [`get_label`](https://developer.doit.com/reference/getlabel): Returns details of a specific label by ID
 - [`create_label`](https://developer.doit.com/reference/createlabel): Creates a new label with a name and color

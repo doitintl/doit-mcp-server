@@ -40,3 +40,7 @@ export const updateDatahubDatasetFixture = {
     updatedBy: "user@example.com",
     lastUpdated: "2024-03-16T10:00:00Z",
 };
+
+export const sendDatahubEventsFixture = {
+    message: "Ingestion success",
+};
