@@ -321,6 +321,20 @@ export const alertFixture = {
     },
 };
 
+export const reportConfigFixture = {
+    id: "report-1",
+    name: "Monthly Cost Report",
+    type: "custom",
+    config: {
+        dataSource: "billing",
+        metrics: [{ type: "basic", value: "cost" }],
+        timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },
+        group: [{ id: "service_description", type: "fixed" }],
+        layout: "table",
+        currency: "USD",
+    },
+};
+
 export const createReportFixture = {
     id: "report-new-1",
     name: "My New Report",

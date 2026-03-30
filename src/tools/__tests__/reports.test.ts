@@ -11,6 +11,7 @@ import {
     formatReport,
     formatReportResults,
     handleCreateReportRequest,
+    handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
@@ -690,6 +691,99 @@ Cloud Storage,50`;
                     body: { name: "Only Name" },
                 })
             );
+        });
+    });
+
+    describe("handleGetReportConfigRequest", () => {
+        const mockToken = "fake-token";
+        const mockReportConfig = {
+            id: "report-123",
+            name: "Monthly Cost Report",
+            type: "custom",
+            config: {
+                dataSource: "billing",
+                metrics: [{ type: "basic", value: "cost" }],
+                timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },
+                group: [{ id: "service_description", type: "fixed" }],
+            },
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("should call makeDoitRequest with correct URL including /config suffix and return data", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockReportConfig);
+
+            const response = await handleGetReportConfigRequest({ id: "report-123" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-123/config",
+                mockToken,
+                { method: "GET", customerContext: undefined }
+            );
+            const parsed = JSON.parse((response as any).content[0].text);
+            expect(parsed.id).toBe("report-123");
+            expect(parsed.config.dataSource).toBe("billing");
+        });
+
+        it("should pass customerContext to makeDoitRequest", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockReportConfig);
+
+            await handleGetReportConfigRequest({ id: "report-123", customerContext: "customer-123" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+                method: "GET",
+                customerContext: "customer-123",
+            });
+        });
+
+        it("should return error response when API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            const response = await handleGetReportConfigRequest({ id: "report-123" }, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to retrieve report configuration") }],
+            });
+        });
+
+        it("should return error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+            const response = await handleGetReportConfigRequest({ id: "report-123" }, mockToken);
+
+            expect(handleGeneralError).toHaveBeenCalledWith(expect.any(Error), "handling get report config request");
+            expect(response).toEqual({
+                content: [{ type: "text", text: "General Error: handling get report config request" }],
+            });
+        });
+
+        it("should return error when id is missing", async () => {
+            const response = await handleGetReportConfigRequest({}, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Required") }],
+            });
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should return error when id is empty string", async () => {
+            const response = await handleGetReportConfigRequest({ id: "" }, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("required") }],
+            });
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should return error when id is whitespace only", async () => {
+            const response = await handleGetReportConfigRequest({ id: "   " }, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("required") }],
+            });
+            expect(makeDoitRequest).not.toHaveBeenCalled();
         });
     });
 });

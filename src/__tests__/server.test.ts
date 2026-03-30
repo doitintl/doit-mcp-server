@@ -30,6 +30,7 @@ vi.mock(import("../tools/reports.js"), async (importOriginal) => ({
     handleReportsRequest: vi.fn(),
     handleRunQueryRequest: vi.fn(),
     handleGetReportResultsRequest: vi.fn(),
+    handleGetReportConfigRequest: vi.fn(),
     handleCreateReportRequest: vi.fn(),
     handleUpdateReportRequest: vi.fn(),
 }));
@@ -221,6 +222,7 @@ import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import {
     createReportTool,
+    getReportConfigTool,
     getReportResultsTool,
     reportsTool,
     runQueryTool,
@@ -288,6 +290,7 @@ describe("ListToolsRequestSchema handler", () => {
                 reportsTool,
                 runQueryTool,
                 getReportResultsTool,
+                getReportConfigTool,
                 createReportTool,
                 updateReportTool,
                 validateUserTool,

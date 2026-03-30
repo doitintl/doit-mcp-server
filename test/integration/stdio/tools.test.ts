@@ -52,6 +52,7 @@ describe("MCP Tools Integration", () => {
                 "get_invoice",
                 "get_label",
                 "get_label_assignments",
+                "get_report_config",
                 "get_report_results",
                 "list_alerts",
                 "list_allocations",
@@ -313,6 +314,19 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("alice@example.com");
             expect(text).toContain("1234.56");
             expect(text).toContain("567.89");
+        });
+    });
+
+    describe("get_report_config", () => {
+        it("returns the config for a specific report", async () => {
+            const result = await client.callTool({ name: "get_report_config", arguments: { id: "report-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("report-1");
+            expect(parsed.name).toBe("Monthly Cost Report");
+            expect(parsed.config.dataSource).toBe("billing");
+            expect(parsed.config.layout).toBe("table");
+            expect(parsed.config.currency).toBe("USD");
         });
     });
 
