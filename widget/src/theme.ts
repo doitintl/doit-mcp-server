@@ -23,4 +23,6 @@ export function applyTheme(mode?: "light" | "dark"): void {
   root.style.setProperty("--dci-warning", isDark ? "#fbbf24" : "#d97706");
   root.style.setProperty("--dci-success", isDark ? "#34d399" : "#16a34a");
   root.style.setProperty("--dci-radius", "12px");
+  root.style.setProperty("--dci-card-border", isDark ? "1px solid #333333" : "1px solid #e5e5e5");
+  root.style.setProperty("--dci-card-shadow", isDark ? "0 1px 4px rgba(0,0,0,0.4)" : "0 1px 4px rgba(0,0,0,0.08)");
 }

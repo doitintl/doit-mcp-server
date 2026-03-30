@@ -2,6 +2,8 @@
 
 import type { FunctionComponent } from "preact";
 import { CostDashboard } from "./views/CostDashboard";
+import { ReportChart } from "./views/ReportChart";
+import { CloudOverview } from "./views/CloudOverview";
 import { GenericTable } from "./views/GenericTable";
 
 export interface ViewProps {
@@ -10,7 +12,9 @@ export interface ViewProps {
 }
 
 const VIEW_MAP: Record<string, FunctionComponent<ViewProps>> = {
-  run_query: CostDashboard,
+  run_query:          CostDashboard,
+  get_report_results: ReportChart,
+  get_cloud_overview: CloudOverview,
 };
 
 export function routeToView(toolName: string): FunctionComponent<ViewProps> {

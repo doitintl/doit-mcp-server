@@ -19,8 +19,11 @@ function App() {
   const [viewProps, setViewProps] = useState<(ViewProps & { toolName: string }) | null>(null);
 
   const handleResult = (result: ToolResultParams) => {
-    const toolName = (result._meta?.toolName as string) ?? "unknown";
     const data = (result.structuredContent ?? {}) as Record<string, unknown>;
+    const toolName =
+      (result._meta?.toolName as string | undefined) ??
+      (data._toolName as string | undefined) ??
+      "unknown";
     setViewProps({ data, meta: result._meta ?? {}, toolName });
   };
 
@@ -47,9 +50,15 @@ function App() {
       const w = window as any;
       const toolOutput = w.openai?.toolOutput;
       if (toolOutput) {
+        // toolName: prefer toolResponseMetadata.toolName (Apps SDK), then
+        // _toolName embedded in structuredContent by our server, then "unknown"
+        const toolName =
+          w.openai?.toolResponseMetadata?.toolName as string |undefined ??
+          (toolOutput as Record<string, unknown>)._toolName as string | undefined ??
+          "unknown";
         handleResult({
           structuredContent: toolOutput,
-          _meta: { toolName: w.openai?.toolName ?? "unknown" },
+          _meta: { toolName },
         });
         applyTheme(w.openai?.theme?.mode);
       }
