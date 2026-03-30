@@ -59,7 +59,7 @@ const UpdateUserBaseSchema = z.object({
         .string()
         .optional()
         .describe(
-            "The user's phone country code (e.g. +1, +44, +91). Expected to be a valid country calling code, but not strictly validated here."
+            "The user's phone number including country calling code (e.g. +14155551234, +447911123456). Must start with a valid country calling code such as +1, +44, or +91."
         ),
     phoneExtension: z
         .string()
