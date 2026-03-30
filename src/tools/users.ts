@@ -70,7 +70,12 @@ const UpdateUserBaseSchema = z.object({
         .enum(LANGUAGE_VALUES)
         .optional()
         .describe(`The user's preferred language. Accepted values: ${formatEnumValues(LANGUAGE_VALUES)}.`),
-    roleId: z.string().min(1).optional().describe("The ID of the role to assign to the user."),
+    roleId: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Role ID cannot be empty or whitespace-only."))
+        .optional()
+        .describe("The ID of the role to assign to the user."),
 });
 
 export const UpdateUserArgumentsSchema = UpdateUserBaseSchema.refine(
