@@ -97,7 +97,6 @@ export async function handleUpdateUserRequest(args: any, token: string) {
         const data = await makeDoitRequest(url, token, {
             method: "PATCH",
             body,
-            appendParams: false,
             customerContext,
         });
 
