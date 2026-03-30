@@ -70,6 +70,7 @@ describe("MCP Tools Integration", () => {
                 "list_tickets",
                 "list_users",
                 "run_query",
+                "send_datahub_events",
                 "trigger_cloud_flow",
                 "update_alert",
                 "update_allocation",
@@ -734,6 +735,49 @@ describe("MCP Tools Integration", () => {
             const parsed = JSON.parse(text);
             expect(parsed.name).toBe("My Custom Dataset");
             expect(parsed.description).toBe("Updated description for the dataset");
+        });
+    });
+
+    describe("send_datahub_events", () => {
+        it("returns ingestion success from mock API", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {
+                    events: [{ provider: "Datadog", time: "2024-03-10T23:00:00Z" }],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("Ingestion success");
+        });
+
+        it("sends event with all optional fields", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {
+                    events: [
+                        {
+                            provider: "Datadog",
+                            id: "evt-001",
+                            time: "2024-03-10T23:00:00Z",
+                            dimensions: [{ key: "env", type: "label", value: "production" }],
+                            metrics: [{ value: 10.5, type: "cost" }],
+                        },
+                    ],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("Ingestion success");
+        });
+
+        it("rejects missing events array", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 

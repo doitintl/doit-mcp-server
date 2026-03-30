@@ -153,6 +153,10 @@ import {
   listDatahubDatasetsTool,
   updateDatahubDatasetTool,
 } from "../../src/tools/datahubDatasets.js";
+import {
+  SendDatahubEventsArgumentsSchema,
+  sendDatahubEventsTool,
+} from "../../src/tools/datahubEvents.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -411,6 +415,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getDatahubDatasetTool, GetDatahubDatasetArgumentsSchema);
     this.registerTool(createDatahubDatasetTool, CreateDatahubDatasetArgumentsSchema);
     this.registerTool(updateDatahubDatasetTool, UpdateDatahubDatasetArgumentsSchema);
+    this.registerTool(sendDatahubEventsTool, SendDatahubEventsArgumentsSchema);
 
     // Cloud Diagrams tools
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);

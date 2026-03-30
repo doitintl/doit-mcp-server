@@ -101,6 +101,10 @@ vi.mock(import("../tools/datahubDatasets.js"), async (importOriginal) => ({
     handleCreateDatahubDatasetRequest: vi.fn(),
     handleUpdateDatahubDatasetRequest: vi.fn(),
 }));
+vi.mock(import("../tools/datahubEvents.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleSendDatahubEventsRequest: vi.fn(),
+}));
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleFindCloudDiagramsRequest: vi.fn(),
@@ -166,6 +170,7 @@ import {
     handleListTicketsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleSendDatahubEventsRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAllocationRequest,
     handleUpdateDatahubDatasetRequest,
@@ -199,6 +204,7 @@ import {
     listDatahubDatasetsTool,
     updateDatahubDatasetTool,
 } from "../tools/datahubDatasets.js";
+import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
@@ -317,6 +323,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,
                 updateDatahubDatasetTool,
+                sendDatahubEventsTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -681,6 +688,12 @@ describe("CallToolRequestSchema handler", () => {
             "update_datahub_dataset",
             { name: "My Dataset", description: "Updated" },
             handleUpdateDatahubDatasetRequest,
+        ],
+        [
+            "send_datahub_events",
+            "send_datahub_events",
+            { events: [{ provider: "Datadog", time: "2024-03-10T23:00:00Z" }] },
+            handleSendDatahubEventsRequest,
         ],
         [
             "trigger_cloud_flow (with body)",
