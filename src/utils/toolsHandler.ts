@@ -55,6 +55,7 @@ import { handleListRolesRequest } from "../tools/roles.js";
 import { handleCreateTicketRequest, handleListTicketsRequest } from "../tools/tickets.js";
 import { handleListUsersRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
+import { handleCloudOverviewRequest } from "../tools/overview.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./util.js";
 import { adaptToolResponse } from "./responseAdapter.js";
 
@@ -107,6 +108,9 @@ export async function executeToolHandler(
                 break;
             case "validate_user":
                 result = await handleValidateUserRequest(args, token);
+                break;
+            case "get_cloud_overview":
+                result = await handleCloudOverviewRequest(args, token);
                 break;
             case "list_dimensions":
                 result = await handleDimensionsRequest(args, token);

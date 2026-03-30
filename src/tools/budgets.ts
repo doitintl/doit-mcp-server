@@ -19,6 +19,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const BUDGETS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/budgets`;
@@ -42,6 +43,10 @@ export const ListBudgetsArgumentsSchema = z.object({
         .describe(
             'An expression for filtering the results. Syntax: "key:[<value>]". Available keys: owner, lastModified in ms (>lastModified). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in "AND," while using the same key multiple times in the same filter results in "OR".'
         ),
+    name: z
+        .string()
+        .optional()
+        .describe("Partial name filter (case-insensitive). Returns only budgets whose name contains this string."),
     minCreationTime: z
         .string()
         .optional()
@@ -64,7 +69,7 @@ export const listBudgetsTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -74,19 +79,25 @@ export const listBudgetsTool = {
     securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
-export const GetBudgetArgumentsSchema = z.object({
-    id: z.string().min(1).describe("The ID of the budget to retrieve."),
-});
+export const GetBudgetArgumentsSchema = z
+    .object({
+        id: z.string().min(1).optional().describe("The ID of the budget to retrieve."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial name match (case-insensitive). Used to find the budget when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getBudgetTool = {
     name: "get_budget",
     description:
-        "Use this when the user wants to view the details and current utilization of a specific budget by its ID. Do NOT use this for listing all budgets (use list_budgets) or cost analysis (use run_query).",
+        "Use this when the user wants to view the details and current utilization of a specific budget. Accepts either the budget ID or a partial name (case-insensitive). Do NOT use this for listing all budgets (use list_budgets) or cost analysis (use run_query).",
     inputSchema: zodToMcpInputSchema(GetBudgetArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -236,7 +247,7 @@ export const createBudgetTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -248,9 +259,27 @@ export const createBudgetTool = {
 
 export async function handleGetBudgetRequest(args: any, token: string) {
     try {
-        const { id } = GetBudgetArgumentsSchema.parse(args);
+        const parsed = GetBudgetArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(id)}`;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<BudgetsResponse>(
+                `${BUDGETS_BASE_URL}?maxResults=200`,
+                token,
+                { method: "GET", customerContext }
+            );
+            const items = (listData?.budgets ?? []) as Array<{ id: string; budgetName: string }>;
+            const result = matchByName(
+                items.map((b) => ({ ...b, name: b.budgetName })),
+                parsed.name
+            );
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
         const data = await makeDoitRequest<BudgetDetails>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve budget details");
@@ -264,7 +293,7 @@ export async function handleGetBudgetRequest(args: any, token: string) {
 
 export async function handleListBudgetsRequest(args: any, token: string) {
     try {
-        const { maxResults, pageToken, filter, minCreationTime, maxCreationTime } =
+        const { maxResults, pageToken, filter, name, minCreationTime, maxCreationTime } =
             ListBudgetsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
@@ -284,6 +313,13 @@ export async function handleListBudgetsRequest(args: any, token: string) {
 
         if (!data) {
             return createErrorResponse("Failed to retrieve budgets");
+        }
+
+        if (name) {
+            const q = name.toLowerCase();
+            data.budgets = (data.budgets ?? []).filter((b: any) =>
+                typeof b.budgetName === "string" && b.budgetName.toLowerCase().includes(q)
+            );
         }
 
         return createSuccessResponse(JSON.stringify(data, null, 2));
@@ -377,7 +413,7 @@ export const updateBudgetTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {

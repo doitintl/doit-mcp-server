@@ -18,6 +18,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const ALERTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/alerts`;
@@ -76,7 +77,7 @@ export const listAlertsTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -87,14 +88,20 @@ export const listAlertsTool = {
 };
 
 // Schema and metadata for get alert
-export const GetAlertArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the alert to retrieve."),
-});
+export const GetAlertArgumentsSchema = z
+    .object({
+        id: z.string().optional().describe("The ID of the alert to retrieve."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial name match (case-insensitive). Used to find the alert when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getAlertTool = {
     name: "get_alert",
     description:
-        "Use this when the user wants to view the details of a specific cost alert by its ID. Do NOT use this for listing all alerts (use list_alerts) or anomalies (use get_anomalies).",
+        "Use this when the user wants to view the details of a specific cost alert. Accepts either the alert ID or a partial name (case-insensitive). Do NOT use this for listing all alerts (use list_alerts) or anomalies (use get_anomalies).",
     inputSchema: {
         type: "object",
         properties: {
@@ -102,13 +109,16 @@ export const getAlertTool = {
                 type: "string",
                 description: "The ID of the alert to retrieve.",
             },
+            name: {
+                type: "string",
+                description: "Partial name match (case-insensitive). Used to find the alert when ID is unknown.",
+            },
         },
-        required: ["id"],
     },
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -120,9 +130,24 @@ export const getAlertTool = {
 
 export async function handleGetAlertRequest(args: any, token: string) {
     try {
-        const { id } = GetAlertArgumentsSchema.parse(args);
+        const parsed = GetAlertArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${ALERTS_BASE_URL}/${encodeURIComponent(id)}`;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<AlertsResponse>(
+                `${ALERTS_BASE_URL}?maxResults=100`,
+                token,
+                { method: "GET", customerContext }
+            );
+            const items = listData?.alerts ?? [];
+            const result = matchByName(items, parsed.name);
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const url = `${ALERTS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
         try {
             const data = await makeDoitRequest<Alert>(url, token, { method: "GET", customerContext });
             if (!data) {
@@ -245,7 +270,7 @@ export const createAlertTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -299,7 +324,7 @@ export const updateAlertTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {

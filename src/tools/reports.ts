@@ -26,6 +26,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const REPORTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/reports`;
@@ -42,9 +43,15 @@ export const ReportsArgumentsSchema = z.object({
 });
 
 // Get Report Results Schema Definition
-export const GetReportResultsArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the report to retrieve results for"),
-});
+export const GetReportResultsArgumentsSchema = z
+    .object({
+        id: z.string().optional().describe("The ID of the report to retrieve results for."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial report name match (case-insensitive). Used to find the report when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 const createDocumentPrompt =
     "**IMPORTANT**: Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)";
@@ -126,7 +133,7 @@ export const reportsTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -139,21 +146,24 @@ export const reportsTool = {
 export const getReportResultsTool = {
     name: "get_report_results",
     description:
-        "Use this when the user wants to retrieve the data results of a specific saved report by its ID. Returns rows and columns of report data. Do NOT use this for listing all reports (use list_reports) or running ad-hoc queries (use run_query).",
+        "Use this when the user wants to retrieve the data results of a specific saved report. Accepts either the report ID or a partial name (case-insensitive). Do NOT use this for listing all reports (use list_reports) or running ad-hoc queries (use run_query).",
     inputSchema: {
         type: "object",
         properties: {
             id: {
                 type: "string",
-                description: "The ID of the report to retrieve results for",
+                description: "The ID of the report to retrieve results for.",
+            },
+            name: {
+                type: "string",
+                description: "Partial report name match (case-insensitive). Used to find the report when ID is unknown.",
             },
         },
-        required: ["id"],
     },
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -461,14 +471,29 @@ export const runQueryTool = {
     description: `Use this when the user wants to analyze cloud costs, generate a cost breakdown, view spending trends, or run a custom analytics query across their cloud providers. Accepts a structured config with data source, metrics, dimensions, time range, and filters. Do NOT use this for listing saved reports (use list_reports), checking anomalies (use get_anomalies), or viewing budgets (use list_budgets).
     Fields that are not populated will use their default values if needed.
     To limit the number of rows returned per group, set the \`limit.value\` field inside each \`config.group[]\` entry (maximum 25).
-    Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
     If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
-    Example for cost report:
+    Use "includeCurrent": true to include the current in-progress month. Use "includeCurrent": false only when asking about a fully completed past period.
+    Always use "metrics" (array) not the deprecated "metric" (object).
+
+    ALWAYS include a "group" with id "service_description" and type "fixed" unless the user explicitly asks to group by something else. This gives a per-service cost breakdown which is always the most useful default.
+
+    Common grouping dimension IDs (all type "fixed"):
+      "service_description" — cloud service (default)
+      "project_id"          — GCP project / AWS account / Azure subscription (use when user asks to group by project, account, or subscription)
+      "cloud_provider"      — cloud provider (AWS / GCP / Azure)
+
+    IMPORTANT — filter values are dimension IDs, never display names. Before filtering on any dimension
+    you are unsure about, call get_dimension({type, id}) to retrieve the exact valid values for this customer.
+    Known cloud provider IDs (cloud_provider, type "fixed"):
+      "amazon-web-services" = AWS, "google-cloud" = GCP, "microsoft-azure" = Azure
+
+    Example — top AWS services last month:
     {
       "config": {
         "dataSource": "billing",
-        "metric": {"type": "basic", "value": "cost"},
+        "metrics": [{"type": "basic", "value": "cost"}],
         "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": true},
+        "filters": [{"id": "cloud_provider", "type": "fixed", "values": ["amazon-web-services"]}],
         "group": [{"id": "service_description", "type": "fixed", "limit": {"metric": {"type": "basic", "value": "cost"}, "sort": "desc", "value": 10}}]
       }
     }`,
@@ -476,7 +501,7 @@ export const runQueryTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -513,7 +538,7 @@ export const createReportTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -542,7 +567,7 @@ export const updateReportTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -643,16 +668,56 @@ export async function handleReportsRequest(args: any, token: string) {
     }
 }
 
+/**
+ * Normalise common LLM-generated aliases to the exact IDs the DoiT API expects.
+ * This makes the tool robust against the LLM using display names or abbreviations.
+ */
+const CLOUD_PROVIDER_ALIASES: Record<string, string> = {
+    // AWS
+    "aws": "amazon-web-services",
+    "amazon": "amazon-web-services",
+    "amazon web services": "amazon-web-services",
+    "amazon_web_services": "amazon-web-services",
+    // GCP
+    "gcp": "google-cloud",
+    "google": "google-cloud",
+    "google cloud": "google-cloud",
+    "google cloud platform": "google-cloud",
+    "google_cloud": "google-cloud",
+    // Azure
+    "azure": "microsoft-azure",
+    "microsoft azure": "microsoft-azure",
+    "microsoft_azure": "microsoft-azure",
+};
+
+function normalizeConfig(config: any): any {
+    if (!config?.filters) return config;
+    return {
+        ...config,
+        filters: config.filters.map((f: any) => {
+            if (f.id !== "cloud_provider" || !Array.isArray(f.values)) return f;
+            return {
+                ...f,
+                values: f.values.map((v: string) =>
+                    CLOUD_PROVIDER_ALIASES[v.toLowerCase()] ?? v
+                ),
+            };
+        }),
+    };
+}
+
 // Handle the run query request
 export async function handleRunQueryRequest(args: any, token: string) {
     try {
         // Validate arguments
-        const { config } = RunQueryArgumentsSchema.parse(args);
+        const { config: rawConfig } = RunQueryArgumentsSchema.parse(args);
+        const config = normalizeConfig(rawConfig);
         const { customerContext } = args;
         // Create API URL for the query endpoint
         const queryUrl = `${REPORTS_BASE_URL}/query`;
 
         try {
+            console.error("[run_query] config:", JSON.stringify(config, null, 2));
             // Use enhanced makeDoitRequest for POST request
             const queryResponse = await makeDoitRequest<QueryResponse>(queryUrl, token, {
                 method: "POST",
@@ -745,10 +810,24 @@ export async function handleCreateReportRequest(args: any, token: string) {
 export async function handleGetReportResultsRequest(args: any, token: string) {
     try {
         // Validate arguments
-        const { id } = GetReportResultsArgumentsSchema.parse(args);
+        const parsed = GetReportResultsArgumentsSchema.parse(args);
         const { customerContext } = args;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<ReportsResponse>(`${REPORTS_BASE_URL}?maxResults=200`, token, {
+                method: "GET",
+                customerContext,
+            });
+            const items = (listData?.reports ?? []).map((r) => ({ ...r, name: r.reportName }));
+            const result = matchByName(items, parsed.name, "name");
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
         // Create API URL
-        const reportUrl = `${REPORTS_BASE_URL}/${encodeURIComponent(id)}`;
+        const reportUrl = `${REPORTS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
 
         try {
             const reportData = await makeDoitRequest<GetReportResultsResponse>(reportUrl, token, {

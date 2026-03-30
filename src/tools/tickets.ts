@@ -35,13 +35,14 @@ export interface TicketsResponse {
 export const ListTicketsArgumentsSchema = z.object({
     pageToken: z.string().optional().describe("Page token for pagination"),
     pageSize: z.number().optional().describe("Number of tickets to return per page"),
+    subject: z.string().optional().describe("Partial subject filter (case-insensitive). Returns only tickets whose subject contains this string."),
 });
 
 // Tool definition
 export const listTicketsTool = {
     name: "list_tickets",
     description:
-        "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, priority, and platform. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
+        "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, priority, and platform. Supports partial subject filtering. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
     inputSchema: {
         type: "object",
         properties: {
@@ -53,12 +54,16 @@ export const listTicketsTool = {
                 type: "number",
                 description: "Number of tickets to return per page",
             },
+            subject: {
+                type: "string",
+                description: "Partial subject filter (case-insensitive). Returns only tickets whose subject contains this string.",
+            },
         },
     },
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -72,6 +77,7 @@ export const listTicketsTool = {
 export async function handleListTicketsRequest(args: any, token: string) {
     try {
         const { customerContext } = args;
+        const { subject } = ListTicketsArgumentsSchema.parse(args);
         const params = new URLSearchParams();
         if (args.pageToken) params.append("pageToken", args.pageToken);
         if (args.pageSize) params.append("pageSize", args.pageSize.toString());
@@ -81,6 +87,12 @@ export async function handleListTicketsRequest(args: any, token: string) {
         });
         if (!data) {
             return createErrorResponse("Failed to fetch tickets: No data returned");
+        }
+        if (subject) {
+            const q = subject.toLowerCase();
+            data.tickets = (data.tickets ?? []).filter(
+                (t) => typeof t.subject === "string" && t.subject.toLowerCase().includes(q)
+            );
         }
         return createSuccessResponse(JSON.stringify(data));
     } catch (error) {
@@ -134,7 +146,7 @@ export const createTicketTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {

@@ -12,6 +12,7 @@ import {
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { handleValidateUserRequest } from "../../src/tools/validateUser";
 import { decodeJWT } from "../../src/utils/util";
+import { DEMO_TOKEN } from "../../src/utils/demoData";
 import { WIDGET_HTML } from "./widgetHtml";
 
 export type Bindings = Env & {
@@ -154,6 +155,19 @@ app.post("/customer-context", async (c) => {
   const { action, oauthReqInfo, apiKey } = await parseApproveFormBody(
     await c.req.parseBody()
   );
+
+  // Demo mode: bypass JWT validation and complete OAuth with demo props.
+  if (apiKey === DEMO_TOKEN) {
+    if (!oauthReqInfo) return c.html("INVALID LOGIN", 401);
+    const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
+      request: oauthReqInfo,
+      userId: DEMO_TOKEN,
+      metadata: { label: "demo@acme.io" },
+      scope: oauthReqInfo.scope,
+      props: { apiKey: DEMO_TOKEN, customerContext: "demo", isDoitUser: "false" },
+    });
+    return c.redirect(redirectTo, 302);
+  }
 
   try {
     const jwtInfo = decodeJWT(apiKey);

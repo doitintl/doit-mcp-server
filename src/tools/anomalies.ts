@@ -66,7 +66,7 @@ export const anomaliesTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -93,7 +93,7 @@ export const anomalyTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {

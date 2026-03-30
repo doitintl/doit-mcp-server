@@ -11,6 +11,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const ANNOTATIONS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/annotations`;
@@ -52,7 +53,7 @@ export const listAnnotationsTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -93,23 +94,36 @@ export async function handleListAnnotationsRequest(args: any, token: string) {
 }
 
 // Schema and metadata for get annotation
-export const GetAnnotationArgumentsSchema = z.object({
-    id: z
-        .string()
-        .transform((val) => val.trim())
-        .pipe(z.string().min(1, "Annotation ID is required and cannot be empty."))
-        .describe("The ID of the annotation to retrieve."),
-});
+export const GetAnnotationArgumentsSchema = z
+    .object({
+        id: z
+            .string()
+            .transform((val) => val.trim())
+            .pipe(z.string().min(1))
+            .optional()
+            .describe("The ID of the annotation to retrieve."),
+        content: z
+            .string()
+            .optional()
+            .describe("Partial content match (case-insensitive). Used to find the annotation when ID is unknown."),
+    })
+    .refine((d) => d.id || d.content, { message: "Either id or content must be provided." });
 
 export const getAnnotationTool = {
     name: "get_annotation",
     description:
-        "Use this when the user wants to view details of a specific annotation by its ID. Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
-    inputSchema: zodToMcpInputSchema(GetAnnotationArgumentsSchema),
+        "Use this when the user wants to view details of a specific annotation. Accepts either the annotation ID or a partial content match (case-insensitive). Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
+    inputSchema: {
+        type: "object",
+        properties: {
+            id: { type: "string", description: "The ID of the annotation to retrieve." },
+            content: { type: "string", description: "Partial content match (case-insensitive). Used to find the annotation when ID is unknown." },
+        },
+    },
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -121,9 +135,24 @@ export const getAnnotationTool = {
 
 export async function handleGetAnnotationRequest(args: any, token: string) {
     try {
-        const { id } = GetAnnotationArgumentsSchema.parse(args);
+        const parsed = GetAnnotationArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${ANNOTATIONS_BASE_URL}/${encodeURIComponent(id)}`;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.content) {
+            const listData = await makeDoitRequest<AnnotationsResponse>(
+                `${ANNOTATIONS_BASE_URL}?maxResults=200`,
+                token,
+                { method: "GET", customerContext }
+            );
+            const items = (listData?.annotations ?? []).map((a: any) => ({ ...a, name: a.content }));
+            const result = matchByName(items, parsed.content, "name");
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const url = `${ANNOTATIONS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
         const data = await makeDoitRequest<Annotation>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve annotation");
@@ -158,7 +187,7 @@ export const createAnnotationTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -235,7 +264,7 @@ export const updateAnnotationTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {

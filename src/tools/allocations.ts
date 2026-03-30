@@ -6,6 +6,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const ALLOCATIONS_URL = `${DOIT_API_BASE}/analytics/v1/allocations`;
@@ -35,11 +36,21 @@ type AllocationComponentMode = (typeof ALLOCATION_COMPONENT_MODES)[number];
 // Schema definitions
 export const ListAllocationsArgumentsSchema = z.object({
     pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    name: z
+        .string()
+        .optional()
+        .describe("Partial name filter (case-insensitive). Returns only allocations whose name contains this string."),
 });
 
-export const GetAllocationArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the allocation to retrieve"),
-});
+export const GetAllocationArgumentsSchema = z
+    .object({
+        id: z.string().optional().describe("The ID of the allocation to retrieve."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial name match (case-insensitive). Used to find the allocation when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 // Zod schema for an allocation component (matches AllocationComponent interface)
 const AllocationComponentSchema = z.object({
@@ -170,7 +181,7 @@ export interface AllocationsResponse {
 export const listAllocationsTool = {
     name: "list_allocations",
     description:
-        "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
+        "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Supports partial name filtering. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
     inputSchema: {
         type: "object",
         properties: {
@@ -178,12 +189,16 @@ export const listAllocationsTool = {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
             },
+            name: {
+                type: "string",
+                description: "Partial name filter (case-insensitive). Returns only allocations whose name contains this string.",
+            },
         },
     },
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -196,21 +211,24 @@ export const listAllocationsTool = {
 export const getAllocationTool = {
     name: "get_allocation",
     description:
-        "Use this when the user wants to view details of a specific cost allocation by its ID. Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
+        "Use this when the user wants to view details of a specific cost allocation. Accepts either the allocation ID or a partial name (case-insensitive). Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
     inputSchema: {
         type: "object",
         properties: {
             id: {
                 type: "string",
-                description: "The ID of the allocation to retrieve",
+                description: "The ID of the allocation to retrieve.",
+            },
+            name: {
+                type: "string",
+                description: "Partial name match (case-insensitive). Used to find the allocation when ID is unknown.",
             },
         },
-        required: ["id"],
     },
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -337,7 +355,7 @@ export const createAllocationTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -367,7 +385,7 @@ export const updateAllocationTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -380,7 +398,7 @@ export const updateAllocationTool = {
 // Handle list allocations request
 export async function handleListAllocationsRequest(args: any, token: string) {
     try {
-        const { pageToken } = ListAllocationsArgumentsSchema.parse(args);
+        const { pageToken, name } = ListAllocationsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
         // Create API URL with query parameters
@@ -405,10 +423,15 @@ export async function handleListAllocationsRequest(args: any, token: string) {
                 return createErrorResponse("Failed to retrieve allocations data");
             }
 
-            const allocations = allocationsData.allocations || [];
+            let allocations = allocationsData.allocations || [];
 
             if (allocations.length === 0) {
                 return createErrorResponse("No allocations found");
+            }
+
+            if (name) {
+                const q = name.toLowerCase();
+                allocations = allocations.filter((a) => a.name.toLowerCase().includes(q));
             }
 
             // Format the response
@@ -541,14 +564,23 @@ export async function handleUpdateAllocationRequest(args: any, token: string) {
 // Handle get allocation request
 export async function handleGetAllocationRequest(args: any, token: string) {
     try {
-        const { id } = GetAllocationArgumentsSchema.parse(args);
+        const parsed = GetAllocationArgumentsSchema.parse(args);
         const { customerContext } = args;
+        let resolvedId = parsed.id;
 
-        if (!id) {
-            return createErrorResponse("Allocation ID is required");
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<AllocationsResponse>(ALLOCATIONS_URL, token, {
+                method: "GET",
+                customerContext,
+            });
+            const items = listData?.allocations ?? [];
+            const result = matchByName(items, parsed.name);
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
         }
 
-        const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(id)}`;
+        const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(resolvedId!)}`;
 
         try {
             const allocationData = await makeDoitRequest<AllocationDetails>(allocationUrl, token, {

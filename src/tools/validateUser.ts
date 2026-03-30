@@ -23,7 +23,7 @@ export interface ValidateUserResponse {
 export const validateUserTool = {
     name: "validate_user",
     description:
-        "Use this when the user wants to verify their account connection, check who they are logged in as, or confirm their DoiT account details. Returns email, domain, and validation status. Do NOT use this for listing users in the organization (use list_users).",
+        "Use this ONLY when the user explicitly asks to verify their account connection or check who they are logged in as. Do NOT call this proactively before other tool calls — the OAuth token already guarantees the user is authenticated. Do NOT use this for listing users in the organization (use list_users).",
     inputSchema: {
         type: "object",
         properties: {},
@@ -31,7 +31,7 @@ export const validateUserTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {

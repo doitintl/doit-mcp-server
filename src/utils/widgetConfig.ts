@@ -116,7 +116,7 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
     // ── Invoices ───────────────────────────────────────────────────────────────
     list_invoices: {
         columns: [
-            { key: "platform",            label: "Platform" },
+            { key: "platform",            label: "Cloud",    format: "icon", formatOptions: { iconSet: "cloud-platform" } },
             { key: "invoiceDateFormatted", label: "Invoice Date" },
             { key: "dueDateFormatted",     label: "Due Date" },
             { key: "totalAmount",          label: "Total",   format: "currency" },
@@ -125,10 +125,15 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
             { key: "status",               label: "Status",  format: "status" },
         ],
         emptyMessage: "No invoices found.",
+        drilldown: {
+            tool: "get_invoice",
+            idKey: "id",
+            promptTemplate: "Show me details for invoice {id}",
+        },
     },
     get_invoice: {
         columns: [
-            { key: "platform",            label: "Platform" },
+            { key: "platform",            label: "Cloud",    format: "icon", formatOptions: { iconSet: "cloud-platform" } },
             { key: "invoiceDateFormatted", label: "Invoice Date" },
             { key: "dueDateFormatted",     label: "Due Date" },
             { key: "totalAmount",          label: "Total",   format: "currency" },
@@ -141,13 +146,13 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
     // ── Support Tickets ────────────────────────────────────────────────────────
     list_tickets: {
         columns: [
-            { key: "subject",   label: "Subject" },
-            { key: "platform",  label: "Platform" },
-            { key: "product",   label: "Product" },
-            { key: "severity",  label: "Severity", format: "severity" },
-            { key: "status",    label: "Status",   format: "status" },
-            { key: "requester", label: "Requester" },
-            { key: "createTime", label: "Created", format: "date" },
+            { key: "platform",   label: "Cloud",    format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "subject",    label: "Subject" },
+            { key: "product",    label: "Product" },
+            { key: "severity",   label: "Severity", format: "severity" },
+            { key: "status",     label: "Status",   format: "status" },
+            { key: "requester",  label: "Requester" },
+            { key: "createTime", label: "Created",  format: "date" },
         ],
         emptyMessage: "No support tickets found.",
     },
@@ -155,43 +160,177 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
     // ── Cloud Incidents ────────────────────────────────────────────────────────
     get_cloud_incidents: {
         columns: [
-            { key: "platform", label: "Platform" },
-            { key: "product",  label: "Product" },
-            { key: "title",    label: "Title" },
-            { key: "status",   label: "Status",  format: "status" },
+            { key: "platform",   label: "Cloud",   format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "product",    label: "Product" },
+            { key: "title",      label: "Title" },
+            { key: "status",     label: "Status",  format: "status" },
             { key: "createTime", label: "Created", format: "date" },
         ],
         emptyMessage: "No cloud incidents found.",
+        drilldown: {
+            tool: "get_cloud_incident",
+            idKey: "id",
+            promptTemplate: "Show me details for cloud incident {id}",
+        },
     },
     get_cloud_incident: {
         columns: [
-            { key: "platform",    label: "Platform" },
-            { key: "product",     label: "Product" },
-            { key: "title",       label: "Title" },
-            { key: "status",      label: "Status",  format: "status" },
-            { key: "summary",     label: "Summary" },
-            { key: "symptoms",    label: "Symptoms" },
-            { key: "workaround",  label: "Workaround" },
-            { key: "createTime",  label: "Created", format: "date" },
+            { key: "platform",   label: "Cloud",      format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "product",    label: "Product" },
+            { key: "title",      label: "Title" },
+            { key: "status",     label: "Status",     format: "status" },
+            { key: "summary",    label: "Summary" },
+            { key: "symptoms",   label: "Symptoms" },
+            { key: "workaround", label: "Workaround" },
+            { key: "createTime", label: "Created",    format: "date" },
         ],
     },
 
     // ── Assets ─────────────────────────────────────────────────────────────────
     list_assets: {
         columns: [
-            { key: "name",     label: "Name" },
-            { key: "type",     label: "Type" },
-            { key: "quantity", label: "Quantity" },
-            { key: "createTime", label: "Created", format: "date" },
+            { key: "type",       label: "Cloud",    format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "name",       label: "Name" },
+            { key: "quantity",   label: "Quantity" },
+            { key: "createTime", label: "Created",  format: "date" },
         ],
         emptyMessage: "No assets found.",
+        drilldown: {
+            tool: "get_asset",
+            idKey: "id",
+            promptTemplate: "Show me details for asset {id}",
+        },
     },
     get_asset: {
         columns: [
+            { key: "type",       label: "Cloud",    format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "name",       label: "Name" },
+            { key: "quantity",   label: "Quantity" },
+            { key: "createTime", label: "Created",  format: "date" },
+        ],
+    },
+
+    // ── Allocations ────────────────────────────────────────────────────────────
+    list_allocations: {
+        columns: [
+            { key: "name",       label: "Name" },
+            { key: "owner",      label: "Owner" },
+            { key: "type",       label: "Type" },
+            { key: "createTime", label: "Created",  format: "date" },
+            { key: "updateTime", label: "Updated",  format: "date" },
+        ],
+        emptyMessage: "No allocations found.",
+        drilldown: {
+            tool: "get_allocation",
+            idKey: "id",
+            promptTemplate: "Show me details for allocation {id}",
+        },
+    },
+    get_allocation: {
+        columns: [
+            { key: "name",             label: "Name" },
+            { key: "description",      label: "Description" },
+            { key: "type",             label: "Type" },
+            { key: "anomalyDetection", label: "Anomaly Detection", format: "boolean" },
+            { key: "createTime",       label: "Created",           format: "date" },
+            { key: "updateTime",       label: "Updated",           format: "date" },
+        ],
+    },
+
+    // ── Labels ─────────────────────────────────────────────────────────────────
+    list_labels: {
+        columns: [
+            { key: "name",       label: "Name" },
+            { key: "color",      label: "Color" },
+            { key: "type",       label: "Type" },
+            { key: "createTime", label: "Created", format: "date" },
+            { key: "updateTime", label: "Updated", format: "date" },
+        ],
+        emptyMessage: "No labels found.",
+        drilldown: {
+            tool: "get_label",
+            idKey: "id",
+            promptTemplate: "Show me details for label {id}",
+        },
+    },
+    get_label: {
+        columns: [
+            { key: "name",       label: "Name" },
+            { key: "color",      label: "Color" },
+            { key: "type",       label: "Type" },
+            { key: "createTime", label: "Created", format: "date" },
+            { key: "updateTime", label: "Updated", format: "date" },
+        ],
+    },
+
+    // ── Annotations ────────────────────────────────────────────────────────────
+    list_annotations: {
+        columns: [
+            { key: "content",    label: "Content" },
+            { key: "timestamp",  label: "Date",    format: "date" },
+            { key: "createTime", label: "Created", format: "date" },
+            { key: "updateTime", label: "Updated", format: "date" },
+        ],
+        emptyMessage: "No annotations found.",
+        drilldown: {
+            tool: "get_annotation",
+            idKey: "id",
+            promptTemplate: "Show me details for annotation {id}",
+        },
+    },
+    get_annotation: {
+        columns: [
+            { key: "content",    label: "Content" },
+            { key: "timestamp",  label: "Date",    format: "date" },
+            { key: "createTime", label: "Created", format: "date" },
+            { key: "updateTime", label: "Updated", format: "date" },
+        ],
+    },
+
+    // ── Users ──────────────────────────────────────────────────────────────────
+    list_users: {
+        columns: [
+            { key: "email",       label: "Email" },
+            { key: "displayName", label: "Name" },
+            { key: "jobFunction", label: "Role" },
+            { key: "status",      label: "Status", format: "status" },
+            { key: "roleId",      label: "Access Role" },
+        ],
+        emptyMessage: "No users found.",
+    },
+
+    // ── Roles ──────────────────────────────────────────────────────────────────
+    list_roles: {
+        columns: [
             { key: "name",     label: "Name" },
             { key: "type",     label: "Type" },
-            { key: "quantity", label: "Quantity" },
-            { key: "createTime", label: "Created", format: "date" },
+            { key: "customer", label: "Customer" },
+        ],
+        emptyMessage: "No roles found.",
+    },
+
+    // ── Alerts ─────────────────────────────────────────────────────────────────
+    list_alerts: {
+        columns: [
+            { key: "name",        label: "Name" },
+            { key: "createTime",  label: "Created",      format: "date" },
+            { key: "updateTime",  label: "Updated",      format: "date" },
+            { key: "lastAlerted", label: "Last Alerted", format: "date" },
+        ],
+        emptyMessage: "No alerts found.",
+        drilldown: {
+            tool: "get_alert",
+            idKey: "id",
+            promptTemplate: "Show me details for alert {id}",
+        },
+    },
+    get_alert: {
+        columns: [
+            { key: "name",        label: "Name" },
+            { key: "recipients",  label: "Recipients" },
+            { key: "createTime",  label: "Created",      format: "date" },
+            { key: "updateTime",  label: "Updated",      format: "date" },
+            { key: "lastAlerted", label: "Last Alerted", format: "date" },
         ],
     },
 

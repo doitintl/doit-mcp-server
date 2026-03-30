@@ -100,13 +100,36 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
     if (data && typeof data === "object") {
         const d = data as Record<string, unknown>;
 
+        // get_cloud_overview: pass through all sections unchanged — the widget reads them directly.
+        if (toolName === "get_cloud_overview") {
+            return d;
+        }
+
         // Analytics query result: { rowCount, rows, columns }
+        // Use a high row limit (500) so the widget has enough data to pivot and render
+        // multi-series charts. The LLM instruction already tells it to reply in one sentence.
         if ("rowCount" in d && "rows" in d) {
             return {
                 rowCount: d.rowCount,
-                rows: (d.rows as unknown[])?.slice(0, 10),
+                rows: (d.rows as unknown[])?.slice(0, 500),
                 columns: d.columns,
             };
+        }
+
+        // get_report_results: flatten nested { result: { schema, rows } } into top-level fields
+        if (toolName === "get_report_results" && "result" in d) {
+            const result = d.result as Record<string, unknown>;
+            if (result && typeof result === "object" && "schema" in result && "rows" in result) {
+                const rows = result.rows as unknown[];
+                return {
+                    reportName: d.reportName,
+                    reportId: d.id,
+                    urlUI: d.urlUI,
+                    schema: result.schema,
+                    rows: result.rows,
+                    rowCount: Array.isArray(rows) ? rows.length : 0,
+                };
+            }
         }
 
         // Paginated DoiT list response: { [collectionKey]: [...], pageToken?, rowCount? }
@@ -135,6 +158,11 @@ export function narrate(toolName: string, data: unknown): string {
     const shown = Math.min(count, (summary.items as unknown[] | undefined)?.length ?? count);
     const moreHint = hasMore || shown < count ? ` Showing first ${shown}; use pageToken to retrieve more.` : "";
 
+    if (toolName === "get_cloud_overview") return "Cloud overview ready — see widget.";
+    if (toolName === "get_report_results") {
+        const name = (summary as Record<string, unknown>).reportName as string | undefined;
+        return `Report "${name ?? "data"}" ready — see widget.`;
+    }
     if (toolName === "run_query") {
         const rowCount = (summary.rowCount as number) ?? 0;
         const rowShown = Math.min(rowCount, ((summary.rows as unknown[]) ?? []).length);
@@ -153,7 +181,7 @@ export function narrate(toolName: string, data: unknown): string {
     return `Operation completed.`;
 }
 
-const WIDGET_URI = "ui://doit/cloud-intelligence-v7.html";
+const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
 
 /**
  * Main adapter. Wraps a raw tool result into the Apps SDK three-field format.
@@ -178,6 +206,7 @@ export function adaptToolResponse(toolName: string, rawResponse: unknown) {
     const viewConfig = TOOL_VIEW_CONFIG[toolName];
     const structuredWithHint = {
         ...structured,
+        _toolName: toolName,
         _llmInstruction:
             "Results are displayed in the DoiT Cloud Intelligence widget. " +
             "Respond with ONE short sentence only (e.g. 'Found 20 anomalies — see widget.'). " +
@@ -193,7 +222,12 @@ export function adaptToolResponse(toolName: string, rawResponse: unknown) {
         _meta: {
             toolName,
             "ui/resourceUri": WIDGET_URI,
-            ui: { resourceUri: WIDGET_URI },
+            ui: {
+                resourceUri: WIDGET_URI,
+                csp: {
+                    connectDomains: ["https://api.doit.com"],
+                },
+            },
         },
     };
 }

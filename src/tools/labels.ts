@@ -16,6 +16,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const LABELS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/labels`;
@@ -57,7 +58,7 @@ export const listLabelsTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -98,23 +99,36 @@ export async function handleListLabelsRequest(args: any, token: string) {
 }
 
 // Schema and metadata for get label
-export const GetLabelArgumentsSchema = z.object({
-    id: z
-        .string()
-        .transform((val) => val.trim())
-        .pipe(z.string().min(1, "Label ID is required and cannot be empty."))
-        .describe("The ID of the label to retrieve."),
-});
+export const GetLabelArgumentsSchema = z
+    .object({
+        id: z
+            .string()
+            .transform((val) => val.trim())
+            .pipe(z.string().min(1))
+            .optional()
+            .describe("The ID of the label to retrieve."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial name match (case-insensitive). Used to find the label when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getLabelTool = {
     name: "get_label",
     description:
-        "Use this when the user wants to view details of a specific label by its ID. Do NOT use this for listing all labels (use list_labels) or annotations (use list_annotations).",
-    inputSchema: zodToMcpInputSchema(GetLabelArgumentsSchema),
+        "Use this when the user wants to view details of a specific label. Accepts either the label ID or a partial name (case-insensitive). Do NOT use this for listing all labels (use list_labels) or annotations (use list_annotations).",
+    inputSchema: {
+        type: "object",
+        properties: {
+            id: { type: "string", description: "The ID of the label to retrieve." },
+            name: { type: "string", description: "Partial name match (case-insensitive). Used to find the label when ID is unknown." },
+        },
+    },
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -126,9 +140,24 @@ export const getLabelTool = {
 
 export async function handleGetLabelRequest(args: any, token: string) {
     try {
-        const { id } = GetLabelArgumentsSchema.parse(args);
+        const parsed = GetLabelArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${LABELS_BASE_URL}/${encodeURIComponent(id)}`;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<LabelsResponse>(
+                `${LABELS_BASE_URL}?maxResults=200`,
+                token,
+                { method: "GET", customerContext }
+            );
+            const items = listData?.labels ?? [];
+            const result = matchByName(items, parsed.name);
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const url = `${LABELS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
         const data = await makeDoitRequest<Label>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve label");
@@ -156,7 +185,7 @@ export const createLabelTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -215,7 +244,7 @@ export const updateLabelTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -263,7 +292,7 @@ export const getLabelAssignmentsTool = {
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -332,7 +361,7 @@ export const assignObjectsToLabelTool = {
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {

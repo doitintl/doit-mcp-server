@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { getDemoResponse, DEMO_TOKEN } from "./demoData.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
 
@@ -191,6 +192,15 @@ export async function makeDoitRequest<T>(
 ): Promise<T | null> {
     const { method = "GET", body = undefined, appendParams = true, customerContext, parseResponse = true } = options;
 
+    // Demo mode: return canned data without hitting the real API.
+    if (token === DEMO_TOKEN) {
+        if (!parseResponse) return {} as T;
+        const demo = getDemoResponse(url, method, body);
+        if (demo !== null) return demo as T;
+        // No fixture for this endpoint — return empty success so the tool doesn't error.
+        return {} as T;
+    }
+
     const headers = {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -308,4 +318,28 @@ export function toSnakeCase(str: string): string {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "");
+}
+
+/**
+ * Finds items whose `nameKey` field partially matches `query` (case-insensitive).
+ *
+ * Returns:
+ *   { resolved: string }  — exactly one match; resolved is the item's `id`
+ *   { error: string }     — no matches, or multiple matches (error lists the names so the LLM
+ *                           can ask the user to be more specific)
+ */
+export function matchByName<T extends Record<string, any>>(
+    items: T[],
+    query: string,
+    nameKey: string = "name"
+): { resolved: string } | { error: string } {
+    const q = query.toLowerCase();
+    const matches = items.filter((item) => {
+        const val = item[nameKey];
+        return typeof val === "string" && val.toLowerCase().includes(q);
+    });
+    if (matches.length === 0) return { error: `No items found matching "${query}".` };
+    if (matches.length === 1) return { resolved: matches[0].id as string };
+    const names = matches.map((m) => `"${m[nameKey]}"`).join(", ");
+    return { error: `Multiple items match "${query}": ${names}. Please provide a more specific name.` };
 }

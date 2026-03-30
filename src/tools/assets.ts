@@ -8,6 +8,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const ASSETS_BASE_URL = `${DOIT_API_BASE}/billing/v1/assets`;
@@ -41,17 +42,21 @@ export const ListAssetsArgumentsSchema = z.object({
         .describe(
             'An expression for filtering the results. Uses key:[value] syntax, e.g. "type:g-suite". Multiple filters can be connected using a pipe |. Different keys result in AND; same key multiple times results in OR.'
         ),
+    name: z
+        .string()
+        .optional()
+        .describe("Partial name filter (case-insensitive). Returns only assets whose name contains this string."),
 });
 
 export const listAssetsTool = {
     name: "list_assets",
     description:
-        "Use this when the user wants to browse their cloud assets, subscriptions, or resources. Returns a paginated list of assets. Do NOT use this for cost analysis (use run_query) or checking invoices (use list_invoices).",
+        "Use this when the user wants to browse their cloud assets, subscriptions, or resources. Returns a paginated list of assets. Supports partial name filtering. Do NOT use this for cost analysis (use run_query) or checking invoices (use list_invoices).",
     inputSchema: zodToMcpInputSchema(ListAssetsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -63,7 +68,7 @@ export const listAssetsTool = {
 
 export async function handleListAssetsRequest(args: any, token: string) {
     try {
-        const { maxResults, pageToken, filter } = ListAssetsArgumentsSchema.parse(args);
+        const { maxResults, pageToken, filter, name } = ListAssetsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
         const params = new URLSearchParams();
@@ -82,6 +87,13 @@ export async function handleListAssetsRequest(args: any, token: string) {
             return createErrorResponse("Failed to retrieve assets");
         }
 
+        if (name) {
+            const q = name.toLowerCase();
+            (data as any).assets = ((data as any).assets ?? []).filter(
+                (a: any) => typeof a.name === "string" && a.name.toLowerCase().includes(q)
+            );
+        }
+
         return createSuccessResponse(JSON.stringify(data, null, 2));
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
@@ -90,23 +102,36 @@ export async function handleListAssetsRequest(args: any, token: string) {
 }
 
 // Schema and metadata for get asset
-export const GetAssetArgumentsSchema = z.object({
-    id: z
-        .string()
-        .transform((val) => val.trim())
-        .pipe(z.string().min(1, "Asset ID is required and cannot be empty."))
-        .describe("The ID of the asset to retrieve."),
-});
+export const GetAssetArgumentsSchema = z
+    .object({
+        id: z
+            .string()
+            .transform((val) => val.trim())
+            .pipe(z.string().min(1))
+            .optional()
+            .describe("The ID of the asset to retrieve."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial name match (case-insensitive). Used to find the asset when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getAssetTool = {
     name: "get_asset",
     description:
-        "Use this when the user wants to view details of a specific cloud asset by its ID. Do NOT use this for listing all assets (use list_assets) or cost analysis (use run_query).",
-    inputSchema: zodToMcpInputSchema(GetAssetArgumentsSchema),
+        "Use this when the user wants to view details of a specific cloud asset. Accepts either the asset ID or a partial name (case-insensitive). Do NOT use this for listing all assets (use list_assets) or cost analysis (use run_query).",
+    inputSchema: {
+        type: "object",
+        properties: {
+            id: { type: "string", description: "The ID of the asset to retrieve." },
+            name: { type: "string", description: "Partial name match (case-insensitive). Used to find the asset when ID is unknown." },
+        },
+    },
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
     },
     // @ts-ignore
     _meta: {
@@ -118,9 +143,24 @@ export const getAssetTool = {
 
 export async function handleGetAssetRequest(args: any, token: string) {
     try {
-        const { id } = GetAssetArgumentsSchema.parse(args);
+        const parsed = GetAssetArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${ASSETS_BASE_URL}/${encodeURIComponent(id)}`;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<ListAssetsResponse>(
+                `${ASSETS_BASE_URL}?maxResults=249`,
+                token,
+                { method: "GET", customerContext }
+            );
+            const items = ((listData as any)?.assets ?? []) as Array<{ id: string; name: string }>;
+            const result = matchByName(items, parsed.name);
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const url = `${ASSETS_BASE_URL}/${encodeURIComponent(resolvedId!)}`;
         const data = await makeDoitRequest<AssetDetailed>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve asset");

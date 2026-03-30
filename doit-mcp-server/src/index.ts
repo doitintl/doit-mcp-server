@@ -11,6 +11,7 @@ import {
   cloudIncidentTool,
   cloudIncidentsTool,
 } from "../../src/tools/cloudIncidents.js";
+import { cloudOverviewTool, CloudOverviewArgumentsSchema } from "../../src/tools/overview.js";
 import {
   AnomaliesArgumentsSchema,
   AnomalyArgumentsSchema,
@@ -344,7 +345,7 @@ export class DoitMCPAgent extends McpAgent {
   // Both "ui/resourceUri" (flat key) and "ui.resourceUri" (nested) are set to match what
   // registerAppTool() from @modelcontextprotocol/ext-apps normalises.
   private registerTool(tool: any, schema: any) {
-    const WIDGET_URI = "ui://doit/cloud-intelligence-v7.html";
+    const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
     (this.server as any).registerTool(
       tool.name,
       {
@@ -398,7 +399,7 @@ export class DoitMCPAgent extends McpAgent {
     // The resource returns a tiny loader stub (~600 B) that fetches the real widget
     // HTML from GET /widget on every render. This means widget updates never require
     // ChatGPT app re-registration — only the served HTML at /widget changes.
-    const WIDGET_URI = "ui://doit/cloud-intelligence-v7.html";
+    const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
     const workerUrl = (this.env as any).WORKER_URL ?? "https://mcp.doit.com";
     this.server.resource(
       "cloud-intelligence-widget",
@@ -411,10 +412,25 @@ export class DoitMCPAgent extends McpAgent {
             uri: WIDGET_URI,
             mimeType: "text/html;profile=mcp-app",
             text: buildWidgetStub(workerUrl),
-          }],
+            _meta: {
+              ui: {
+                domain: workerUrl,
+                csp: {
+                  connectDomains: [
+                    "https://api.doit.com",
+                    "https://mcp.doit.com",
+                    "https://dci-mcp.ngrok.app",
+                  ],
+                },
+              },
+            },
+          } as any],
         };
       }
     );
+
+    // Cloud Overview tool
+    this.registerTool(cloudOverviewTool, CloudOverviewArgumentsSchema);
 
     // Cloud Incidents tools
     this.registerTool(cloudIncidentsTool, CloudIncidentsArgumentsSchema);
@@ -510,7 +526,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
-      const WIDGET_URI = "ui://doit/cloud-intelligence-v7.html";
+      const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
       (this.server as any).registerTool(
         changeCustomerTool.name,
         {

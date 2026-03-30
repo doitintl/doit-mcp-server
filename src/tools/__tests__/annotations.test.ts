@@ -247,7 +247,7 @@ describe("get_annotation", () => {
         const response = await handleGetAnnotationRequest({}, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("Either id or content must be provided") }],
             isError: true,
         });
     });
@@ -256,7 +256,7 @@ describe("get_annotation", () => {
         const response = await handleGetAnnotationRequest({ id: "" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Annotation ID is required and cannot be empty") }],
+            content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
             isError: true,
         });
     });
@@ -265,7 +265,7 @@ describe("get_annotation", () => {
         const response = await handleGetAnnotationRequest({ id: "   " }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Annotation ID is required and cannot be empty") }],
+            content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
             isError: true,
         });
     });

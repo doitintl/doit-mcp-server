@@ -6,6 +6,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const CLOUD_INCIDENTS_BASE_URL = `${DOIT_API_BASE}/core/v1/cloudincidents`;
@@ -39,10 +40,13 @@ export const CloudIncidentsArgumentsSchema = z.object({
     pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
 });
 
-export const CloudIncidentArgumentsSchema = z.object({
-    id: z.string(),
-    customerContext: z.string().optional(),
-});
+export const CloudIncidentArgumentsSchema = z
+    .object({
+        id: z.string().optional().describe("The ID of the cloud incident."),
+        title: z.string().optional().describe("Partial title match (case-insensitive). Used to find the incident when ID is unknown."),
+        customerContext: z.string().optional(),
+    })
+    .refine((d) => d.id || d.title, { message: "Either id or title must be provided." });
 
 // Interfaces
 export interface CloudIncident {
@@ -103,16 +107,19 @@ export const cloudIncidentsTool = {
 export const cloudIncidentTool = {
     name: "get_cloud_incident",
     description:
-        "Use this when the user wants to view details of a specific cloud platform incident by its ID. Returns full incident data including affected services and timeline. Do NOT use this for listing all incidents (use get_cloud_incidents) or anomalies (use get_anomalies).",
+        "Use this when the user wants to view details of a specific cloud platform incident. Accepts either the incident ID or a partial title match (case-insensitive). Do NOT use this for listing all incidents (use get_cloud_incidents) or anomalies (use get_anomalies).",
     inputSchema: {
         type: "object",
         properties: {
             id: {
                 type: "string",
-                description: "incident ID",
+                description: "The ID of the cloud incident.",
+            },
+            title: {
+                type: "string",
+                description: "Partial title match (case-insensitive). Used to find the incident when ID is unknown.",
             },
         },
-        required: ["id"],
     },
     annotations: {
         readOnlyHint: true,
@@ -210,9 +217,23 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
 // Handle specific cloud incident request
 export async function handleCloudIncidentRequest(args: any, token: string) {
     try {
-        const { id, customerContext } = CloudIncidentArgumentsSchema.parse(args);
+        const parsed = CloudIncidentArgumentsSchema.parse(args);
+        const { customerContext } = parsed;
+        let resolvedId = parsed.id;
 
-        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${id}`;
+        if (!resolvedId && parsed.title) {
+            const listData = await makeDoitRequest<CloudIncidentsResponse>(CLOUD_INCIDENTS_BASE_URL, token, {
+                method: "GET",
+                customerContext,
+            });
+            const items = (listData?.incidents ?? []).map((i) => ({ ...i, name: i.title }));
+            const result = matchByName(items, parsed.title, "name");
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${resolvedId}`;
 
         try {
             // Explicitly set appendParams to true to ensure URL parameters are added
@@ -223,7 +244,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
             });
 
             if (!incident) {
-                return createErrorResponse(`Failed to retrieve cloud incident with ID: ${id}`);
+                return createErrorResponse(`Failed to retrieve cloud incident with ID: ${resolvedId}`);
             }
 
             return createSuccessResponse(JSON.stringify(incident));
