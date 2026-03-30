@@ -39,8 +39,18 @@ const UpdateUserBaseSchema = z.object({
         .transform((val) => val.trim())
         .pipe(z.string().min(1, "ID is required and cannot be empty."))
         .describe("The unique ID of the user to update."),
-    firstName: z.string().min(1).optional().describe("The user's first name."),
-    lastName: z.string().min(1).optional().describe("The user's last name."),
+    firstName: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "First name cannot be empty or whitespace-only."))
+        .optional()
+        .describe("The user's first name."),
+    lastName: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Last name cannot be empty or whitespace-only."))
+        .optional()
+        .describe("The user's last name."),
     jobFunction: z
         .enum(JOB_FUNCTION_VALUES)
         .optional()
