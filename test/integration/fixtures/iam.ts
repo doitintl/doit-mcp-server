@@ -33,7 +33,7 @@ export const usersFixture = {
             displayName: "Alice Smith",
             firstName: "Alice",
             lastName: "Smith",
-            jobFunction: "Engineering",
+            jobFunction: "Software / Ops Engineer",
             phone: "+1234567890",
             phoneExtension: "",
             language: "en",
@@ -47,7 +47,7 @@ export const usersFixture = {
             displayName: "Bob Jones",
             firstName: "Bob",
             lastName: "Jones",
-            jobFunction: "Finance",
+            jobFunction: "Finance / Accounting",
             phone: "+0987654321",
             phoneExtension: "",
             language: "en",
@@ -56,6 +56,24 @@ export const usersFixture = {
             status: "active",
         },
     ],
+};
+
+export const updateUserFixture = {
+    message: "User updated successfully",
+    user: {
+        id: "user-1",
+        displayName: "Alice Johnson",
+        firstName: "Alice",
+        lastName: "Johnson",
+        email: "alice@example.com",
+        jobFunction: "Management",
+        phone: "+1234567890",
+        phoneExtension: "",
+        language: "en",
+        roleId: "role-1",
+        organizationId: "org-1",
+        status: "active",
+    },
 };
 
 export const validateUserFixture = {

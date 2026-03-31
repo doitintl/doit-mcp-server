@@ -15,6 +15,9 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Users
+    http.patch(`${API_BASE}/iam/v1/users/:id`, () => {
+        return HttpResponse.json(fixtures.updateUser);
+    }),
     http.get(`${API_BASE}/iam/v1/users`, () => {
         return HttpResponse.json(fixtures.users);
     }),

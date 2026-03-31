@@ -98,6 +98,8 @@ import {
 import {
   ListUsersArgumentsSchema,
   listUsersTool,
+  UpdateUserArgumentsSchema,
+  updateUserTool,
 } from "../../src/tools/users.js";
 import {
   ListRolesArgumentsSchema,
@@ -398,6 +400,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // Users tools
     this.registerTool(listUsersTool, ListUsersArgumentsSchema);
+    this.registerTool(updateUserTool, UpdateUserArgumentsSchema);
 
     // Roles tools
     this.registerTool(listRolesTool, ListRolesArgumentsSchema);

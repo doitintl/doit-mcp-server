@@ -80,6 +80,7 @@ describe("MCP Tools Integration", () => {
                 "update_datahub_dataset",
                 "update_label",
                 "update_report",
+                "update_user",
                 "validate_user",
             ]);
         });
@@ -170,6 +171,48 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("bob@example.com");
             expect(text).toContain("Alice Smith");
             expect(text).toContain("Bob Jones");
+        });
+    });
+
+    describe("update_user", () => {
+        it("returns updated user from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1", lastName: "Johnson", jobFunction: "Management" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User updated successfully");
+            expect(parsed.user.id).toBe("user-1");
+            expect(parsed.user.lastName).toBe("Johnson");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { firstName: "Alice" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("rejects id-only update (no fields to update)", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("At least one field");
+        });
+
+        it("accepts language es", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1", language: "es" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User updated successfully");
         });
     });
 

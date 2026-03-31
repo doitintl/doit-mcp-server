@@ -60,7 +60,7 @@ import {
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
 import { handleListTicketsRequest } from "../tools/tickets.js";
-import { handleListUsersRequest } from "../tools/users.js";
+import { handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./util.js";
 
@@ -172,6 +172,9 @@ export async function executeToolHandler(
                 break;
             case "list_users":
                 result = await handleListUsersRequest(args, token);
+                break;
+            case "update_user":
+                result = await handleUpdateUserRequest(args, token);
                 break;
             case "list_roles":
                 result = await handleListRolesRequest(args, token);

@@ -171,6 +171,7 @@ This MCP server provides many tools including the following:
 - [`list_organizations`](https://developer.doit.com/reference/listorganizations): Returns a list of organizations accessible to the authenticated user
 - [`list_platforms`](https://developer.doit.com/reference/listplatforms): Returns a list of all available platforms
 - [`list_users`](https://developer.doit.com/reference/listusers): Returns a list of all users in the organization
+- [`update_user`](https://developer.doit.com/reference/updateuser): Updates user information including name, job function, phone, language, and role
 - [`list_roles`](https://developer.doit.com/reference/listroles): Returns a list of all IAM roles, including both preset and custom roles
 - [`list_products`](https://developer.doit.com/reference/listproducts): Lists products available for different platforms, optionally filtered by platform name
 - [`list_datahub_datasets`](https://developer.doit.com/reference/listdatahubdatasets): Returns a list of all DataHub datasets for the customer
