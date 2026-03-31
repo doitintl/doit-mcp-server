@@ -496,6 +496,6 @@ export const commitmentFixture = {
             marketplaceLimitPercentage: 25,
         },
     ],
-    createTime: "2025-01-01T00:00:00.000Z",
-    updateTime: "2025-06-15T00:00:00.000Z",
+    createTime: 1735689600000,
+    updateTime: 1750032000000,
 };
