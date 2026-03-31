@@ -31,3 +31,18 @@ export const ticketsFixture = {
         },
     ],
 };
+
+export const ticketDetailFixture = {
+    id: 12345,
+    subject: "VM not starting",
+    description: "The VM fails to boot after the last update. Checked logs but no clear error.",
+    requester: "alice@example.com",
+    severity: "high",
+    platform: "google_cloud_platform",
+    product: "Compute Engine",
+    status: "open",
+    createTime: 1700000000000,
+    updateTime: 1700100000000,
+    urlUI: "https://console.doit.com/tickets/12345",
+    is_public: false,
+};
