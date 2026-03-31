@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint-test-build:
-    name: Tests and Build - Node 20
+    name: Tests and Build - Node 18
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
