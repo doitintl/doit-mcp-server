@@ -86,6 +86,7 @@ vi.mock(import("../tools/users.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListUsersRequest: vi.fn(),
     handleUpdateUserRequest: vi.fn(),
+    handleInviteUserRequest: vi.fn(),
 }));
 vi.mock(import("../tools/roles.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -235,7 +236,7 @@ import {
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
 import { listTicketsTool } from "../tools/tickets.js";
-import { listUsersTool, updateUserTool } from "../tools/users.js";
+import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
 
@@ -320,6 +321,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listPlatformsTool,
                 listUsersTool,
                 updateUserTool,
+                inviteUserTool,
                 listRolesTool,
                 listProductsTool,
                 listLabelsTool,

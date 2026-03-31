@@ -112,7 +112,14 @@ import {
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
 import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
-import { handleListUsersRequest, handleUpdateUserRequest, listUsersTool, updateUserTool } from "./tools/users.js";
+import {
+    handleInviteUserRequest,
+    handleListUsersRequest,
+    handleUpdateUserRequest,
+    inviteUserTool,
+    listUsersTool,
+    updateUserTool,
+} from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
@@ -168,6 +175,7 @@ export function createServer() {
                 listPlatformsTool,
                 listUsersTool,
                 updateUserTool,
+                inviteUserTool,
                 listRolesTool,
                 listProductsTool,
                 listLabelsTool,
@@ -296,6 +304,7 @@ export {
     handleGetLabelRequest,
     handleGetReportConfigRequest,
     handleGetReportResultsRequest,
+    handleInviteUserRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAnnotationsRequest,
