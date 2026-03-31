@@ -218,19 +218,6 @@ export const renderLoggedInAuthorizeScreen = async (
           rows="5"
           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-secondary font-mono text-sm resize-none"
         ></textarea>
-        ${raw(`<script>
-          (function() {
-            try {
-              var saved = localStorage.getItem('doit_api_key');
-              if (saved) {
-                document.getElementById('apiKeyInput').value = saved;
-              }
-              document.getElementById('apiKeyInput').addEventListener('input', function() {
-                try { localStorage.setItem('doit_api_key', this.value); } catch(e) {}
-              });
-            } catch(e) {}
-          })();
-        </script>`)}
         <button
           type="submit"
           name="action"
