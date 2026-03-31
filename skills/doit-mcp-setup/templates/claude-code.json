@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "doit-mcp": {
-      "type": "http",
-      "url": "https://mcp.doit.com/sse"
-    }
-  }
-}
