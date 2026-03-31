@@ -20,24 +20,6 @@ export type Bindings = Env & {
   OAUTH_KV: KVNamespace;
 };
 
-// ChatGPT redirect URI allowlist (prefix + exact matches for OAuth 2.1 compliance)
-const CHATGPT_REDIRECT_URI_PREFIXES = [
-  "https://chatgpt.com/connector/oauth/",
-];
-const CHATGPT_REDIRECT_URI_EXACT = [
-  "https://chatgpt.com/connector_platform_oauth_redirect",
-  "https://platform.openai.com/apps-manage/oauth",
-];
-
-/**
- * Returns true if the given redirect URI is allowed for ChatGPT OAuth flows.
- */
-function isChatGPTRedirectUri(redirectUri: string): boolean {
-  if (CHATGPT_REDIRECT_URI_EXACT.includes(redirectUri)) return true;
-  return CHATGPT_REDIRECT_URI_PREFIXES.some((prefix) =>
-    redirectUri.startsWith(prefix)
-  );
-}
 
 const app = new Hono<{
   Bindings: Bindings;
@@ -139,29 +121,20 @@ async function handleApprove(c: any) {
   return c.redirect(redirectTo, 302);
 }
 
-// Validate that a redirect URI is safe to redirect to.
-// Only allows URIs registered with the OAuthProvider (via oauthReqInfo.redirectUri)
-// or explicitly allowlisted ChatGPT URIs.
-function isSafeRedirectUri(uri: string): boolean {
-  try {
-    const parsed = new URL(uri);
-    if (parsed.protocol !== "https:") return false;
-    return isChatGPTRedirectUri(uri);
-  } catch {
-    return false;
-  }
-}
-
-// Helper function to render authorization rejection response
+// Helper function to render authorization rejection response.
+// The redirect URI was already validated by the OAuthProvider during the
+// authorization request, so we only need a basic protocol check here.
 async function renderAuthorizationRejection(c: any, redirectUri: string) {
-  // Only redirect to validated URIs; fall back to a plain 403 for unknown origins.
-  if (!isSafeRedirectUri(redirectUri)) {
-    return c.html("Authorization denied", 403);
+  try {
+    const parsed = new URL(redirectUri);
+    if (parsed.protocol === "https:") {
+      parsed.searchParams.set("error", "access_denied");
+      return c.redirect(parsed.toString(), 302);
+    }
+  } catch {
+    // malformed URI — fall through to 403
   }
-  // Use HTTP 302 so ChatGPT's OAuth popup receives the error response.
-  const url = new URL(redirectUri);
-  url.searchParams.set("error", "access_denied");
-  return c.redirect(url.toString(), 302);
+  return c.html("Authorization denied", 403);
 }
 
 app.post("/customer-context", async (c) => {
