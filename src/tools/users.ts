@@ -96,7 +96,8 @@ export async function handleUpdateUserRequest(args: any, token: string) {
     try {
         const parsed = UpdateUserArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const { id, ...body } = parsed;
+        const { id, jobFunction, ...rest } = parsed;
+        const body = jobFunction !== undefined ? { ...rest, jobTitle: jobFunction } : rest;
         const url = `${USERS_BASE_URL}/${encodeURIComponent(id)}`;
 
         const data = await makeDoitRequest(url, token, {

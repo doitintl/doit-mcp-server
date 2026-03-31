@@ -159,7 +159,7 @@ describe("handleUpdateUserRequest", () => {
         });
     });
 
-    it("should accept valid jobFunction enum value", async () => {
+    it("should translate jobFunction to jobTitle in the request body", async () => {
         (makeDoitRequest as vi.Mock).mockResolvedValue({ message: "ok", user: { id: "user-1" } });
 
         await handleUpdateUserRequest({ id: "user-1", jobFunction: "Management" }, mockToken);
@@ -169,9 +169,29 @@ describe("handleUpdateUserRequest", () => {
             mockToken,
             expect.objectContaining({
                 method: "PATCH",
-                body: { jobFunction: "Management" },
+                body: { jobTitle: "Management" },
             })
         );
+    });
+
+    it("should not include jobFunction in the request body (only jobTitle)", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue({ message: "ok", user: { id: "user-1" } });
+
+        await handleUpdateUserRequest({ id: "user-1", jobFunction: "Founder" }, mockToken);
+
+        const calledBody = (makeDoitRequest as vi.Mock).mock.calls[0][2].body;
+        expect(calledBody).not.toHaveProperty("jobFunction");
+        expect(calledBody.jobTitle).toBe("Founder");
+    });
+
+    it("should not include jobTitle in body when jobFunction is not provided", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue({ message: "ok", user: { id: "user-1" } });
+
+        await handleUpdateUserRequest({ id: "user-1", firstName: "Alice" }, mockToken);
+
+        const calledBody = (makeDoitRequest as vi.Mock).mock.calls[0][2].body;
+        expect(calledBody).not.toHaveProperty("jobTitle");
+        expect(calledBody).not.toHaveProperty("jobFunction");
     });
 
     it("should accept language 'en'", async () => {
