@@ -43,9 +43,7 @@ import {
   dimensionTool,
 } from "../../src/tools/dimension.js";
 import {
-  CreateTicketArgumentsSchema,
   ListTicketsArgumentsSchema,
-  createTicketTool,
   listTicketsTool,
 } from "../../src/tools/tickets.js";
 import {

@@ -217,7 +217,7 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { createTicketTool, listTicketsTool } from "../tools/tickets.js";
+import { listTicketsTool } from "../tools/tickets.js";
 import { listUsersTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
@@ -285,7 +285,6 @@ describe("ListToolsRequestSchema handler", () => {
                 dimensionsTool,
                 dimensionTool,
                 listTicketsTool,
-                createTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,

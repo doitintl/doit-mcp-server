@@ -36,7 +36,6 @@ describe("MCP Tools Integration", () => {
                 "create_budget",
                 "create_label",
                 "create_report",
-                "create_ticket",
                 "find_cloud_diagrams",
                 "get_alert",
                 "get_allocation",

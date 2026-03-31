@@ -106,7 +106,6 @@ import {
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
 import {
-    createTicketTool,
     handleCreateTicketRequest,
     handleListTicketsRequest,
     listTicketsTool,
@@ -149,7 +148,6 @@ export function createServer() {
                 dimensionsTool,
                 dimensionTool,
                 listTicketsTool,
-                createTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
