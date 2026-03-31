@@ -105,11 +105,7 @@ import {
     updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
-import {
-    handleCreateTicketRequest,
-    handleListTicketsRequest,
-    listTicketsTool,
-} from "./tools/tickets.js";
+import { handleCreateTicketRequest, handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import { handleListUsersRequest, listUsersTool } from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";

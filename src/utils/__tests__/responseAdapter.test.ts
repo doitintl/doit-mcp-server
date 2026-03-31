@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adaptToolResponse, sanitize } from "../responseAdapter.js";
+import { adaptToolResponse, sanitize } from "../../../doit-mcp-server/src/responseAdapter.js";
 
 describe("adaptToolResponse", () => {
     it("returns all three required fields: structuredContent, content, _meta", () => {

@@ -56,10 +56,7 @@ import { handleListRolesRequest } from "../tools/roles.js";
 import { handleListTicketsRequest } from "../tools/tickets.js";
 import { handleListUsersRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
-import { adaptToolResponse } from "./responseAdapter.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./util.js";
-
-export { adaptToolResponse };
 
 /**
  * Executes a tool handler with proper error handling

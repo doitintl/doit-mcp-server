@@ -152,8 +152,9 @@ import {
 } from "../../src/tools/datahubDatasets.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
-import { executeToolHandler, adaptToolResponse } from "../../src/utils/toolsHandler.js";
-import { WIDGET_URI } from "../../src/utils/responseAdapter.js";
+import { executeToolHandler } from "../../src/utils/toolsHandler.js";
+import { adaptToolResponse } from "./responseAdapter.js";
+import { WIDGET_URI } from "./responseAdapter.js";
 import { zodSchemaToMcpTool } from "../../src/utils/util.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
 

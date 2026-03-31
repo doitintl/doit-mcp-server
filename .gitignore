@@ -61,3 +61,4 @@ coverage/
 _local
 widget-gallery.html
 .yarn/
+package-lock.json
