@@ -80,3 +80,14 @@ export const validateUserFixture = {
     domain: "example.com",
     email: "alice@example.com",
 };
+
+export const inviteUserFixture = {
+    message: "User invited successfully",
+    user: {
+        id: "user-3",
+        email: "invited@example.com",
+        roleId: "role-1",
+        organizationId: "org-1",
+        status: "invited",
+    },
+};

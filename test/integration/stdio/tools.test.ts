@@ -54,6 +54,7 @@ describe("MCP Tools Integration", () => {
                 "get_label_assignments",
                 "get_report_config",
                 "get_report_results",
+                "invite_user",
                 "list_alerts",
                 "list_allocations",
                 "list_annotations",
@@ -213,6 +214,38 @@ describe("MCP Tools Integration", () => {
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
             expect(parsed.message).toBe("User updated successfully");
+        });
+    });
+
+    describe("invite_user", () => {
+        it("returns invite response from mock API", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { email: "invited@example.com", roleId: "role-1", organizationId: "org-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User invited successfully");
+            expect(parsed.user.email).toBe("invited@example.com");
+            expect(parsed.user.status).toBe("invited");
+        });
+
+        it("rejects missing email", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { roleId: "role-1" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("rejects invalid email format", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { email: "not-an-email" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 

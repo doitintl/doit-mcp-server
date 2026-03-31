@@ -13,6 +13,7 @@ import {
 } from "../utils/util.js";
 
 export const USERS_BASE_URL = `${DOIT_API_BASE}/iam/v1/users`;
+export const USERS_INVITE_URL = `${USERS_BASE_URL}/invite`;
 
 export const ListUsersArgumentsSchema = z.object({});
 
@@ -92,6 +93,28 @@ export const updateUserTool = {
     inputSchema: zodToMcpInputSchema(UpdateUserArgumentsSchema),
 };
 
+export const InviteUserArgumentsSchema = z.object({
+    email: z.string().email().describe("The email address of the user to invite (required)."),
+    roleId: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Role ID cannot be empty or whitespace-only."))
+        .optional()
+        .describe("The ID of the role to assign to the invited user."),
+    organizationId: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Organization ID cannot be empty or whitespace-only."))
+        .optional()
+        .describe("The ID of the organization to assign the invited user to."),
+});
+
+export const inviteUserTool = {
+    name: "invite_user",
+    description: "Invites a new user to the organization by email, optionally assigning a role and organization.",
+    inputSchema: zodToMcpInputSchema(InviteUserArgumentsSchema),
+};
+
 export async function handleUpdateUserRequest(args: any, token: string) {
     try {
         const parsed = UpdateUserArgumentsSchema.parse(args);
@@ -111,6 +134,26 @@ export async function handleUpdateUserRequest(args: any, token: string) {
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling update user request");
+    }
+}
+
+export async function handleInviteUserRequest(args: any, token: string) {
+    try {
+        const parsed = InviteUserArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const body = { ...parsed };
+
+        const data = await makeDoitRequest(USERS_INVITE_URL, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to invite user");
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling invite user request");
     }
 }
 

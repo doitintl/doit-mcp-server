@@ -96,6 +96,8 @@ import {
   listPlatformsTool,
 } from "../../src/tools/platforms.js";
 import {
+  InviteUserArgumentsSchema,
+  inviteUserTool,
   ListUsersArgumentsSchema,
   listUsersTool,
   UpdateUserArgumentsSchema,
@@ -401,6 +403,7 @@ export class DoitMCPAgent extends McpAgent {
     // Users tools
     this.registerTool(listUsersTool, ListUsersArgumentsSchema);
     this.registerTool(updateUserTool, UpdateUserArgumentsSchema);
+    this.registerTool(inviteUserTool, InviteUserArgumentsSchema);
 
     // Roles tools
     this.registerTool(listRolesTool, ListRolesArgumentsSchema);

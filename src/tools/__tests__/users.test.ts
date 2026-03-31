@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
-import { handleListUsersRequest, handleUpdateUserRequest, USERS_BASE_URL } from "../users.js";
+import {
+    handleInviteUserRequest,
+    handleListUsersRequest,
+    handleUpdateUserRequest,
+    USERS_BASE_URL,
+    USERS_INVITE_URL,
+} from "../users.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
@@ -258,5 +264,127 @@ describe("handleUpdateUserRequest", () => {
             content: [{ type: "text", text: expect.stringContaining("digits") }],
             isError: true,
         });
+    });
+});
+
+describe("handleInviteUserRequest", () => {
+    const mockToken = "fake-token";
+    const validArgs = { email: "newuser@example.com", roleId: "role-1", organizationId: "org-1" };
+    const mockResponse = {
+        message: "User invited successfully",
+        user: {
+            id: "user-3",
+            email: "newuser@example.com",
+            roleId: "role-1",
+            organizationId: "org-1",
+            status: "invited",
+        },
+    };
+
+    it("should call makeDoitRequest with POST, invite URL, and correct body", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        const response = await handleInviteUserRequest(validArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            USERS_INVITE_URL,
+            mockToken,
+            expect.objectContaining({
+                method: "POST",
+                body: expect.objectContaining({ email: "newuser@example.com" }),
+                customerContext: undefined,
+            })
+        );
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.user.email).toBe("newuser@example.com");
+        expect(parsed.user.status).toBe("invited");
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        await handleInviteUserRequest({ ...validArgs, customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ customerContext: "customer-123" })
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+        const response = await handleInviteUserRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("invite user") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleInviteUserRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return validation error for missing email", async () => {
+        const response = await handleInviteUserRequest({ roleId: "role-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.any(String) }],
+            isError: true,
+        });
+    });
+
+    it("should return validation error for invalid email format", async () => {
+        const response = await handleInviteUserRequest({ email: "not-an-email" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.any(String) }],
+            isError: true,
+        });
+    });
+
+    it("should return validation error for whitespace-only roleId", async () => {
+        const response = await handleInviteUserRequest({ email: "newuser@example.com", roleId: "   " }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Role ID") }],
+            isError: true,
+        });
+    });
+
+    it("should return validation error for whitespace-only organizationId", async () => {
+        const response = await handleInviteUserRequest(
+            { email: "newuser@example.com", organizationId: "   " },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Organization ID") }],
+            isError: true,
+        });
+    });
+
+    it("should work with email only (roleId and organizationId optional)", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        await handleInviteUserRequest({ email: "newuser@example.com" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            USERS_INVITE_URL,
+            mockToken,
+            expect.objectContaining({
+                method: "POST",
+                body: { email: "newuser@example.com" },
+            })
+        );
     });
 });
