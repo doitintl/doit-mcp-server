@@ -54,6 +54,7 @@ describe("MCP Tools Integration", () => {
                 "get_label_assignments",
                 "get_report_config",
                 "get_report_results",
+                "get_ticket",
                 "invite_user",
                 "list_alerts",
                 "list_allocations",
@@ -521,6 +522,30 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("open");
             expect(text).toContain("google_cloud_platform");
             expect(text).toContain("Compute Engine");
+        });
+    });
+
+    describe("get_ticket", () => {
+        it("returns a specific ticket by ID", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: { id: "12345" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe(12345);
+            expect(parsed.subject).toBe("VM not starting");
+            expect(parsed.description).toContain("VM fails to boot");
+            expect(parsed.requester).toBe("alice@example.com");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("id");
+        });
+
+        it("rejects non-numeric id", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: { id: "ticket-abc" } });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
         });
     });
 

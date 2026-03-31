@@ -111,7 +111,7 @@ import {
     updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
-import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
+import { getTicketTool, handleGetTicketRequest, handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
 import {
     handleInviteUserRequest,
     handleListUsersRequest,
@@ -157,6 +157,7 @@ export function createServer() {
                 dimensionsTool,
                 dimensionTool,
                 listTicketsTool,
+                getTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -319,6 +320,7 @@ export {
     handleListPlatformsRequest,
     handleListProductsRequest,
     handleListRolesRequest,
+    handleGetTicketRequest,
     handleListTicketsRequest,
     handleListUsersRequest,
     handleUpdateUserRequest,
