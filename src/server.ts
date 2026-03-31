@@ -61,6 +61,12 @@ import {
     handleCloudIncidentsRequest,
 } from "./tools/cloudIncidents.js";
 import {
+    getCommitmentTool,
+    handleGetCommitmentRequest,
+    handleListCommitmentsRequest,
+    listCommitmentsTool,
+} from "./tools/commitmentManager.js";
+import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
     handleCreateDatahubDatasetRequest,
@@ -190,6 +196,8 @@ export function createServer() {
                 getAnnotationTool,
                 createAnnotationTool,
                 updateAnnotationTool,
+                listCommitmentsTool,
+                getCommitmentTool,
             ],
         };
     });
@@ -287,6 +295,7 @@ export {
     handleDimensionsRequest,
     handleFindCloudDiagramsRequest,
     handleGeneralError,
+    handleGetCommitmentRequest,
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetAnnotationRequest,
@@ -303,6 +312,7 @@ export {
     handleGetDatahubDatasetRequest,
     handleListAssetsRequest,
     handleListBudgetsRequest,
+    handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
     handleListInvoicesRequest,
     handleListLabelsRequest,

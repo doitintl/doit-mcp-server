@@ -129,6 +129,11 @@ vi.mock(import("../tools/annotations.js"), async (importOriginal) => ({
     handleCreateAnnotationRequest: vi.fn(),
     handleUpdateAnnotationRequest: vi.fn(),
 }));
+vi.mock(import("../tools/commitmentManager.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListCommitmentsRequest: vi.fn(),
+    handleGetCommitmentRequest: vi.fn(),
+}));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
@@ -164,6 +169,7 @@ import {
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetAssetRequest,
+    handleGetCommitmentRequest,
     handleGetDatahubDatasetRequest,
     handleGetInvoiceRequest,
     handleGetLabelAssignmentsRequest,
@@ -171,6 +177,7 @@ import {
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAssetsRequest,
+    handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
     handleListInvoicesRequest,
     handleListTicketsRequest,
@@ -204,6 +211,7 @@ import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } fr
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
+import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -342,6 +350,8 @@ describe("ListToolsRequestSchema handler", () => {
                 getAnnotationTool,
                 createAnnotationTool,
                 updateAnnotationTool,
+                listCommitmentsTool,
+                getCommitmentTool,
             ],
         });
     });
@@ -716,6 +726,8 @@ describe("CallToolRequestSchema handler", () => {
             { flowID: "flow-789" },
             handleTriggerCloudFlowRequest,
         ],
+        ["list_commitments", "list_commitments", {}, handleListCommitmentsRequest],
+        ["get_commitment", "get_commitment", { id: "commitment-1" }, handleGetCommitmentRequest],
     ];
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {

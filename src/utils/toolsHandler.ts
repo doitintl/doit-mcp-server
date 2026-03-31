@@ -29,6 +29,7 @@ import {
 import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
+import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "../tools/commitmentManager.js";
 import {
     handleCreateDatahubDatasetRequest,
     handleGetDatahubDatasetRequest,
@@ -241,6 +242,12 @@ export async function executeToolHandler(
                 break;
             case "update_annotation":
                 result = await handleUpdateAnnotationRequest(args, token);
+                break;
+            case "list_commitments":
+                result = await handleListCommitmentsRequest(args, token);
+                break;
+            case "get_commitment":
+                result = await handleGetCommitmentRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);

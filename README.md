@@ -168,6 +168,8 @@ This MCP server provides many tools including the following:
 - [`get_annotation`](https://developer.doit.com/reference/getannotation): Returns a specific annotation by ID
 - [`create_annotation`](https://developer.doit.com/reference/createannotation): Creates a new annotation with content, timestamp, and optional report/label associations
 - [`update_annotation`](https://developer.doit.com/reference/updateannotation): Updates an existing annotation by ID
+- [`list_commitments`](https://developer.doit.com/reference/listcommitments): Returns a list of commitments (reserved capacity or spend agreements) with cloud providers
+- [`get_commitment`](https://developer.doit.com/reference/getcommitment): Returns details of a specific commitment by ID, including periods and attainment data
 - [`list_organizations`](https://developer.doit.com/reference/listorganizations): Returns a list of organizations accessible to the authenticated user
 - [`list_platforms`](https://developer.doit.com/reference/listplatforms): Returns a list of all available platforms
 - [`list_users`](https://developer.doit.com/reference/listusers): Returns a list of all users in the organization

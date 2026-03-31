@@ -47,6 +47,7 @@ describe("MCP Tools Integration", () => {
                 "get_budget",
                 "get_cloud_incident",
                 "get_cloud_incidents",
+                "get_commitment",
                 "get_datahub_dataset",
                 "get_dimension",
                 "get_invoice",
@@ -59,6 +60,7 @@ describe("MCP Tools Integration", () => {
                 "list_annotations",
                 "list_assets",
                 "list_budgets",
+                "list_commitments",
                 "list_datahub_datasets",
                 "list_dimensions",
                 "list_invoices",
@@ -1205,6 +1207,48 @@ describe("MCP Tools Integration", () => {
             expect(parsed.status).toBe("triggered");
             expect(parsed.executionId).toBe("exec-123");
             expect(Object.keys(parsed)).toHaveLength(2);
+        });
+    });
+
+    describe("list_commitments", () => {
+        it("returns commitments from mock API", async () => {
+            const result = await client.callTool({ name: "list_commitments", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.commitments).toHaveLength(1);
+            expect(parsed.commitments[0].id).toBe("commitment-1");
+            expect(parsed.commitments[0].name).toBe("GCP 3-Year CUD");
+            expect(parsed.commitments[0].cloudProvider).toBe("google-cloud");
+            expect(parsed.rowCount).toBe(1);
+        });
+
+        it("accepts filter and sort parameters", async () => {
+            const result = await client.callTool({
+                name: "list_commitments",
+                arguments: { sortBy: "name", sortOrder: "asc", filter: "provider:[google-cloud]" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.commitments).toHaveLength(1);
+        });
+    });
+
+    describe("get_commitment", () => {
+        it("returns a specific commitment by ID", async () => {
+            const result = await client.callTool({ name: "get_commitment", arguments: { id: "commitment-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("commitment-1");
+            expect(parsed.name).toBe("GCP 3-Year CUD");
+            expect(parsed.cloudProvider).toBe("google-cloud");
+            expect(parsed.totalCommitmentValue).toBe(100000);
+            expect(parsed.periods).toHaveLength(1);
+        });
+
+        it("returns error for missing id", async () => {
+            const result = await client.callTool({ name: "get_commitment", arguments: {} });
+            const text = getTextContent(result);
+            expect(text.toLowerCase()).toContain("required");
         });
     });
 

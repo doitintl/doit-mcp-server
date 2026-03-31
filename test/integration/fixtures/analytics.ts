@@ -451,3 +451,51 @@ export const updateAlertFixture = {
         value: 2000,
     },
 };
+
+export const commitmentsFixture = {
+    pageToken: "",
+    rowCount: 1,
+    commitments: [
+        {
+            id: "commitment-1",
+            name: "GCP 3-Year CUD",
+            startDate: "2025-01-01T00:00:00.000Z",
+            endDate: "2028-01-01T00:00:00.000Z",
+            currency: "USD",
+            cloudProvider: "google-cloud",
+            totalCommitmentValue: 100000,
+            totalCurrentAttainment: 75000,
+            periods: [
+                {
+                    startDate: "2025-01-01T00:00:00.000Z",
+                    endDate: "2026-01-01T00:00:00.000Z",
+                    commitmentValue: 33333,
+                    marketplaceLimitPercentage: 25,
+                },
+            ],
+            createTime: 1735689600000,
+            updateTime: 1750032000000,
+        },
+    ],
+};
+
+export const commitmentFixture = {
+    id: "commitment-1",
+    name: "GCP 3-Year CUD",
+    startDate: "2025-01-01T00:00:00.000Z",
+    endDate: "2028-01-01T00:00:00.000Z",
+    currency: "USD",
+    cloudProvider: "google-cloud",
+    totalCommitmentValue: 100000,
+    totalCurrentAttainment: 75000,
+    periods: [
+        {
+            startDate: "2025-01-01T00:00:00.000Z",
+            endDate: "2026-01-01T00:00:00.000Z",
+            commitmentValue: 33333,
+            marketplaceLimitPercentage: 25,
+        },
+    ],
+    createTime: "2025-01-01T00:00:00.000Z",
+    updateTime: "2025-06-15T00:00:00.000Z",
+};

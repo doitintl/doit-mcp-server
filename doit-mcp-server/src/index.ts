@@ -148,6 +148,12 @@ import {
   updateAnnotationTool,
 } from "../../src/tools/annotations.js";
 import {
+  GetCommitmentArgumentsSchema,
+  getCommitmentTool,
+  ListCommitmentsArgumentsSchema,
+  listCommitmentsTool,
+} from "../../src/tools/commitmentManager.js";
+import {
   CreateDatahubDatasetArgumentsSchema,
   GetDatahubDatasetArgumentsSchema,
   ListDatahubDatasetsArgumentsSchema,
@@ -437,6 +443,10 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getAnnotationTool, GetAnnotationArgumentsSchema);
     this.registerTool(createAnnotationTool, CreateAnnotationArgumentsSchema);
     this.registerTool(updateAnnotationTool, UpdateAnnotationArgumentsSchema);
+
+    // Commitment Manager tools
+    this.registerTool(listCommitmentsTool, ListCommitmentsArgumentsSchema);
+    this.registerTool(getCommitmentTool, GetCommitmentArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
