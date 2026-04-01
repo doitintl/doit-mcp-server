@@ -317,10 +317,12 @@ export function GenericTable({ data }: ViewProps) {
   // ── Single object — key-value pairs ────────────────────────────────────────
   const kvEntries =
     configColumns && configColumns.length > 0
-      ? configColumns.map(({ key, label, format, formatOptions }) => ({
-          key, label, format, formatOptions,
-          value: (data as Record<string, unknown>)[key],
-        }))
+      ? configColumns
+          .map(({ key, label, format, formatOptions }) => ({
+            key, label, format, formatOptions,
+            value: (data as Record<string, unknown>)[key],
+          }))
+          .filter(({ value, format }) => !(format === "image" && !value))
       : Object.entries(data)
           .filter(([key]) => !key.startsWith("_"))
           .map(([key, value]) => ({
