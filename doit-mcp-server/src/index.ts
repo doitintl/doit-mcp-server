@@ -179,7 +179,6 @@ import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
-import { zodSchemaToMcpTool } from "../../src/utils/util.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
 
 const KEEP_ALIVE_INTERVAL_MS = 120_000; // 2 minutes in milliseconds
@@ -367,7 +366,7 @@ export class DoitMCPAgent extends McpAgent {
       tool.name,
       {
         description: tool.description,
-        inputSchema: zodSchemaToMcpTool(schema) ?? tool.inputSchema?.properties ?? tool.inputSchema,
+        inputSchema: schema,
         annotations: tool.annotations,
         _meta: {
           ...tool._meta,
@@ -560,7 +559,7 @@ export class DoitMCPAgent extends McpAgent {
         changeCustomerTool.name,
         {
           description: changeCustomerTool.description,
-          inputSchema: zodSchemaToMcpTool(ChangeCustomerArgumentsSchema),
+          inputSchema: ChangeCustomerArgumentsSchema,
           annotations: changeCustomerTool.annotations,
           _meta: {
             ...changeCustomerTool._meta,
