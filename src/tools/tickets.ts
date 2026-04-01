@@ -253,7 +253,8 @@ export const ListTicketCommentsArgumentsSchema = z.object({
 // Tool definition for listing ticket comments
 export const listTicketCommentsTool = {
     name: "list_ticket_comments",
-    description: "Returns all comments on a support ticket. For customers, only public comments are returned. For DoiT employees, both public and private comments are returned.",
+    description:
+        "Returns all comments on a support ticket. For customers, only public comments are returned. For DoiT employees, both public and private comments are returned.",
     inputSchema: zodToMcpInputSchema(ListTicketCommentsArgumentsSchema),
 };
 
