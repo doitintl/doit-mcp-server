@@ -47,7 +47,7 @@ export const ListCommitmentsArgumentsSchema = z.object({
 export const listCommitmentsTool = {
     name: "list_commitments",
     description:
-        "Returns a list of commitment contracts from the DoiT Commitment Manager. These are negotiated cloud spend or usage contracts between the customer and a cloud provider (such as Google Cloud CUDs, AWS Savings Plans, or Azure Reserved Instances) that DoiT manages on the customer's behalf.",
+        "Returns a list of commitment contracts from the DoiT Commitment Manager. These are Enterprise Discount Program (EDP) agreements — negotiated minimum spend or usage commitments between the customer and a cloud provider (Google Cloud, AWS, or Azure) — that DoiT manages on the customer's behalf.",
     inputSchema: zodToMcpInputSchema(ListCommitmentsArgumentsSchema),
 };
 
@@ -92,7 +92,7 @@ export const GetCommitmentArgumentsSchema = z.object({
 export const getCommitmentTool = {
     name: "get_commitment",
     description:
-        "Returns details of a specific commitment contract managed by DoiT, identified by its ID. Includes the full breakdown of commitment periods, per-period values, and current spend attainment against the contracted amount.",
+        "Returns details of a specific Enterprise Discount Program (EDP) commitment contract managed by DoiT, identified by its ID. Includes the full breakdown of commitment periods, per-period contracted values, and current spend attainment against the committed amount.",
     inputSchema: zodToMcpInputSchema(GetCommitmentArgumentsSchema),
 };
 
