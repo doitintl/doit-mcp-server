@@ -33,6 +33,14 @@ import {
   updateReportTool,
 } from "../../src/tools/reports.js";
 import {
+  CostBreakdownArgumentsSchema,
+  CostTrendArgumentsSchema,
+  CompareSpendArgumentsSchema,
+  costBreakdownTool,
+  costTrendTool,
+  compareSpendTool,
+} from "../../src/tools/queryHelpers.js";
+import {
   ValidateUserArgumentsSchema,
   validateUserTool,
 } from "../../src/tools/validateUser.js";
@@ -458,6 +466,9 @@ export class DoitMCPAgent extends McpAgent {
     // Reports tools
     this.registerTool(reportsTool, ReportsArgumentsSchema);
     this.registerTool(runQueryTool, RunQueryArgumentsSchema);
+    this.registerTool(costBreakdownTool, CostBreakdownArgumentsSchema);
+    this.registerTool(costTrendTool, CostTrendArgumentsSchema);
+    this.registerTool(compareSpendTool, CompareSpendArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);
     this.registerTool(createReportTool, CreateReportArgumentsSchema);

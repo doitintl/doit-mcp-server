@@ -101,6 +101,14 @@ import {
 } from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import { cloudOverviewTool } from "./tools/overview.js";
+import {
+    compareSpendTool,
+    costBreakdownTool,
+    costTrendTool,
+    handleCompareSpendRequest,
+    handleCostBreakdownRequest,
+    handleCostTrendRequest,
+} from "./tools/queryHelpers.js";
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
 import {
@@ -164,6 +172,9 @@ export function createServer() {
                 anomalyTool,
                 reportsTool,
                 runQueryTool,
+                costBreakdownTool,
+                costTrendTool,
+                compareSpendTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,

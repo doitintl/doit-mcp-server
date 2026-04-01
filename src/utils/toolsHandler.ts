@@ -48,6 +48,11 @@ import {
     handleListLabelsRequest,
     handleUpdateLabelRequest,
 } from "../tools/labels.js";
+import {
+    handleCostBreakdownRequest,
+    handleCostTrendRequest,
+    handleCompareSpendRequest,
+} from "../tools/queryHelpers.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleCloudOverviewRequest } from "../tools/overview.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
@@ -101,6 +106,15 @@ export async function executeToolHandler(
                 break;
             case "run_query":
                 result = await handleRunQueryRequest(args, token);
+                break;
+            case "cost_breakdown":
+                result = await handleCostBreakdownRequest(args, token);
+                break;
+            case "cost_trend":
+                result = await handleCostTrendRequest(args, token);
+                break;
+            case "compare_spend":
+                result = await handleCompareSpendRequest(args, token);
                 break;
             case "get_report_results":
                 result = await handleGetReportResultsRequest(args, token);

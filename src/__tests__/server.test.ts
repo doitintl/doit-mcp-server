@@ -241,6 +241,7 @@ import {
 } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { cloudOverviewTool } from "../tools/overview.js";
+import { costBreakdownTool, costTrendTool, compareSpendTool } from "../tools/queryHelpers.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import {
@@ -313,6 +314,9 @@ describe("ListToolsRequestSchema handler", () => {
                 anomalyTool,
                 reportsTool,
                 runQueryTool,
+                costBreakdownTool,
+                costTrendTool,
+                compareSpendTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,

@@ -686,7 +686,7 @@ export async function handleReportsRequest(args: any, token: string) {
  * Normalise common LLM-generated aliases to the exact IDs the DoiT API expects.
  * This makes the tool robust against the LLM using display names or abbreviations.
  */
-const CLOUD_PROVIDER_ALIASES: Record<string, string> = {
+export const CLOUD_PROVIDER_ALIASES: Record<string, string> = {
     // AWS
     aws: "amazon-web-services",
     amazon: "amazon-web-services",
@@ -704,7 +704,7 @@ const CLOUD_PROVIDER_ALIASES: Record<string, string> = {
     microsoft_azure: "microsoft-azure",
 };
 
-function normalizeConfig(config: any): any {
+export function normalizeConfig(config: any): any {
     if (!config?.filters) return config;
     return {
         ...config,
