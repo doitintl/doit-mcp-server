@@ -51,7 +51,13 @@ import {
     usersFixture,
     validateUserFixture,
 } from "./iam.js";
-import { platformsFixture, productsFixture, ticketDetailFixture, ticketsFixture } from "./support.js";
+import {
+    platformsFixture,
+    productsFixture,
+    ticketCommentsFixture,
+    ticketDetailFixture,
+    ticketsFixture,
+} from "./support.js";
 
 export const fixtures = {
     organizations: organizationsFixture,
@@ -95,6 +101,7 @@ export const fixtures = {
 
     tickets: ticketsFixture,
     ticketDetail: ticketDetailFixture,
+    ticketComments: ticketCommentsFixture,
 
     cloudDiagrams: cloudDiagramsFixture,
 

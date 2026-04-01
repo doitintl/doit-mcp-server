@@ -193,3 +193,44 @@ export async function handleGetTicketRequest(args: any, token: string) {
         return handleGeneralError(error, "handling get ticket request");
     }
 }
+
+// Arguments schema for listing ticket comments
+export const ListTicketCommentsArgumentsSchema = z.object({
+    ticketId: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(
+            z
+                .string()
+                .min(1, "Ticket ID is required and cannot be empty.")
+                .regex(/^\d+$/, "Ticket ID must be a numeric value.")
+        )
+        .describe("The numeric ID of the support ticket whose comments to retrieve."),
+});
+
+// Tool definition for listing ticket comments
+export const listTicketCommentsTool = {
+    name: "list_ticket_comments",
+    description: "Returns all comments on a support ticket. For customers, only public comments are returned. For DoiT employees, both public and private comments are returned.",
+    inputSchema: zodToMcpInputSchema(ListTicketCommentsArgumentsSchema),
+};
+
+// Handler for listing ticket comments
+export async function handleListTicketCommentsRequest(args: any, token: string) {
+    try {
+        const { ticketId } = ListTicketCommentsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${TICKETS_BASE_URL}/${encodeURIComponent(ticketId)}/comments`;
+        const data = await makeDoitRequest(url, token, {
+            method: "GET",
+            customerContext,
+        });
+        if (!data) {
+            return createErrorResponse("Failed to retrieve ticket comments");
+        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling list ticket comments request");
+    }
+}

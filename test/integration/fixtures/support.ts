@@ -46,3 +46,22 @@ export const ticketDetailFixture = {
     urlUI: "https://console.doit.com/tickets/12345",
     is_public: false,
 };
+
+export const ticketCommentsFixture = {
+    comments: [
+        {
+            id: 1001,
+            body: "Thank you for reaching out. We are investigating the issue.",
+            author: "support@doit.com",
+            created: 1700010000000,
+            attachments: [],
+        },
+        {
+            id: 1002,
+            body: "We found the root cause. Please try restarting the VM.",
+            author: "support@doit.com",
+            created: 1700020000000,
+            attachments: [],
+        },
+    ],
+};

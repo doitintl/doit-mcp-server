@@ -46,6 +46,8 @@ import {
 import {
   GetTicketArgumentsSchema,
   getTicketTool,
+  ListTicketCommentsArgumentsSchema,
+  listTicketCommentsTool,
   ListTicketsArgumentsSchema,
   listTicketsTool,
 } from "../../src/tools/tickets.js";
@@ -378,6 +380,7 @@ export class DoitMCPAgent extends McpAgent {
     // Tickets tools
     this.registerTool(listTicketsTool, ListTicketsArgumentsSchema);
     this.registerTool(getTicketTool, GetTicketArgumentsSchema);
+    this.registerTool(listTicketCommentsTool, ListTicketCommentsArgumentsSchema);
 
     // Invoices tools
     this.registerTool(listInvoicesTool, ListInvoicesArgumentsSchema);
