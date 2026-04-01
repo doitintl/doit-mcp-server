@@ -40,8 +40,18 @@ export const ListDatahubDatasetsArgumentsSchema = z.object({});
 export const listDatahubDatasetsTool = {
     name: "list_datahub_datasets",
     description:
-        "Returns a list of all DataHub datasets for the customer. Each dataset includes its name, description, record count, last updated time, and who last updated it.",
+        "Use this when the user wants to see available DataHub datasets. Returns a list of datasets with metadata. Do NOT use this for billing data (use run_query) or assets (use list_assets).",
     inputSchema: zodToMcpInputSchema(ListDatahubDatasetsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading datasets...",
+        "openai/toolInvocation/invoked": "Datasets loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListDatahubDatasetsRequest(args: any, token: string) {
@@ -73,8 +83,18 @@ export const GetDatahubDatasetArgumentsSchema = z.object({
 export const getDatahubDatasetTool = {
     name: "get_datahub_dataset",
     description:
-        "Returns details of a specific DataHub dataset by its name, including description, record count, last updated time, and who last updated it.",
+        "Use this when the user wants to view details of a specific DataHub dataset by its ID. Returns full dataset metadata and schema. Do NOT use this for listing all datasets (use list_datahub_datasets) or cost queries (use run_query).",
     inputSchema: zodToMcpInputSchema(GetDatahubDatasetArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading dataset...",
+        "openai/toolInvocation/invoked": "Dataset loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleGetDatahubDatasetRequest(args: any, token: string) {

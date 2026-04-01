@@ -22,11 +22,22 @@ export interface ValidateUserResponse {
 // Tool metadata
 export const validateUserTool = {
     name: "validate_user",
-    description: "Validates the current API user and returns domain and email information",
+    description:
+        "Use this ONLY when the user explicitly asks to verify their account connection or check who they are logged in as. Do NOT call this proactively before other tool calls — the OAuth token already guarantees the user is authenticated. Do NOT use this for listing users in the organization (use list_users).",
     inputSchema: {
         type: "object",
         properties: {},
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Validating user...",
+        "openai/toolInvocation/invoked": "User validated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handle validate user request
@@ -51,12 +62,12 @@ export async function handleValidateUserRequest(args: any, token: string) {
                 return createErrorResponse("Failed to validate user");
             }
 
-            // Format the response
-            const formattedResponse = `User validation successful:
-Domain: ${userData.domain} (the domain of the user, make it bold)
-Email: ${userData.email}`;
-
-            return createSuccessResponse(formattedResponse);
+            return createSuccessResponse(
+                JSON.stringify({
+                    domain: userData.domain,
+                    email: userData.email,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

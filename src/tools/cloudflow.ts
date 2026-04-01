@@ -35,7 +35,7 @@ export function getTriggerCloudFlowURL(value: string): string {
 export const triggerCloudFlowTool = {
     name: "trigger_cloud_flow",
     description:
-        "Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
+        "Use this when the user wants to trigger an automated CloudFlow workflow by its flow ID. This executes automation that may modify cloud resources externally. Ask the user to confirm the flow ID and any parameters before executing. Do NOT use this for viewing CloudFlow definitions or checking available flows.",
     inputSchema: {
         type: "object",
         properties: {
@@ -50,6 +50,16 @@ export const triggerCloudFlowTool = {
         },
         required: ["flowID"],
     },
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Triggering CloudFlow...",
+        "openai/toolInvocation/invoked": "CloudFlow triggered",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleTriggerCloudFlowRequest(args: any, token: string) {

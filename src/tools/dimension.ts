@@ -45,7 +45,8 @@ export interface DimensionResponse {
 // Tool metadata
 export const dimensionTool = {
     name: "get_dimension",
-    description: "Get a specific Cloud Analytics dimension by type and ID",
+    description:
+        "Use this to look up the valid filter values for a specific dimension before calling run_query — for example, call get_dimension({type: 'fixed', id: 'cloud_provider'}) to get the exact provider IDs available for this customer. Also use this when the user wants to view dimension details. Do NOT use this for listing all dimensions (use list_dimensions) or running queries (use run_query).",
     inputSchema: {
         type: "object",
         properties: {
@@ -73,6 +74,16 @@ export const dimensionTool = {
         },
         required: ["type", "id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading dimension...",
+        "openai/toolInvocation/invoked": "Dimension loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format the dimension values if they exist
@@ -114,9 +125,7 @@ export async function handleDimensionRequest(args: any, token: string) {
                 return createErrorResponse(`Failed to retrieve dimension with type: ${type} and id: ${id}`);
             }
 
-            // Format the dimension data for display
-            const formattedDimension = formatDimension(dimensionData);
-            return createSuccessResponse(formattedDimension);
+            return createSuccessResponse(JSON.stringify(dimensionData));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request for dimension");
         }

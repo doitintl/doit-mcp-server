@@ -47,6 +47,7 @@ describe("MCP Tools Integration", () => {
                 "get_budget",
                 "get_cloud_incident",
                 "get_cloud_incidents",
+                "get_cloud_overview",
                 "get_commitment",
                 "get_datahub_dataset",
                 "get_dimension",
@@ -341,12 +342,9 @@ describe("MCP Tools Integration", () => {
             const text = getTextContent(result);
             expect(text).toContain("anom-1");
             expect(text).toContain("Compute Engine");
-            expect(text).toContain("$150.50");
+            expect(text).toContain("150.5");
             expect(text).toContain("gcp");
             expect(text).toContain("high");
-            expect(text).toContain("SKU A");
-            expect(text).toContain("SKU B");
-            expect(text).toContain("SKU C");
         });
     });
 
@@ -374,7 +372,6 @@ describe("MCP Tools Integration", () => {
                 },
             });
             const text = getTextContent(result);
-            expect(text).toContain("Query Results");
             expect(text).toContain("service_description");
             expect(text).toContain("Compute Engine");
             expect(text).toContain("Cloud Storage");
@@ -1344,7 +1341,7 @@ describe("MCP Tools Integration", () => {
         it("returns error for missing required arguments", async () => {
             const result = await client.callTool({ name: "get_cloud_incident", arguments: {} });
             const text = getTextContent(result);
-            expect(text.toLowerCase()).toContain("required");
+            expect(text.toLowerCase()).toContain("either id or title must be provided");
         });
     });
 });

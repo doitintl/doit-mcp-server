@@ -254,7 +254,7 @@ describe("get_label", () => {
         const response = await handleGetLabelRequest({}, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("Either id or name must be provided") }],
             isError: true,
         });
     });
@@ -263,7 +263,7 @@ describe("get_label", () => {
         const response = await handleGetLabelRequest({ id: "" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
             isError: true,
         });
     });
@@ -272,7 +272,7 @@ describe("get_label", () => {
         const response = await handleGetLabelRequest({ id: "   " }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Label ID is required and cannot be empty") }],
+            content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
             isError: true,
         });
     });

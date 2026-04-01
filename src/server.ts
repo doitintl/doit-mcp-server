@@ -100,6 +100,7 @@ import {
     updateLabelTool,
 } from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
+import { cloudOverviewTool } from "./tools/overview.js";
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
 import {
@@ -149,6 +150,7 @@ export function createServer() {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
             tools: [
+                cloudOverviewTool,
                 cloudIncidentsTool,
                 cloudIncidentTool,
                 anomaliesTool,
@@ -304,22 +306,23 @@ export {
     handleDimensionsRequest,
     handleFindCloudDiagramsRequest,
     handleGeneralError,
-    handleGetCommitmentRequest,
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetAnnotationRequest,
+    handleGetAssetRequest,
     handleGetBudgetRequest,
+    handleGetCommitmentRequest,
+    handleGetDatahubDatasetRequest,
     handleGetInvoiceRequest,
     handleGetLabelAssignmentsRequest,
     handleGetLabelRequest,
     handleGetReportConfigRequest,
     handleGetReportResultsRequest,
+    handleGetTicketRequest,
     handleInviteUserRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAnnotationsRequest,
-    handleGetAssetRequest,
-    handleGetDatahubDatasetRequest,
     handleListAssetsRequest,
     handleListBudgetsRequest,
     handleListCommitmentsRequest,
@@ -330,10 +333,8 @@ export {
     handleListPlatformsRequest,
     handleListProductsRequest,
     handleListRolesRequest,
-    handleGetTicketRequest,
     handleListTicketsRequest,
     handleListUsersRequest,
-    handleUpdateUserRequest,
     handleReportsRequest,
     handleRunQueryRequest,
     handleSendDatahubEventsRequest,
@@ -345,5 +346,6 @@ export {
     handleUpdateDatahubDatasetRequest,
     handleUpdateLabelRequest,
     handleUpdateReportRequest,
+    handleUpdateUserRequest,
     handleValidateUserRequest,
 };

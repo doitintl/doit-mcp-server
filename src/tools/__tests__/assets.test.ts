@@ -181,7 +181,7 @@ describe("handleGetAssetRequest", () => {
     it("should return error when id is missing", async () => {
         const response = await handleGetAssetRequest({}, mockToken);
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("Either id or name must be provided") }],
             isError: true,
         });
         expect(makeDoitRequest).not.toHaveBeenCalled();
@@ -190,7 +190,7 @@ describe("handleGetAssetRequest", () => {
     it("should return error when id is empty string", async () => {
         const response = await handleGetAssetRequest({ id: "" }, mockToken);
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Asset ID is required") }],
+            content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
             isError: true,
         });
         expect(makeDoitRequest).not.toHaveBeenCalled();
@@ -199,7 +199,7 @@ describe("handleGetAssetRequest", () => {
     it("should return error when id is whitespace only", async () => {
         const response = await handleGetAssetRequest({ id: "   " }, mockToken);
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Asset ID is required") }],
+            content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
             isError: true,
         });
         expect(makeDoitRequest).not.toHaveBeenCalled();

@@ -16,8 +16,19 @@ export const ListOrganizationsArgumentsSchema = z.object({}); // for consistency
 
 export const listOrganizationsTool = {
     name: "list_organizations",
-    description: "Returns a list of organizations from DoiT API that are accessible to the authenticated user.",
+    description:
+        "Use this when the user wants to see the organizations in their DoiT account. Returns a list of organizations. Do NOT use this for listing users (use list_users) or platforms (use list_platforms).",
     inputSchema: zodToMcpInputSchema(ListOrganizationsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading organizations...",
+        "openai/toolInvocation/invoked": "Organizations loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListOrganizationsRequest(args: any, token: string) {

@@ -21,8 +21,19 @@ export const FindCloudDiagramsArgumentsSchema = z.object({
 
 export const findCloudDiagramsTool = {
     name: "find_cloud_diagrams",
-    description: "Returns diagram URLs matching the provided resource IDs from the DoiT Cloud Diagrams API.",
+    description:
+        "Use this when the user wants to find architecture diagrams or cloud infrastructure diagrams. Returns matching diagram files. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(FindCloudDiagramsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Finding diagrams...",
+        "openai/toolInvocation/invoked": "Diagrams found",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleFindCloudDiagramsRequest(args: any, token: string) {

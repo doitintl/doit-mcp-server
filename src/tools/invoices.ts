@@ -37,7 +37,8 @@ export const ListInvoicesArgumentsSchema = z.object({
 // Tool definition
 export const listInvoicesTool = {
     name: "list_invoices",
-    description: "List all current and historical invoices for your organization from the DoiT API.",
+    description:
+        "Use this when the user wants to see their invoices, check billing history, or review payment records. Returns a list of invoices with amounts, dates, and status. Do NOT use this for cost analysis (use run_query) or budget tracking (use list_budgets).",
     inputSchema: {
         type: "object",
         properties: {
@@ -47,6 +48,16 @@ export const listInvoicesTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading invoices...",
+        "openai/toolInvocation/invoked": "Invoices loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handler for the tool
@@ -85,7 +96,8 @@ export const GetInvoiceArgumentsSchema = z.object({
 // Tool definition for getting a single invoice
 export const getInvoiceTool = {
     name: "get_invoice",
-    description: "Retrieve the full details of an invoice specified by the invoice number from the DoiT API.",
+    description:
+        "Use this when the user wants to view details of a specific invoice by its ID. Returns full invoice data including line items and status. Do NOT use this for listing all invoices (use list_invoices) or cost analysis (use run_query).",
     inputSchema: {
         type: "object",
         properties: {
@@ -96,6 +108,16 @@ export const getInvoiceTool = {
         },
         required: ["id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading invoice details...",
+        "openai/toolInvocation/invoked": "Invoice details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handler for the tool
