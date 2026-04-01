@@ -437,6 +437,9 @@ export class DoitMCPAgent extends McpAgent {
                     "https://mcp.doit.com",
                     "https://dci-mcp.ngrok.app",
                   ],
+                  resourceDomains: [
+                    "https://storage.googleapis.com",
+                  ],
                 },
               },
             },
