@@ -276,4 +276,15 @@ export const mockedDoitApiHandlers = [
     http.get(`${API_BASE}/analytics/v1/budgets`, () => {
         return HttpResponse.json(fixtures.budgets);
     }),
+
+    // Commitment Manager
+    http.get(`${API_BASE}/analytics/v1/commitment-manager/:id`, ({ params }) => {
+        if (params.id === "commitment-1") {
+            return HttpResponse.json(fixtures.commitment);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/analytics/v1/commitment-manager`, () => {
+        return HttpResponse.json(fixtures.commitments);
+    }),
 ];

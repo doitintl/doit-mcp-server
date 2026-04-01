@@ -7,6 +7,8 @@ import {
     annotationsFixture,
     budgetFixture,
     budgetsFixture,
+    commitmentFixture,
+    commitmentsFixture,
     createAlertFixture,
     createAllocationFixture,
     createAnnotationFixture,
@@ -119,4 +121,7 @@ export const fixtures = {
     annotations: annotationsFixture,
     createAnnotation: createAnnotationFixture,
     updateAnnotation: updateAnnotationFixture,
+
+    commitment: commitmentFixture,
+    commitments: commitmentsFixture,
 };
