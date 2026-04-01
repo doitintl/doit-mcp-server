@@ -292,6 +292,12 @@ export const CreateTicketCommentArgumentsSchema = z.object({
         .boolean()
         .optional()
         .describe("If true, creates a private internal note. Only honored for DoiT employees; ignored for customers."),
+    customerContext: z
+        .string()
+        .optional()
+        .describe(
+            "The customer context ID to scope this request to a specific customer. Required when a DoiT employee is acting on behalf of a customer."
+        ),
 });
 
 // Tool definition for creating a ticket comment
@@ -315,13 +321,11 @@ export const createTicketCommentTool = {
 // Handler for creating a ticket comment
 export async function handleCreateTicketCommentRequest(args: any, token: string) {
     try {
-        const { ticketId, ...rest } = CreateTicketCommentArgumentsSchema.parse(args);
-        const { customerContext } = args;
+        const { ticketId, customerContext, ...rest } = CreateTicketCommentArgumentsSchema.parse(args);
         const url = `${TICKETS_BASE_URL}/${encodeURIComponent(ticketId)}/comments`;
         const data = await makeDoitRequest(url, token, {
             method: "POST",
             body: rest,
-            appendParams: false,
             customerContext,
         });
         if (!data) {

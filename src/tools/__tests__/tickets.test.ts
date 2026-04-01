@@ -315,7 +315,6 @@ describe("handleCreateTicketCommentRequest", () => {
         expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}/12345/comments`, mockToken, {
             method: "POST",
             body: { body: "Please provide the error logs." },
-            appendParams: false,
             customerContext: undefined,
         });
 
