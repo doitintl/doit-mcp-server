@@ -34,6 +34,7 @@ describe("MCP Tools Integration", () => {
                 "create_allocation",
                 "create_annotation",
                 "create_budget",
+                "create_datahub_dataset",
                 "create_label",
                 "create_report",
                 "find_cloud_diagrams",
@@ -47,17 +48,22 @@ describe("MCP Tools Integration", () => {
                 "get_cloud_incident",
                 "get_cloud_incidents",
                 "get_cloud_overview",
+                "get_commitment",
                 "get_datahub_dataset",
                 "get_dimension",
                 "get_invoice",
                 "get_label",
                 "get_label_assignments",
+                "get_report_config",
                 "get_report_results",
+                "get_ticket",
+                "invite_user",
                 "list_alerts",
                 "list_allocations",
                 "list_annotations",
                 "list_assets",
                 "list_budgets",
+                "list_commitments",
                 "list_datahub_datasets",
                 "list_dimensions",
                 "list_invoices",
@@ -70,13 +76,16 @@ describe("MCP Tools Integration", () => {
                 "list_tickets",
                 "list_users",
                 "run_query",
+                "send_datahub_events",
                 "trigger_cloud_flow",
                 "update_alert",
                 "update_allocation",
                 "update_annotation",
                 "update_budget",
+                "update_datahub_dataset",
                 "update_label",
                 "update_report",
+                "update_user",
                 "validate_user",
             ]);
         });
@@ -167,6 +176,80 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("bob@example.com");
             expect(text).toContain("Alice Smith");
             expect(text).toContain("Bob Jones");
+        });
+    });
+
+    describe("update_user", () => {
+        it("returns updated user from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1", lastName: "Johnson", jobFunction: "Management" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User updated successfully");
+            expect(parsed.user.id).toBe("user-1");
+            expect(parsed.user.lastName).toBe("Johnson");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { firstName: "Alice" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("rejects id-only update (no fields to update)", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("At least one field");
+        });
+
+        it("accepts language es", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1", language: "es" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User updated successfully");
+        });
+    });
+
+    describe("invite_user", () => {
+        it("returns invite response from mock API", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { email: "invited@example.com", roleId: "role-1", organizationId: "org-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User invited successfully");
+            expect(parsed.user.email).toBe("invited@example.com");
+            expect(parsed.user.status).toBe("invited");
+        });
+
+        it("rejects missing email", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { roleId: "role-1" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("rejects invalid email format", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { email: "not-an-email" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 
@@ -310,6 +393,19 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("get_report_config", () => {
+        it("returns the config for a specific report", async () => {
+            const result = await client.callTool({ name: "get_report_config", arguments: { id: "report-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("report-1");
+            expect(parsed.name).toBe("Monthly Cost Report");
+            expect(parsed.config.dataSource).toBe("billing");
+            expect(parsed.config.layout).toBe("table");
+            expect(parsed.config.currency).toBe("USD");
+        });
+    });
+
     describe("create_report", () => {
         it("creates a new report and returns it", async () => {
             const result = await client.callTool({
@@ -425,6 +521,30 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("open");
             expect(text).toContain("google_cloud_platform");
             expect(text).toContain("Compute Engine");
+        });
+    });
+
+    describe("get_ticket", () => {
+        it("returns a specific ticket by ID", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: { id: "12345" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe(12345);
+            expect(parsed.subject).toBe("VM not starting");
+            expect(parsed.description).toContain("VM fails to boot");
+            expect(parsed.requester).toBe("alice@example.com");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("id");
+        });
+
+        it("rejects non-numeric id", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: { id: "ticket-abc" } });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
         });
     });
 
@@ -694,6 +814,84 @@ describe("MCP Tools Integration", () => {
             expect(parsed.name).toBe("My Custom Dataset");
             expect(parsed.records).toBe(1500);
             expect(parsed.updatedBy).toBe("user@example.com");
+        });
+    });
+
+    describe("create_datahub_dataset", () => {
+        it("returns created dataset from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_datahub_dataset",
+                arguments: { name: "New Dataset", description: "A new dataset for tracking metrics" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("New Dataset");
+            expect(parsed.updatedBy).toBe("user@example.com");
+        });
+
+        it("rejects invalid arguments (missing name)", async () => {
+            const result = await client.callTool({
+                name: "create_datahub_dataset",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_datahub_dataset", () => {
+        it("returns updated dataset from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_datahub_dataset",
+                arguments: { name: "My Custom Dataset", description: "Updated description for the dataset" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("My Custom Dataset");
+            expect(parsed.description).toBe("Updated description for the dataset");
+        });
+    });
+
+    describe("send_datahub_events", () => {
+        it("returns ingestion success from mock API", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {
+                    events: [{ provider: "Datadog", time: "2024-03-10T23:00:00Z" }],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("Ingestion success");
+        });
+
+        it("sends event with all optional fields", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {
+                    events: [
+                        {
+                            provider: "Datadog",
+                            id: "evt-001",
+                            time: "2024-03-10T23:00:00Z",
+                            dimensions: [{ key: "env", type: "label", value: "production" }],
+                            metrics: [{ value: 10.5, type: "cost" }],
+                        },
+                    ],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("Ingestion success");
+        });
+
+        it("rejects missing events array", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 
@@ -1064,6 +1262,48 @@ describe("MCP Tools Integration", () => {
             expect(parsed.status).toBe("triggered");
             expect(parsed.executionId).toBe("exec-123");
             expect(Object.keys(parsed)).toHaveLength(2);
+        });
+    });
+
+    describe("list_commitments", () => {
+        it("returns commitments from mock API", async () => {
+            const result = await client.callTool({ name: "list_commitments", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.commitments).toHaveLength(1);
+            expect(parsed.commitments[0].id).toBe("commitment-1");
+            expect(parsed.commitments[0].name).toBe("GCP 3-Year CUD");
+            expect(parsed.commitments[0].cloudProvider).toBe("google-cloud");
+            expect(parsed.rowCount).toBe(1);
+        });
+
+        it("accepts filter and sort parameters", async () => {
+            const result = await client.callTool({
+                name: "list_commitments",
+                arguments: { sortBy: "name", sortOrder: "asc", filter: "provider:[google-cloud]" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.commitments).toHaveLength(1);
+        });
+    });
+
+    describe("get_commitment", () => {
+        it("returns a specific commitment by ID", async () => {
+            const result = await client.callTool({ name: "get_commitment", arguments: { id: "commitment-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("commitment-1");
+            expect(parsed.name).toBe("GCP 3-Year CUD");
+            expect(parsed.cloudProvider).toBe("google-cloud");
+            expect(parsed.totalCommitmentValue).toBe(100000);
+            expect(parsed.periods).toHaveLength(1);
+        });
+
+        it("returns error for missing id", async () => {
+            const result = await client.callTool({ name: "get_commitment", arguments: {} });
+            const text = getTextContent(result);
+            expect(text.toLowerCase()).toContain("required");
         });
     });
 

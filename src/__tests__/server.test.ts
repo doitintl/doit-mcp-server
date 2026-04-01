@@ -34,6 +34,7 @@ vi.mock(import("../tools/reports.js"), async (importOriginal) => ({
     handleReportsRequest: vi.fn(),
     handleRunQueryRequest: vi.fn(),
     handleGetReportResultsRequest: vi.fn(),
+    handleGetReportConfigRequest: vi.fn(),
     handleCreateReportRequest: vi.fn(),
     handleUpdateReportRequest: vi.fn(),
 }));
@@ -51,6 +52,7 @@ vi.mock(import("../tools/dimension.js"), async (importOriginal) => ({
 }));
 vi.mock(import("../tools/tickets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
+    handleGetTicketRequest: vi.fn(),
     handleListTicketsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/invoices.js"), async (importOriginal) => ({
@@ -85,6 +87,12 @@ vi.mock(import("../tools/organizations.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListOrganizationsRequest: vi.fn(),
 }));
+vi.mock(import("../tools/users.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListUsersRequest: vi.fn(),
+    handleUpdateUserRequest: vi.fn(),
+    handleInviteUserRequest: vi.fn(),
+}));
 vi.mock(import("../tools/roles.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListRolesRequest: vi.fn(),
@@ -102,6 +110,12 @@ vi.mock(import("../tools/datahubDatasets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListDatahubDatasetsRequest: vi.fn(),
     handleGetDatahubDatasetRequest: vi.fn(),
+    handleCreateDatahubDatasetRequest: vi.fn(),
+    handleUpdateDatahubDatasetRequest: vi.fn(),
+}));
+vi.mock(import("../tools/datahubEvents.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleSendDatahubEventsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -120,6 +134,11 @@ vi.mock(import("../tools/annotations.js"), async (importOriginal) => ({
     handleGetAnnotationRequest: vi.fn(),
     handleCreateAnnotationRequest: vi.fn(),
     handleUpdateAnnotationRequest: vi.fn(),
+}));
+vi.mock(import("../tools/commitmentManager.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListCommitmentsRequest: vi.fn(),
+    handleGetCommitmentRequest: vi.fn(),
 }));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -148,6 +167,7 @@ import {
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAllocationRequest,
+    handleCreateDatahubDatasetRequest,
     handleCreateLabelRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
@@ -155,20 +175,25 @@ import {
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetAssetRequest,
+    handleGetCommitmentRequest,
     handleGetDatahubDatasetRequest,
     handleGetInvoiceRequest,
     handleGetLabelAssignmentsRequest,
     handleGetReportResultsRequest,
+    handleGetTicketRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAssetsRequest,
+    handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
     handleListInvoicesRequest,
     handleListTicketsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleSendDatahubEventsRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAllocationRequest,
+    handleUpdateDatahubDatasetRequest,
     handleUpdateLabelRequest,
     handleUpdateReportRequest,
     handleValidateUserRequest,
@@ -193,7 +218,14 @@ import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } fr
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
-import { getDatahubDatasetTool, listDatahubDatasetsTool } from "../tools/datahubDatasets.js";
+import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
+import {
+    createDatahubDatasetTool,
+    getDatahubDatasetTool,
+    listDatahubDatasetsTool,
+    updateDatahubDatasetTool,
+} from "../tools/datahubDatasets.js";
+import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
@@ -211,14 +243,15 @@ import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import {
     createReportTool,
+    getReportConfigTool,
     getReportResultsTool,
     reportsTool,
     runQueryTool,
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { listTicketsTool } from "../tools/tickets.js";
-import { listUsersTool } from "../tools/users.js";
+import { getTicketTool, listTicketsTool } from "../tools/tickets.js";
+import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
 
@@ -279,12 +312,14 @@ describe("ListToolsRequestSchema handler", () => {
                 reportsTool,
                 runQueryTool,
                 getReportResultsTool,
+                getReportConfigTool,
                 createReportTool,
                 updateReportTool,
                 validateUserTool,
                 dimensionsTool,
                 dimensionTool,
                 listTicketsTool,
+                getTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -302,6 +337,8 @@ describe("ListToolsRequestSchema handler", () => {
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
+                updateUserTool,
+                inviteUserTool,
                 listRolesTool,
                 listProductsTool,
                 listLabelsTool,
@@ -312,6 +349,9 @@ describe("ListToolsRequestSchema handler", () => {
                 assignObjectsToLabelTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
+                createDatahubDatasetTool,
+                updateDatahubDatasetTool,
+                sendDatahubEventsTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -321,6 +361,8 @@ describe("ListToolsRequestSchema handler", () => {
                 getAnnotationTool,
                 createAnnotationTool,
                 updateAnnotationTool,
+                listCommitmentsTool,
+                getCommitmentTool,
             ],
         });
     });
@@ -630,6 +672,7 @@ describe("CallToolRequestSchema handler", () => {
         ["list_dimensions", "list_dimensions", { filter: "type:fixed" }, handleDimensionsRequest],
         ["get_dimension", "get_dimension", { id: "dimension-abc" }, handleDimensionRequest],
         ["list_tickets", "list_tickets", { pageSize: 5 }, handleListTicketsRequest],
+        ["get_ticket", "get_ticket", { id: "12345" }, handleGetTicketRequest],
         ["list_invoices", "list_invoices", { pageToken: "next-page-token" }, handleListInvoicesRequest],
         ["get_invoice", "get_invoice", { id: "invoice-123" }, handleGetInvoiceRequest],
         ["list_allocations", "list_allocations", { pageToken: "next-page-token" }, handleListAllocationsRequest],
@@ -666,6 +709,24 @@ describe("CallToolRequestSchema handler", () => {
         ["list_datahub_datasets", "list_datahub_datasets", {}, handleListDatahubDatasetsRequest],
         ["get_datahub_dataset", "get_datahub_dataset", { name: "My Custom Dataset" }, handleGetDatahubDatasetRequest],
         [
+            "create_datahub_dataset",
+            "create_datahub_dataset",
+            { name: "New Dataset", description: "A dataset" },
+            handleCreateDatahubDatasetRequest,
+        ],
+        [
+            "update_datahub_dataset",
+            "update_datahub_dataset",
+            { name: "My Dataset", description: "Updated" },
+            handleUpdateDatahubDatasetRequest,
+        ],
+        [
+            "send_datahub_events",
+            "send_datahub_events",
+            { events: [{ provider: "Datadog", time: "2024-03-10T23:00:00Z" }] },
+            handleSendDatahubEventsRequest,
+        ],
+        [
             "trigger_cloud_flow (with body)",
             "trigger_cloud_flow",
             { flowID: "flow-456", requestBodyJson: { key: "value" } },
@@ -677,6 +738,8 @@ describe("CallToolRequestSchema handler", () => {
             { flowID: "flow-789" },
             handleTriggerCloudFlowRequest,
         ],
+        ["list_commitments", "list_commitments", {}, handleListCommitmentsRequest],
+        ["get_commitment", "get_commitment", { id: "commitment-1" }, handleGetCommitmentRequest],
     ];
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {

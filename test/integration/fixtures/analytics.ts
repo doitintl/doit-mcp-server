@@ -321,6 +321,20 @@ export const alertFixture = {
     },
 };
 
+export const reportConfigFixture = {
+    id: "report-1",
+    name: "Monthly Cost Report",
+    type: "custom",
+    config: {
+        dataSource: "billing",
+        metrics: [{ type: "basic", value: "cost" }],
+        timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },
+        group: [{ id: "service_description", type: "fixed" }],
+        layout: "table",
+        currency: "USD",
+    },
+};
+
 export const createReportFixture = {
     id: "report-new-1",
     name: "My New Report",
@@ -436,4 +450,52 @@ export const updateAlertFixture = {
         dataSource: "billing",
         value: 2000,
     },
+};
+
+export const commitmentsFixture = {
+    pageToken: "",
+    rowCount: 1,
+    commitments: [
+        {
+            id: "commitment-1",
+            name: "GCP 3-Year CUD",
+            startDate: "2025-01-01T00:00:00.000Z",
+            endDate: "2028-01-01T00:00:00.000Z",
+            currency: "USD",
+            cloudProvider: "google-cloud",
+            totalCommitmentValue: 100000,
+            totalCurrentAttainment: 75000,
+            periods: [
+                {
+                    startDate: "2025-01-01T00:00:00.000Z",
+                    endDate: "2026-01-01T00:00:00.000Z",
+                    commitmentValue: 33333,
+                    marketplaceLimitPercentage: 25,
+                },
+            ],
+            createTime: 1735689600000,
+            updateTime: 1750032000000,
+        },
+    ],
+};
+
+export const commitmentFixture = {
+    id: "commitment-1",
+    name: "GCP 3-Year CUD",
+    startDate: "2025-01-01T00:00:00.000Z",
+    endDate: "2028-01-01T00:00:00.000Z",
+    currency: "USD",
+    cloudProvider: "google-cloud",
+    totalCommitmentValue: 100000,
+    totalCurrentAttainment: 75000,
+    periods: [
+        {
+            startDate: "2025-01-01T00:00:00.000Z",
+            endDate: "2026-01-01T00:00:00.000Z",
+            commitmentValue: 33333,
+            marketplaceLimitPercentage: 25,
+        },
+    ],
+    createTime: 1735689600000,
+    updateTime: 1750032000000,
 };

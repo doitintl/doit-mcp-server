@@ -61,11 +61,22 @@ import {
     handleCloudIncidentsRequest,
 } from "./tools/cloudIncidents.js";
 import {
+    getCommitmentTool,
+    handleGetCommitmentRequest,
+    handleListCommitmentsRequest,
+    listCommitmentsTool,
+} from "./tools/commitmentManager.js";
+import {
+    createDatahubDatasetTool,
     getDatahubDatasetTool,
+    handleCreateDatahubDatasetRequest,
     handleGetDatahubDatasetRequest,
     handleListDatahubDatasetsRequest,
+    handleUpdateDatahubDatasetRequest,
     listDatahubDatasetsTool,
+    updateDatahubDatasetTool,
 } from "./tools/datahubDatasets.js";
+import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "./tools/datahubEvents.js";
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
 import {
@@ -94,8 +105,10 @@ import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
 import {
     createReportTool,
+    getReportConfigTool,
     getReportResultsTool,
     handleCreateReportRequest,
+    handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
@@ -105,8 +118,15 @@ import {
     updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
-import { handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
-import { handleListUsersRequest, listUsersTool } from "./tools/users.js";
+import { getTicketTool, handleGetTicketRequest, handleListTicketsRequest, listTicketsTool } from "./tools/tickets.js";
+import {
+    handleInviteUserRequest,
+    handleListUsersRequest,
+    handleUpdateUserRequest,
+    inviteUserTool,
+    listUsersTool,
+    updateUserTool,
+} from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
@@ -138,12 +158,14 @@ export function createServer() {
                 reportsTool,
                 runQueryTool,
                 getReportResultsTool,
+                getReportConfigTool,
                 createReportTool,
                 updateReportTool,
                 validateUserTool,
                 dimensionsTool,
                 dimensionTool,
                 listTicketsTool,
+                getTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -161,6 +183,8 @@ export function createServer() {
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
+                updateUserTool,
+                inviteUserTool,
                 listRolesTool,
                 listProductsTool,
                 listLabelsTool,
@@ -171,6 +195,9 @@ export function createServer() {
                 assignObjectsToLabelTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
+                createDatahubDatasetTool,
+                updateDatahubDatasetTool,
+                sendDatahubEventsTool,
                 findCloudDiagramsTool,
                 listBudgetsTool,
                 getBudgetTool,
@@ -180,6 +207,8 @@ export function createServer() {
                 getAnnotationTool,
                 createAnnotationTool,
                 updateAnnotationTool,
+                listCommitmentsTool,
+                getCommitmentTool,
             ],
         };
     });
@@ -270,12 +299,14 @@ export {
     handleCreateAllocationRequest,
     handleCreateAnnotationRequest,
     handleCreateBudgetRequest,
+    handleCreateDatahubDatasetRequest,
     handleCreateLabelRequest,
     handleCreateReportRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
     handleFindCloudDiagramsRequest,
     handleGeneralError,
+    handleGetCommitmentRequest,
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetAnnotationRequest,
@@ -285,12 +316,15 @@ export {
     handleGetInvoiceRequest,
     handleGetLabelAssignmentsRequest,
     handleGetLabelRequest,
+    handleGetReportConfigRequest,
     handleGetReportResultsRequest,
+    handleInviteUserRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAnnotationsRequest,
     handleListAssetsRequest,
     handleListBudgetsRequest,
+    handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
     handleListInvoicesRequest,
     handleListLabelsRequest,
@@ -298,15 +332,19 @@ export {
     handleListPlatformsRequest,
     handleListProductsRequest,
     handleListRolesRequest,
+    handleGetTicketRequest,
     handleListTicketsRequest,
     handleListUsersRequest,
+    handleUpdateUserRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleSendDatahubEventsRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAlertRequest,
     handleUpdateAllocationRequest,
     handleUpdateAnnotationRequest,
     handleUpdateBudgetRequest,
+    handleUpdateDatahubDatasetRequest,
     handleUpdateLabelRequest,
     handleUpdateReportRequest,
     handleValidateUserRequest,

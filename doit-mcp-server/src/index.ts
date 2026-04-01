@@ -20,11 +20,13 @@ import {
 } from "../../src/tools/anomalies.js";
 import {
   CreateReportArgumentsSchema,
+  GetReportConfigArgumentsSchema,
   GetReportResultsArgumentsSchema,
   ReportsArgumentsSchema,
   RunQueryArgumentsSchema,
   UpdateReportArgumentsSchema,
   createReportTool,
+  getReportConfigTool,
   getReportResultsTool,
   reportsTool,
   runQueryTool,
@@ -43,6 +45,8 @@ import {
   dimensionTool,
 } from "../../src/tools/dimension.js";
 import {
+  GetTicketArgumentsSchema,
+  getTicketTool,
   ListTicketsArgumentsSchema,
   listTicketsTool,
 } from "../../src/tools/tickets.js";
@@ -95,8 +99,12 @@ import {
   listPlatformsTool,
 } from "../../src/tools/platforms.js";
 import {
+  InviteUserArgumentsSchema,
+  inviteUserTool,
   ListUsersArgumentsSchema,
   listUsersTool,
+  UpdateUserArgumentsSchema,
+  updateUserTool,
 } from "../../src/tools/users.js";
 import {
   ListRolesArgumentsSchema,
@@ -145,11 +153,25 @@ import {
   updateAnnotationTool,
 } from "../../src/tools/annotations.js";
 import {
+  GetCommitmentArgumentsSchema,
+  getCommitmentTool,
+  ListCommitmentsArgumentsSchema,
+  listCommitmentsTool,
+} from "../../src/tools/commitmentManager.js";
+import {
+  CreateDatahubDatasetArgumentsSchema,
   GetDatahubDatasetArgumentsSchema,
   ListDatahubDatasetsArgumentsSchema,
+  UpdateDatahubDatasetArgumentsSchema,
+  createDatahubDatasetTool,
   getDatahubDatasetTool,
   listDatahubDatasetsTool,
+  updateDatahubDatasetTool,
 } from "../../src/tools/datahubDatasets.js";
+import {
+  SendDatahubEventsArgumentsSchema,
+  sendDatahubEventsTool,
+} from "../../src/tools/datahubEvents.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -429,6 +451,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(reportsTool, ReportsArgumentsSchema);
     this.registerTool(runQueryTool, RunQueryArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
+    this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);
     this.registerTool(createReportTool, CreateReportArgumentsSchema);
     this.registerTool(updateReportTool, UpdateReportArgumentsSchema);
 
@@ -441,6 +464,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // Tickets tools
     this.registerTool(listTicketsTool, ListTicketsArgumentsSchema);
+    this.registerTool(getTicketTool, GetTicketArgumentsSchema);
 
     // Invoices tools
     this.registerTool(listInvoicesTool, ListInvoicesArgumentsSchema);
@@ -474,6 +498,8 @@ export class DoitMCPAgent extends McpAgent {
 
     // Users tools
     this.registerTool(listUsersTool, ListUsersArgumentsSchema);
+    this.registerTool(updateUserTool, UpdateUserArgumentsSchema);
+    this.registerTool(inviteUserTool, InviteUserArgumentsSchema);
 
     // Roles tools
     this.registerTool(listRolesTool, ListRolesArgumentsSchema);
@@ -492,6 +518,9 @@ export class DoitMCPAgent extends McpAgent {
     // DataHub Datasets tools
     this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
     this.registerTool(getDatahubDatasetTool, GetDatahubDatasetArgumentsSchema);
+    this.registerTool(createDatahubDatasetTool, CreateDatahubDatasetArgumentsSchema);
+    this.registerTool(updateDatahubDatasetTool, UpdateDatahubDatasetArgumentsSchema);
+    this.registerTool(sendDatahubEventsTool, SendDatahubEventsArgumentsSchema);
 
     // Cloud Diagrams tools
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);
@@ -507,6 +536,10 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getAnnotationTool, GetAnnotationArgumentsSchema);
     this.registerTool(createAnnotationTool, CreateAnnotationArgumentsSchema);
     this.registerTool(updateAnnotationTool, UpdateAnnotationArgumentsSchema);
+
+    // Commitment Manager tools
+    this.registerTool(listCommitmentsTool, ListCommitmentsArgumentsSchema);
+    this.registerTool(getCommitmentTool, GetCommitmentArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {

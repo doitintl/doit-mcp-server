@@ -29,7 +29,14 @@ import {
 import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
-import { handleGetDatahubDatasetRequest, handleListDatahubDatasetsRequest } from "../tools/datahubDatasets.js";
+import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "../tools/commitmentManager.js";
+import {
+    handleCreateDatahubDatasetRequest,
+    handleGetDatahubDatasetRequest,
+    handleListDatahubDatasetsRequest,
+    handleUpdateDatahubDatasetRequest,
+} from "../tools/datahubDatasets.js";
+import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
@@ -47,14 +54,15 @@ import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
 import {
     handleCreateReportRequest,
+    handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
     handleUpdateReportRequest,
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
-import { handleListTicketsRequest } from "../tools/tickets.js";
-import { handleListUsersRequest } from "../tools/users.js";
+import { handleGetTicketRequest, handleListTicketsRequest } from "../tools/tickets.js";
+import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "./util.js";
 
@@ -97,6 +105,9 @@ export async function executeToolHandler(
             case "get_report_results":
                 result = await handleGetReportResultsRequest(args, token);
                 break;
+            case "get_report_config":
+                result = await handleGetReportConfigRequest(args, token);
+                break;
             case "create_report":
                 result = await handleCreateReportRequest(args, token);
                 break;
@@ -117,6 +128,9 @@ export async function executeToolHandler(
                 break;
             case "list_tickets":
                 result = await handleListTicketsRequest(args, token);
+                break;
+            case "get_ticket":
+                result = await handleGetTicketRequest(args, token);
                 break;
             case "list_invoices":
                 result = await handleListInvoicesRequest(args, token);
@@ -167,6 +181,12 @@ export async function executeToolHandler(
             case "list_users":
                 result = await handleListUsersRequest(args, token);
                 break;
+            case "update_user":
+                result = await handleUpdateUserRequest(args, token);
+                break;
+            case "invite_user":
+                result = await handleInviteUserRequest(args, token);
+                break;
             case "list_roles":
                 result = await handleListRolesRequest(args, token);
                 break;
@@ -197,6 +217,15 @@ export async function executeToolHandler(
             case "get_datahub_dataset":
                 result = await handleGetDatahubDatasetRequest(args, token);
                 break;
+            case "create_datahub_dataset":
+                result = await handleCreateDatahubDatasetRequest(args, token);
+                break;
+            case "update_datahub_dataset":
+                result = await handleUpdateDatahubDatasetRequest(args, token);
+                break;
+            case "send_datahub_events":
+                result = await handleSendDatahubEventsRequest(args, token);
+                break;
             case "find_cloud_diagrams":
                 result = await handleFindCloudDiagramsRequest(args, token);
                 break;
@@ -223,6 +252,12 @@ export async function executeToolHandler(
                 break;
             case "update_annotation":
                 result = await handleUpdateAnnotationRequest(args, token);
+                break;
+            case "list_commitments":
+                result = await handleListCommitmentsRequest(args, token);
+                break;
+            case "get_commitment":
+                result = await handleGetCommitmentRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);

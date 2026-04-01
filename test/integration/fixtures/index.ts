@@ -7,6 +7,8 @@ import {
     annotationsFixture,
     budgetFixture,
     budgetsFixture,
+    commitmentFixture,
+    commitmentsFixture,
     createAlertFixture,
     createAllocationFixture,
     createAnnotationFixture,
@@ -19,6 +21,7 @@ import {
     labelFixture,
     labelsFixture,
     queryResultFixture,
+    reportConfigFixture,
     reportResultsFixture,
     reportsFixture,
     updateAlertFixture,
@@ -33,17 +36,32 @@ import { assetDetailedFixture, assetsFixture, invoiceFixture, invoicesFixture } 
 import { cloudDiagramsFixture } from "./cloudDiagrams.js";
 import { cloudflowTriggerFixture } from "./cloudflow.js";
 import { cloudIncidentFixture, cloudIncidentsFixture } from "./cloudIncidents.js";
-import { datahubDatasetFixture, datahubDatasetsFixture } from "./datahub.js";
-import { organizationsFixture, rolesFixture, usersFixture, validateUserFixture } from "./iam.js";
-import { platformsFixture, productsFixture, ticketsFixture } from "./support.js";
+import {
+    createDatahubDatasetFixture,
+    datahubDatasetFixture,
+    datahubDatasetsFixture,
+    sendDatahubEventsFixture,
+    updateDatahubDatasetFixture,
+} from "./datahub.js";
+import {
+    inviteUserFixture,
+    organizationsFixture,
+    rolesFixture,
+    updateUserFixture,
+    usersFixture,
+    validateUserFixture,
+} from "./iam.js";
+import { platformsFixture, productsFixture, ticketDetailFixture, ticketsFixture } from "./support.js";
 
 export const fixtures = {
     organizations: organizationsFixture,
     roles: rolesFixture,
     users: usersFixture,
+    updateUser: updateUserFixture,
     platforms: platformsFixture,
     products: productsFixture,
     validateUser: validateUserFixture,
+    inviteUser: inviteUserFixture,
 
     cloudIncidents: cloudIncidentsFixture,
     cloudIncident: cloudIncidentFixture,
@@ -54,6 +72,7 @@ export const fixtures = {
     reports: reportsFixture,
     queryResult: queryResultFixture,
     reportResults: reportResultsFixture,
+    reportConfig: reportConfigFixture,
     createReport: createReportFixture,
     updateReport: updateReportFixture,
     dimensions: dimensionsFixture,
@@ -75,11 +94,15 @@ export const fixtures = {
     assetDetailed: assetDetailedFixture,
 
     tickets: ticketsFixture,
+    ticketDetail: ticketDetailFixture,
 
     cloudDiagrams: cloudDiagramsFixture,
 
     datahubDatasets: datahubDatasetsFixture,
     datahubDataset: datahubDatasetFixture,
+    createDatahubDataset: createDatahubDatasetFixture,
+    updateDatahubDataset: updateDatahubDatasetFixture,
+    sendDatahubEvents: sendDatahubEventsFixture,
 
     cloudflowTrigger: cloudflowTriggerFixture,
 
@@ -98,4 +121,7 @@ export const fixtures = {
     annotations: annotationsFixture,
     createAnnotation: createAnnotationFixture,
     updateAnnotation: updateAnnotationFixture,
+
+    commitment: commitmentFixture,
+    commitments: commitmentsFixture,
 };

@@ -15,6 +15,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Users
+    http.post(`${API_BASE}/iam/v1/users/invite`, () => {
+        return HttpResponse.json(fixtures.inviteUser, { status: 201 });
+    }),
+    http.patch(`${API_BASE}/iam/v1/users/:id`, () => {
+        return HttpResponse.json(fixtures.updateUser);
+    }),
     http.get(`${API_BASE}/iam/v1/users`, () => {
         return HttpResponse.json(fixtures.users);
     }),
@@ -66,6 +72,12 @@ export const mockedDoitApiHandlers = [
             _requestBody: body,
         });
     }),
+    http.get(`${API_BASE}/analytics/v1/reports/:id/config`, ({ params }) => {
+        if (params.id === "report-1") {
+            return HttpResponse.json(fixtures.reportConfig);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/analytics/v1/reports/:id`, ({ params }) => {
         if (params.id === "report-1") {
             return HttpResponse.json(fixtures.reportResults);
@@ -95,6 +107,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Tickets (hardcoded URL in source)
+    http.get(`${API_BASE}/support/v1/tickets/:ticketId`, ({ params }) => {
+        if (params.ticketId === "12345") {
+            return HttpResponse.json(fixtures.ticketDetail);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/support/v1/tickets`, () => {
         return HttpResponse.json(fixtures.tickets);
     }),
@@ -208,6 +226,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // DataHub Datasets
+    http.post(`${API_BASE}/datahub/v1/datasets`, () => {
+        return HttpResponse.json(fixtures.createDatahubDataset);
+    }),
+    http.patch(`${API_BASE}/datahub/v1/datasets/:name`, () => {
+        return HttpResponse.json(fixtures.updateDatahubDataset);
+    }),
     http.get(`${API_BASE}/datahub/v1/datasets/:name`, ({ params }) => {
         if (params.name === "My Custom Dataset") {
             return HttpResponse.json(fixtures.datahubDataset);
@@ -216,6 +240,11 @@ export const mockedDoitApiHandlers = [
     }),
     http.get(`${API_BASE}/datahub/v1/datasets`, () => {
         return HttpResponse.json(fixtures.datahubDatasets);
+    }),
+
+    // DataHub Events
+    http.post(`${API_BASE}/datahub/v1/events`, () => {
+        return HttpResponse.json(fixtures.sendDatahubEvents, { status: 201 });
     }),
 
     // Cloud Diagrams
@@ -246,5 +275,16 @@ export const mockedDoitApiHandlers = [
     }),
     http.get(`${API_BASE}/analytics/v1/budgets`, () => {
         return HttpResponse.json(fixtures.budgets);
+    }),
+
+    // Commitment Manager
+    http.get(`${API_BASE}/analytics/v1/commitment-manager/:id`, ({ params }) => {
+        if (params.id === "commitment-1") {
+            return HttpResponse.json(fixtures.commitment);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/analytics/v1/commitment-manager`, () => {
+        return HttpResponse.json(fixtures.commitments);
     }),
 ];

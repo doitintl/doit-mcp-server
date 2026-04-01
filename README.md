@@ -143,12 +143,14 @@ This MCP server provides many tools including the following:
 - [`list_reports`](https://developer.doit.com/reference/listreports): Lists Cloud Analytics reports that your account has access to
 - [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
 - [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID
+- [`get_report_config`](https://developer.doit.com/reference/getreportconfig): Get the configuration of a specific Cloud Analytics report by ID
 - [`create_report`](https://developer.doit.com/reference/createreport): Creates a new Cloud Analytics report with the specified configuration
 - [`update_report`](https://developer.doit.com/reference/updatereport): Updates an existing Cloud Analytics report with the specified configuration
 - [`validate_user`](https://developer.doit.com/reference/validate): Validates the current API user and returns domain and email information
 - [`list_dimensions`](https://developer.doit.com/reference/listdimensions): Lists Cloud Analytics dimensions that your account has access to
 - [`get_dimension`](https://developer.doit.com/reference/getdimensions): Get a specific Cloud Analytics dimension by type and ID
 - [`list_tickets`](https://developer.doit.com/reference/idoftickets): List support tickets from DoiT using the support API
+- [`get_ticket`](https://developer.doit.com/reference/idofticketget): Get details of a specific support ticket by its ID
 - [`list_invoices`](https://developer.doit.com/reference/listinvoices): List all current and historical invoices for your organization from the DoiT API
 - [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
 - [`list_allocations`](https://developer.doit.com/reference/listallocations): List allocations for report or run_query configuration that your account has access to from the DoiT API
@@ -167,13 +169,20 @@ This MCP server provides many tools including the following:
 - [`get_annotation`](https://developer.doit.com/reference/getannotation): Returns a specific annotation by ID
 - [`create_annotation`](https://developer.doit.com/reference/createannotation): Creates a new annotation with content, timestamp, and optional report/label associations
 - [`update_annotation`](https://developer.doit.com/reference/updateannotation): Updates an existing annotation by ID
+- [`list_commitments`](https://developer.doit.com/reference/listcommitments): Returns a list of commitments (reserved capacity or spend agreements) with cloud providers
+- [`get_commitment`](https://developer.doit.com/reference/getcommitment): Returns details of a specific commitment by ID, including periods and attainment data
 - [`list_organizations`](https://developer.doit.com/reference/listorganizations): Returns a list of organizations accessible to the authenticated user
 - [`list_platforms`](https://developer.doit.com/reference/listplatforms): Returns a list of all available platforms
 - [`list_users`](https://developer.doit.com/reference/listusers): Returns a list of all users in the organization
+- [`update_user`](https://developer.doit.com/reference/updateuser): Updates user information including name, job function, phone, language, and role
+- [`invite_user`](https://developer.doit.com/reference/inviteuser): Invites a new user to the organization by email, optionally assigning a role and organization
 - [`list_roles`](https://developer.doit.com/reference/listroles): Returns a list of all IAM roles, including both preset and custom roles
 - [`list_products`](https://developer.doit.com/reference/listproducts): Lists products available for different platforms, optionally filtered by platform name
 - [`list_datahub_datasets`](https://developer.doit.com/reference/listdatahubdatasets): Returns a list of all DataHub datasets for the customer
 - [`get_datahub_dataset`](https://developer.doit.com/reference/getdatahubdataset): Returns details of a specific DataHub dataset by name
+- [`create_datahub_dataset`](https://developer.doit.com/reference/createdatahubdataset): Creates a new DataHub dataset with a name and optional description
+- [`update_datahub_dataset`](https://developer.doit.com/reference/updatedatahubdataset): Updates an existing DataHub dataset's description
+- [`send_datahub_events`](https://developer.doit.com/reference/datahubevents): Sends one or more DataHub events for ingestion (1–50,000 events per call)
 - [`list_labels`](https://developer.doit.com/reference/listlabels): Returns a list of labels that the user has access to
 - [`get_label`](https://developer.doit.com/reference/getlabel): Returns details of a specific label by ID
 - [`create_label`](https://developer.doit.com/reference/createlabel): Creates a new label with a name and color

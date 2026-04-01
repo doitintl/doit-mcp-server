@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { TicketPlatform, TicketSeverity } from "../common/types.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
     DOIT_API_BASE,
+    formatZodError,
     handleGeneralError,
     makeDoitRequest,
 } from "../utils/util.js";
@@ -190,5 +192,46 @@ export async function handleCreateTicketRequest(args: any, token: string) {
         return createSuccessResponse(JSON.stringify(response));
     } catch (error) {
         return handleGeneralError(error, "creating ticket");
+    }
+}
+
+// Arguments schema for getting a single ticket
+export const GetTicketArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(
+            z
+                .string()
+                .min(1, "Ticket ID is required and cannot be empty.")
+                .regex(/^\d+$/, "Ticket ID must be a numeric value.")
+        )
+        .describe("The numeric ID of the support ticket to retrieve."),
+});
+
+// Tool definition for getting a single ticket
+export const getTicketTool = {
+    name: "get_ticket",
+    description: "Returns details of a specific support ticket from the DoiT API by its ID.",
+    inputSchema: zodToMcpInputSchema(GetTicketArgumentsSchema),
+};
+
+// Handler for getting a single ticket
+export async function handleGetTicketRequest(args: any, token: string) {
+    try {
+        const { id } = GetTicketArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${TICKETS_BASE_URL}/${encodeURIComponent(id)}`;
+        const data = await makeDoitRequest(url, token, {
+            method: "GET",
+            customerContext,
+        });
+        if (!data) {
+            return createErrorResponse("Failed to retrieve ticket");
+        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get ticket request");
     }
 }

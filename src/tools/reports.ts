@@ -53,6 +53,15 @@ export const GetReportResultsArgumentsSchema = z
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
+// Get Report Config Schema Definition
+export const GetReportConfigArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Report ID is required and cannot be empty."))
+        .describe("The ID of the report to retrieve the configuration for."),
+});
+
 const createDocumentPrompt =
     "**IMPORTANT**: Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)";
 
@@ -170,6 +179,13 @@ export const getReportResultsTool = {
         "openai/toolInvocation/invoked": "Report data ready",
     },
     securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export const getReportConfigTool = {
+    name: "get_report_config",
+    description:
+        "Get the configuration of a specific Cloud Analytics report by ID. Returns the stored report object including name, type, and a nested 'config' field containing data source, metrics, dimensions, time range, filters, and visualization settings.",
+    inputSchema: zodToMcpInputSchema(GetReportConfigArgumentsSchema),
 };
 
 // ─── Report Config Sub-Schemas ────────────────────────────────────────────────
@@ -845,6 +861,24 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
             return createErrorResponse(formatZodError(error));
         }
         return handleGeneralError(error, "handling get report results request");
+    }
+}
+
+// Handle get report config request
+export async function handleGetReportConfigRequest(args: any, token: string) {
+    try {
+        const { id } = GetReportConfigArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${REPORTS_BASE_URL}/${encodeURIComponent(id)}/config`;
+        const data = await makeDoitRequest(url, token, {
+            method: "GET",
+            customerContext,
+        });
+        if (!data) return createErrorResponse("Failed to retrieve report configuration");
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get report config request");
     }
 }
 
