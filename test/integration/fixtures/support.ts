@@ -65,3 +65,11 @@ export const ticketCommentsFixture = {
         },
     ],
 };
+
+export const createTicketCommentFixture = {
+    id: 1003,
+    body: "Please provide the error logs from /var/log/syslog.",
+    author: "alice@example.com",
+    created: 1700030000000,
+    attachments: [],
+};

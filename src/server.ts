@@ -119,7 +119,9 @@ import {
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
 import {
+    createTicketCommentTool,
     getTicketTool,
+    handleCreateTicketCommentRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
@@ -174,6 +176,7 @@ export function createServer() {
                 listTicketsTool,
                 getTicketTool,
                 listTicketCommentsTool,
+                createTicketCommentTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -307,6 +310,7 @@ export {
     handleCreateAllocationRequest,
     handleCreateAnnotationRequest,
     handleCreateBudgetRequest,
+    handleCreateTicketCommentRequest,
     handleCreateDatahubDatasetRequest,
     handleCreateLabelRequest,
     handleCreateReportRequest,

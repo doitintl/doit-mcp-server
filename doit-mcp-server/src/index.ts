@@ -45,6 +45,8 @@ import {
   dimensionTool,
 } from "../../src/tools/dimension.js";
 import {
+  CreateTicketCommentArgumentsSchema,
+  createTicketCommentTool,
   GetTicketArgumentsSchema,
   getTicketTool,
   ListTicketCommentsArgumentsSchema,
@@ -468,6 +470,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(listTicketsTool, ListTicketsArgumentsSchema);
     this.registerTool(getTicketTool, GetTicketArgumentsSchema);
     this.registerTool(listTicketCommentsTool, ListTicketCommentsArgumentsSchema);
+    this.registerTool(createTicketCommentTool, CreateTicketCommentArgumentsSchema);
 
     // Invoices tools
     this.registerTool(listInvoicesTool, ListInvoicesArgumentsSchema);

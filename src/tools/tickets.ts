@@ -277,3 +277,59 @@ export async function handleListTicketCommentsRequest(args: any, token: string) 
         return handleGeneralError(error, "handling list ticket comments request");
     }
 }
+
+// Arguments schema for creating a ticket comment
+export const CreateTicketCommentArgumentsSchema = z.object({
+    ticketId: ListTicketCommentsArgumentsSchema.shape.ticketId.describe(
+        "The numeric ID of the support ticket to add a comment to."
+    ),
+    body: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Comment body is required and cannot be empty or whitespace-only."))
+        .describe("The text content of the comment (required, must be non-empty)."),
+    private: z
+        .boolean()
+        .optional()
+        .describe("If true, creates a private internal note. Only honored for DoiT employees; ignored for customers."),
+});
+
+// Tool definition for creating a ticket comment
+export const createTicketCommentTool = {
+    name: "create_ticket_comment",
+    description:
+        "Adds a comment to an existing support ticket. For customers, comments are always public. For DoiT employees, comments can be marked as private (internal notes) by setting the private field to true.",
+    inputSchema: zodToMcpInputSchema(CreateTicketCommentArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Adding comment to ticket...",
+        "openai/toolInvocation/invoked": "Comment added",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+// Handler for creating a ticket comment
+export async function handleCreateTicketCommentRequest(args: any, token: string) {
+    try {
+        const { ticketId, ...rest } = CreateTicketCommentArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${TICKETS_BASE_URL}/${encodeURIComponent(ticketId)}/comments`;
+        const data = await makeDoitRequest(url, token, {
+            method: "POST",
+            body: rest,
+            appendParams: false,
+            customerContext,
+        });
+        if (!data) {
+            return createErrorResponse("Failed to create ticket comment");
+        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create ticket comment request");
+    }
+}
