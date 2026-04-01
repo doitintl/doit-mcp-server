@@ -2,21 +2,40 @@ import { useState, useEffect } from "preact/hooks";
 import { Layout } from "../components/Layout";
 import { DOIT_LOGO_BASE64 } from "../icons/doitLogo";
 
+const LOADING_MESSAGES = [
+  "Crunching your cloud numbers...",
+  "Asking AWS, GCP, and Azure to share their secrets...",
+  "Negotiating with the cloud gods...",
+  "Teaching AI to read your invoices...",
+  "Turning cloud chaos into clarity...",
+  "Hunting for cost anomalies...",
+  "Making FinOps look easy...",
+  "Calculating how much coffee your cloud bill could buy...",
+  "Almost there, just counting the zeros...",
+];
+
 export function Onboarding() {
   const [progress, setProgress] = useState(0);
+  const [messageIdx, setMessageIdx] = useState(0);
 
   useEffect(() => {
     const start = Date.now();
-    const duration = 4000; // 4 seconds to reach ~95%
+    const duration = 4000;
     const tick = () => {
       const elapsed = Date.now() - start;
-      // Ease-out curve: fast start, slows near the end, never quite reaches 100
       const t = Math.min(elapsed / duration, 1);
       const value = Math.round(t < 1 ? t * (2 - t) * 95 : 95);
       setProgress(value);
       if (t < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIdx((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 2200);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -42,11 +61,10 @@ export function Onboarding() {
         <p style={{
           fontSize: "0.8125rem",
           color: "var(--dci-text-secondary)",
-          maxWidth: "340px",
           margin: 0,
-          lineHeight: 1.4,
+          whiteSpace: "nowrap",
         }}>
-          Agentic FinOps Platform for AWS, Google Cloud, Azure, OCI and 37 SaaS platforms
+          FinOps for AWS, Google Cloud, Azure, OCI &amp; 40+ SaaS platforms
         </p>
         <div style={{ width: "100%", maxWidth: "280px", marginTop: "4px" }}>
           <div style={{
@@ -59,7 +77,7 @@ export function Onboarding() {
               height: "100%",
               borderRadius: "2px",
               width: `${progress}%`,
-              background: "var(--dci-accent, #4285F4)",
+              background: "#FC3165",
               transition: "width 0.1s linear",
             }} />
           </div>
@@ -67,8 +85,9 @@ export function Onboarding() {
             fontSize: "0.6875rem",
             color: "var(--dci-text-secondary)",
             marginTop: "6px",
+            minHeight: "1.2em",
           }}>
-            Loading your cloud data…
+            {LOADING_MESSAGES[messageIdx]}
           </p>
         </div>
       </div>
