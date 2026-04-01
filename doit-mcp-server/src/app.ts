@@ -60,6 +60,26 @@ app.get("/widget", (c) => {
   });
 });
 
+// Proxy images from storage.googleapis.com so the CSP-sandboxed widget can load them.
+// Only allows the specific GCS bucket used for anomaly charts.
+app.get("/proxy-image", async (c) => {
+  const url = c.req.query("url");
+  if (!url || !url.startsWith("https://storage.googleapis.com/me-doit-intl-com-gcp-anomalies/")) {
+    return c.text("Forbidden", 403);
+  }
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return c.text("Not found", 404);
+    return c.body(resp.body as any, 200, {
+      "Content-Type": resp.headers.get("Content-Type") || "image/png",
+      "Cache-Control": "public, max-age=3600",
+      "Access-Control-Allow-Origin": "*",
+    });
+  } catch {
+    return c.text("Fetch error", 502);
+  }
+});
+
 // Render an authorization page
 // If the user is logged in, we'll show a form to approve the appropriate scopes
 // If the user is not logged in, we'll show a form to both login and approve the scopes
