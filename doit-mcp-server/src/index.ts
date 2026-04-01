@@ -367,7 +367,7 @@ export class DoitMCPAgent extends McpAgent {
       tool.name,
       {
         description: tool.description,
-        inputSchema: zodSchemaToMcpTool(schema) ?? tool.inputSchema,
+        inputSchema: zodSchemaToMcpTool(schema) ?? tool.inputSchema?.properties ?? tool.inputSchema,
         annotations: tool.annotations,
         _meta: {
           ...tool._meta,
