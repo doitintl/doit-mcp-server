@@ -42,7 +42,11 @@ export const CloudIncidentsArgumentsSchema = z.object({
 
 export const CloudIncidentArgumentsSchema = z
     .object({
-        id: z.string().optional().describe("The ID of the cloud incident."),
+        id: z
+            .union([z.string(), z.number()])
+            .transform((v) => String(v))
+            .optional()
+            .describe("The ID of the cloud incident."),
         title: z
             .string()
             .optional()

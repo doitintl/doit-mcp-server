@@ -300,7 +300,7 @@ Created: ${new Date(mockIncident.createTime).toLocaleString()}
         });
 
         it("should handle ZodError for invalid arguments", async () => {
-            const mockArgs = { id: 123 }; // Invalid id type
+            const mockArgs = {}; // Missing both id and title
             const response = await handleCloudIncidentRequest(mockArgs, mockToken);
 
             expect(formatZodError).toHaveBeenCalled();
