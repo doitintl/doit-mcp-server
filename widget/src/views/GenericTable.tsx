@@ -1,10 +1,30 @@
 import type { JSX } from "preact";
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import type { ViewProps } from "../router";
 import { Layout } from "../components/Layout";
 import type { ColumnDef, ColumnFormat, ColumnFormatOptions, DrilldownConfig } from "../../../src/utils/widgetConfig";
 import { ICON_SETS } from "../icons/cloudPlatforms";
 import { getBridge } from "../bridge";
+
+// ── FetchImage: loads images via fetch (connect-src) to bypass img-src CSP ───
+
+function FetchImage({ src }: { src: string }): JSX.Element {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let revoke: string | null = null;
+    fetch(src)
+      .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.blob(); })
+      .then((blob) => { revoke = URL.createObjectURL(blob); setBlobUrl(revoke); })
+      .catch((e) => setError(e.message));
+    return () => { if (revoke) URL.revokeObjectURL(revoke); };
+  }, [src]);
+
+  if (error) return <span style={{ fontSize: "0.65rem", color: "var(--dci-text-secondary)" }}>Chart unavailable</span>;
+  if (!blobUrl) return <span style={{ fontSize: "0.65rem", color: "var(--dci-text-secondary)" }}>Loading chart…</span>;
+  return <img src={blobUrl} alt="chart" style={{ maxWidth: "100%", borderRadius: "6px", display: "block" }} />;
+}
 
 // ── Colour maps ───────────────────────────────────────────────────────────────
 
@@ -165,26 +185,9 @@ function renderCell(
 
     case "image": {
       const src = String(value);
-      if (!src || src === "undefined" || src === "null") return <span>—</span>;
-      if (!src.startsWith("https://")) return <span style={{ fontSize: "0.65rem", color: "var(--dci-danger)" }}>blocked: {src.slice(0, 50)}</span>;
-      return (
-        <div>
-          <img
-            src={src}
-            alt="chart"
-            style={{ maxWidth: "100%", borderRadius: "6px", display: "block" }}
-            onError={(e) => {
-              const img = e.currentTarget as HTMLImageElement;
-              img.style.display = "none";
-              const err = img.nextElementSibling as HTMLElement;
-              if (err) err.style.display = "block";
-            }}
-          />
-          <div style={{ display: "none", fontSize: "0.6rem", color: "var(--dci-danger)", wordBreak: "break-all" }}>
-            Failed to load: {src.slice(0, 120)}
-          </div>
-        </div>
-      );
+      if (!src || src === "undefined" || src === "null" || !src.startsWith("https://")) return <span>—</span>;
+      // Use FetchImage component to bypass img-src CSP by loading via fetch (connect-src)
+      return <FetchImage src={src} />;
     }
 
     default:

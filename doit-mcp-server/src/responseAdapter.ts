@@ -214,6 +214,13 @@ export function adaptToolResponse(toolName: string, rawResponse: unknown) {
     const cleaned = Array.isArray(data) ? (sanitizeValue(data) as unknown[]) : sanitizeValue(data);
     const structured = summarize(toolName, cleaned);
 
+    // Proxy anomaly chart images through our server so the widget can fetch them
+    // via connect-src (connectDomains) and convert to blob URLs for rendering.
+    if (structured.anomalyChartUrl && typeof structured.anomalyChartUrl === "string" &&
+        structured.anomalyChartUrl.startsWith("https://storage.googleapis.com/")) {
+        structured.anomalyChartUrl = `https://mcp.doit.com/proxy-image?url=${encodeURIComponent(structured.anomalyChartUrl as string)}`;
+    }
+
     // The LLM reads structuredContent; embed an instruction so it gives a one-liner.
     // _-prefixed keys are filtered by the widget's GenericTable view.
     const viewConfig = TOOL_VIEW_CONFIG[toolName];
