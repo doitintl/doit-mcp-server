@@ -135,8 +135,14 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
         }
 
         // Paginated DoiT list response: { [collectionKey]: [...], pageToken?, rowCount? }
-        // Find the first array-valued property that is not "pageToken"
-        const arrayKey = Object.keys(d).find((k) => k !== "pageToken" && Array.isArray(d[k]));
+        // A list response has a few top-level keys (collection, pageToken, rowCount).
+        // A detail response has many fields, one of which may happen to be an array
+        // (e.g. top3SKUs, recipients). Use key count to distinguish: list responses
+        // typically have ≤ 4 top-level keys.
+        const keys = Object.keys(d);
+        const arrayKey = keys.length <= 4
+            ? keys.find((k) => k !== "pageToken" && Array.isArray(d[k]))
+            : undefined;
         if (arrayKey) {
             const items = d[arrayKey] as unknown[];
             return {
