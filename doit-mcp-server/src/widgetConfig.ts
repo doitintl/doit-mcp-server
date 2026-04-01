@@ -74,7 +74,6 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
     },
     get_anomaly: {
         columns: [
-            { key: "anomalyChartUrl", label: "Chart", format: "image" },
             { key: "platform", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },
             { key: "serviceName", label: "Service" },
             { key: "scope", label: "Scope" },
