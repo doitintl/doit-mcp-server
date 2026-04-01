@@ -146,9 +146,9 @@ Top SKUs:
                     method: "GET",
                 }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Found 1 anomalies"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("rowCount"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Found 1 anomalies") }],
+                content: [{ type: "text", text: expect.stringContaining("rowCount") }],
             });
         });
 
@@ -247,9 +247,9 @@ Top SKUs:
                 appendParams: true,
                 method: "GET",
             });
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Anomaly details:"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("severityLevel"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Anomaly details:") }],
+                content: [{ type: "text", text: expect.stringContaining("severityLevel") }],
             });
         });
 

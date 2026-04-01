@@ -11,6 +11,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const ANNOTATIONS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/annotations`;
@@ -47,8 +48,18 @@ export const ListAnnotationsArgumentsSchema = z.object({
 export const listAnnotationsTool = {
     name: "list_annotations",
     description:
-        "Returns a list of annotations from the DoiT API that the user has access to. Annotations are listed in reverse chronological order by default.",
+        "Use this when the user wants to see calendar annotations or notes on cost data. Returns a list of annotations. Do NOT use this for labels (use list_labels) or alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(ListAnnotationsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading annotations...",
+        "openai/toolInvocation/invoked": "Annotations loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListAnnotationsRequest(args: any, token: string) {
@@ -82,25 +93,68 @@ export async function handleListAnnotationsRequest(args: any, token: string) {
 }
 
 // Schema and metadata for get annotation
-export const GetAnnotationArgumentsSchema = z.object({
-    id: z
-        .string()
-        .transform((val) => val.trim())
-        .pipe(z.string().min(1, "Annotation ID is required and cannot be empty."))
-        .describe("The ID of the annotation to retrieve."),
-});
+export const GetAnnotationArgumentsSchema = z
+    .object({
+        id: z
+            .string()
+            .transform((val) => val.trim())
+            .pipe(z.string().min(1))
+            .optional()
+            .describe("The ID of the annotation to retrieve."),
+        content: z
+            .string()
+            .optional()
+            .describe("Partial content match (case-insensitive). Used to find the annotation when ID is unknown."),
+    })
+    .refine((d) => d.id || d.content, { message: "Either id or content must be provided." });
 
 export const getAnnotationTool = {
     name: "get_annotation",
-    description: "Returns details of a specific annotation from the DoiT API by its ID.",
-    inputSchema: zodToMcpInputSchema(GetAnnotationArgumentsSchema),
+    description:
+        "Use this when the user wants to view details of a specific annotation. Accepts either the annotation ID or a partial content match (case-insensitive). Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
+    inputSchema: {
+        type: "object",
+        properties: {
+            id: { type: "string", description: "The ID of the annotation to retrieve." },
+            content: {
+                type: "string",
+                description:
+                    "Partial content match (case-insensitive). Used to find the annotation when ID is unknown.",
+            },
+        },
+    },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading annotation...",
+        "openai/toolInvocation/invoked": "Annotation loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleGetAnnotationRequest(args: any, token: string) {
     try {
-        const { id } = GetAnnotationArgumentsSchema.parse(args);
+        const parsed = GetAnnotationArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${ANNOTATIONS_BASE_URL}/${encodeURIComponent(id)}`;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.content) {
+            const listData = await makeDoitRequest<AnnotationsResponse>(
+                `${ANNOTATIONS_BASE_URL}?maxResults=200`,
+                token,
+                { method: "GET", customerContext }
+            );
+            const items = (listData?.annotations ?? []).map((a: any) => ({ ...a, name: a.content }));
+            const result = matchByName(items, parsed.content, "name");
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const url = `${ANNOTATIONS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         const data = await makeDoitRequest<Annotation>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve annotation");
@@ -130,8 +184,18 @@ export const CreateAnnotationArgumentsSchema = z.object({
 export const createAnnotationTool = {
     name: "create_annotation",
     description:
-        "Creates a new annotation in the DoiT platform. Annotations allow users to mark specific points in time with notes, and can be associated with reports and labels.",
+        "Use this when the user wants to add a new annotation to mark a specific date or event in cost data. Ask the user to confirm the annotation details before executing. Do NOT use this for creating labels (use create_label) or alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateAnnotationArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating annotation...",
+        "openai/toolInvocation/invoked": "Annotation created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleCreateAnnotationRequest(args: any, token: string) {
@@ -196,8 +260,18 @@ export const UpdateAnnotationArgumentsSchema = z.object({
 export const updateAnnotationTool = {
     name: "update_annotation",
     description:
-        "Updates an existing annotation in the DoiT platform. Supports partial updates — only the fields provided will be changed. Set a field to null to clear it. The annotation ID is required.",
+        "Use this when the user wants to modify an existing annotation. Ask the user to confirm changes before executing. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
     inputSchema: zodToMcpInputSchema(UpdateAnnotationArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating annotation...",
+        "openai/toolInvocation/invoked": "Annotation updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleUpdateAnnotationRequest(args: any, token: string) {

@@ -48,6 +48,7 @@ describe("handleListTicketsRequest", () => {
         const response = await handleListTicketsRequest({ pageToken: "next-page", pageSize: 10 }, mockToken);
 
         expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?pageToken=next-page&pageSize=10`, mockToken, {
+            method: "GET",
             customerContext: undefined,
         });
 
@@ -63,7 +64,10 @@ describe("handleListTicketsRequest", () => {
 
         const response = await handleListTicketsRequest({}, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?`, mockToken, { customerContext: undefined });
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
 
         const text = response.content[0].text;
         const parsed = JSON.parse(text);

@@ -17,7 +17,7 @@ export interface ChangeCustomerResponse {
 export const changeCustomerTool = {
     name: "change_customer",
     description:
-        "Changes the current customer context for subsequent API calls. This allows switching between different customer accounts or contexts, Example: EE8CtpzYiKp0dVAESVrB",
+        "Use this when a DoiT employee needs to switch the active customer context for subsequent API calls. Allows switching between different customer accounts. Do NOT use this for regular user operations — this is an internal DoiT employee tool only.",
     inputSchema: {
         type: "object",
         properties: {
@@ -28,6 +28,17 @@ export const changeCustomerTool = {
         },
         required: ["customerContext"],
     },
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Switching customer...",
+        "openai/toolInvocation/invoked": "Customer switched",
+        "openai/visibility": "private",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handle change customer request

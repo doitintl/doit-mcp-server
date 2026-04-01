@@ -211,11 +211,9 @@ Cloud Storage,50`;
                 mockToken,
                 { method: "GET" }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(
-                expect.stringContaining("Found 1 reports (filtered by: type:billing)")
-            );
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("rowCount"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Found 1 reports") }],
+                content: [{ type: "text", text: expect.stringContaining("rowCount") }],
             });
         });
 
@@ -325,9 +323,9 @@ Cloud Storage,50`;
                 mockToken,
                 expect.objectContaining({ method: "POST" })
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Query Results:"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("rows"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Query Results:") }],
+                content: [{ type: "text", text: expect.stringContaining("rows") }],
             });
         });
 
@@ -422,9 +420,9 @@ Cloud Storage,50`;
                 mockToken,
                 { method: "GET" }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Report Details:"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("reportName"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Report Details:") }],
+                content: [{ type: "text", text: expect.stringContaining("reportName") }],
             });
         });
 

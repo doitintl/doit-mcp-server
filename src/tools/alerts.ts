@@ -18,6 +18,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const ALERTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/alerts`;
@@ -44,7 +45,7 @@ export const ListAlertsArgumentsSchema = z.object({
 export const listAlertsTool = {
     name: "list_alerts",
     description:
-        "Returns a list of alerts from DoIT API that your account has access to. Alerts are listed in reverse chronological order by default.",
+        "Use this when the user wants to see their cost alerts or check alert configurations. Returns a paginated list of alerts. Do NOT use this for anomaly detection (use get_anomalies) or budget tracking (use list_budgets).",
     inputSchema: {
         type: "object",
         properties: {
@@ -73,16 +74,33 @@ export const listAlertsTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading alerts...",
+        "openai/toolInvocation/invoked": "Alerts loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Schema and metadata for get alert
-export const GetAlertArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the alert to retrieve."),
-});
+export const GetAlertArgumentsSchema = z
+    .object({
+        id: z.string().optional().describe("The ID of the alert to retrieve."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial name match (case-insensitive). Used to find the alert when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getAlertTool = {
     name: "get_alert",
-    description: "Returns details of a specific alert from DoIT API by ID.",
+    description:
+        "Use this when the user wants to view the details of a specific cost alert. Accepts either the alert ID or a partial name (case-insensitive). Do NOT use this for listing all alerts (use list_alerts) or anomalies (use get_anomalies).",
     inputSchema: {
         type: "object",
         properties: {
@@ -90,16 +108,43 @@ export const getAlertTool = {
                 type: "string",
                 description: "The ID of the alert to retrieve.",
             },
+            name: {
+                type: "string",
+                description: "Partial name match (case-insensitive). Used to find the alert when ID is unknown.",
+            },
         },
-        required: ["id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading alert details...",
+        "openai/toolInvocation/invoked": "Alert details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleGetAlertRequest(args: any, token: string) {
     try {
-        const { id } = GetAlertArgumentsSchema.parse(args);
+        const parsed = GetAlertArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${ALERTS_BASE_URL}/${encodeURIComponent(id)}`;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<AlertsResponse>(`${ALERTS_BASE_URL}?maxResults=200`, token, {
+                method: "GET",
+                customerContext,
+            });
+            const items = listData?.alerts ?? [];
+            const result = matchByName(items, parsed.name);
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const url = `${ALERTS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         try {
             const data = await makeDoitRequest<Alert>(url, token, { method: "GET", customerContext });
             if (!data) {
@@ -217,8 +262,18 @@ export const CreateAlertArgumentsSchema = z.object({
 export const createAlertTool = {
     name: "create_alert",
     description:
-        "Creates a new alert in the DoiT platform to notify when cloud costs exceed defined thresholds or meet specific conditions.",
+        "Use this when the user wants to set up a new cost alert with thresholds and notification settings. Ask the user to confirm the alert parameters before executing. Do NOT use this for creating budgets (use create_budget) or viewing existing alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(CreateAlertArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating alert...",
+        "openai/toolInvocation/invoked": "Alert created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleCreateAlertRequest(args: any, token: string) {
@@ -260,8 +315,18 @@ export const UpdateAlertArgumentsSchema = z.object({
 export const updateAlertTool = {
     name: "update_alert",
     description:
-        "Updates an existing alert in the DoiT platform. The alert ID and config are required. Name and recipients are optional.",
+        "Use this when the user wants to modify an existing cost alert. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateAlertArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating alert...",
+        "openai/toolInvocation/invoked": "Alert updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleUpdateAlertRequest(args: any, token: string) {

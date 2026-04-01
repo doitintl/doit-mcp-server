@@ -19,6 +19,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const BUDGETS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/budgets`;
@@ -42,6 +43,10 @@ export const ListBudgetsArgumentsSchema = z.object({
         .describe(
             'An expression for filtering the results. Syntax: "key:[<value>]". Available keys: owner, lastModified in ms (>lastModified). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in "AND," while using the same key multiple times in the same filter results in "OR".'
         ),
+    name: z
+        .string()
+        .optional()
+        .describe("Partial name filter (case-insensitive). Returns only budgets whose name contains this string."),
     minCreationTime: z
         .string()
         .optional()
@@ -59,19 +64,45 @@ export const ListBudgetsArgumentsSchema = z.object({
 export const listBudgetsTool = {
     name: "list_budgets",
     description:
-        "Returns the list of budgets from the DoiT API that the user has access to. Supports pagination and filtering by owner, last modified time, and creation time range.",
+        "Use this when the user wants to see their cloud spending budgets or check budget status. Returns a paginated list of budgets with names, amounts, and utilization. Do NOT use this for cost analysis (use run_query) or spending alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(ListBudgetsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading budgets...",
+        "openai/toolInvocation/invoked": "Budgets loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
-export const GetBudgetArgumentsSchema = z.object({
-    id: z.string().min(1).describe("The ID of the budget to retrieve."),
-});
+export const GetBudgetArgumentsSchema = z
+    .object({
+        id: z.string().min(1).optional().describe("The ID of the budget to retrieve."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial name match (case-insensitive). Used to find the budget when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getBudgetTool = {
     name: "get_budget",
     description:
-        "Returns the details like current utilization and configuration of the specified budget from the DoiT API.",
+        "Use this when the user wants to view the details and current utilization of a specific budget. Accepts either the budget ID or a partial name (case-insensitive). Do NOT use this for listing all budgets (use list_budgets) or cost analysis (use run_query).",
     inputSchema: zodToMcpInputSchema(GetBudgetArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading budget details...",
+        "openai/toolInvocation/invoked": "Budget details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 const BudgetScopeSchema = z.object({
@@ -209,15 +240,42 @@ export const CreateBudgetArgumentsSchema = createBudgetRefinements(CreateBudgetB
 export const createBudgetTool = {
     name: "create_budget",
     description:
-        "Creates a new budget in the DoiT platform to track actual cloud spend against planned spend. Supports recurring and fixed budget types with configurable scopes, alerts, and collaborators.",
+        "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires budget name, currency, type, and start period. Ask the user to confirm the budget parameters before executing. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateBudgetArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating budget...",
+        "openai/toolInvocation/invoked": "Budget created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleGetBudgetRequest(args: any, token: string) {
     try {
-        const { id } = GetBudgetArgumentsSchema.parse(args);
+        const parsed = GetBudgetArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(id)}`;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<BudgetsResponse>(`${BUDGETS_BASE_URL}?maxResults=200`, token, {
+                method: "GET",
+                customerContext,
+            });
+            const items = (listData?.budgets ?? []) as Array<{ id: string; budgetName: string }>;
+            const result = matchByName(
+                items.map((b) => ({ ...b, name: b.budgetName })),
+                parsed.name
+            );
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         const data = await makeDoitRequest<BudgetDetails>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve budget details");
@@ -231,7 +289,7 @@ export async function handleGetBudgetRequest(args: any, token: string) {
 
 export async function handleListBudgetsRequest(args: any, token: string) {
     try {
-        const { maxResults, pageToken, filter, minCreationTime, maxCreationTime } =
+        const { maxResults, pageToken, filter, name, minCreationTime, maxCreationTime } =
             ListBudgetsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
@@ -251,6 +309,13 @@ export async function handleListBudgetsRequest(args: any, token: string) {
 
         if (!data) {
             return createErrorResponse("Failed to retrieve budgets");
+        }
+
+        if (name) {
+            const q = name.toLowerCase();
+            data.budgets = (data.budgets ?? []).filter(
+                (b: any) => typeof b.budgetName === "string" && b.budgetName.toLowerCase().includes(q)
+            );
         }
 
         return createSuccessResponse(JSON.stringify(data, null, 2));
@@ -339,8 +404,18 @@ export const UpdateBudgetArgumentsSchema = updateBudgetRefinements(
 export const updateBudgetTool = {
     name: "update_budget",
     description:
-        "Updates an existing budget in the DoiT platform. Supports partial updates — only the fields provided will be changed. The budget ID is required.",
+        "Use this when the user wants to modify an existing budget. Supports partial updates. Ask the user to confirm the changes before executing. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateBudgetArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating budget...",
+        "openai/toolInvocation/invoked": "Budget updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleUpdateBudgetRequest(args: any, token: string) {

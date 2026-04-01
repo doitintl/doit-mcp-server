@@ -49,6 +49,7 @@ import {
     handleUpdateLabelRequest,
 } from "../tools/labels.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
+import { handleCloudOverviewRequest } from "../tools/overview.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
 import {
@@ -115,6 +116,9 @@ export async function executeToolHandler(
                 break;
             case "validate_user":
                 result = await handleValidateUserRequest(args, token);
+                break;
+            case "get_cloud_overview":
+                result = await handleCloudOverviewRequest(args, token);
                 break;
             case "list_dimensions":
                 result = await handleDimensionsRequest(args, token);

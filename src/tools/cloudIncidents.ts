@@ -6,6 +6,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const CLOUD_INCIDENTS_BASE_URL = `${DOIT_API_BASE}/core/v1/cloudincidents`;
@@ -39,10 +40,15 @@ export const CloudIncidentsArgumentsSchema = z.object({
     pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
 });
 
-export const CloudIncidentArgumentsSchema = z.object({
-    id: z.string(),
-    customerContext: z.string().optional(),
-});
+export const CloudIncidentArgumentsSchema = z
+    .object({
+        id: z.string().optional().describe("The ID of the cloud incident."),
+        title: z
+            .string()
+            .optional()
+            .describe("Partial title match (case-insensitive). Used to find the incident when ID is unknown."),
+    })
+    .refine((d) => d.id || d.title, { message: "Either id or title must be provided." });
 
 // Interfaces
 export interface CloudIncident {
@@ -66,7 +72,8 @@ export interface CloudIncidentsResponse {
 // Tool metadata
 export const cloudIncidentsTool = {
     name: "get_cloud_incidents",
-    description: "Get cloud incidents",
+    description:
+        "Use this when the user wants to check for active cloud platform outages, service disruptions, or incidents from AWS, Google Cloud, or Azure. Do NOT use this for cost anomalies (use get_anomalies) or support tickets (use list_tickets).",
     inputSchema: {
         type: "object",
         properties: {
@@ -86,21 +93,45 @@ export const cloudIncidentsTool = {
             },
         },
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Checking cloud incidents...",
+        "openai/toolInvocation/invoked": "Incidents loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export const cloudIncidentTool = {
     name: "get_cloud_incident",
-    description: "Get a specific cloud incident by ID",
+    description:
+        "Use this when the user wants to view details of a specific cloud platform incident. Accepts either the incident ID or a partial title match (case-insensitive). Do NOT use this for listing all incidents (use get_cloud_incidents) or anomalies (use get_anomalies).",
     inputSchema: {
         type: "object",
         properties: {
             id: {
                 type: "string",
-                description: "incident ID",
+                description: "The ID of the cloud incident.",
+            },
+            title: {
+                type: "string",
+                description: "Partial title match (case-insensitive). Used to find the incident when ID is unknown.",
             },
         },
-        required: ["id"],
     },
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading incident details...",
+        "openai/toolInvocation/invoked": "Incident details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format cloud incident data
@@ -167,22 +198,13 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
                 );
             }
 
-            const formattedIncidents = incidents.map(formatCloudIncident);
-
-            // Create a descriptive message that includes filter information if provided
-            let incidentsText = "Cloud incidents";
-            if (platform) {
-                incidentsText += ` for ${platform}`;
-            }
-            if (filter) {
-                incidentsText += ` (filtered by: ${filter})`;
-            }
-
-            incidentsText += `:\n\n${formattedIncidents.join("\n")} \n\n${
-                incidentsData.pageToken ? `Page token: ${incidentsData.pageToken}` : ""
-            }`;
-
-            return createSuccessResponse(incidentsText);
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount: incidents.length,
+                    incidents,
+                    pageToken: incidentsData.pageToken ?? null,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
@@ -197,9 +219,27 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
 // Handle specific cloud incident request
 export async function handleCloudIncidentRequest(args: any, token: string) {
     try {
-        const { id, customerContext } = CloudIncidentArgumentsSchema.parse(args);
+        const parsed = CloudIncidentArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        let resolvedId = parsed.id;
 
-        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${id}`;
+        if (!resolvedId && parsed.title) {
+            const listData = await makeDoitRequest<CloudIncidentsResponse>(
+                `${CLOUD_INCIDENTS_BASE_URL}?maxResults=200`,
+                token,
+                {
+                    method: "GET",
+                    customerContext,
+                }
+            );
+            const items = (listData?.incidents ?? []).map((i) => ({ ...i, name: i.title }));
+            const result = matchByName(items, parsed.title, "name");
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
+        const incidentUrl = `${CLOUD_INCIDENTS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
 
         try {
             // Explicitly set appendParams to true to ensure URL parameters are added
@@ -210,11 +250,10 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
             });
 
             if (!incident) {
-                return createErrorResponse(`Failed to retrieve cloud incident with ID: ${id}`);
+                return createErrorResponse(`Failed to retrieve cloud incident with ID: ${resolvedId}`);
             }
 
-            const formattedIncident = formatCloudIncident(incident);
-            return createSuccessResponse(`Cloud incident details:\n\n${formattedIncident}`);
+            return createSuccessResponse(JSON.stringify(incident));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

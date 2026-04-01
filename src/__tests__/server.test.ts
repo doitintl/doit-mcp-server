@@ -15,6 +15,10 @@ import { prompts } from "../prompts/index.js";
 import { SERVER_VERSION } from "../utils/consts.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/index.js");
+vi.mock(import("../tools/overview.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleCloudOverviewRequest: vi.fn(),
+}));
 vi.mock(import("../tools/cloudIncidents.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleCloudIncidentsRequest: vi.fn(),
@@ -236,6 +240,7 @@ import {
     updateLabelTool,
 } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
+import { cloudOverviewTool } from "../tools/overview.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import {
@@ -301,6 +306,7 @@ describe("ListToolsRequestSchema handler", () => {
 
         expect(response).toEqual({
             tools: [
+                cloudOverviewTool,
                 cloudIncidentsTool,
                 cloudIncidentTool,
                 anomaliesTool,

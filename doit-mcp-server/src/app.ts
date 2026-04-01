@@ -12,11 +12,14 @@ import {
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { handleValidateUserRequest } from "../../src/tools/validateUser";
 import { decodeJWT } from "../../src/utils/util";
+import { DEMO_TOKEN } from "../../src/utils/demoData";
+import { WIDGET_HTML } from "./widgetHtml";
 
 export type Bindings = Env & {
   OAUTH_PROVIDER: OAuthHelpers;
   OAUTH_KV: KVNamespace;
 };
+
 
 const app = new Hono<{
   Bindings: Bindings;
@@ -27,8 +30,8 @@ app.use(
   "*",
   cors({
     origin: "*",
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "Cache-Control"],
+    allowMethods: ["GET", "POST", "OPTIONS", "DELETE"],
+    allowHeaders: ["Content-Type", "Authorization", "Cache-Control", "mcp-session-id"],
   })
 );
 
@@ -36,8 +39,8 @@ app.use(
 app.options("/sse", (c) => {
   return c.text("", 200, {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Cache-Control",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS, DELETE",
+    "Access-Control-Allow-Headers": "content-type, mcp-session-id",
   });
 });
 
@@ -45,6 +48,16 @@ app.options("/sse", (c) => {
 app.get("/", async (c) => {
   const content = await homeContent(c.req.raw);
   return c.html(layout(content, "DoiT MCP Remote - Home"));
+});
+
+// Serve the full widget HTML at a stable URL so the cached stub can fetch
+// the latest version without requiring ChatGPT app re-registration.
+app.get("/widget", (c) => {
+  return c.body(WIDGET_HTML, 200, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
+    "Access-Control-Allow-Origin": "*",
+  });
 });
 
 // Render an authorization page
@@ -56,10 +69,10 @@ app.get("/authorize", async (c) => {
   const oauthScopes = [
     {
       name: "read_profile",
-      description: "Read your DoiT basic profile information",
+      description: "Read your DoiT Cloud Intelligence profile information",
     },
-    { name: "read_data", description: "Access your DoiT data" },
-    { name: "write_data", description: "Create and modify your DoiT data" },
+    { name: "read_data", description: "Access your DoiT Cloud Intelligence data (anomalies, reports, allocations, etc.)" },
+    { name: "write_data", description: "Create and modify your DoiT Cloud Intelligence data" },
   ];
 
   const content = await renderLoggedInAuthorizeScreen(
@@ -71,11 +84,11 @@ app.get("/authorize", async (c) => {
 
 // Reusable approve handler function
 async function handleApprove(c: any) {
+  const formBody = await c.req.parseBody();
   const { action, oauthReqInfo, apiKey, customerContext, isDoitUser } =
-    await parseApproveFormBody(await c.req.parseBody());
+    await parseApproveFormBody(formBody);
 
   if (!oauthReqInfo) {
-    // Add WWW-Authenticate header with resource_metadata
     const url = new URL(c.req.url);
     const base = url.origin;
     return c.html("INVALID LOGIN", 401, {
@@ -101,28 +114,47 @@ async function handleApprove(c: any) {
     },
   });
 
-  return c.html(
-    layout(
-      await renderAuthorizationApprovedContent(redirectTo),
-      "MCP Remote Auth Demo - Authorization Status"
-    )
-  );
+  // Defense-in-depth: verify the redirect URL uses https before redirecting.
+  if (!redirectTo.startsWith("https://")) {
+    return c.html("Invalid redirect URI", 400);
+  }
+  return c.redirect(redirectTo, 302);
 }
 
-// Helper function to render authorization rejection response
+// Helper function to render authorization rejection response.
+// The redirect URI was already validated by the OAuthProvider during the
+// authorization request, so we only need a basic protocol check here.
 async function renderAuthorizationRejection(c: any, redirectUri: string) {
-  return c.html(
-    layout(
-      await renderAuthorizationRejectedContent(redirectUri),
-      "DoiT MCP Remote - Authorization Status"
-    )
-  );
+  try {
+    const parsed = new URL(redirectUri);
+    if (parsed.protocol === "https:") {
+      parsed.searchParams.set("error", "access_denied");
+      return c.redirect(parsed.toString(), 302);
+    }
+  } catch {
+    // malformed URI — fall through to 403
+  }
+  return c.html("Authorization denied", 403);
 }
 
 app.post("/customer-context", async (c) => {
   const { action, oauthReqInfo, apiKey } = await parseApproveFormBody(
     await c.req.parseBody()
   );
+
+  // Demo mode: bypass JWT validation and complete OAuth with demo props.
+  // Gated behind DEMO_MODE_ENABLED env var so it can be disabled in production.
+  if (apiKey === DEMO_TOKEN && (c.env as any).DEMO_MODE_ENABLED === "true") {
+    if (!oauthReqInfo) return c.html("INVALID LOGIN", 401);
+    const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
+      request: oauthReqInfo,
+      userId: DEMO_TOKEN,
+      metadata: { label: "demo@acme.io" },
+      scope: oauthReqInfo.scope,
+      props: { apiKey: DEMO_TOKEN, customerContext: "demo", isDoitUser: "false" },
+    });
+    return c.redirect(redirectTo, 302);
+  }
 
   try {
     const jwtInfo = decodeJWT(apiKey);
@@ -156,8 +188,29 @@ app.post("/customer-context", async (c) => {
     }
 
     if (!payload.DoitEmployee) {
-      // request validation for non-doit employees
-      return await handleApprove(c);
+      // For non-DoiT employees, extract the domain from the validate response
+      // and use it as customerContext (the DoiT API identifies their account by domain).
+      const domainMatch = result.match(/Domain:\s*(\S+)/);
+      const customerContext = domainMatch ? domainMatch[1] : undefined;
+
+      if (!oauthReqInfo) {
+        return c.html("INVALID LOGIN", 401);
+      }
+
+      const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
+        request: oauthReqInfo,
+        userId: apiKey,
+        metadata: {
+          label: payload?.sub || "User label",
+        },
+        scope: oauthReqInfo.scope,
+        props: {
+          apiKey,
+          customerContext,
+          isDoitUser: "false",
+        },
+      });
+      return c.redirect(redirectTo, 302);
     }
 
     const content = await renderCustomerContextScreen(
@@ -180,19 +233,7 @@ app.post("/customer-context", async (c) => {
 // then completing the authorization request with the OAUTH_PROVIDER
 app.post("/approve", handleApprove);
 
-// Add /.well-known/oauth-authorization-server endpoint
-app.get("/.well-known/oauth-authorization-server", (c) => {
-  // Extract base URL (protocol + host)
-  const url = new URL(c.req.url);
-  const base = url.origin;
-  return c.json({
-    issuer: base,
-    authorization_endpoint: `${base}/authorize`,
-    token_endpoint: `${base}/token`,
-    registration_endpoint: `${base}/register`,
-    scopes_supported: ["*"],
-    code_challenge_methods_supported: ["S256"],
-  });
-});
+// Note: /.well-known/oauth-authorization-server and /.well-known/oauth-protected-resource
+// are handled in handleRequest() in index.ts to support all path prefixes (e.g. /sse/.well-known/...).
 
 export default app;
