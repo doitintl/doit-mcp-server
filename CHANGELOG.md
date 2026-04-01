@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.10.0 (2026-04-01)
+
+### Features
+
+- feat: add commitment management tools for listing and retrieving comm… (#147) (`0b5127e`)
+- feat: add get_ticket tool for retrieving support ticket details (#148) (`22314c2`)
+- feat: add invite_user tool for inviting new users (#145) (`ea8511a`)
+- feat: add update_user tool for user information updates (#144) (`72ee461`)
+- feat: add get_report_config tool for retrieving report configurations (`3c6a0e7`)
+- feat: add send_datahub_events tool for event ingestion (#142) (`420b2f2`)
+- feat: add create and update DataHub dataset tools with request handlers (#140) (`835485f`)
+- feat: OpenAI Apps SDK compliance for ChatGPT app submission (`79f3fff`)
+
 ## v0.9.0 (2026-03-26)
 
 ### Features
