@@ -165,17 +165,25 @@ function renderCell(
 
     case "image": {
       const src = String(value);
-      // Only allow https: URLs to prevent javascript:/data: injection
-      if (!src.startsWith("https://")) return <span>—</span>;
+      if (!src || src === "undefined" || src === "null") return <span>—</span>;
+      if (!src.startsWith("https://")) return <span style={{ fontSize: "0.65rem", color: "var(--dci-danger)" }}>blocked: {src.slice(0, 50)}</span>;
       return (
-        <img
-          src={src}
-          alt="chart"
-          style={{ maxWidth: "100%", borderRadius: "6px", display: "block" }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
+        <div>
+          <img
+            src={src}
+            alt="chart"
+            style={{ maxWidth: "100%", borderRadius: "6px", display: "block" }}
+            onError={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              img.style.display = "none";
+              const err = img.nextElementSibling as HTMLElement;
+              if (err) err.style.display = "block";
+            }}
+          />
+          <div style={{ display: "none", fontSize: "0.6rem", color: "var(--dci-danger)", wordBreak: "break-all" }}>
+            Failed to load: {src.slice(0, 120)}
+          </div>
+        </div>
       );
     }
 
