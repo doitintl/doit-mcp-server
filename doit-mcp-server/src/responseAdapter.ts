@@ -135,14 +135,16 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
         }
 
         // Paginated DoiT list response: { [collectionKey]: [...], pageToken?, rowCount? }
-        // A list response has a few top-level keys (collection, pageToken, rowCount).
-        // A detail response has many fields, one of which may happen to be an array
-        // (e.g. top3SKUs, recipients). Use key count to distinguish: list responses
-        // typically have ≤ 4 top-level keys.
-        const keys = Object.keys(d);
-        const arrayKey = keys.length <= 4
-            ? keys.find((k) => k !== "pageToken" && Array.isArray(d[k]))
-            : undefined;
+        // Detect by looking for an array whose items are objects with an "id" field —
+        // this distinguishes real collections (anomalies, budgets, etc.) from nested
+        // arrays in detail responses (top3SKUs, recipients, scopes).
+        const arrayKey = Object.keys(d).find((k) => {
+            if (k === "pageToken") return false;
+            const val = d[k];
+            if (!Array.isArray(val) || val.length === 0) return false;
+            const first = val[0];
+            return typeof first === "object" && first !== null && "id" in first;
+        });
         if (arrayKey) {
             const items = d[arrayKey] as unknown[];
             return {

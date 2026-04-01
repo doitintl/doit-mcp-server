@@ -40,6 +40,8 @@ const DEMO_ANOMALIES = [
         status: "open",
         startTime: "2026-03-28T00:00:00Z",
         endTime: "2026-03-28T23:59:59Z",
+        anomalyChartUrl: "https://app.doit.com/anomalies/anom-001/chart.png",
+        acknowledged: false,
     },
     {
         id: "anom-002",
@@ -51,6 +53,8 @@ const DEMO_ANOMALIES = [
         status: "open",
         startTime: "2026-03-27T00:00:00Z",
         endTime: "2026-03-27T23:59:59Z",
+        anomalyChartUrl: "https://app.doit.com/anomalies/anom-002/chart.png",
+        acknowledged: false,
     },
     {
         id: "anom-003",
@@ -62,6 +66,8 @@ const DEMO_ANOMALIES = [
         status: "acknowledged",
         startTime: "2026-03-25T00:00:00Z",
         endTime: "2026-03-25T23:59:59Z",
+        anomalyChartUrl: "https://app.doit.com/anomalies/anom-003/chart.png",
+        acknowledged: true,
     },
 ];
 
@@ -69,6 +75,7 @@ const DEMO_BUDGETS = [
     {
         id: "budget-001",
         budgetName: "GCP Production Budget",
+        name: "GCP Production Budget",
         amount: 50000,
         currency: "USD",
         currentSpend: 38420.5,
@@ -77,10 +84,17 @@ const DEMO_BUDGETS = [
         startDate: "2026-03-01",
         endDate: "2026-03-31",
         scope: { cloud: "google-cloud" },
+        currentUtilization: 76.84,
+        timeInterval: "month",
+        owner: "finops@acme.io",
+        type: "recurring",
+        metric: "cost",
+        createTime: "2026-01-15T10:00:00Z",
     },
     {
         id: "budget-002",
         budgetName: "AWS Data Pipeline Budget",
+        name: "AWS Data Pipeline Budget",
         amount: 15000,
         currency: "USD",
         currentSpend: 9842.0,
@@ -89,10 +103,17 @@ const DEMO_BUDGETS = [
         startDate: "2026-03-01",
         endDate: "2026-03-31",
         scope: { cloud: "amazon-web-services" },
+        currentUtilization: 65.61,
+        timeInterval: "month",
+        owner: "eng-lead@acme.io",
+        type: "recurring",
+        metric: "cost",
+        createTime: "2026-02-01T09:00:00Z",
     },
     {
         id: "budget-003",
         budgetName: "Q1 2026 Total Cloud Budget",
+        name: "Q1 2026 Total Cloud Budget",
         amount: 200000,
         currency: "USD",
         currentSpend: 162400.0,
@@ -101,6 +122,12 @@ const DEMO_BUDGETS = [
         startDate: "2026-01-01",
         endDate: "2026-03-31",
         scope: {},
+        currentUtilization: 81.2,
+        timeInterval: "quarter",
+        owner: "finops@acme.io",
+        type: "fixed",
+        metric: "cost",
+        createTime: "2025-12-20T14:00:00Z",
     },
 ];
 
@@ -185,6 +212,9 @@ const DEMO_ALERTS = [
             operator: "gte",
         },
         recipients: ["demo@acme.io", "finops@acme.io"],
+        createTime: "2025-10-01T12:00:00Z",
+        updateTime: "2026-01-15T09:00:00Z",
+        lastAlerted: "2026-03-28T06:30:00Z",
     },
     {
         id: "alert-002",
@@ -198,14 +228,17 @@ const DEMO_ALERTS = [
             evaluateForEach: "service",
         },
         recipients: ["demo@acme.io"],
+        createTime: "2025-11-20T15:00:00Z",
+        updateTime: "2026-02-08T10:30:00Z",
+        lastAlerted: "2026-03-25T18:45:00Z",
     },
 ];
 
 const DEMO_LABELS = [
-    { id: "label-001", name: "Production", color: "red", type: "standard" },
-    { id: "label-002", name: "Development", color: "blue", type: "standard" },
-    { id: "label-003", name: "Data Platform", color: "green", type: "standard" },
-    { id: "label-004", name: "Cost Optimisation", color: "yellow", type: "standard" },
+    { id: "label-001", name: "Production", color: "red", type: "standard", createTime: "2025-06-01T08:00:00Z", updateTime: "2025-06-01T08:00:00Z" },
+    { id: "label-002", name: "Development", color: "blue", type: "standard", createTime: "2025-06-01T08:05:00Z", updateTime: "2025-06-01T08:05:00Z" },
+    { id: "label-003", name: "Data Platform", color: "green", type: "standard", createTime: "2025-07-15T10:30:00Z", updateTime: "2025-09-20T14:00:00Z" },
+    { id: "label-004", name: "Cost Optimisation", color: "yellow", type: "standard", createTime: "2025-08-10T11:00:00Z", updateTime: "2026-01-05T09:15:00Z" },
 ];
 
 const DEMO_ANNOTATIONS = [
@@ -215,6 +248,9 @@ const DEMO_ANNOTATIONS = [
         startDate: "2026-01-01",
         endDate: "2026-12-31",
         createdBy: "demo@acme.io",
+        timestamp: "2026-01-01T00:00:00Z",
+        createTime: "2025-12-20T14:00:00Z",
+        updateTime: "2025-12-20T14:00:00Z",
     },
     {
         id: "annot-002",
@@ -222,6 +258,9 @@ const DEMO_ANNOTATIONS = [
         startDate: "2026-02-15",
         endDate: "2027-02-14",
         createdBy: "demo@acme.io",
+        timestamp: "2026-02-15T00:00:00Z",
+        createTime: "2026-02-10T09:30:00Z",
+        updateTime: "2026-02-10T09:30:00Z",
     },
 ];
 
@@ -231,12 +270,20 @@ const DEMO_ALLOCATIONS = [
         name: "Engineering Cost Allocation",
         description: "Splits cloud costs across Engineering sub-teams by label.",
         type: "cost-allocation",
+        owner: "finops@acme.io",
+        createTime: "2025-09-01T10:00:00Z",
+        updateTime: "2026-02-15T16:30:00Z",
+        anomalyDetection: true,
     },
     {
         id: "alloc-002",
         name: "Platform vs Product Split",
         description: "Allocates shared infrastructure costs between Platform and Product orgs.",
         type: "cost-allocation",
+        owner: "eng-lead@acme.io",
+        createTime: "2025-11-12T09:00:00Z",
+        updateTime: "2026-03-10T11:45:00Z",
+        anomalyDetection: false,
     },
 ];
 
@@ -247,8 +294,11 @@ const DEMO_TICKETS = [
         status: "open",
         priority: "high",
         platform: "google-cloud",
-        createdAt: "2026-03-25T10:00:00Z",
+        createTime: "2026-03-25T10:00:00Z",
         updatedAt: "2026-03-28T14:30:00Z",
+        product: "Compute Engine",
+        severity: "high",
+        requester: "eng-lead@acme.io",
     },
     {
         id: "ticket-002",
@@ -256,8 +306,11 @@ const DEMO_TICKETS = [
         status: "pending",
         priority: "medium",
         platform: "amazon-web-services",
-        createdAt: "2026-03-20T09:00:00Z",
+        createTime: "2026-03-20T09:00:00Z",
         updatedAt: "2026-03-27T11:00:00Z",
+        product: "Billing",
+        severity: "medium",
+        requester: "finops@acme.io",
     },
     {
         id: "ticket-003",
@@ -265,8 +318,11 @@ const DEMO_TICKETS = [
         status: "closed",
         priority: "low",
         platform: "general",
-        createdAt: "2026-03-01T08:00:00Z",
+        createTime: "2026-03-01T08:00:00Z",
         updatedAt: "2026-03-15T16:00:00Z",
+        product: "Cost Optimization",
+        severity: "low",
+        requester: "demo@acme.io",
     },
 ];
 
@@ -279,6 +335,10 @@ const DEMO_INVOICES = [
         status: "paid",
         issuedAt: "2026-03-01T00:00:00Z",
         dueAt: "2026-03-15T00:00:00Z",
+        platform: "google-cloud",
+        invoiceDateFormatted: "Mar 1, 2026",
+        dueDateFormatted: "Mar 15, 2026",
+        balanceAmount: 0,
     },
     {
         id: "inv-2026-01",
@@ -288,6 +348,10 @@ const DEMO_INVOICES = [
         status: "paid",
         issuedAt: "2026-02-01T00:00:00Z",
         dueAt: "2026-02-15T00:00:00Z",
+        platform: "amazon-web-services",
+        invoiceDateFormatted: "Feb 1, 2026",
+        dueDateFormatted: "Feb 15, 2026",
+        balanceAmount: 0,
     },
     {
         id: "inv-2025-12",
@@ -297,14 +361,18 @@ const DEMO_INVOICES = [
         status: "paid",
         issuedAt: "2026-01-01T00:00:00Z",
         dueAt: "2026-01-15T00:00:00Z",
+        platform: "google-cloud",
+        invoiceDateFormatted: "Jan 1, 2026",
+        dueDateFormatted: "Jan 15, 2026",
+        balanceAmount: 0,
     },
 ];
 
 const DEMO_ASSETS = [
-    { id: "asset-001", name: "acme-prod (GCP Project)", type: "google-cloud", status: "active" },
-    { id: "asset-002", name: "acme-analytics (GCP Project)", type: "google-cloud", status: "active" },
-    { id: "asset-003", name: "acme-data-pipeline (AWS Account)", type: "amazon-web-services", status: "active" },
-    { id: "asset-004", name: "G Suite — acme.io", type: "g-suite", status: "active" },
+    { id: "asset-001", name: "acme-prod (GCP Project)", type: "google-cloud", status: "active", quantity: 1, createTime: "2024-06-15T09:00:00Z" },
+    { id: "asset-002", name: "acme-analytics (GCP Project)", type: "google-cloud", status: "active", quantity: 1, createTime: "2024-08-22T14:30:00Z" },
+    { id: "asset-003", name: "acme-data-pipeline (AWS Account)", type: "amazon-web-services", status: "active", quantity: 1, createTime: "2025-01-10T11:00:00Z" },
+    { id: "asset-004", name: "G Suite — acme.io", type: "g-suite", status: "active", quantity: 350, createTime: "2024-03-01T08:00:00Z" },
 ];
 
 const DEMO_INCIDENTS = [
@@ -315,6 +383,9 @@ const DEMO_INCIDENTS = [
         product: "Cloud SQL",
         status: "resolved",
         createTime: "2026-03-26T08:00:00Z",
+        summary: "Cloud SQL instances in us-central1 experienced elevated error rates impacting query latency for approximately 45 minutes.",
+        symptoms: "Increased connection timeouts and query failures on Cloud SQL PostgreSQL instances in us-central1.",
+        workaround: "Retry failed queries with exponential backoff; failover to us-east1 read replicas if available.",
     },
     {
         id: "inc-002",
@@ -323,20 +394,23 @@ const DEMO_INCIDENTS = [
         product: "Amazon EC2",
         status: "resolved",
         createTime: "2026-03-24T14:00:00Z",
+        summary: "EC2 RunInstances and DescribeInstances API calls in us-east-1 returned elevated 500 errors for roughly 30 minutes.",
+        symptoms: "Intermittent 500 errors when launching new EC2 instances or describing existing ones in us-east-1.",
+        workaround: "Use an alternative region (us-west-2) for new instance launches until the issue is resolved.",
     },
 ];
 
 const DEMO_USERS = [
-    { id: "user-001", email: "demo@acme.io", name: "Demo User", role: "Admin" },
-    { id: "user-002", email: "finops@acme.io", name: "FinOps Lead", role: "Editor" },
-    { id: "user-003", email: "eng-lead@acme.io", name: "Engineering Lead", role: "Viewer" },
+    { id: "user-001", email: "demo@acme.io", name: "Demo User", role: "Admin", displayName: "Demo User", jobFunction: "Cloud Operations", status: "active", roleId: "role-001" },
+    { id: "user-002", email: "finops@acme.io", name: "FinOps Lead", role: "Editor", displayName: "FinOps Lead", jobFunction: "Finance", status: "active", roleId: "role-004" },
+    { id: "user-003", email: "eng-lead@acme.io", name: "Engineering Lead", role: "Viewer", displayName: "Engineering Lead", jobFunction: "Engineering", status: "active", roleId: "role-003" },
 ];
 
 const DEMO_ROLES = [
-    { id: "role-001", name: "Admin", description: "Full access to all resources." },
-    { id: "role-002", name: "Editor", description: "Can read and modify resources." },
-    { id: "role-003", name: "Viewer", description: "Read-only access." },
-    { id: "role-004", name: "FinOps", description: "Access to billing, budgets, and cost reports." },
+    { id: "role-001", name: "Admin", description: "Full access to all resources.", type: "system", customer: "Acme Corp" },
+    { id: "role-002", name: "Editor", description: "Can read and modify resources.", type: "system", customer: "Acme Corp" },
+    { id: "role-003", name: "Viewer", description: "Read-only access.", type: "system", customer: "Acme Corp" },
+    { id: "role-004", name: "FinOps", description: "Access to billing, budgets, and cost reports.", type: "custom", customer: "Acme Corp" },
 ];
 
 const DEMO_ORGANIZATIONS = [
