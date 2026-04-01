@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.11.0 (2026-04-01)
+
+### Features
+
+- feat: add list_ticket_comments tool for retrieving comments on support tickets (`0dd7352`)
+
 ## v0.10.0 (2026-04-01)
 
 ### Features
