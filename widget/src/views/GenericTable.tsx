@@ -9,21 +9,24 @@ import { getBridge } from "../bridge";
 // ── FetchImage: loads images via fetch (connect-src) to bypass img-src CSP ───
 
 function FetchImage({ src }: { src: string }): JSX.Element {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let revoke: string | null = null;
     fetch(src)
-      .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.blob(); })
-      .then((blob) => { revoke = URL.createObjectURL(blob); setBlobUrl(revoke); })
+      .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.arrayBuffer(); })
+      .then((buf) => {
+        const bytes = new Uint8Array(buf);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        setDataUrl(`data:image/png;base64,${btoa(binary)}`);
+      })
       .catch((e) => setError(e.message));
-    return () => { if (revoke) URL.revokeObjectURL(revoke); };
   }, [src]);
 
   if (error) return <span style={{ fontSize: "0.65rem", color: "var(--dci-text-secondary)" }}>Chart unavailable</span>;
-  if (!blobUrl) return <span style={{ fontSize: "0.65rem", color: "var(--dci-text-secondary)" }}>Loading chart…</span>;
-  return <img src={blobUrl} alt="chart" style={{ maxWidth: "100%", borderRadius: "6px", display: "block" }} />;
+  if (!dataUrl) return <span style={{ fontSize: "0.65rem", color: "var(--dci-text-secondary)" }}>Loading chart…</span>;
+  return <img src={dataUrl} alt="chart" style={{ maxWidth: "100%", borderRadius: "6px", display: "block" }} />;
 }
 
 // ── Colour maps ───────────────────────────────────────────────────────────────
