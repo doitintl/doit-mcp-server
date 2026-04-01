@@ -344,10 +344,19 @@ export function GenericTable({ data }: ViewProps) {
             formatOptions: undefined as ColumnFormatOptions | undefined, value,
           }));
 
+  // Separate image entries (rendered full-width above) from regular key-value pairs
+  const imageEntries = kvEntries.filter(({ format }) => format === "image");
+  const kvPairs = kvEntries.filter(({ format }) => format !== "image");
+
   return (
     <Layout>
+      {imageEntries.map(({ key, value, format, formatOptions }) => (
+        <div key={key} style={{ marginBottom: "12px" }}>
+          {renderCell(value, format, formatOptions, data as Record<string, unknown>)}
+        </div>
+      ))}
       <dl style={{ fontSize: "0.8125rem", margin: 0 }}>
-        {kvEntries.map(({ key, label, format, formatOptions, value }) => (
+        {kvPairs.map(({ key, label, format, formatOptions, value }) => (
           <div key={key} style={{
             display: "flex",
             gap: "12px",
