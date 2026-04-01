@@ -107,6 +107,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Tickets (hardcoded URL in source)
+    http.get(`${API_BASE}/support/v1/tickets/:ticketId/comments`, ({ params }) => {
+        if (params.ticketId === "12345") {
+            return HttpResponse.json(fixtures.ticketComments);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/support/v1/tickets/:ticketId`, ({ params }) => {
         if (params.ticketId === "12345") {
             return HttpResponse.json(fixtures.ticketDetail);

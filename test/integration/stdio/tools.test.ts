@@ -73,6 +73,7 @@ describe("MCP Tools Integration", () => {
                 "list_products",
                 "list_reports",
                 "list_roles",
+                "list_ticket_comments",
                 "list_tickets",
                 "list_users",
                 "run_query",
@@ -543,6 +544,32 @@ describe("MCP Tools Integration", () => {
 
         it("rejects non-numeric id", async () => {
             const result = await client.callTool({ name: "get_ticket", arguments: { id: "ticket-abc" } });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
+        });
+    });
+
+    describe("list_ticket_comments", () => {
+        it("returns comments for a ticket", async () => {
+            const result = await client.callTool({ name: "list_ticket_comments", arguments: { ticketId: "12345" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.comments).toHaveLength(2);
+            expect(parsed.comments[0].author).toBe("support@doit.com");
+            expect(parsed.comments[0].body).toContain("investigating");
+        });
+
+        it("rejects missing ticketId", async () => {
+            const result = await client.callTool({ name: "list_ticket_comments", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("ticketId");
+        });
+
+        it("rejects non-numeric ticketId", async () => {
+            const result = await client.callTool({
+                name: "list_ticket_comments",
+                arguments: { ticketId: "ticket-abc" },
+            });
             const text = getTextContent(result);
             expect(text).toContain("numeric");
         });
