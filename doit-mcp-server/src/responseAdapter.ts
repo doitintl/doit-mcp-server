@@ -230,7 +230,15 @@ export function adaptToolResponse(toolName: string, rawResponse: unknown) {
             "Results are displayed in the DoiT Cloud Intelligence widget. " +
             "Respond with ONE short sentence only (e.g. 'Found 20 anomalies — see widget.'). " +
             "Do NOT list, enumerate, or describe individual items.",
-        ...(viewConfig ? { _columns: viewConfig.columns } : {}),
+        ...(viewConfig
+            ? {
+                  _columns: viewConfig.columns.filter((col) => {
+                      // Remove image columns when the data doesn't have a value for them
+                      if (col.format === "image" && !structured[col.key]) return false;
+                      return true;
+                  }),
+              }
+            : {}),
         ...(viewConfig?.emptyMessage ? { _emptyMessage: viewConfig.emptyMessage } : {}),
         ...(viewConfig?.drilldown ? { _drilldown: viewConfig.drilldown } : {}),
     };
