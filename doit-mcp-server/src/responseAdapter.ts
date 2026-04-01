@@ -135,16 +135,21 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
         }
 
         // Paginated DoiT list response: { [collectionKey]: [...], pageToken?, rowCount? }
-        // Detect by looking for an array whose items are objects with an "id" field —
-        // this distinguishes real collections (anomalies, budgets, etc.) from nested
-        // arrays in detail responses (top3SKUs, recipients, scopes).
-        const arrayKey = Object.keys(d).find((k) => {
-            if (k === "pageToken") return false;
-            const val = d[k];
-            if (!Array.isArray(val) || val.length === 0) return false;
-            const first = val[0];
-            return typeof first === "object" && first !== null && "id" in first;
-        });
+        // Only match known collection key names from DoiT API responses. This avoids
+        // misidentifying detail responses that contain nested arrays (e.g. labels,
+        // reports, top3SKUs, recipients) as paginated lists.
+        const COLLECTION_KEYS = new Set([
+            "alerts", "allocations", "annotations", "anomalies", "assets",
+            "budgets", "commitments", "datasets", "diagrams", "dimensions",
+            "incidents", "invoices", "labels", "organizations", "platforms",
+            "products", "reports", "roles", "tickets", "users",
+        ]);
+        // Only match when the response also has pagination markers (rowCount/pageToken),
+        // confirming it's a real list endpoint, not a detail with a nested collection field.
+        const hasPaginationMarker = "rowCount" in d || "pageToken" in d;
+        const arrayKey = hasPaginationMarker
+            ? Object.keys(d).find((k) => COLLECTION_KEYS.has(k) && Array.isArray(d[k]))
+            : undefined;
         if (arrayKey) {
             const items = d[arrayKey] as unknown[];
             return {

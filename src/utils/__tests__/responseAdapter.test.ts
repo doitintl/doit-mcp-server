@@ -47,7 +47,7 @@ describe("adaptToolResponse", () => {
     });
 
     it("paginated response includes nextPageToken in structuredContent", () => {
-        const data = { data: Array.from({ length: 3 }, (_, i) => ({ id: i })), pageToken: "tok-abc" };
+        const data = { budgets: Array.from({ length: 3 }, (_, i) => ({ id: i })), pageToken: "tok-abc" };
         const result = adaptToolResponse("list_budgets", data);
         expect(result.structuredContent.nextPageToken).toBe("tok-abc");
         expect(result.structuredContent.hasMore).toBe(true);

@@ -201,7 +201,6 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
         columns: [
             { key: "type", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },
             { key: "name", label: "Name" },
-            { key: "quantity", label: "Quantity" },
             { key: "createTime", label: "Created", format: "date" },
         ],
         emptyMessage: "No assets found.",
@@ -215,7 +214,6 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
         columns: [
             { key: "type", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },
             { key: "name", label: "Name" },
-            { key: "quantity", label: "Quantity" },
             { key: "createTime", label: "Created", format: "date" },
         ],
     },
@@ -301,10 +299,9 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
     list_users: {
         columns: [
             { key: "email", label: "Email" },
-            { key: "displayName", label: "Name" },
-            { key: "jobFunction", label: "Role" },
             { key: "status", label: "Status", format: "status" },
-            { key: "roleId", label: "Access Role" },
+            { key: "roleId", label: "Role ID" },
+            { key: "lastLogin", label: "Last Login", format: "date" },
         ],
         emptyMessage: "No users found.",
     },

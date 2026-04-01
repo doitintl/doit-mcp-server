@@ -401,9 +401,9 @@ const DEMO_INCIDENTS = [
 ];
 
 const DEMO_USERS = [
-    { id: "user-001", email: "demo@acme.io", name: "Demo User", role: "Admin", displayName: "Demo User", jobFunction: "Cloud Operations", status: "active", roleId: "role-001" },
+    { id: "user-001", email: "demo@acme.io", name: "Demo User", role: "Admin", displayName: "Demo User", jobFunction: "Cloud Operations", status: "active", roleId: "role-001", lastLogin: "2026-03-30T14:00:00Z" },
     { id: "user-002", email: "finops@acme.io", name: "FinOps Lead", role: "Editor", displayName: "FinOps Lead", jobFunction: "Finance", status: "active", roleId: "role-004" },
-    { id: "user-003", email: "eng-lead@acme.io", name: "Engineering Lead", role: "Viewer", displayName: "Engineering Lead", jobFunction: "Engineering", status: "active", roleId: "role-003" },
+    { id: "user-003", email: "eng-lead@acme.io", name: "Engineering Lead", role: "Viewer", displayName: "Engineering Lead", jobFunction: "Engineering", status: "active", roleId: "role-003", lastLogin: "2026-03-28T11:00:00Z" },
 ];
 
 const DEMO_ROLES = [
