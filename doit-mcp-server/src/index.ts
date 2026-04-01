@@ -265,10 +265,17 @@ function buildWidgetStub(workerUrl: string): string {
 }
 
 export class DoitMCPAgent extends McpAgent {
-  server = new McpServer({
-    name: SERVER_NAME_WEB,
-    version: SERVER_VERSION,
-  });
+  server = new McpServer(
+    {
+      name: SERVER_NAME_WEB,
+      version: SERVER_VERSION,
+    },
+    {
+      capabilities: {
+        resources: {},
+      },
+    }
+  );
 
   // Helper method to get the current token
   private getToken(): string {
