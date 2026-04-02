@@ -214,28 +214,25 @@ export async function handleListInsightsRequest(args: any, token: string) {
 
             const results = data.results || [];
 
-            if (results.length === 0) {
-                return createSuccessResponse(
-                    JSON.stringify({ results: [], pagination: data.pagination ?? { hasNextPage: false } })
-                );
-            }
+            const formatted = results.map((r) => ({
+                key: r.key,
+                source: r.source,
+                title: r.title,
+                shortDescription: r.shortDescription,
+                provider: r.provider,
+                categories: r.categories,
+                displayStatus: r.displayStatus,
+                potentialDailySavings: r.summary?.potentialDailySavings ?? null,
+                tags: r.tags ?? [],
+                easyWin: r.easyWin ?? false,
+                lastUpdated: r.lastUpdated ?? null,
+            }));
 
             return createSuccessResponse(
                 JSON.stringify({
-                    results: results.map((r) => ({
-                        key: r.key,
-                        source: r.source,
-                        title: r.title,
-                        shortDescription: r.shortDescription,
-                        provider: r.provider,
-                        categories: r.categories,
-                        displayStatus: r.displayStatus,
-                        potentialDailySavings: r.summary?.potentialDailySavings ?? null,
-                        tags: r.tags ?? [],
-                        easyWin: r.easyWin ?? false,
-                        lastUpdated: r.lastUpdated ?? null,
-                    })),
-                    pagination: data.pagination ?? { hasNextPage: false },
+                    rowCount: formatted.length,
+                    insights: formatted,
+                    pageToken: data.pagination?.hasNextPage ? "next" : undefined,
                 })
             );
         } catch (error) {

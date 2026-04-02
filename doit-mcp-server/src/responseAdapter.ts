@@ -141,8 +141,8 @@ export function summarize(toolName: string, data: unknown): Record<string, unkno
         const COLLECTION_KEYS = new Set([
             "alerts", "allocations", "annotations", "anomalies", "assets",
             "budgets", "commitments", "datasets", "diagrams", "dimensions",
-            "incidents", "invoices", "labels", "organizations", "platforms",
-            "products", "reports", "roles", "tickets", "users",
+            "incidents", "insights", "invoices", "labels", "organizations",
+            "platforms", "products", "reports", "roles", "tickets", "users",
         ]);
         // Only match when the response also has pagination markers (rowCount/pageToken),
         // confirming it's a real list endpoint, not a detail with a nested collection field.
