@@ -20,6 +20,7 @@ const DEFAULT_TOOLS = [
     { name: "cost_breakdown", args: { groupBy: "service", months: 1, topN: 5 } },
     { name: "cost_trend", args: { months: 6 } },
     { name: "compare_spend", args: { period1Months: 1, period2: { from: "2026-03-01T00:00:00Z", to: "2026-03-31T23:59:59Z" }, groupBy: "service" } },
+    { name: "list_commitments", args: {} },
     { name: "get_anomalies", args: {} },
     { name: "get_cloud_overview", args: {} },
 ];

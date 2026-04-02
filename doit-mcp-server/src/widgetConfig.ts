@@ -349,6 +349,37 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
         ],
     },
 
+    // ── Commitments ────────────────────────────────────────────────────────────
+    list_commitments: {
+        columns: [
+            { key: "name", label: "Name" },
+            { key: "cloudProvider", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "totalCommitmentValue", label: "Committed", format: "currency" },
+            { key: "totalCurrentAttainment", label: "Attainment", format: "currency" },
+            { key: "currency", label: "Currency" },
+            { key: "startDate", label: "Start", format: "date" },
+            { key: "endDate", label: "End", format: "date" },
+        ],
+        emptyMessage: "No commitments found.",
+        drilldown: {
+            tool: "get_commitment",
+            idKey: "id",
+            promptTemplate: "Show me details for commitment {id}",
+        },
+    },
+    get_commitment: {
+        columns: [
+            { key: "name", label: "Name" },
+            { key: "cloudProvider", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "totalCommitmentValue", label: "Committed", format: "currency" },
+            { key: "totalCurrentAttainment", label: "Attainment", format: "currency" },
+            { key: "currency", label: "Currency" },
+            { key: "startDate", label: "Start", format: "date" },
+            { key: "endDate", label: "End", format: "date" },
+            { key: "createTime", label: "Created", format: "date" },
+        ],
+    },
+
     // ── Insights ──────────────────────────────────────────────────────────────
     list_insights: {
         columns: [
