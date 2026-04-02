@@ -584,7 +584,7 @@ export class DoitMCPAgent extends McpAgent {
             ...changeCustomerTool._meta,
             "ui/resourceUri": WIDGET_URI,
             "openai/outputTemplate": WIDGET_URI,
-            ui: { ...(changeCustomerTool._meta?.ui ?? {}), resourceUri: WIDGET_URI },
+            ui: { ...((changeCustomerTool._meta as any)?.ui ?? {}), resourceUri: WIDGET_URI },
           },
         },
         this.createChangeCustomerCallback()

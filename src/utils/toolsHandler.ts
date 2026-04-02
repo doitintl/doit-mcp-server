@@ -39,6 +39,7 @@ import {
 import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
+import { handleGetInsightResourcesRequest, handleListInsightsRequest } from "../tools/insights.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
 import {
     handleAssignObjectsToLabelRequest,
@@ -48,16 +49,15 @@ import {
     handleListLabelsRequest,
     handleUpdateLabelRequest,
 } from "../tools/labels.js";
-import {
-    handleCostBreakdownRequest,
-    handleCostTrendRequest,
-    handleCompareSpendRequest,
-} from "../tools/queryHelpers.js";
-import { handleListInsightsRequest, handleGetInsightResourcesRequest } from "../tools/insights.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleCloudOverviewRequest } from "../tools/overview.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
+import {
+    handleCompareSpendRequest,
+    handleCostBreakdownRequest,
+    handleCostTrendRequest,
+} from "../tools/queryHelpers.js";
 import {
     handleCreateReportRequest,
     handleGetReportConfigRequest,

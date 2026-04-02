@@ -71,13 +71,7 @@ const InsightCategoryEnum = z.enum([
 
 const InsightPriorityEnum = z.enum(["Low", "Medium", "High"]);
 
-const InsightDisplayStatusEnum = z.enum([
-    "actionable",
-    "acknowledged",
-    "in progress",
-    "optimized",
-    "dismissed",
-]);
+const InsightDisplayStatusEnum = z.enum(["actionable", "acknowledged", "in progress", "optimized", "dismissed"]);
 
 export const ListInsightsArgumentsSchema = z.object({
     category: z
@@ -94,7 +88,7 @@ export const ListInsightsArgumentsSchema = z.object({
         .array(InsightDisplayStatusEnum)
         .optional()
         .describe(
-            'Filter by display status. Possible values: actionable, acknowledged, in progress, optimized, dismissed.'
+            "Filter by display status. Possible values: actionable, acknowledged, in progress, optimized, dismissed."
         ),
     provider: z.string().optional().describe("Filter by cloud provider."),
     easyWin: z.boolean().optional().describe("Filter for easy wins only."),
@@ -110,8 +104,16 @@ export const ListInsightsArgumentsSchema = z.object({
 });
 
 export const GetInsightResourcesArgumentsSchema = z.object({
-    source: z.string().describe("The source of the insight (e.g. 'aws-cost-optimization-hub', 'aws-trusted-advisor'). Use the 'source' field from list_optimization_recommendations."),
-    key: z.string().describe("The key of the insight (e.g. 'delete-ebs-volumes'). Use the 'key' field from list_optimization_recommendations."),
+    source: z
+        .string()
+        .describe(
+            "The source of the insight (e.g. 'aws-cost-optimization-hub', 'aws-trusted-advisor'). Use the 'source' field from list_optimization_recommendations."
+        ),
+    key: z
+        .string()
+        .describe(
+            "The key of the insight (e.g. 'delete-ebs-volumes'). Use the 'key' field from list_optimization_recommendations."
+        ),
 });
 
 // ── Tool metadata ───────────────────────────────────────────────────────────
@@ -260,9 +262,7 @@ export async function handleGetInsightResourcesRequest(args: any, token: string)
             });
 
             if (!data) {
-                return createErrorResponse(
-                    `Failed to retrieve resources for insight ${key} (source: ${source})`
-                );
+                return createErrorResponse(`Failed to retrieve resources for insight ${key} (source: ${source})`);
             }
 
             return createSuccessResponse(JSON.stringify(data));

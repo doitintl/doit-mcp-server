@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"@biomejs/biome@^2.4.2":
+"@biomejs/biome@2.4.10":
   version "2.4.10"
   resolved "https://registry.yarnpkg.com/@biomejs/biome/-/biome-2.4.10.tgz#daa52be56f027d16ca6fe36e313fd6b405b5d0f4"
   integrity sha512-xxA3AphFQ1geij4JTHXv4EeSTda1IFn22ye9LdyVPoJU19fNVl0uzfEuhsfQ4Yue/0FaLs2/ccVi4UDiE7R30w==

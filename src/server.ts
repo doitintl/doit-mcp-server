@@ -79,6 +79,7 @@ import {
 import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "./tools/datahubEvents.js";
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
+import { getInsightResourcesTool, listOptimizationRecommendationsTool } from "./tools/insights.js";
 import {
     getInvoiceTool,
     handleGetInvoiceRequest,
@@ -101,17 +102,9 @@ import {
 } from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import { cloudOverviewTool } from "./tools/overview.js";
-import { listOptimizationRecommendationsTool, getInsightResourcesTool, handleListInsightsRequest, handleGetInsightResourcesRequest } from "./tools/insights.js";
-import {
-    compareSpendTool,
-    costBreakdownTool,
-    costTrendTool,
-    handleCompareSpendRequest,
-    handleCostBreakdownRequest,
-    handleCostTrendRequest,
-} from "./tools/queryHelpers.js";
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
+import { compareSpendTool, costBreakdownTool, costTrendTool } from "./tools/queryHelpers.js";
 import {
     createReportTool,
     getReportConfigTool,
