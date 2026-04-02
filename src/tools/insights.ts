@@ -119,10 +119,11 @@ export const GetInsightResourcesArgumentsSchema = z.object({
 export const listInsightsTool = {
     name: "list_insights",
     description:
-        "Use this when the user asks about cost optimization recommendations, savings opportunities, " +
-        "security findings, or unacted insights. Returns a prioritized list of actionable insights with " +
-        "estimated savings. Do NOT use this for cost anomalies (use get_anomalies) or budget tracking " +
-        "(use list_budgets).",
+        "Use this when the user asks about optimization, recommendations, savings opportunities, " +
+        "rightsizing, idle resources, security findings, or cost reduction suggestions. " +
+        "This is the primary tool for 'what can I optimize?' and 'how can I save money?' questions. " +
+        "Returns a prioritized list of actionable insights with estimated daily savings. " +
+        "Do NOT use this for cost anomalies/spikes (use get_anomalies) or budget tracking (use list_budgets).",
     inputSchema: zodToMcpInputSchema(ListInsightsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
