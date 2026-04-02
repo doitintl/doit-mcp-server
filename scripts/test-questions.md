@@ -15,7 +15,7 @@ Test these questions against the MCP server to verify ChatGPT can answer them re
 | 7 | Rightsizing impact | — | ❌ NO TOOL |
 | 8 | Commitment coverage & utilization | `list_commitments` + `get_commitment` | ✅ PASS |
 | 9 | Actual vs forecast delta | `compare_spend` | ✅ PASS |
-| 10 | Unacted optimization recommendations | — | ❌ NO TOOL |
+| 10 | Unacted optimization recommendations | `list_insights` + `get_insight_resources` | ✅ PASS |
 
 ## Detailed Questions
 
@@ -59,12 +59,11 @@ Test these questions against the MCP server to verify ChatGPT can answer them re
 **Tested:** ✅ Returns two periods with service breakdown for variance analysis.
 
 ### 10. Are there any cost optimization recommendations I haven't acted on yet, ranked by savings impact?
-**Tools:** None available
-**Gap:** No optimization recommendations API tool. This is a common request that would benefit from a dedicated tool.
+**Tools:** `list_insights(displayStatus=["actionable"])` + `get_insight_resources(source, key)`
+**Tested:** ✅ Returns 191 actionable insights with savings estimates. Drill down to 11 affected resources with per-resource daily savings.
 
 ## Tool Gaps
 
-Three questions (5, 7, 10) cannot be answered with current tools. These require:
-- **Optimization recommendations API** — idle resources, rightsizing, savings plans recommendations
-- **Scenario modeling** — "what if" analysis for rightsizing impact
-- **Recommendation backlog** — accumulated suggestions with staleness tracking
+Two questions (5, 7) cannot be answered with current tools. These require:
+- **Idle resource detection** — specific tool for unattached disks, idle LBs, oversized instances
+- **Scenario modeling** — "what if" analysis for rightsizing impact with estimated savings
