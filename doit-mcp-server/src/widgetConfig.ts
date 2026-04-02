@@ -385,10 +385,8 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
         columns: [
             { key: "title", label: "Recommendation" },
             { key: "provider", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },
-            { key: "displayStatus", label: "Status", format: "status" },
             { key: "potentialDailySavings", label: "Savings/Day", format: "currency" },
             { key: "categories", label: "Category" },
-            { key: "easyWin", label: "Easy Win", format: "boolean" },
         ],
         emptyMessage: "No optimization insights found.",
         drilldown: {

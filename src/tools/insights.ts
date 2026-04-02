@@ -216,19 +216,21 @@ export async function handleListInsightsRequest(args: any, token: string) {
 
             const results = data.results || [];
 
-            const formatted = results.map((r) => ({
-                key: r.key,
-                source: r.source,
-                title: r.title,
-                shortDescription: r.shortDescription,
-                provider: r.provider,
-                categories: r.categories,
-                displayStatus: r.displayStatus,
-                potentialDailySavings: r.summary?.potentialDailySavings ?? null,
-                tags: r.tags ?? [],
-                easyWin: r.easyWin ?? false,
-                lastUpdated: r.lastUpdated ?? null,
-            }));
+            const formatted = results
+                .map((r) => ({
+                    key: r.key,
+                    source: r.source,
+                    title: r.title,
+                    shortDescription: r.shortDescription,
+                    provider: r.provider,
+                    categories: (r.categories ?? []).join(", "),
+                    displayStatus: r.displayStatus,
+                    potentialDailySavings: r.summary?.potentialDailySavings ?? 0,
+                    tags: r.tags ?? [],
+                    easyWin: r.easyWin ?? false,
+                    lastUpdated: r.lastUpdated ?? null,
+                }))
+                .sort((a, b) => b.potentialDailySavings - a.potentialDailySavings);
 
             return createSuccessResponse(
                 JSON.stringify({
