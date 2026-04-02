@@ -101,6 +101,7 @@ import {
 } from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import { cloudOverviewTool } from "./tools/overview.js";
+import { listInsightsTool, getInsightResourcesTool, handleListInsightsRequest, handleGetInsightResourcesRequest } from "./tools/insights.js";
 import {
     compareSpendTool,
     costBreakdownTool,
@@ -177,6 +178,8 @@ export function createServer() {
                 costBreakdownTool,
                 costTrendTool,
                 compareSpendTool,
+                listInsightsTool,
+                getInsightResourcesTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,

@@ -53,6 +53,7 @@ import {
     handleCostTrendRequest,
     handleCompareSpendRequest,
 } from "../tools/queryHelpers.js";
+import { handleListInsightsRequest, handleGetInsightResourcesRequest } from "../tools/insights.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleCloudOverviewRequest } from "../tools/overview.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
@@ -120,6 +121,12 @@ export async function executeToolHandler(
                 break;
             case "compare_spend":
                 result = await handleCompareSpendRequest(args, token);
+                break;
+            case "list_insights":
+                result = await handleListInsightsRequest(args, token);
+                break;
+            case "get_insight_resources":
+                result = await handleGetInsightResourcesRequest(args, token);
                 break;
             case "get_report_results":
                 result = await handleGetReportResultsRequest(args, token);

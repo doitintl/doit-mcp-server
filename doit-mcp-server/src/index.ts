@@ -41,6 +41,12 @@ import {
   compareSpendTool,
 } from "../../src/tools/queryHelpers.js";
 import {
+  ListInsightsArgumentsSchema,
+  GetInsightResourcesArgumentsSchema,
+  listInsightsTool,
+  getInsightResourcesTool,
+} from "../../src/tools/insights.js";
+import {
   ValidateUserArgumentsSchema,
   validateUserTool,
 } from "../../src/tools/validateUser.js";
@@ -471,6 +477,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(costBreakdownTool, CostBreakdownArgumentsSchema);
     this.registerTool(costTrendTool, CostTrendArgumentsSchema);
     this.registerTool(compareSpendTool, CompareSpendArgumentsSchema);
+    this.registerTool(listInsightsTool, ListInsightsArgumentsSchema);
+    this.registerTool(getInsightResourcesTool, GetInsightResourcesArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);
     this.registerTool(createReportTool, CreateReportArgumentsSchema);

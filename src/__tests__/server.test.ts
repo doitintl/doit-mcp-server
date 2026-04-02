@@ -244,6 +244,7 @@ import {
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { cloudOverviewTool } from "../tools/overview.js";
 import { costBreakdownTool, costTrendTool, compareSpendTool } from "../tools/queryHelpers.js";
+import { listInsightsTool, getInsightResourcesTool } from "../tools/insights.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import {
@@ -319,6 +320,8 @@ describe("ListToolsRequestSchema handler", () => {
                 costBreakdownTool,
                 costTrendTool,
                 compareSpendTool,
+                listInsightsTool,
+                getInsightResourcesTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,
