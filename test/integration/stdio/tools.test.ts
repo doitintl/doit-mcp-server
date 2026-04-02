@@ -29,7 +29,7 @@ describe("MCP Tools Integration", () => {
             const names = result.tools.map((t) => t.name).sort();
 
             expect(names).toEqual(
-                expect.arrayContaining([
+                [
                     "assign_objects_to_label",
                     "compare_spend",
                     "cost_breakdown",
@@ -95,7 +95,7 @@ describe("MCP Tools Integration", () => {
                     "update_report",
                     "update_user",
                     "validate_user",
-                ])
+                ].sort()
             );
         });
 

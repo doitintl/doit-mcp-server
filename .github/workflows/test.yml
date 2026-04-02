@@ -30,6 +30,14 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Install worker dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: doit-mcp-server
+
+      - name: Type-check worker
+        run: yarn type-check
+        working-directory: doit-mcp-server
+
   integration-tests:
     name: Integration Tests - Node 20
     runs-on: ubuntu-latest
