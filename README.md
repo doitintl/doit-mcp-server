@@ -152,6 +152,7 @@ This MCP server provides many tools including the following:
 - [`list_tickets`](https://developer.doit.com/reference/idoftickets): List support tickets from DoiT using the support API
 - [`get_ticket`](https://developer.doit.com/reference/idofticketget): Get details of a specific support ticket by its ID
 - [`list_ticket_comments`](https://developer.doit.com/reference/idofticketcommentslist): List all comments on a support ticket by its ID. Customers see only public comments; DoiT employees see both public and private comments
+- [`create_ticket_comment`](https://developer.doit.com/reference/idofticketcommentspost): Add a comment to an existing support ticket. For customers, comments are always public. For DoiT employees, comments can be marked as private internal notes
 - [`list_invoices`](https://developer.doit.com/reference/listinvoices): List all current and historical invoices for your organization from the DoiT API
 - [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
 - [`list_allocations`](https://developer.doit.com/reference/listallocations): List allocations for report or run_query configuration that your account has access to from the DoiT API

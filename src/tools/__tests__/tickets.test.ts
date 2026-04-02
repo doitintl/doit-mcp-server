@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
+    handleCreateTicketCommentRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
@@ -286,6 +287,124 @@ describe("handleListTicketCommentsRequest", () => {
 
     it("should return error when ticketId is non-numeric and not call makeDoitRequest", async () => {
         const response = await handleListTicketCommentsRequest({ ticketId: "ticket-abc" }, mockToken);
+
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("numeric") }],
+            isError: true,
+        });
+    });
+});
+
+describe("handleCreateTicketCommentRequest", () => {
+    const mockToken = "fake-token";
+    const validArgs = { ticketId: "12345", body: "Please provide the error logs." };
+
+    it("should call makeDoitRequest with POST, correct URL, and body", async () => {
+        const mockResponse = {
+            id: 1001,
+            body: "Please provide the error logs.",
+            author: "alice@example.com",
+            created: 1700000000000,
+            attachments: [],
+        };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+        const response = await handleCreateTicketCommentRequest(validArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}/12345/comments`, mockToken, {
+            method: "POST",
+            body: { body: "Please provide the error logs." },
+            customerContext: undefined,
+        });
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.id).toBe(1001);
+        expect(parsed.body).toBe("Please provide the error logs.");
+    });
+
+    it("should include private field in body when provided", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 1002, body: "Internal note." });
+
+        await handleCreateTicketCommentRequest({ ...validArgs, private: true }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({
+                method: "POST",
+                body: { body: "Please provide the error logs.", private: true },
+            })
+        );
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 1001 });
+
+        await handleCreateTicketCommentRequest({ ...validArgs, customerContext: "customer-abc" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({
+                customerContext: "customer-abc",
+            })
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleCreateTicketCommentRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("ticket comment") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleCreateTicketCommentRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when ticketId is missing", async () => {
+        const { ticketId: _, ...argsWithoutId } = validArgs;
+        const response = await handleCreateTicketCommentRequest(argsWithoutId, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when body is empty string", async () => {
+        const response = await handleCreateTicketCommentRequest({ ticketId: "12345", body: "" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("empty") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when body is whitespace only", async () => {
+        const response = await handleCreateTicketCommentRequest({ ticketId: "12345", body: "   " }, mockToken);
+
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("empty") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when ticketId is non-numeric", async () => {
+        const response = await handleCreateTicketCommentRequest({ ticketId: "ticket-abc", body: "test" }, mockToken);
 
         expect(makeDoitRequest).not.toHaveBeenCalled();
         expect(response).toEqual({

@@ -52,6 +52,7 @@ import {
     validateUserFixture,
 } from "./iam.js";
 import {
+    createTicketCommentFixture,
     platformsFixture,
     productsFixture,
     ticketCommentsFixture,
@@ -102,6 +103,7 @@ export const fixtures = {
     tickets: ticketsFixture,
     ticketDetail: ticketDetailFixture,
     ticketComments: ticketCommentsFixture,
+    createTicketComment: createTicketCommentFixture,
 
     cloudDiagrams: cloudDiagramsFixture,
 

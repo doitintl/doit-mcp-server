@@ -37,6 +37,7 @@ describe("MCP Tools Integration", () => {
                 "create_datahub_dataset",
                 "create_label",
                 "create_report",
+                "create_ticket_comment",
                 "find_cloud_diagrams",
                 "get_alert",
                 "get_allocation",
@@ -569,6 +570,68 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "list_ticket_comments",
                 arguments: { ticketId: "ticket-abc" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
+        });
+    });
+
+    describe("create_ticket_comment", () => {
+        it("returns created comment and sends correct POST body", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "12345", body: "Please provide the error logs from /var/log/syslog." },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe(1003);
+            expect(parsed.body).toContain("error logs");
+            expect(parsed.author).toBe("alice@example.com");
+            expect(parsed._requestBody.body).toBe("Please provide the error logs from /var/log/syslog.");
+        });
+
+        it("sends private flag in POST body when provided", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "12345", body: "Internal note for the team.", private: true },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed._requestBody.body).toBe("Internal note for the team.");
+            expect(parsed._requestBody.private).toBe(true);
+        });
+
+        it("rejects missing ticketId", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { body: "test comment" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("ticketId");
+        });
+
+        it("rejects missing body", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "12345" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("body");
+        });
+
+        it("rejects whitespace-only body", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "12345", body: "   " },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("empty");
+        });
+
+        it("rejects non-numeric ticketId", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "ticket-abc", body: "test" },
             });
             const text = getTextContent(result);
             expect(text).toContain("numeric");

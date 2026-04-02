@@ -52,6 +52,7 @@ vi.mock(import("../tools/dimension.js"), async (importOriginal) => ({
 }));
 vi.mock(import("../tools/tickets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
+    handleCreateTicketCommentRequest: vi.fn(),
     handleGetTicketRequest: vi.fn(),
     handleListTicketCommentsRequest: vi.fn(),
     handleListTicketsRequest: vi.fn(),
@@ -170,6 +171,7 @@ import {
     handleCreateAllocationRequest,
     handleCreateDatahubDatasetRequest,
     handleCreateLabelRequest,
+    handleCreateTicketCommentRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
     handleGeneralError,
@@ -253,7 +255,7 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { getTicketTool, listTicketCommentsTool, listTicketsTool } from "../tools/tickets.js";
+import { createTicketCommentTool, getTicketTool, listTicketCommentsTool, listTicketsTool } from "../tools/tickets.js";
 import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
@@ -327,6 +329,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listTicketsTool,
                 getTicketTool,
                 listTicketCommentsTool,
+                createTicketCommentTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -681,6 +684,12 @@ describe("CallToolRequestSchema handler", () => {
         ["list_tickets", "list_tickets", { pageSize: 5 }, handleListTicketsRequest],
         ["get_ticket", "get_ticket", { id: "12345" }, handleGetTicketRequest],
         ["list_ticket_comments", "list_ticket_comments", { ticketId: "12345" }, handleListTicketCommentsRequest],
+        [
+            "create_ticket_comment",
+            "create_ticket_comment",
+            { ticketId: "12345", body: "test" },
+            handleCreateTicketCommentRequest,
+        ],
         ["list_invoices", "list_invoices", { pageToken: "next-page-token" }, handleListInvoicesRequest],
         ["get_invoice", "get_invoice", { id: "invoice-123" }, handleGetInvoiceRequest],
         ["list_allocations", "list_allocations", { pageToken: "next-page-token" }, handleListAllocationsRequest],
