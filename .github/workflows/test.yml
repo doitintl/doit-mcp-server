@@ -30,12 +30,31 @@ jobs:
       - name: Build
         run: yarn build
 
-      - name: Install worker dependencies
+  worker-checks:
+    name: Worker Checks - Node 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install CloudFlare worker dependencies
         run: yarn install --frozen-lockfile
         working-directory: doit-mcp-server
 
-      - name: Type-check worker
+      - name: Type-check CloudFlare worker
         run: yarn type-check
+        working-directory: doit-mcp-server
+
+      - name: Build worker (dry-run)
+        run: npx wrangler deploy --dry-run --outdir /tmp/worker-dist
         working-directory: doit-mcp-server
 
   integration-tests:
