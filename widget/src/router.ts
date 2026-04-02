@@ -13,6 +13,8 @@ export interface ViewProps {
 
 const VIEW_MAP: Record<string, FunctionComponent<ViewProps>> = {
   run_query:          CostDashboard,
+  cost_breakdown:     CostDashboard,
+  cost_trend:         CostDashboard,
   get_report_results: ReportChart,
   get_cloud_overview: CloudOverview,
 };
