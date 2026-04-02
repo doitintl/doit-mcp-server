@@ -348,4 +348,50 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
             { key: "domain", label: "Domain" },
         ],
     },
+
+    // ── Insights ──────────────────────────────────────────────────────────────
+    list_insights: {
+        columns: [
+            { key: "title", label: "Recommendation" },
+            { key: "provider", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "displayStatus", label: "Status", format: "status" },
+            { key: "potentialDailySavings", label: "Savings/Day", format: "currency" },
+            { key: "categories", label: "Category" },
+            { key: "easyWin", label: "Easy Win", format: "boolean" },
+        ],
+        emptyMessage: "No optimization insights found.",
+        drilldown: {
+            tool: "get_insight_resources",
+            idKey: "key",
+            argKey: "key",
+            promptTemplate: "Show me the affected resources for insight {id}",
+        },
+    },
+    get_insight_resources: {
+        columns: [
+            { key: "resourceId", label: "Resource" },
+            { key: "provider", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },
+            { key: "account", label: "Account" },
+            { key: "resultType", label: "Type" },
+            { key: "location", label: "Location" },
+            { key: "severity", label: "Severity", format: "severity" },
+        ],
+        emptyMessage: "No affected resources found.",
+    },
+
+    // ── Query Helpers ─────────────────────────────────────────────────────────
+    cost_breakdown: {
+        columns: [
+            { key: "0", label: "Name" },
+            { key: "cost", label: "Cost", format: "currency" },
+        ],
+        emptyMessage: "No cost data found.",
+    },
+    cost_trend: {
+        columns: [
+            { key: "0", label: "Period" },
+            { key: "cost", label: "Cost", format: "currency" },
+        ],
+        emptyMessage: "No trend data found.",
+    },
 };
