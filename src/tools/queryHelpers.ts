@@ -1,17 +1,7 @@
 import { z } from "zod";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
-import {
-    createErrorResponse,
-    createSuccessResponse,
-    handleGeneralError,
-    makeDoitRequest,
-} from "../utils/util.js";
-import {
-    CLOUD_PROVIDER_ALIASES,
-    normalizeConfig,
-    REPORTS_BASE_URL,
-    type QueryResponse,
-} from "./reports.js";
+import { createErrorResponse, createSuccessResponse, handleGeneralError, makeDoitRequest } from "../utils/util.js";
+import { CLOUD_PROVIDER_ALIASES, normalizeConfig, type QueryResponse, REPORTS_BASE_URL } from "./reports.js";
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -280,9 +270,7 @@ export const CompareSpendArgumentsSchema = z.object({
         .string()
         .optional()
         .describe('Filter to a specific cloud provider. Accepts aliases like "aws", "gcp", "azure".'),
-    groupBy: GroupByEnum.optional()
-        .default("service")
-        .describe('Dimension to group by (default "service").'),
+    groupBy: GroupByEnum.optional().default("service").describe('Dimension to group by (default "service").'),
 });
 
 export const compareSpendTool = {
@@ -340,14 +328,24 @@ export async function handleCompareSpendRequest(args: any, token: string) {
         });
 
         const [r1, r2] = await Promise.all([
-            makeDoitRequest<QueryResponse>(QUERY_URL, token, { method: "POST", body: { config: config1 }, appendParams: true, customerContext }),
-            makeDoitRequest<QueryResponse>(QUERY_URL, token, { method: "POST", body: { config: config2 }, appendParams: true, customerContext }),
+            makeDoitRequest<QueryResponse>(QUERY_URL, token, {
+                method: "POST",
+                body: { config: config1 },
+                appendParams: true,
+                customerContext,
+            }),
+            makeDoitRequest<QueryResponse>(QUERY_URL, token, {
+                method: "POST",
+                body: { config: config2 },
+                appendParams: true,
+                customerContext,
+            }),
         ]);
 
         if (!r1?.result || !r2?.result) {
             return createErrorResponse(
                 `One or both queries failed. ${r1?.error || ""} ${r2?.error || ""}`.trim() ||
-                "Try using the full run_query tool for more control."
+                    "Try using the full run_query tool for more control."
             );
         }
 

@@ -232,6 +232,7 @@ import {
 import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
+import { getInsightResourcesTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import {
     assignObjectsToLabelTool,
@@ -243,10 +244,9 @@ import {
 } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { cloudOverviewTool } from "../tools/overview.js";
-import { costBreakdownTool, costTrendTool, compareSpendTool } from "../tools/queryHelpers.js";
-import { listOptimizationRecommendationsTool, getInsightResourcesTool } from "../tools/insights.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
+import { compareSpendTool, costBreakdownTool, costTrendTool } from "../tools/queryHelpers.js";
 import {
     createReportTool,
     getReportConfigTool,

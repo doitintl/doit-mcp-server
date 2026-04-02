@@ -235,10 +235,38 @@ const DEMO_ALERTS = [
 ];
 
 const DEMO_LABELS = [
-    { id: "label-001", name: "Production", color: "red", type: "standard", createTime: "2025-06-01T08:00:00Z", updateTime: "2025-06-01T08:00:00Z" },
-    { id: "label-002", name: "Development", color: "blue", type: "standard", createTime: "2025-06-01T08:05:00Z", updateTime: "2025-06-01T08:05:00Z" },
-    { id: "label-003", name: "Data Platform", color: "green", type: "standard", createTime: "2025-07-15T10:30:00Z", updateTime: "2025-09-20T14:00:00Z" },
-    { id: "label-004", name: "Cost Optimisation", color: "yellow", type: "standard", createTime: "2025-08-10T11:00:00Z", updateTime: "2026-01-05T09:15:00Z" },
+    {
+        id: "label-001",
+        name: "Production",
+        color: "red",
+        type: "standard",
+        createTime: "2025-06-01T08:00:00Z",
+        updateTime: "2025-06-01T08:00:00Z",
+    },
+    {
+        id: "label-002",
+        name: "Development",
+        color: "blue",
+        type: "standard",
+        createTime: "2025-06-01T08:05:00Z",
+        updateTime: "2025-06-01T08:05:00Z",
+    },
+    {
+        id: "label-003",
+        name: "Data Platform",
+        color: "green",
+        type: "standard",
+        createTime: "2025-07-15T10:30:00Z",
+        updateTime: "2025-09-20T14:00:00Z",
+    },
+    {
+        id: "label-004",
+        name: "Cost Optimisation",
+        color: "yellow",
+        type: "standard",
+        createTime: "2025-08-10T11:00:00Z",
+        updateTime: "2026-01-05T09:15:00Z",
+    },
 ];
 
 const DEMO_ANNOTATIONS = [
@@ -369,10 +397,38 @@ const DEMO_INVOICES = [
 ];
 
 const DEMO_ASSETS = [
-    { id: "asset-001", name: "acme-prod (GCP Project)", type: "google-cloud", status: "active", quantity: 1, createTime: "2024-06-15T09:00:00Z" },
-    { id: "asset-002", name: "acme-analytics (GCP Project)", type: "google-cloud", status: "active", quantity: 1, createTime: "2024-08-22T14:30:00Z" },
-    { id: "asset-003", name: "acme-data-pipeline (AWS Account)", type: "amazon-web-services", status: "active", quantity: 1, createTime: "2025-01-10T11:00:00Z" },
-    { id: "asset-004", name: "G Suite — acme.io", type: "g-suite", status: "active", quantity: 350, createTime: "2024-03-01T08:00:00Z" },
+    {
+        id: "asset-001",
+        name: "acme-prod (GCP Project)",
+        type: "google-cloud",
+        status: "active",
+        quantity: 1,
+        createTime: "2024-06-15T09:00:00Z",
+    },
+    {
+        id: "asset-002",
+        name: "acme-analytics (GCP Project)",
+        type: "google-cloud",
+        status: "active",
+        quantity: 1,
+        createTime: "2024-08-22T14:30:00Z",
+    },
+    {
+        id: "asset-003",
+        name: "acme-data-pipeline (AWS Account)",
+        type: "amazon-web-services",
+        status: "active",
+        quantity: 1,
+        createTime: "2025-01-10T11:00:00Z",
+    },
+    {
+        id: "asset-004",
+        name: "G Suite — acme.io",
+        type: "g-suite",
+        status: "active",
+        quantity: 350,
+        createTime: "2024-03-01T08:00:00Z",
+    },
 ];
 
 const DEMO_INCIDENTS = [
@@ -383,7 +439,8 @@ const DEMO_INCIDENTS = [
         product: "Cloud SQL",
         status: "resolved",
         createTime: "2026-03-26T08:00:00Z",
-        summary: "Cloud SQL instances in us-central1 experienced elevated error rates impacting query latency for approximately 45 minutes.",
+        summary:
+            "Cloud SQL instances in us-central1 experienced elevated error rates impacting query latency for approximately 45 minutes.",
         symptoms: "Increased connection timeouts and query failures on Cloud SQL PostgreSQL instances in us-central1.",
         workaround: "Retry failed queries with exponential backoff; failover to us-east1 read replicas if available.",
     },
@@ -394,23 +451,71 @@ const DEMO_INCIDENTS = [
         product: "Amazon EC2",
         status: "resolved",
         createTime: "2026-03-24T14:00:00Z",
-        summary: "EC2 RunInstances and DescribeInstances API calls in us-east-1 returned elevated 500 errors for roughly 30 minutes.",
+        summary:
+            "EC2 RunInstances and DescribeInstances API calls in us-east-1 returned elevated 500 errors for roughly 30 minutes.",
         symptoms: "Intermittent 500 errors when launching new EC2 instances or describing existing ones in us-east-1.",
         workaround: "Use an alternative region (us-west-2) for new instance launches until the issue is resolved.",
     },
 ];
 
 const DEMO_USERS = [
-    { id: "user-001", email: "demo@acme.io", name: "Demo User", role: "Admin", displayName: "Demo User", jobFunction: "Cloud Operations", status: "active", roleId: "role-001", lastLogin: "2026-03-30T14:00:00Z" },
-    { id: "user-002", email: "finops@acme.io", name: "FinOps Lead", role: "Editor", displayName: "FinOps Lead", jobFunction: "Finance", status: "active", roleId: "role-004" },
-    { id: "user-003", email: "eng-lead@acme.io", name: "Engineering Lead", role: "Viewer", displayName: "Engineering Lead", jobFunction: "Engineering", status: "active", roleId: "role-003", lastLogin: "2026-03-28T11:00:00Z" },
+    {
+        id: "user-001",
+        email: "demo@acme.io",
+        name: "Demo User",
+        role: "Admin",
+        displayName: "Demo User",
+        jobFunction: "Cloud Operations",
+        status: "active",
+        roleId: "role-001",
+        lastLogin: "2026-03-30T14:00:00Z",
+    },
+    {
+        id: "user-002",
+        email: "finops@acme.io",
+        name: "FinOps Lead",
+        role: "Editor",
+        displayName: "FinOps Lead",
+        jobFunction: "Finance",
+        status: "active",
+        roleId: "role-004",
+    },
+    {
+        id: "user-003",
+        email: "eng-lead@acme.io",
+        name: "Engineering Lead",
+        role: "Viewer",
+        displayName: "Engineering Lead",
+        jobFunction: "Engineering",
+        status: "active",
+        roleId: "role-003",
+        lastLogin: "2026-03-28T11:00:00Z",
+    },
 ];
 
 const DEMO_ROLES = [
-    { id: "role-001", name: "Admin", description: "Full access to all resources.", type: "system", customer: "Acme Corp" },
-    { id: "role-002", name: "Editor", description: "Can read and modify resources.", type: "system", customer: "Acme Corp" },
+    {
+        id: "role-001",
+        name: "Admin",
+        description: "Full access to all resources.",
+        type: "system",
+        customer: "Acme Corp",
+    },
+    {
+        id: "role-002",
+        name: "Editor",
+        description: "Can read and modify resources.",
+        type: "system",
+        customer: "Acme Corp",
+    },
     { id: "role-003", name: "Viewer", description: "Read-only access.", type: "system", customer: "Acme Corp" },
-    { id: "role-004", name: "FinOps", description: "Access to billing, budgets, and cost reports.", type: "custom", customer: "Acme Corp" },
+    {
+        id: "role-004",
+        name: "FinOps",
+        description: "Access to billing, budgets, and cost reports.",
+        type: "custom",
+        customer: "Acme Corp",
+    },
 ];
 
 const DEMO_ORGANIZATIONS = [
