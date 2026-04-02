@@ -53,7 +53,7 @@ export interface AnomaliesResponse {
 export const anomaliesTool = {
     name: "get_anomalies",
     description:
-        "Use this when the user wants to check for unexpected cost spikes, billing anomalies, or unusual spending patterns. Returns recent anomalies with severity and impact. Do NOT use this for optimization recommendations or savings opportunities (use list_insights), regular cost analysis (use run_query), or viewing alerts (use list_alerts).",
+        "Use this when the user wants to check for unexpected cost spikes, billing anomalies, or unusual spending patterns. Returns recent anomalies with severity and impact. Do NOT use this for optimization recommendations or savings opportunities (use list_optimization_recommendations), regular cost analysis (use run_query), or viewing alerts (use list_alerts).",
     inputSchema: {
         type: "object",
         properties: {

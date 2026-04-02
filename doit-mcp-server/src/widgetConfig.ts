@@ -381,7 +381,7 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
     },
 
     // ── Insights ──────────────────────────────────────────────────────────────
-    list_insights: {
+    list_optimization_recommendations: {
         columns: [
             { key: "title", label: "Recommendation" },
             { key: "provider", label: "Cloud", format: "icon", formatOptions: { iconSet: "cloud-platform" } },

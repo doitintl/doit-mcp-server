@@ -43,7 +43,7 @@ import {
 import {
   ListInsightsArgumentsSchema,
   GetInsightResourcesArgumentsSchema,
-  listInsightsTool,
+  listOptimizationRecommendationsTool,
   getInsightResourcesTool,
 } from "../../src/tools/insights.js";
 import {
@@ -477,7 +477,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(costBreakdownTool, CostBreakdownArgumentsSchema);
     this.registerTool(costTrendTool, CostTrendArgumentsSchema);
     this.registerTool(compareSpendTool, CompareSpendArgumentsSchema);
-    this.registerTool(listInsightsTool, ListInsightsArgumentsSchema);
+    this.registerTool(listOptimizationRecommendationsTool, ListInsightsArgumentsSchema);
     this.registerTool(getInsightResourcesTool, GetInsightResourcesArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);

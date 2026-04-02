@@ -110,14 +110,14 @@ export const ListInsightsArgumentsSchema = z.object({
 });
 
 export const GetInsightResourcesArgumentsSchema = z.object({
-    source: z.string().describe("The source of the insight (e.g. 'aws-cost-optimization-hub', 'aws-trusted-advisor'). Use the 'source' field from list_insights."),
-    key: z.string().describe("The key of the insight (e.g. 'delete-ebs-volumes'). Use the 'key' field from list_insights."),
+    source: z.string().describe("The source of the insight (e.g. 'aws-cost-optimization-hub', 'aws-trusted-advisor'). Use the 'source' field from list_optimization_recommendations."),
+    key: z.string().describe("The key of the insight (e.g. 'delete-ebs-volumes'). Use the 'key' field from list_optimization_recommendations."),
 });
 
 // ── Tool metadata ───────────────────────────────────────────────────────────
 
-export const listInsightsTool = {
-    name: "list_insights",
+export const listOptimizationRecommendationsTool = {
+    name: "list_optimization_recommendations",
     description:
         "Use this when the user asks about optimization, recommendations, savings opportunities, " +
         "rightsizing, idle resources, security findings, or cost reduction suggestions. " +

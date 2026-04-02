@@ -122,7 +122,7 @@ export async function executeToolHandler(
             case "compare_spend":
                 result = await handleCompareSpendRequest(args, token);
                 break;
-            case "list_insights":
+            case "list_optimization_recommendations":
                 result = await handleListInsightsRequest(args, token);
                 break;
             case "get_insight_resources":
