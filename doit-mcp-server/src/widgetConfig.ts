@@ -410,19 +410,7 @@ export const TOOL_VIEW_CONFIG: Record<string, ToolViewConfig> = {
         emptyMessage: "No affected resources found.",
     },
 
-    // ── Query Helpers ─────────────────────────────────────────────────────────
-    cost_breakdown: {
-        columns: [
-            { key: "0", label: "Name" },
-            { key: "cost", label: "Cost", format: "currency" },
-        ],
-        emptyMessage: "No cost data found.",
-    },
-    cost_trend: {
-        columns: [
-            { key: "0", label: "Period" },
-            { key: "cost", label: "Cost", format: "currency" },
-        ],
-        emptyMessage: "No trend data found.",
-    },
+    // Note: cost_breakdown, cost_trend, and compare_spend return analytics
+    // query format ({rows, columns}) and route to CostDashboard/GenericTable
+    // which read rows/columns directly — no _columns config needed.
 };
