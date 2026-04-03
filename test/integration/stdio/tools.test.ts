@@ -30,6 +30,7 @@ describe("MCP Tools Integration", () => {
 
             expect(names).toEqual(
                 [
+                    "ask_ava_sync",
                     "assign_objects_to_label",
                     "compare_spend",
                     "cost_breakdown",
@@ -1401,6 +1402,41 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({ name: "get_commitment", arguments: {} });
             const text = getTextContent(result);
             expect(text.toLowerCase()).toContain("required");
+        });
+    });
+
+    describe("ask_ava_sync", () => {
+        it("returns an answer from AVA (ephemeral by default)", async () => {
+            const result = await client.callTool({
+                name: "ask_ava_sync",
+                arguments: { question: "What is my biggest cloud cost?" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.answer).toContain("compute resources");
+            expect(parsed.conversationId).toBeUndefined();
+            expect(parsed.answerId).toBeUndefined();
+        });
+
+        it("returns conversationId and answerId when ephemeral is false", async () => {
+            const result = await client.callTool({
+                name: "ask_ava_sync",
+                arguments: { question: "Tell me more", ephemeral: false },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.answer).toBeDefined();
+            expect(parsed.conversationId).toBe("conv-abc123");
+            expect(parsed.answerId).toBe("ans-xyz456");
+        });
+
+        it("returns error for missing question", async () => {
+            const result = await client.callTool({
+                name: "ask_ava_sync",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 

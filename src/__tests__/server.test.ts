@@ -29,6 +29,10 @@ vi.mock(import("../tools/anomalies.js"), async (importOriginal) => ({
     handleAnomaliesRequest: vi.fn(),
     handleAnomalyRequest: vi.fn(),
 }));
+vi.mock(import("../tools/ava.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleAskAvaSyncRequest: vi.fn(),
+}));
 vi.mock(import("../tools/reports.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleReportsRequest: vi.fn(),
@@ -165,6 +169,7 @@ import {
     createServer,
     handleAnomaliesRequest,
     handleAnomalyRequest,
+    handleAskAvaSyncRequest,
     handleAssignObjectsToLabelRequest,
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
@@ -218,6 +223,7 @@ import {
 } from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { getAssetTool, listAssetsTool } from "../tools/assets.js";
+import { askAvaSyncTool } from "../tools/ava.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
@@ -376,6 +382,7 @@ describe("ListToolsRequestSchema handler", () => {
                 updateAnnotationTool,
                 listCommitmentsTool,
                 getCommitmentTool,
+                askAvaSyncTool,
             ],
         });
     });
@@ -760,6 +767,7 @@ describe("CallToolRequestSchema handler", () => {
         ],
         ["list_commitments", "list_commitments", {}, handleListCommitmentsRequest],
         ["get_commitment", "get_commitment", { id: "commitment-1" }, handleGetCommitmentRequest],
+        ["ask_ava_sync", "ask_ava_sync", { question: "What is my spend?" }, handleAskAvaSyncRequest],
     ];
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {

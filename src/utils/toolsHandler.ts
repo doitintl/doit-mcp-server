@@ -20,6 +20,7 @@ import {
 } from "../tools/annotations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
+import { handleAskAvaSyncRequest } from "../tools/ava.js";
 import {
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
@@ -290,6 +291,9 @@ export async function executeToolHandler(
                 break;
             case "get_commitment":
                 result = await handleGetCommitmentRequest(args, token);
+                break;
+            case "ask_ava_sync":
+                result = await handleAskAvaSyncRequest(args, token);
                 break;
             default:
                 return createErrorResponse(`Unknown tool: ${toolName}`);
