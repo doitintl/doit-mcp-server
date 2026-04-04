@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
-import { AVA_BASE_URL, handleAskAvaSyncRequest } from "../ava.js";
+import { AVA_BASE_URL, AVA_DEFAULT_TIMEOUT_MS, handleAskAvaSyncRequest } from "../ava.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
@@ -16,6 +16,44 @@ afterEach(() => {
 });
 
 const mockToken = "test-token";
+
+describe("AVA_TIMEOUT_MS parsing", () => {
+    afterEach(() => {
+        delete process.env.AVA_TIMEOUT_MS;
+    });
+
+    it.each([
+        ["empty string", ""],
+        ["non-numeric", "abc"],
+        ["NaN string", "NaN"],
+        ["negative number", "-5"],
+        ["zero", "0"],
+    ])(`falls back to ${AVA_DEFAULT_TIMEOUT_MS} for invalid value: %s`, async (_label, value) => {
+        process.env.AVA_TIMEOUT_MS = value;
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ answer: "OK" });
+
+        await handleAskAvaSyncRequest({ question: "test" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ timeoutMs: AVA_DEFAULT_TIMEOUT_MS })
+        );
+    });
+
+    it("uses the env var value when it is a valid positive number", async () => {
+        process.env.AVA_TIMEOUT_MS = "30000";
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ answer: "OK" });
+
+        await handleAskAvaSyncRequest({ question: "test" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ timeoutMs: 30_000 })
+        );
+    });
+});
 
 describe("handleAskAvaSyncRequest", () => {
     it("should call makeDoitRequest with POST and question, returning the answer", async () => {
@@ -105,6 +143,19 @@ describe("handleAskAvaSyncRequest", () => {
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("Invalid arguments") }],
+            isError: true,
+        });
+    });
+
+    it("should return timeout-specific error when makeDoitRequest throws TimeoutError", async () => {
+        const timeoutError = new DOMException("signal timed out", "TimeoutError");
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(timeoutError);
+
+        const response = await handleAskAvaSyncRequest({ question: "What is my spend?" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalled();
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("did not respond within the time limit") }],
             isError: true,
         });
     });

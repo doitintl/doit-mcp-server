@@ -168,7 +168,11 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
 
 /**
  * Helper function for making DoiT API requests.
- * On error, logs the error and returns null.
+ * On most errors, logs the error and returns null.
+ *
+ * Exception: when `timeoutMs` is set and the request exceeds that duration, the function
+ * re-throws a `DOMException` with `name === "TimeoutError"` instead of returning null.
+ * Callers that pass `timeoutMs` must handle this case explicitly.
  *
  * @param url The API endpoint URL
  * @param token The authentication token
@@ -176,6 +180,7 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options.method HTTP method (GET, POST, etc.)
  * @param options.body Request body for POST/PUT requests
  * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
+ * @param options.timeoutMs If set, aborts the request after this many milliseconds and throws TimeoutError
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
@@ -187,9 +192,17 @@ export async function makeDoitRequest<T>(
         appendParams?: boolean;
         customerContext?: string;
         parseResponse?: boolean;
+        timeoutMs?: number;
     } = {}
 ): Promise<T | null> {
-    const { method = "GET", body = undefined, appendParams = true, customerContext, parseResponse = true } = options;
+    const {
+        method = "GET",
+        body = undefined,
+        appendParams = true,
+        customerContext,
+        parseResponse = true,
+        timeoutMs,
+    } = options;
 
     // Demo mode: return canned data without hitting the real API.
     // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
@@ -215,6 +228,10 @@ export async function makeDoitRequest<T>(
             method,
             headers,
         };
+
+        if (timeoutMs !== undefined) {
+            requestOptions.signal = AbortSignal.timeout(timeoutMs);
+        }
 
         // Add body for non-GET requests if provided
         if (method !== "GET" && body !== undefined) {
@@ -253,6 +270,10 @@ export async function makeDoitRequest<T>(
         }
         return (await response.json()) as T;
     } catch (error) {
+        if (error instanceof DOMException && error.name === "TimeoutError") {
+            console.error(`DoiT API ${method} request timed out after ${timeoutMs}ms`);
+            throw error;
+        }
         console.error(`Error making DoiT API ${method} request:`, error);
         return null;
     }

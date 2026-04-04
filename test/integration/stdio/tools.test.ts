@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { HttpResponse, http } from "msw";
+import { delay, HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestClient, getTextContent } from "../helpers.js";
 import { mswServer } from "../setup.js";
@@ -1437,6 +1437,26 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");
+        });
+
+        it("returns timeout-specific error when AVA does not respond in time", async () => {
+            process.env.AVA_TIMEOUT_MS = "100";
+            mswServer.use(
+                http.post("https://api.doit.com/ava/v1/askSync", async () => {
+                    await delay("infinite");
+                    return HttpResponse.json({});
+                })
+            );
+            try {
+                const result = await client.callTool({
+                    name: "ask_ava_sync",
+                    arguments: { question: "What is my spend?" },
+                });
+                const text = getTextContent(result);
+                expect(text).toContain("did not respond within the time limit");
+            } finally {
+                delete process.env.AVA_TIMEOUT_MS;
+            }
         });
     });
 

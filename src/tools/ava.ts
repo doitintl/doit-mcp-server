@@ -11,6 +11,14 @@ import {
 
 export const AVA_BASE_URL = `${DOIT_API_BASE}/ava/v1`;
 
+export const AVA_DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
+
+function parseTimeoutMs(envValue: string | undefined, fallback: number): number {
+    if (envValue === undefined) return fallback;
+    const parsed = Number(envValue);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 export const AskAvaSyncArgumentsSchema = z
     .object({
         question: z
@@ -39,7 +47,7 @@ export const AskAvaSyncArgumentsSchema = z
 export const askAvaSyncTool = {
     name: "ask_ava_sync",
     description:
-        "Ask DoiT AVA, the cloud cost and infrastructure expert, a question about the user's DoiT account, cloud spending, anomalies, or optimization opportunities. AVA has access to the customer's billing data, usage patterns, and DoiT-specific features. Use this for DoiT or cloud-specific questions only — not for general-purpose AI queries. By default the conversation is ephemeral (stateless). Set ephemeral to false to receive a conversationId and answerId for follow-up questions or feedback. Note: AVA may take over 60 seconds to respond — some MCP clients may time out before receiving a response.",
+        "Ask DoiT AVA, the cloud cost and infrastructure expert, a question about the user's DoiT account, cloud spending, anomalies, or optimization opportunities. AVA has access to the customer's billing data, usage patterns, and DoiT-specific features. Use this for DoiT or cloud-specific questions only — not for general-purpose AI queries. Note: AVA can take a long time to respond for complex questions. If it does not respond in time, a clear error is returned with guidance to retry or simplify the question.",
     inputSchema: zodToMcpInputSchema(AskAvaSyncArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -62,6 +70,7 @@ export async function handleAskAvaSyncRequest(args: any, token: string) {
             method: "POST",
             body: { question, conversationId, ephemeral },
             customerContext,
+            timeoutMs: parseTimeoutMs(process.env.AVA_TIMEOUT_MS, AVA_DEFAULT_TIMEOUT_MS),
         });
 
         if (!data) {
@@ -74,6 +83,11 @@ export async function handleAskAvaSyncRequest(args: any, token: string) {
     } catch (error) {
         if (error instanceof z.ZodError) {
             return createErrorResponse(formatZodError(error));
+        }
+        if (error instanceof DOMException && error.name === "TimeoutError") {
+            return createErrorResponse(
+                "AVA did not respond within the time limit. Try a simpler or more specific question, or try again later."
+            );
         }
         return handleGeneralError(error, "handling ask AVA sync request");
     }

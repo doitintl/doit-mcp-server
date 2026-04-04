@@ -173,7 +173,7 @@ This MCP server provides many tools including the following:
 - [`update_annotation`](https://developer.doit.com/reference/updateannotation): Updates an existing annotation by ID
 - [`list_commitments`](https://developer.doit.com/reference/listcommitments): Returns a list of commitments (reserved capacity or spend agreements) with cloud providers
 - [`get_commitment`](https://developer.doit.com/reference/getcommitment): Returns details of a specific commitment by ID, including periods and attainment data
-- [`ask_ava_sync`](https://developer.doit.com/reference/askavasync): Ask DoiT AVA, the cloud cost and infrastructure expert, a question about the user's DoiT account, cloud spending, or optimization opportunities. Note: AVA may take over 60 seconds to respond.
+- [`ask_ava_sync`](https://developer.doit.com/reference/askavasync): Ask DoiT AVA, the cloud cost and infrastructure expert, a question about the user's DoiT account, cloud spending, or optimization opportunities. Note: AVA can take a long time to respond for complex questions.
 - [`list_organizations`](https://developer.doit.com/reference/listorganizations): Returns a list of organizations accessible to the authenticated user
 - [`list_platforms`](https://developer.doit.com/reference/listplatforms): Returns a list of all available platforms
 - [`list_users`](https://developer.doit.com/reference/listusers): Returns a list of all users in the organization
