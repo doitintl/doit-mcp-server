@@ -300,4 +300,13 @@ export const mockedDoitApiHandlers = [
     http.get(`${API_BASE}/analytics/v1/commitment-manager`, () => {
         return HttpResponse.json(fixtures.commitments);
     }),
+
+    // AVA
+    http.post(`${API_BASE}/ava/v1/askSync`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        if (body?.ephemeral === false) {
+            return HttpResponse.json(fixtures.avaAskSyncWithConversation);
+        }
+        return HttpResponse.json(fixtures.avaAskSync);
+    }),
 ];

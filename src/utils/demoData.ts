@@ -605,6 +605,13 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
         return { email: DEMO_USER.email, domain: DEMO_USER.domain };
     }
 
+    // POST /ava/v1/askSync
+    if (path.includes("/ava/v1/askSync") && POST) {
+        return {
+            answer: "Based on Acme Corp's cloud spending, your top cost driver is compute in us-central1, accounting for 42% of your monthly GCP spend. Consider purchasing 1-year committed use discounts for your steady-state workloads to reduce costs by up to 37%. Your AWS spend is concentrated in EC2 (us-east-1), where Reserved Instances could provide similar savings.",
+        };
+    }
+
     // POST /analytics/v1/reports/query — used by both cloud overview (internal)
     // and run_query (standalone). Differentiate by group dimensions in body.
     if (path.includes("/analytics/v1/reports/query") && POST) {

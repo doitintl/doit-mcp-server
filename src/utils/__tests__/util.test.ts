@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugLevel, debugLog, formatEnumValues, toSnakeCase } from "../util.js";
+import { DebugLevel, debugLog, formatEnumValues, makeDoitRequest, toSnakeCase } from "../util.js";
 
 beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -132,5 +132,34 @@ describe("formatEnumValues", () => {
 
     it("works with plain arrays", () => {
         expect(formatEnumValues(["a", "b", "c"])).toBe("a, b, c");
+    });
+});
+
+describe("makeDoitRequest timeout", () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it("should throw TimeoutError when fetch does not respond within timeoutMs", async () => {
+        // Simulate a fetch that hangs but correctly aborts when the signal fires
+        vi.stubGlobal("fetch", (_url: string, init?: RequestInit) => {
+            return new Promise((_resolve, reject) => {
+                init?.signal?.addEventListener("abort", () => {
+                    reject(new DOMException("signal timed out", "TimeoutError"));
+                });
+            });
+        });
+
+        await expect(
+            makeDoitRequest("https://api.doit.com/test", "test-token", { timeoutMs: 50 })
+        ).rejects.toMatchObject({ name: "TimeoutError" });
+    });
+
+    it("should return null and not throw when fetch rejects with a non-timeout error", async () => {
+        vi.stubGlobal("fetch", () => Promise.reject(new Error("Network error")));
+
+        const result = await makeDoitRequest("https://api.doit.com/test", "test-token");
+
+        expect(result).toBeNull();
     });
 });
