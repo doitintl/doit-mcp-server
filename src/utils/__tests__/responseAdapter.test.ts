@@ -136,6 +136,15 @@ describe("sanitize — response hygiene", () => {
         expect(result.selfLink).toContain("foo=bar");
     });
 
+    it("produces a well-formed URL when tracking params are the last params (our actual URL shape)", () => {
+        // makeDoitRequest always appends tracking params last, so this is the real-world shape:
+        // ?maxResults=40&customerContext=xxx&mcp=true&mcpVersion=...&mcpTool=...&sse=true
+        const url =
+            "https://api.doit.com/budgets?maxResults=40&customerContext=abc123&mcp=true&mcpVersion=0.11.0&mcpTool=list_budgets&mcpClient=cursor-vscode&sse=true";
+        const result = sanitize({ selfLink: url }) as any;
+        expect(result.selfLink).toBe("https://api.doit.com/budgets?maxResults=40&customerContext=abc123");
+    });
+
     it("preserves business-relevant fields (pageToken, createdAt, timestamp, updatedAt)", () => {
         const payload = {
             pageToken: "tok123",
