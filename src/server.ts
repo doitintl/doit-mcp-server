@@ -142,7 +142,7 @@ import {
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
-import { type TrackingContext, createErrorResponse, formatZodError, handleGeneralError } from "./utils/util.js";
+import { createErrorResponse, formatZodError, handleGeneralError, type TrackingContext } from "./utils/util.js";
 
 export function createServer() {
     // Connection-level MCP client info — set once on initialize, read on every tool call.
