@@ -1,7 +1,31 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { z } from "zod";
 import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
+import { SERVER_VERSION } from "./consts.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
+
+// --- MCP tracking context ---
+// Uses AsyncLocalStorage for request-scoped tracking. Module-level globals are unsafe in the
+// SSE/Cloudflare path because Durable Object instances can share module scope on the same isolate.
+// AsyncLocalStorage is supported via the nodejs_compat flag in wrangler.jsonc.
+
+export interface TrackingContext {
+    mcpTool?: string;
+    mcpClient?: string;
+    mcpClientVersion?: string;
+    mcpProtocolVersion?: string;
+}
+
+const trackingStore = new AsyncLocalStorage<TrackingContext>();
+
+export function runWithTracking<T>(ctx: TrackingContext, fn: () => T): T {
+    return trackingStore.run(ctx, fn);
+}
+
+export function getTrackingContext(): TrackingContext | undefined {
+    return trackingStore.getStore();
+}
 
 /**
  * Debug levels for controlling log verbosity
@@ -187,7 +211,7 @@ export async function makeDoitRequest<T>(
         appendParams?: boolean;
         customerContext?: string;
         parseResponse?: boolean;
-    } = {}
+    } = {},
 ): Promise<T | null> {
     const { method = "GET", body = undefined, appendParams = true, customerContext, parseResponse = true } = options;
 
@@ -222,9 +246,24 @@ export async function makeDoitRequest<T>(
             debugLog("API request body: ", DebugLevel.TRACE, requestOptions.body);
         }
 
-        // add mcp params to the url
+        // add mcp tracking params to the url
+        const tracking = getTrackingContext();
         const sep = requestUrl.includes("?") ? "&" : "?";
         requestUrl += `${sep}mcp=true`;
+        requestUrl += `&mcpVersion=${encodeURIComponent(SERVER_VERSION)}`;
+
+        if (tracking?.mcpTool) {
+            requestUrl += `&mcpTool=${encodeURIComponent(tracking.mcpTool)}`;
+        }
+        if (tracking?.mcpClient) {
+            requestUrl += `&mcpClient=${encodeURIComponent(tracking.mcpClient)}`;
+        }
+        if (tracking?.mcpClientVersion) {
+            requestUrl += `&mcpClientVersion=${encodeURIComponent(tracking.mcpClientVersion)}`;
+        }
+        if (tracking?.mcpProtocolVersion) {
+            requestUrl += `&mcpProtocolVersion=${encodeURIComponent(tracking.mcpProtocolVersion)}`;
+        }
 
         if (!process.env.CUSTOMER_CONTEXT) {
             // request from the sse server

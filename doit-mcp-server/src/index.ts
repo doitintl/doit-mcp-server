@@ -193,6 +193,7 @@ import {
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
+import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
@@ -292,6 +293,10 @@ export class DoitMCPAgent extends McpAgent {
     }
   );
 
+  // Per-instance MCP client info — stored on the DO instance, not a module global,
+  // so there is no cross-session bleed between DO instances sharing the same isolate.
+  private _mcpClientInfo: TrackingContext = {};
+
   // Helper method to get the current token
   private getToken(): string {
     return this.props.apiKey as string;
@@ -342,7 +347,10 @@ export class DoitMCPAgent extends McpAgent {
         toolName,
         argsWithCustomerContext,
         token,
-        (rawResult) => adaptToolResponse(toolName, rawResult)
+        {
+          trackingContext: this._mcpClientInfo,
+          convertResponse: (rawResult) => adaptToolResponse(toolName, rawResult),
+        }
       );
       return result;
     };
@@ -364,13 +372,15 @@ export class DoitMCPAgent extends McpAgent {
         await this.saveProps();
       };
 
-      const response = await handleChangeCustomerRequest(
-        args,
-        token,
-        updateCustomerContext
-      );
-
-      return adaptToolResponse("change_customer", response);
+      // change_customer bypasses executeToolHandler, so wrap manually with tracking context.
+      return runWithTracking({ ...this._mcpClientInfo, mcpTool: "change_customer" }, async () => {
+        const response = await handleChangeCustomerRequest(
+          args,
+          token,
+          updateCustomerContext
+        );
+        return adaptToolResponse("change_customer", response);
+      });
     };
   }
 
@@ -403,6 +413,21 @@ export class DoitMCPAgent extends McpAgent {
     this.props = (this.props ?? {}) as typeof this.props;
 
     console.log("Initializing Doit MCP Agent", this.props.customerContext);
+
+    // Capture MCP client identity for tracking query params.
+    // Stored on the DO instance (_mcpClientInfo), not a module global, to avoid cross-session
+    // bleed between DO instances that may share the same isolate.
+    // Note: mcpProtocolVersion is intentionally omitted — the MCP SDK's oninitialized callback
+    // takes no arguments and getClientVersion() only returns { name, version }. The SDK
+    // computes the negotiated protocol version in _oninitialize() but discards it without
+    // storing it. The STDIO path has direct access via InitializeRequest params; SSE does not.
+    this.server.server.oninitialized = () => {
+      const clientInfo = this.server.server.getClientVersion();
+      this._mcpClientInfo = {
+        mcpClient: clientInfo?.name,
+        mcpClientVersion: clientInfo?.version,
+      };
+    };
 
     // Load persisted props first (no-op if apiKey not available yet)
     await this.loadPersistedProps();

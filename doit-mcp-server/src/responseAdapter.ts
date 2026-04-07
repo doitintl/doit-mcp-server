@@ -50,7 +50,10 @@ export function sanitize(obj: Record<string, unknown>): Record<string, unknown> 
  */
 function sanitizeValue(value: unknown): unknown {
     if (typeof value === "string" && value.includes("mcp=true")) {
-        return value.replace(/[?&]mcp=true/g, "").replace(/[?&]sse=true/g, "");
+        return value
+            .replace(/[?&]mcp=true/g, "")
+            .replace(/[?&]sse=true/g, "")
+            .replace(/[?&]mcp(?:Tool|Version|Client|ClientVersion|ProtocolVersion)=[^&]*/g, "");
     }
     if (Array.isArray(value)) {
         return value.map((item) => sanitizeValue(item));

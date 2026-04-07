@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugLevel, debugLog, formatEnumValues, toSnakeCase } from "../util.js";
+import { DebugLevel, debugLog, formatEnumValues, getTrackingContext, runWithTracking, toSnakeCase } from "../util.js";
 
 beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -132,5 +132,60 @@ describe("formatEnumValues", () => {
 
     it("works with plain arrays", () => {
         expect(formatEnumValues(["a", "b", "c"])).toBe("a, b, c");
+    });
+});
+
+describe("runWithTracking / AsyncLocalStorage propagation", () => {
+    it("getTrackingContext() returns undefined outside a runWithTracking call", () => {
+        expect(getTrackingContext()).toBeUndefined();
+    });
+
+    it("getTrackingContext() returns the context set by runWithTracking", () => {
+        const ctx = { mcpTool: "list_reports", mcpClient: "cursor-vscode", mcpClientVersion: "1.0.0" };
+        runWithTracking(ctx, () => {
+            expect(getTrackingContext()).toEqual(ctx);
+        });
+    });
+
+    it("context is visible inside nested async calls", async () => {
+        const ctx = { mcpTool: "run_query", mcpClient: "claude-desktop" };
+        await runWithTracking(ctx, async () => {
+            await Promise.resolve(); // simulate await boundary
+            expect(getTrackingContext()).toEqual(ctx);
+        });
+    });
+
+    it("context propagates through Promise.all (parallel fan-out)", async () => {
+        const ctx = { mcpTool: "get_cloud_overview" };
+        await runWithTracking(ctx, async () => {
+            const [a, b] = await Promise.all([
+                Promise.resolve(getTrackingContext()),
+                Promise.resolve(getTrackingContext()),
+            ]);
+            expect(a).toEqual(ctx);
+            expect(b).toEqual(ctx);
+        });
+    });
+
+    it("outer context is not polluted by an inner runWithTracking call", async () => {
+        const outer = { mcpTool: "list_budgets" };
+        const inner = { mcpTool: "get_budget" };
+
+        await runWithTracking(outer, async () => {
+            // Nested call creates its own scope — must not affect the outer scope after it returns
+            await runWithTracking(inner, async () => {
+                expect(getTrackingContext()).toEqual(inner);
+            });
+            expect(getTrackingContext()).toEqual(outer);
+        });
+    });
+
+    it("context is undefined outside runWithTracking after it completes", async () => {
+        const ctx = { mcpTool: "list_tickets" };
+        await runWithTracking(ctx, async () => {
+            expect(getTrackingContext()).toEqual(ctx);
+        });
+        // After the call completes, we are back outside any ALS scope
+        expect(getTrackingContext()).toBeUndefined();
     });
 });

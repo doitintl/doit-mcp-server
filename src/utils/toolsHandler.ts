@@ -75,22 +75,31 @@ import {
 } from "../tools/tickets.js";
 import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
-import { createErrorResponse, formatZodError, handleGeneralError } from "./util.js";
+import { TrackingContext, createErrorResponse, formatZodError, handleGeneralError, runWithTracking } from "./util.js";
+
+export interface ToolHandlerOptions {
+    /** Connection-level MCP client metadata (mcpClient, mcpClientVersion, etc.) */
+    trackingContext?: TrackingContext;
+    /** Optional function to convert the raw response format */
+    convertResponse?: (response: any) => any;
+}
 
 /**
  * Executes a tool handler with proper error handling
  * @param toolName - The name of the tool to execute
  * @param args - The arguments to pass to the tool handler
  * @param token - The API token to use
- * @param convertResponse - Optional function to convert the response format
+ * @param options - Optional tracking context and response converter
  * @returns The tool execution result
  */
 export async function executeToolHandler(
     toolName: string,
     args: any,
     token: string,
-    convertResponse?: (response: any) => any
+    options: ToolHandlerOptions = {}
 ): Promise<any> {
+    const { trackingContext, convertResponse } = options;
+    return runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
     try {
         let result: any;
 
@@ -305,4 +314,5 @@ export async function executeToolHandler(
         const errorResult = handleGeneralError(error, "handling tool request");
         return convertResponse ? convertResponse(errorResult) : errorResult;
     }
+    }); // end runWithTracking
 }

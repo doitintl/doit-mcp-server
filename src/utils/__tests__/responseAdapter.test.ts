@@ -121,6 +121,21 @@ describe("sanitize — response hygiene", () => {
         expect(result.selfLink).toContain("foo=bar");
     });
 
+    it("strips all mcpTool/mcpVersion/mcpClient/mcpClientVersion/mcpProtocolVersion params from URL strings", () => {
+        const url =
+            "https://api.doit.com/budgets?foo=bar&mcp=true&mcpTool=list_budgets&mcpVersion=0.11.0&mcpClient=cursor-vscode&mcpClientVersion=1.0.0&mcpProtocolVersion=2025-11-25&sse=true";
+        const payload = { selfLink: url };
+        const result = sanitize(payload) as any;
+        expect(result.selfLink).not.toContain("mcpTool=");
+        expect(result.selfLink).not.toContain("mcpVersion=");
+        expect(result.selfLink).not.toContain("mcpClient=");
+        expect(result.selfLink).not.toContain("mcpClientVersion=");
+        expect(result.selfLink).not.toContain("mcpProtocolVersion=");
+        expect(result.selfLink).not.toContain("mcp=true");
+        expect(result.selfLink).not.toContain("sse=true");
+        expect(result.selfLink).toContain("foo=bar");
+    });
+
     it("preserves business-relevant fields (pageToken, createdAt, timestamp, updatedAt)", () => {
         const payload = {
             pageToken: "tok123",
