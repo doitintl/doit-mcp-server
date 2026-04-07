@@ -32,6 +32,7 @@ import {
     updateReportFixture,
 } from "./analytics.js";
 import { anomaliesFixture, anomalyFixture } from "./anomalies.js";
+import { avaAskSyncFixture, avaAskSyncWithConversationFixture } from "./ava.js";
 import { assetDetailedFixture, assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
 import { cloudDiagramsFixture } from "./cloudDiagrams.js";
 import { cloudflowTriggerFixture } from "./cloudflow.js";
@@ -133,4 +134,7 @@ export const fixtures = {
 
     commitment: commitmentFixture,
     commitments: commitmentsFixture,
+
+    avaAskSync: avaAskSyncFixture,
+    avaAskSyncWithConversation: avaAskSyncWithConversationFixture,
 };

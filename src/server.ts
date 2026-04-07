@@ -42,6 +42,7 @@ import {
 } from "./tools/annotations.js";
 import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
 import { getAssetTool, handleGetAssetRequest, handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
+import { askAvaSyncTool, handleAskAvaSyncRequest } from "./tools/ava.js";
 import {
     createBudgetTool,
     getBudgetTool,
@@ -230,6 +231,7 @@ export function createServer() {
                 updateAnnotationTool,
                 listCommitmentsTool,
                 getCommitmentTool,
+                askAvaSyncTool,
             ],
         };
     });
@@ -319,6 +321,7 @@ export {
     formatZodError,
     handleAnomaliesRequest,
     handleAnomalyRequest,
+    handleAskAvaSyncRequest,
     handleAssignObjectsToLabelRequest,
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,

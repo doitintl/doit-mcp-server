@@ -3,7 +3,8 @@ import type { z } from "zod";
 import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
 import { SERVER_VERSION } from "./consts.js";
 
-export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
+export const DOIT_API_BASE =
+  process.env.DOIT_API_BASE || "https://api.doit.com";
 
 // --- MCP tracking context ---
 // Uses AsyncLocalStorage for request-scoped tracking. Module-level globals are unsafe in the
@@ -11,34 +12,34 @@ export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com"
 // AsyncLocalStorage is supported via the nodejs_compat flag in wrangler.jsonc.
 
 export interface TrackingContext {
-    mcpTool?: string;
-    mcpClient?: string;
-    mcpClientVersion?: string;
-    mcpProtocolVersion?: string;
+  mcpTool?: string;
+  mcpClient?: string;
+  mcpClientVersion?: string;
+  mcpProtocolVersion?: string;
 }
 
 const trackingStore = new AsyncLocalStorage<TrackingContext>();
 
 export function runWithTracking<T>(ctx: TrackingContext, fn: () => T): T {
-    return trackingStore.run(ctx, fn);
+  return trackingStore.run(ctx, fn);
 }
 
 export function getTrackingContext(): TrackingContext | undefined {
-    return trackingStore.getStore();
+  return trackingStore.getStore();
 }
 
 /**
  * Debug levels for controlling log verbosity
  */
 export enum DebugLevel {
-    /** No debug output */
-    OFF = 0,
-    /** Basic debug information (default when debugging is enabled) */
-    INFO = 1,
-    /** Detailed debug information */
-    VERBOSE = 2,
-    /** Very detailed debug information including full request/response data */
-    TRACE = 3,
+  /** No debug output */
+  OFF = 0,
+  /** Basic debug information (default when debugging is enabled) */
+  INFO = 1,
+  /** Detailed debug information */
+  VERBOSE = 2,
+  /** Very detailed debug information including full request/response data */
+  TRACE = 3,
 }
 
 /**
@@ -46,21 +47,21 @@ export enum DebugLevel {
  * Supports: 0 (off), 1 (info), 2 (verbose), 3 (trace)
  */
 const parseDebugLevel = (): DebugLevel => {
-    const envValue = process.env.DOIT_DEBUG_LEVEL;
-    if (!envValue) {
-        return DebugLevel.OFF;
+  const envValue = process.env.DOIT_DEBUG_LEVEL;
+  if (!envValue) {
+    return DebugLevel.OFF;
+  }
+  try {
+    const numValue = parseInt(envValue, 10);
+    if (Number.isNaN(numValue)) {
+      return DebugLevel.OFF;
     }
-    try {
-        const numValue = parseInt(envValue, 10);
-        if (Number.isNaN(numValue)) {
-            return DebugLevel.OFF;
-        }
-        if (numValue <= 0) return DebugLevel.OFF;
-        if (numValue >= 3) return DebugLevel.TRACE;
-        return numValue as DebugLevel;
-    } catch {
-        return DebugLevel.OFF;
-    }
+    if (numValue <= 0) return DebugLevel.OFF;
+    if (numValue >= 3) return DebugLevel.TRACE;
+    return numValue as DebugLevel;
+  } catch {
+    return DebugLevel.OFF;
+  }
 };
 
 const DOIT_DEBUG_LEVEL = parseDebugLevel();
@@ -73,17 +74,22 @@ const DOIT_DEBUG_LEVEL = parseDebugLevel();
  * @param level Debug level for this message (default: INFO).
  * @param optionalArgs Optional additional arguments (logged after the message, like console.log)
  */
-export function debugLog(message: unknown, level: DebugLevel = DebugLevel.INFO, ...optionalArgs: unknown[]): void {
-    if (DOIT_DEBUG_LEVEL < level) return;
+export function debugLog(
+  message: unknown,
+  level: DebugLevel = DebugLevel.INFO,
+  ...optionalArgs: unknown[]
+): void {
+  if (DOIT_DEBUG_LEVEL < level) return;
 
-    const levelName = DebugLevel[level];
-    const text = typeof message === "string" ? message : JSON.stringify(message, null, 2);
+  const levelName = DebugLevel[level];
+  const text =
+    typeof message === "string" ? message : JSON.stringify(message, null, 2);
 
-    if (optionalArgs.length > 0) {
-        console.error(`[doit-mcp debug:${levelName}]`, text, ...optionalArgs);
-    } else {
-        console.error(`[doit-mcp debug:${levelName}]`, text);
-    }
+  if (optionalArgs.length > 0) {
+    console.error(`[doit-mcp debug:${levelName}]`, text, ...optionalArgs);
+  } else {
+    console.error(`[doit-mcp debug:${levelName}]`, text);
+  }
 }
 
 /**
@@ -91,8 +97,10 @@ export function debugLog(message: unknown, level: DebugLevel = DebugLevel.INFO, 
  * @param schema The zod schema object (e.g., z.object({ ... }))
  * @returns Object with zod schema properties ready for MCP server tool
  */
-export function zodSchemaToMcpTool<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
-    return schema.shape;
+export function zodSchemaToMcpTool<T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>,
+) {
+  return schema.shape;
 }
 
 /**
@@ -101,15 +109,15 @@ export function zodSchemaToMcpTool<T extends z.ZodRawShape>(schema: z.ZodObject<
  * @returns Formatted error response object
  */
 export function createErrorResponse(message: string) {
-    return {
-        content: [
-            {
-                type: "text",
-                text: message,
-            },
-        ],
-        isError: true,
-    };
+  return {
+    content: [
+      {
+        type: "text",
+        text: message,
+      },
+    ],
+    isError: true,
+  };
 }
 
 /**
@@ -118,14 +126,14 @@ export function createErrorResponse(message: string) {
  * @returns Formatted success response object
  */
 export function createSuccessResponse(text: string) {
-    return {
-        content: [
-            {
-                type: "text",
-                text,
-            },
-        ],
-    };
+  return {
+    content: [
+      {
+        type: "text",
+        text,
+      },
+    ],
+  };
 }
 
 /**
@@ -134,11 +142,11 @@ export function createSuccessResponse(text: string) {
  * @returns Formatted error message string
  */
 export function formatZodError(error: any): string {
-    if (!error.errors) {
-        return "Invalid arguments provided";
-    }
+  if (!error.errors) {
+    return "Invalid arguments provided";
+  }
 
-    return `Invalid arguments: ${error.errors.map((e: any) => (e.path.length > 0 ? `${e.path.join(".")}: ${e.message}` : e.message)).join(", ")}`;
+  return `Invalid arguments: ${error.errors.map((e: any) => (e.path.length > 0 ? `${e.path.join(".")}: ${e.message}` : e.message)).join(", ")}`;
 }
 
 /**
@@ -147,22 +155,28 @@ export function formatZodError(error: any): string {
  * @param context Additional context to include in the log message
  * @returns Standardized error response
  */
-export function handleGeneralError(error: any, context: string): ReturnType<typeof createErrorResponse> {
-    console.error(`Error ${context}:`, error);
-    const message = error instanceof Error ? error.message : String(error);
-    // For HTTP 401 errors, include a WWW-Authenticate challenge in _meta so ChatGPT
-    // can trigger its native OAuth re-linking UI (MCP Apps SDK requirement).
-    if (message.startsWith("HTTP 401")) {
-        return {
-            content: [{ type: "text", text: message || "Unauthorized" }],
-            isError: true,
-            // @ts-expect-error
-            _meta: {
-                "mcp/www_authenticate": 'Bearer error="invalid_token", error_description="Token expired or invalid"',
-            },
-        };
-    }
-    return createErrorResponse(message || "An error occurred while processing your request");
+export function handleGeneralError(
+  error: any,
+  context: string,
+): ReturnType<typeof createErrorResponse> {
+  console.error(`Error ${context}:`, error);
+  const message = error instanceof Error ? error.message : String(error);
+  // For HTTP 401 errors, include a WWW-Authenticate challenge in _meta so ChatGPT
+  // can trigger its native OAuth re-linking UI (MCP Apps SDK requirement).
+  if (message.startsWith("HTTP 401")) {
+    return {
+      content: [{ type: "text", text: message || "Unauthorized" }],
+      isError: true,
+      // @ts-expect-error
+      _meta: {
+        "mcp/www_authenticate":
+          'Bearer error="invalid_token", error_description="Token expired or invalid"',
+      },
+    };
+  }
+  return createErrorResponse(
+    message || "An error occurred while processing your request",
+  );
 }
 
 /**
@@ -170,29 +184,36 @@ export function handleGeneralError(error: any, context: string): ReturnType<type
  * @param baseUrl The base URL to append parameters to
  * @returns URL with maxResults and optional customerContext parameters
  */
-export function appendUrlParameters(baseUrl: string, customerContextId?: string): string {
-    // Check if the URL already has query parameters
-    const separator = baseUrl.includes("?") ? "&" : "?";
-    let url = baseUrl;
+export function appendUrlParameters(
+  baseUrl: string,
+  customerContextId?: string,
+): string {
+  // Check if the URL already has query parameters
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  let url = baseUrl;
 
-    // Only add maxResults if it's not already in the URL
-    if (!baseUrl.includes("maxResults=")) {
-        url += `${separator}maxResults=40`;
-    }
+  // Only add maxResults if it's not already in the URL
+  if (!baseUrl.includes("maxResults=")) {
+    url += `${separator}maxResults=40`;
+  }
 
-    const customerContext = customerContextId || process.env.CUSTOMER_CONTEXT;
+  const customerContext = customerContextId || process.env.CUSTOMER_CONTEXT;
 
-    if (customerContext) {
-        // Use & as separator since we know the URL now has parameters
-        url += `&customerContext=${customerContext}`;
-    }
+  if (customerContext) {
+    // Use & as separator since we know the URL now has parameters
+    url += `&customerContext=${customerContext}`;
+  }
 
-    return url;
+  return url;
 }
 
 /**
  * Helper function for making DoiT API requests.
- * On error, logs the error and returns null.
+ * On most errors, logs the error and returns null.
+ *
+ * Exception: when `timeoutMs` is set and the request exceeds that duration, the function
+ * re-throws a `DOMException` with `name === "TimeoutError"` instead of returning null.
+ * Callers that pass `timeoutMs` must handle this case explicitly.
  *
  * @param url The API endpoint URL
  * @param token The authentication token
@@ -200,101 +221,126 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options.method HTTP method (GET, POST, etc.)
  * @param options.body Request body for POST/PUT requests
  * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
+ * @param options.timeoutMs If set, aborts the request after this many milliseconds and throws TimeoutError
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
-    url: string,
-    token: string,
-    options: {
-        method?: string;
-        body?: any;
-        appendParams?: boolean;
-        customerContext?: string;
-        parseResponse?: boolean;
-    } = {},
+  url: string,
+  token: string,
+  options: {
+    method?: string;
+    body?: any;
+    appendParams?: boolean;
+    customerContext?: string;
+    parseResponse?: boolean;
+    timeoutMs?: number;
+  } = {},
 ): Promise<T | null> {
-    const { method = "GET", body = undefined, appendParams = true, customerContext, parseResponse = true } = options;
+  const {
+    method = "GET",
+    body = undefined,
+    appendParams = true,
+    customerContext,
+    parseResponse = true,
+    timeoutMs,
+  } = options;
 
-    // Demo mode: return canned data without hitting the real API.
-    // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
-    // If the token is DEMO_TOKEN here, the user already passed that gate.
-    if (token === DEMO_TOKEN) {
-        if (!parseResponse) return {} as T;
-        const demo = getDemoResponse(url, method, body);
-        if (demo !== null) return demo as T;
-        // No fixture for this endpoint — return empty success so the tool doesn't error.
-        return {} as T;
-    }
+  // Demo mode: return canned data without hitting the real API.
+  // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
+  // If the token is DEMO_TOKEN here, the user already passed that gate.
+  if (token === DEMO_TOKEN) {
+    if (!parseResponse) return {} as T;
+    const demo = getDemoResponse(url, method, body);
+    if (demo !== null) return demo as T;
+    // No fixture for this endpoint — return empty success so the tool doesn't error.
+    return {} as T;
+  }
 
-    const headers = {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
+  let requestUrl = appendParams
+    ? appendUrlParameters(url, customerContext)
+    : url;
+
+  try {
+    const requestOptions: RequestInit = {
+      method,
+      headers,
     };
 
-    let requestUrl = appendParams ? appendUrlParameters(url, customerContext) : url;
-
-    try {
-        const requestOptions: RequestInit = {
-            method,
-            headers,
-        };
-
-        // Add body for non-GET requests if provided
-        if (method !== "GET" && body !== undefined) {
-            requestOptions.body = JSON.stringify(body);
-            debugLog("API request body: ", DebugLevel.TRACE, requestOptions.body);
-        }
-
-        // add mcp tracking params to the url
-        const tracking = getTrackingContext();
-        const sep = requestUrl.includes("?") ? "&" : "?";
-        requestUrl += `${sep}mcp=true`;
-        requestUrl += `&mcpVersion=${encodeURIComponent(SERVER_VERSION)}`;
-
-        if (tracking?.mcpTool) {
-            requestUrl += `&mcpTool=${encodeURIComponent(tracking.mcpTool)}`;
-        }
-        if (tracking?.mcpClient) {
-            requestUrl += `&mcpClient=${encodeURIComponent(tracking.mcpClient)}`;
-        }
-        if (tracking?.mcpClientVersion) {
-            requestUrl += `&mcpClientVersion=${encodeURIComponent(tracking.mcpClientVersion)}`;
-        }
-        if (tracking?.mcpProtocolVersion) {
-            requestUrl += `&mcpProtocolVersion=${encodeURIComponent(tracking.mcpProtocolVersion)}`;
-        }
-
-        if (!process.env.CUSTOMER_CONTEXT) {
-            // request from the sse server
-            requestUrl += `&sse=true`;
-        }
-
-        debugLog("API request URL: ", DebugLevel.VERBOSE, requestUrl);
-        const response = await fetch(requestUrl, requestOptions);
-
-        if (!response.ok) {
-            const bodyText = await response.text();
-            let detail = bodyText;
-            try {
-                const parsed = JSON.parse(bodyText);
-                detail =
-                    parsed.message ||
-                    parsed.error ||
-                    (typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed));
-            } catch {
-                // use bodyText as-is
-            }
-            throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
-        }
-        if (!parseResponse) {
-            return {} as T;
-        }
-        return (await response.json()) as T;
-    } catch (error) {
-        console.error(`Error making DoiT API ${method} request:`, error);
-        return null;
+    if (timeoutMs !== undefined) {
+      requestOptions.signal = AbortSignal.timeout(timeoutMs);
     }
+
+    // Add body for non-GET requests if provided
+    if (method !== "GET" && body !== undefined) {
+      requestOptions.body = JSON.stringify(body);
+      debugLog("API request body: ", DebugLevel.TRACE, requestOptions.body);
+    }
+
+    // add mcp tracking params to the url
+    const tracking = getTrackingContext();
+    const sep = requestUrl.includes("?") ? "&" : "?";
+    requestUrl += `${sep}mcp=true`;
+    requestUrl += `&mcpVersion=${encodeURIComponent(SERVER_VERSION)}`;
+
+    if (tracking?.mcpTool) {
+      requestUrl += `&mcpTool=${encodeURIComponent(tracking.mcpTool)}`;
+    }
+    if (tracking?.mcpClient) {
+      requestUrl += `&mcpClient=${encodeURIComponent(tracking.mcpClient)}`;
+    }
+    if (tracking?.mcpClientVersion) {
+      requestUrl += `&mcpClientVersion=${encodeURIComponent(tracking.mcpClientVersion)}`;
+    }
+    if (tracking?.mcpProtocolVersion) {
+      requestUrl += `&mcpProtocolVersion=${encodeURIComponent(tracking.mcpProtocolVersion)}`;
+    }
+
+    if (!process.env.CUSTOMER_CONTEXT) {
+      // request from the sse server
+      requestUrl += `&sse=true`;
+    }
+
+    debugLog("API request URL: ", DebugLevel.VERBOSE, requestUrl);
+    const response = await fetch(requestUrl, requestOptions);
+
+    if (!response.ok) {
+      const bodyText = await response.text();
+      let detail = bodyText;
+      try {
+        const parsed = JSON.parse(bodyText);
+        detail =
+          parsed.message ||
+          parsed.error ||
+          (typeof parsed.detail === "string"
+            ? parsed.detail
+            : JSON.stringify(parsed));
+      } catch {
+        // use bodyText as-is
+      }
+      throw new Error(
+        `HTTP ${response.status}: ${detail || response.statusText}`,
+      );
+    }
+    if (!parseResponse) {
+      return {} as T;
+    }
+    return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      console.error(
+        `DoiT API ${method} request timed out after ${timeoutMs}ms`,
+      );
+      throw error;
+    }
+    console.error(`Error making DoiT API ${method} request:`, error);
+    return null;
+  }
 }
 
 /**
@@ -303,8 +349,8 @@ export async function makeDoitRequest<T>(
  * @returns Formatted date string (e.g., '2024-04-27')
  */
 export function formatDate(timestamp: number): string {
-    if (!timestamp) return "";
-    return new Date(timestamp).toISOString().split("T")[0];
+  if (!timestamp) return "";
+  return new Date(timestamp).toISOString().split("T")[0];
 }
 
 /**
@@ -319,37 +365,40 @@ export function formatDate(timestamp: number): string {
  * is NOT a security boundary.
  */
 export function decodeJWT(token: string): {
-    header: any;
-    payload: any;
-    signature: string;
+  header: any;
+  payload: any;
+  signature: string;
 } | null {
-    try {
-        const parts = token.split(".");
+  try {
+    const parts = token.split(".");
 
-        if (parts.length !== 3) {
-            return null;
-        }
-
-        // JWT uses base64url encoding — convert to standard base64 before decoding
-        const b64url = (s: string) => s.replace(/-/g, "+").replace(/_/g, "/");
-
-        const header = JSON.parse(atob(b64url(parts[0])));
-        const payload = JSON.parse(atob(b64url(parts[1])));
-        const signature = parts[2];
-
-        return {
-            header,
-            payload,
-            signature,
-        };
-    } catch (error) {
-        console.error("Error decoding JWT:", error);
-        return null;
+    if (parts.length !== 3) {
+      return null;
     }
+
+    // JWT uses base64url encoding — convert to standard base64 before decoding
+    const b64url = (s: string) => s.replace(/-/g, "+").replace(/_/g, "/");
+
+    const header = JSON.parse(atob(b64url(parts[0])));
+    const payload = JSON.parse(atob(b64url(parts[1])));
+    const signature = parts[2];
+
+    return {
+      header,
+      payload,
+      signature,
+    };
+  } catch (error) {
+    console.error("Error decoding JWT:", error);
+    return null;
+  }
 }
 
-export function formatEnumValues(values: readonly string[], separator = ", "): string {
-    return values.join(separator);
+export function formatEnumValues(
+  values: readonly string[],
+  separator = ", ",
+): string {
+  return values.join(separator);
 }
 
 /**
@@ -357,10 +406,10 @@ export function formatEnumValues(values: readonly string[], separator = ", "): s
  * e.g. "Filter Fields Reference" → "filter_fields_reference"
  */
 export function toSnakeCase(str: string): string {
-    return str
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
 /**
@@ -372,22 +421,28 @@ export function toSnakeCase(str: string): string {
  *                           can ask the user to be more specific)
  */
 export function matchByName<T extends Record<string, any>>(
-    items: T[],
-    query: string,
-    nameKey: string = "name",
-    idKey: string = "id"
+  items: T[],
+  query: string,
+  nameKey: string = "name",
+  idKey: string = "id",
 ): { resolved: string } | { error: string } {
-    const q = query.toLowerCase();
-    const matches = items.filter((item) => {
-        const val = item[nameKey];
-        return typeof val === "string" && val.toLowerCase().includes(q);
-    });
-    if (matches.length === 0) return { error: `No items found matching "${query}".` };
-    if (matches.length === 1) {
-        const id = matches[0][idKey];
-        if (!id) return { error: `Found "${matches[0][nameKey]}" but it has no ${idKey} field.` };
-        return { resolved: String(id) };
-    }
-    const names = matches.map((m) => `"${m[nameKey]}"`).join(", ");
-    return { error: `Multiple items match "${query}": ${names}. Please provide a more specific name.` };
+  const q = query.toLowerCase();
+  const matches = items.filter((item) => {
+    const val = item[nameKey];
+    return typeof val === "string" && val.toLowerCase().includes(q);
+  });
+  if (matches.length === 0)
+    return { error: `No items found matching "${query}".` };
+  if (matches.length === 1) {
+    const id = matches[0][idKey];
+    if (!id)
+      return {
+        error: `Found "${matches[0][nameKey]}" but it has no ${idKey} field.`,
+      };
+    return { resolved: String(id) };
+  }
+  const names = matches.map((m) => `"${m[nameKey]}"`).join(", ");
+  return {
+    error: `Multiple items match "${query}": ${names}. Please provide a more specific name.`,
+  };
 }

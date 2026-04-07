@@ -18,6 +18,7 @@ import {
   anomaliesTool,
   anomalyTool,
 } from "../../src/tools/anomalies.js";
+import { AskAvaSyncArgumentsSchema, askAvaSyncTool } from "../../src/tools/ava.js";
 import {
   CreateReportArgumentsSchema,
   GetReportConfigArgumentsSchema,
@@ -596,6 +597,9 @@ export class DoitMCPAgent extends McpAgent {
     // Commitment Manager tools
     this.registerTool(listCommitmentsTool, ListCommitmentsArgumentsSchema);
     this.registerTool(getCommitmentTool, GetCommitmentArgumentsSchema);
+
+    // AVA tools
+    this.registerTool(askAvaSyncTool, AskAvaSyncArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
