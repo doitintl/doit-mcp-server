@@ -142,9 +142,12 @@ import {
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
-import { createErrorResponse, formatZodError, handleGeneralError } from "./utils/util.js";
+import { createErrorResponse, formatZodError, handleGeneralError, type TrackingContext } from "./utils/util.js";
 
 export function createServer() {
+    // Connection-level MCP client info — set once on initialize, read on every tool call.
+    // Stored in a closure (not a module global) so each server instance is isolated.
+    let mcpClientInfo: TrackingContext = {};
     const server = new Server(
         {
             name: SERVER_NAME,
@@ -287,10 +290,16 @@ export function createServer() {
             return createErrorResponse("Unauthorized");
         }
 
-        return await executeToolHandler(name, args, token);
+        return await executeToolHandler(name, args, token, { trackingContext: mcpClientInfo });
     });
 
     server.setRequestHandler(InitializeRequestSchema, async (request) => {
+        mcpClientInfo = {
+            mcpClient: request?.params?.clientInfo?.name,
+            mcpClientVersion: request?.params?.clientInfo?.version,
+            mcpProtocolVersion: request?.params?.protocolVersion,
+        };
+
         return {
             protocolVersion: request?.params?.protocolVersion || "2024-11-05",
             serverInfo: {

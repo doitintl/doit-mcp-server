@@ -121,6 +121,30 @@ describe("sanitize — response hygiene", () => {
         expect(result.selfLink).toContain("foo=bar");
     });
 
+    it("strips all mcpTool/mcpVersion/mcpClient/mcpClientVersion/mcpProtocolVersion params from URL strings", () => {
+        const url =
+            "https://api.doit.com/budgets?foo=bar&mcp=true&mcpTool=list_budgets&mcpVersion=0.11.0&mcpClient=cursor-vscode&mcpClientVersion=1.0.0&mcpProtocolVersion=2025-11-25&sse=true";
+        const payload = { selfLink: url };
+        const result = sanitize(payload) as any;
+        expect(result.selfLink).not.toContain("mcpTool=");
+        expect(result.selfLink).not.toContain("mcpVersion=");
+        expect(result.selfLink).not.toContain("mcpClient=");
+        expect(result.selfLink).not.toContain("mcpClientVersion=");
+        expect(result.selfLink).not.toContain("mcpProtocolVersion=");
+        expect(result.selfLink).not.toContain("mcp=true");
+        expect(result.selfLink).not.toContain("sse=true");
+        expect(result.selfLink).toContain("foo=bar");
+    });
+
+    it("produces a well-formed URL when tracking params are the last params (our actual URL shape)", () => {
+        // makeDoitRequest always appends tracking params last, so this is the real-world shape:
+        // ?maxResults=40&customerContext=xxx&mcp=true&mcpVersion=...&mcpTool=...&sse=true
+        const url =
+            "https://api.doit.com/budgets?maxResults=40&customerContext=abc123&mcp=true&mcpVersion=0.11.0&mcpTool=list_budgets&mcpClient=cursor-vscode&sse=true";
+        const result = sanitize({ selfLink: url }) as any;
+        expect(result.selfLink).toBe("https://api.doit.com/budgets?maxResults=40&customerContext=abc123");
+    });
+
     it("preserves business-relevant fields (pageToken, createdAt, timestamp, updatedAt)", () => {
         const payload = {
             pageToken: "tok123",
