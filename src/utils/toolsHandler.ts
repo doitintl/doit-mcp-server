@@ -76,6 +76,7 @@ import {
 } from "../tools/tickets.js";
 import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
+import { runDestructiveIfNeeded, type ToolElicitFn } from "./confirmation.js";
 import {
     createErrorResponse,
     formatZodError,
@@ -89,6 +90,8 @@ export interface ToolHandlerOptions {
     trackingContext?: TrackingContext;
     /** Optional function to convert the raw response format */
     convertResponse?: (response: any) => any;
+    /** When set (client supports MCP form elicitation), mutating tools may prompt for confirmation first. */
+    elicit?: ToolElicitFn;
 }
 
 /**
@@ -105,7 +108,7 @@ export async function executeToolHandler(
     token: string,
     options: ToolHandlerOptions = {}
 ): Promise<any> {
-    const { trackingContext, convertResponse } = options;
+    const { trackingContext, convertResponse, elicit } = options;
     return runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
         try {
             let result: any;
@@ -151,10 +154,22 @@ export async function executeToolHandler(
                     result = await handleGetReportConfigRequest(args, token);
                     break;
                 case "create_report":
-                    result = await handleCreateReportRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "create_report",
+                        args,
+                        token,
+                        elicit,
+                        handleCreateReportRequest
+                    );
                     break;
                 case "update_report":
-                    result = await handleUpdateReportRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "update_report",
+                        args,
+                        token,
+                        elicit,
+                        handleUpdateReportRequest
+                    );
                     break;
                 case "validate_user":
                     result = await handleValidateUserRequest(args, token);
@@ -193,10 +208,22 @@ export async function executeToolHandler(
                     result = await handleGetAllocationRequest(args, token);
                     break;
                 case "create_allocation":
-                    result = await handleCreateAllocationRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "create_allocation",
+                        args,
+                        token,
+                        elicit,
+                        handleCreateAllocationRequest
+                    );
                     break;
                 case "update_allocation":
-                    result = await handleUpdateAllocationRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "update_allocation",
+                        args,
+                        token,
+                        elicit,
+                        handleUpdateAllocationRequest
+                    );
                     break;
                 case "list_assets":
                     result = await handleListAssetsRequest(args, token);
@@ -205,7 +232,13 @@ export async function executeToolHandler(
                     result = await handleGetAssetRequest(args, token);
                     break;
                 case "trigger_cloud_flow":
-                    result = await handleTriggerCloudFlowRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "trigger_cloud_flow",
+                        args,
+                        token,
+                        elicit,
+                        handleTriggerCloudFlowRequest
+                    );
                     break;
                 case "list_alerts":
                     result = await handleListAlertsRequest(args, token);
@@ -214,10 +247,22 @@ export async function executeToolHandler(
                     result = await handleGetAlertRequest(args, token);
                     break;
                 case "create_alert":
-                    result = await handleCreateAlertRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "create_alert",
+                        args,
+                        token,
+                        elicit,
+                        handleCreateAlertRequest
+                    );
                     break;
                 case "update_alert":
-                    result = await handleUpdateAlertRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "update_alert",
+                        args,
+                        token,
+                        elicit,
+                        handleUpdateAlertRequest
+                    );
                     break;
 
                 case "list_organizations":
@@ -230,10 +275,10 @@ export async function executeToolHandler(
                     result = await handleListUsersRequest(args, token);
                     break;
                 case "update_user":
-                    result = await handleUpdateUserRequest(args, token);
+                    result = await runDestructiveIfNeeded("update_user", args, token, elicit, handleUpdateUserRequest);
                     break;
                 case "invite_user":
-                    result = await handleInviteUserRequest(args, token);
+                    result = await runDestructiveIfNeeded("invite_user", args, token, elicit, handleInviteUserRequest);
                     break;
                 case "list_roles":
                     result = await handleListRolesRequest(args, token);
@@ -248,16 +293,34 @@ export async function executeToolHandler(
                     result = await handleGetLabelRequest(args, token);
                     break;
                 case "create_label":
-                    result = await handleCreateLabelRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "create_label",
+                        args,
+                        token,
+                        elicit,
+                        handleCreateLabelRequest
+                    );
                     break;
                 case "update_label":
-                    result = await handleUpdateLabelRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "update_label",
+                        args,
+                        token,
+                        elicit,
+                        handleUpdateLabelRequest
+                    );
                     break;
                 case "get_label_assignments":
                     result = await handleGetLabelAssignmentsRequest(args, token);
                     break;
                 case "assign_objects_to_label":
-                    result = await handleAssignObjectsToLabelRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "assign_objects_to_label",
+                        args,
+                        token,
+                        elicit,
+                        handleAssignObjectsToLabelRequest
+                    );
                     break;
                 case "list_datahub_datasets":
                     result = await handleListDatahubDatasetsRequest(args, token);
@@ -266,13 +329,31 @@ export async function executeToolHandler(
                     result = await handleGetDatahubDatasetRequest(args, token);
                     break;
                 case "create_datahub_dataset":
-                    result = await handleCreateDatahubDatasetRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "create_datahub_dataset",
+                        args,
+                        token,
+                        elicit,
+                        handleCreateDatahubDatasetRequest
+                    );
                     break;
                 case "update_datahub_dataset":
-                    result = await handleUpdateDatahubDatasetRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "update_datahub_dataset",
+                        args,
+                        token,
+                        elicit,
+                        handleUpdateDatahubDatasetRequest
+                    );
                     break;
                 case "send_datahub_events":
-                    result = await handleSendDatahubEventsRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "send_datahub_events",
+                        args,
+                        token,
+                        elicit,
+                        handleSendDatahubEventsRequest
+                    );
                     break;
                 case "find_cloud_diagrams":
                     result = await handleFindCloudDiagramsRequest(args, token);
@@ -284,10 +365,22 @@ export async function executeToolHandler(
                     result = await handleGetBudgetRequest(args, token);
                     break;
                 case "create_budget":
-                    result = await handleCreateBudgetRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "create_budget",
+                        args,
+                        token,
+                        elicit,
+                        handleCreateBudgetRequest
+                    );
                     break;
                 case "update_budget":
-                    result = await handleUpdateBudgetRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "update_budget",
+                        args,
+                        token,
+                        elicit,
+                        handleUpdateBudgetRequest
+                    );
                     break;
                 case "list_annotations":
                     result = await handleListAnnotationsRequest(args, token);
@@ -296,10 +389,22 @@ export async function executeToolHandler(
                     result = await handleGetAnnotationRequest(args, token);
                     break;
                 case "create_annotation":
-                    result = await handleCreateAnnotationRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "create_annotation",
+                        args,
+                        token,
+                        elicit,
+                        handleCreateAnnotationRequest
+                    );
                     break;
                 case "update_annotation":
-                    result = await handleUpdateAnnotationRequest(args, token);
+                    result = await runDestructiveIfNeeded(
+                        "update_annotation",
+                        args,
+                        token,
+                        elicit,
+                        handleUpdateAnnotationRequest
+                    );
                     break;
                 case "list_commitments":
                     result = await handleListCommitmentsRequest(args, token);

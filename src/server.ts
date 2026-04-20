@@ -1,4 +1,5 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import {
     CallToolRequestSchema,
     ErrorCode,
@@ -140,6 +141,7 @@ import {
     updateUserTool,
 } from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
+import { clientSupportsFormElicitation, logMcpFormElicitationStatus } from "./utils/confirmation.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError, type TrackingContext } from "./utils/util.js";
@@ -148,6 +150,7 @@ export function createServer() {
     // Connection-level MCP client info — set once on initialize, read on every tool call.
     // Stored in a closure (not a module global) so each server instance is isolated.
     let mcpClientInfo: TrackingContext = {};
+    let clientFormElicitationSupported = false;
     const server = new Server(
         {
             name: SERVER_NAME,
@@ -290,7 +293,11 @@ export function createServer() {
             return createErrorResponse("Unauthorized");
         }
 
-        return await executeToolHandler(name, args, token, { trackingContext: mcpClientInfo });
+        const elicit = clientFormElicitationSupported
+            ? (params: ElicitRequestFormParams) => server.elicitInput(params)
+            : undefined;
+
+        return await executeToolHandler(name, args, token, { trackingContext: mcpClientInfo, elicit });
     });
 
     server.setRequestHandler(InitializeRequestSchema, async (request) => {
@@ -299,6 +306,11 @@ export function createServer() {
             mcpClientVersion: request?.params?.clientInfo?.version,
             mcpProtocolVersion: request?.params?.protocolVersion,
         };
+        clientFormElicitationSupported = clientSupportsFormElicitation(request?.params?.capabilities);
+        logMcpFormElicitationStatus(clientFormElicitationSupported, {
+            name: mcpClientInfo.mcpClient,
+            version: mcpClientInfo.mcpClientVersion,
+        });
 
         return {
             protocolVersion: request?.params?.protocolVersion || "2024-11-05",

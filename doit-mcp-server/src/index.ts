@@ -1,5 +1,6 @@
 import app from "./app";
 import { McpAgent } from "agents/mcp";
+import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { DurableObject } from "cloudflare:workers";
 
@@ -193,6 +194,10 @@ import {
 } from "../../src/tools/datahubEvents.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
+import {
+  clientSupportsFormElicitation,
+  logMcpFormElicitationStatus,
+} from "../../src/utils/confirmation.js";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
 import { adaptToolResponse } from "./responseAdapter.js";
@@ -297,6 +302,7 @@ export class DoitMCPAgent extends McpAgent {
   // Per-instance MCP client info — stored on the DO instance, not a module global,
   // so there is no cross-session bleed between DO instances sharing the same isolate.
   private _mcpClientInfo: TrackingContext = {};
+  private _clientSupportsFormElicitation = false;
 
   // Helper method to get the current token
   private getToken(): string {
@@ -344,6 +350,10 @@ export class DoitMCPAgent extends McpAgent {
         ...args,
         customerContext,
       };
+      const elicit = this._clientSupportsFormElicitation
+        ? (params: ElicitRequestFormParams) => this.server.server.elicitInput(params)
+        : undefined;
+
       const result = await executeToolHandler(
         toolName,
         argsWithCustomerContext,
@@ -351,6 +361,7 @@ export class DoitMCPAgent extends McpAgent {
         {
           trackingContext: this._mcpClientInfo,
           convertResponse: (rawResult) => adaptToolResponse(toolName, rawResult),
+          elicit,
         }
       );
       return result;
@@ -428,6 +439,13 @@ export class DoitMCPAgent extends McpAgent {
         mcpClient: clientInfo?.name,
         mcpClientVersion: clientInfo?.version,
       };
+      this._clientSupportsFormElicitation = clientSupportsFormElicitation(
+        this.server.server.getClientCapabilities()
+      );
+      logMcpFormElicitationStatus(this._clientSupportsFormElicitation, {
+        name: clientInfo?.name,
+        version: clientInfo?.version,
+      });
     };
 
     // Load persisted props first (no-op if apiKey not available yet)
