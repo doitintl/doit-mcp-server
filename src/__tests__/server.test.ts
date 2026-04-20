@@ -386,6 +386,29 @@ describe("ListToolsRequestSchema handler", () => {
             ],
         });
     });
+
+    /** Mutating tools that previously lacked MCP hints: destructive annotations and ask-to-confirm copy in descriptions. */
+    it("list_tools: user, invite, and DataHub mutating tools expose destructive hints and confirmation guidance", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+        const { tools } = await handler();
+        const names = [
+            "update_user",
+            "invite_user",
+            "create_datahub_dataset",
+            "update_datahub_dataset",
+            "send_datahub_events",
+        ] as const;
+        for (const name of names) {
+            const tool = tools.find((t: { name: string }) => t.name === name);
+            expect(tool, name).toBeDefined();
+            expect(tool.annotations).toEqual({
+                readOnlyHint: false,
+                destructiveHint: true,
+                openWorldHint: true,
+            });
+            expect(tool.description).toMatch(/Ask the user to confirm/i);
+        }
+    });
 });
 
 describe("ListPromptsRequestSchema handler", () => {
