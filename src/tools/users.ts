@@ -99,8 +99,19 @@ export const UpdateUserArgumentsSchema = UpdateUserBaseSchema.refine(
 
 export const updateUserTool = {
     name: "update_user",
-    description: "Updates user information such as name, job function, phone, language, and role in the DoiT platform.",
+    description:
+        "Use this when the user wants to update a user's information such as name, job function, phone, language, or role. Ask the user to confirm the changes before executing. Do NOT use this for inviting new users (use invite_user) or listing users (use list_users).",
     inputSchema: zodToMcpInputSchema(UpdateUserArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating user...",
+        "openai/toolInvocation/invoked": "User updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export const InviteUserArgumentsSchema = z.object({
@@ -121,8 +132,19 @@ export const InviteUserArgumentsSchema = z.object({
 
 export const inviteUserTool = {
     name: "invite_user",
-    description: "Invites a new user to the organization by email, optionally assigning a role and organization.",
+    description:
+        "Use this when the user wants to invite a new person to the organization. Ask the user to confirm the email, role, and organization before executing. Do NOT use this for updating existing users (use update_user) or listing users (use list_users).",
     inputSchema: zodToMcpInputSchema(InviteUserArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Inviting user...",
+        "openai/toolInvocation/invoked": "User invited",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleUpdateUserRequest(args: any, token: string) {
