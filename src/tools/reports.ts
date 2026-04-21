@@ -554,11 +554,6 @@ export const createReportTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
-        const desc = args?.description ? ` — "${String(args.description).slice(0, 80)}"` : "";
-        const labels = Array.isArray(args?.labels) && args.labels.length > 0 ? ` (${args.labels.length} label(s))` : "";
-        return `Create report "${args?.name ?? "<unnamed>"}"${desc}${labels}.`;
-    },
     _meta: {
         "openai/toolInvocation/invoking": "Creating report...",
         "openai/toolInvocation/invoked": "Report created",
@@ -586,10 +581,6 @@ export const updateReportTool = {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
-    },
-    summary: (args: any) => {
-        const fields = Object.keys(args ?? {}).filter((k) => k !== "id" && k !== "customerContext");
-        return `Update report ${args?.id ?? "<unknown>"} — fields: ${fields.join(", ") || "(none)"}.`;
     },
     _meta: {
         "openai/toolInvocation/invoking": "Updating report...",

@@ -1,28 +1,22 @@
 import { z } from "zod";
 import {
-    createAlertTool,
     handleCreateAlertRequest,
     handleGetAlertRequest,
     handleListAlertsRequest,
     handleUpdateAlertRequest,
-    updateAlertTool,
 } from "../tools/alerts.js";
 
 import {
-    createAllocationTool,
     handleCreateAllocationRequest,
     handleGetAllocationRequest,
     handleListAllocationsRequest,
     handleUpdateAllocationRequest,
-    updateAllocationTool,
 } from "../tools/allocations.js";
 import {
-    createAnnotationTool,
     handleCreateAnnotationRequest,
     handleGetAnnotationRequest,
     handleListAnnotationsRequest,
     handleUpdateAnnotationRequest,
-    updateAnnotationTool,
 } from "../tools/annotations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
@@ -33,36 +27,30 @@ import {
     handleGetBudgetRequest,
     handleListBudgetsRequest,
     handleUpdateBudgetRequest,
-    updateBudgetTool,
 } from "../tools/budgets.js";
 import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
-import { handleTriggerCloudFlowRequest, triggerCloudFlowTool } from "../tools/cloudflow.js";
+import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
 import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "../tools/commitmentManager.js";
 import { handleConfirmActionRequest } from "../tools/confirmAction.js";
 import {
-    createDatahubDatasetTool,
     handleCreateDatahubDatasetRequest,
     handleGetDatahubDatasetRequest,
     handleListDatahubDatasetsRequest,
     handleUpdateDatahubDatasetRequest,
-    updateDatahubDatasetTool,
 } from "../tools/datahubDatasets.js";
-import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "../tools/datahubEvents.js";
+import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetInsightResourcesRequest, handleListInsightsRequest } from "../tools/insights.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
 import {
-    assignObjectsToLabelTool,
-    createLabelTool,
     handleAssignObjectsToLabelRequest,
     handleCreateLabelRequest,
     handleGetLabelAssignmentsRequest,
     handleGetLabelRequest,
     handleListLabelsRequest,
     handleUpdateLabelRequest,
-    updateLabelTool,
 } from "../tools/labels.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleCloudOverviewRequest } from "../tools/overview.js";
@@ -74,14 +62,12 @@ import {
     handleCostTrendRequest,
 } from "../tools/queryHelpers.js";
 import {
-    createReportTool,
     handleCreateReportRequest,
     handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
     handleUpdateReportRequest,
-    updateReportTool,
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
 import {
@@ -95,7 +81,6 @@ import {
     handleListUsersRequest,
     handleUpdateUserRequest,
     inviteUserTool,
-    updateUserTool,
 } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
 import { APPROVAL_TTL_MS, type ApprovalStore, buildApprovalResponse, mintApprovalToken } from "./approval.js";
@@ -109,31 +94,16 @@ import {
 
 /**
  * Registry of destructive tools gated by the two-phase approval flow.
- * Entries are assembled from the tool modules themselves (each tool co-locates its
- * `summary(args)` builder). Adding a new destructive tool is a single import + entry here.
- * Removing approval enforcement for a tool is just removing the entry — the tool itself
- * need not change. See server-enforced_approval_tool plan §"Tiering considerations".
+ *
+ * POC scope: only `create_budget` and `invite_user` are gated so the demo surface stays
+ * small. The mechanism itself (`confirm_action`, {@link ApprovalStore}, single-use tokens)
+ * is generic — extending approval to another tool is just (a) adding a `summary(args)` on
+ * that tool's definition and (b) adding an entry below. Removing approval enforcement is
+ * the inverse. No tool handler code needs to change.
  */
 const DESTRUCTIVE_SUMMARIES: Record<string, (args: any) => string> = {
-    [createReportTool.name]: createReportTool.summary,
-    [updateReportTool.name]: updateReportTool.summary,
-    [createAllocationTool.name]: createAllocationTool.summary,
-    [updateAllocationTool.name]: updateAllocationTool.summary,
-    [createAlertTool.name]: createAlertTool.summary,
-    [updateAlertTool.name]: updateAlertTool.summary,
-    [triggerCloudFlowTool.name]: triggerCloudFlowTool.summary,
-    [createLabelTool.name]: createLabelTool.summary,
-    [updateLabelTool.name]: updateLabelTool.summary,
-    [assignObjectsToLabelTool.name]: assignObjectsToLabelTool.summary,
     [createBudgetTool.name]: createBudgetTool.summary,
-    [updateBudgetTool.name]: updateBudgetTool.summary,
-    [createAnnotationTool.name]: createAnnotationTool.summary,
-    [updateAnnotationTool.name]: updateAnnotationTool.summary,
-    [updateUserTool.name]: updateUserTool.summary,
     [inviteUserTool.name]: inviteUserTool.summary,
-    [createDatahubDatasetTool.name]: createDatahubDatasetTool.summary,
-    [updateDatahubDatasetTool.name]: updateDatahubDatasetTool.summary,
-    [sendDatahubEventsTool.name]: sendDatahubEventsTool.summary,
 };
 
 export interface ToolHandlerOptions {

@@ -79,17 +79,6 @@ export const sendDatahubEventsTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
-        const events = Array.isArray(args?.events) ? args.events : [];
-        const count = events.length;
-        const providers = new Set<string>();
-        for (const e of events) {
-            if (e?.provider) providers.add(String(e.provider));
-        }
-        const providerList = Array.from(providers).slice(0, 3).join(", ");
-        const more = providers.size > 3 ? ` (+${providers.size - 3} more)` : "";
-        return `Ingest ${count} DataHub event(s)${providerList ? ` from provider(s): ${providerList}${more}` : ""}. This is bulk data ingestion and cannot be undone.`;
-    },
     _meta: {
         "openai/toolInvocation/invoking": "Sending DataHub events...",
         "openai/toolInvocation/invoked": "DataHub events sent",

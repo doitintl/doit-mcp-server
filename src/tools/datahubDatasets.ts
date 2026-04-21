@@ -134,10 +134,6 @@ export const createDatahubDatasetTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
-        const desc = args?.description ? ` — "${String(args.description).slice(0, 80)}"` : "";
-        return `Create DataHub dataset "${args?.name ?? "<unnamed>"}"${desc}.`;
-    },
     _meta: {
         "openai/toolInvocation/invoking": "Creating DataHub dataset...",
         "openai/toolInvocation/invoked": "DataHub dataset created",
@@ -196,10 +192,6 @@ export const updateDatahubDatasetTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) =>
-        `Update DataHub dataset "${args?.name ?? "<unknown>"}" — description → "${
-            args?.description !== undefined ? String(args.description).slice(0, 80) : "(unchanged)"
-        }".`,
     _meta: {
         "openai/toolInvocation/invoking": "Updating DataHub dataset...",
         "openai/toolInvocation/invoked": "DataHub dataset updated",

@@ -187,7 +187,6 @@ export const createLabelTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => `Create label "${args?.name ?? "<unnamed>"}" with color ${args?.color ?? "<unspecified>"}.`,
     _meta: {
         "openai/toolInvocation/invoking": "Creating label...",
         "openai/toolInvocation/invoked": "Label created",
@@ -245,12 +244,6 @@ export const updateLabelTool = {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
-    },
-    summary: (args: any) => {
-        const parts: string[] = [];
-        if (args?.name !== undefined) parts.push(`name=${JSON.stringify(args.name)}`);
-        if (args?.color !== undefined) parts.push(`color=${JSON.stringify(args.color)}`);
-        return `Update label ${args?.id ?? "<unknown>"} — ${parts.join(", ") || "(no changes)"}.`;
     },
     _meta: {
         "openai/toolInvocation/invoking": "Updating label...",
@@ -366,14 +359,6 @@ export const assignObjectsToLabelTool = {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
-    },
-    summary: (args: any) => {
-        const addCount = Array.isArray(args?.add) ? args.add.length : 0;
-        const removeCount = Array.isArray(args?.remove) ? args.remove.length : 0;
-        const parts: string[] = [];
-        if (addCount > 0) parts.push(`assign ${addCount} object(s)`);
-        if (removeCount > 0) parts.push(`unassign ${removeCount} object(s)`);
-        return `Label ${args?.id ?? "<unknown>"}: ${parts.join(", ") || "(no changes)"}.`;
     },
     _meta: {
         "openai/toolInvocation/invoking": "Updating label assignments...",

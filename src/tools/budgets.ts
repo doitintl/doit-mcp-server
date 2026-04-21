@@ -416,10 +416,6 @@ export const updateBudgetTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
-        const fields = Object.keys(args ?? {}).filter((k) => k !== "id" && k !== "customerContext");
-        return `Update budget ${args?.id ?? "<unknown>"} — fields: ${fields.join(", ") || "(none)"}.`;
-    },
     _meta: {
         "openai/toolInvocation/invoking": "Updating budget...",
         "openai/toolInvocation/invoked": "Budget updated",

@@ -107,11 +107,6 @@ export const updateUserTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
-        const changedFields = MUTABLE_FIELDS.filter((f) => args?.[f] !== undefined);
-        const parts = changedFields.map((f) => `${f}=${JSON.stringify(args[f])}`).join(", ");
-        return `Update user ${args?.id ?? "<unknown>"} — fields: ${parts || "(none)"}.`;
-    },
     _meta: {
         "openai/toolInvocation/invoking": "Updating user...",
         "openai/toolInvocation/invoked": "User updated",

@@ -269,15 +269,6 @@ export const createAlertTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
-        const threshold = args?.config?.value !== undefined ? ` threshold=${args.config.value}` : "";
-        const interval = args?.config?.timeInterval ? ` interval=${args.config.timeInterval}` : "";
-        const recipients =
-            Array.isArray(args?.recipients) && args.recipients.length > 0
-                ? ` notifying ${args.recipients.length} recipient(s)`
-                : "";
-        return `Create alert "${args?.name ?? "<unnamed>"}"${threshold}${interval}${recipients}.`;
-    },
     _meta: {
         "openai/toolInvocation/invoking": "Creating alert...",
         "openai/toolInvocation/invoked": "Alert created",
@@ -330,11 +321,6 @@ export const updateAlertTool = {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
-    },
-    summary: (args: any) => {
-        const nameChange = args?.name ? ` → rename to "${args.name}"` : "";
-        const threshold = args?.config?.value !== undefined ? `, threshold=${args.config.value}` : "";
-        return `Update alert ${args?.id ?? "<unknown>"}${nameChange}${threshold}.`;
     },
     _meta: {
         "openai/toolInvocation/invoking": "Updating alert...",

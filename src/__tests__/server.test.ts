@@ -796,29 +796,8 @@ describe("CallToolRequestSchema handler", () => {
     ];
 
     // Tools gated by the server-side approval flow (confirm_action two-phase commit).
-    // For these, the first dispatch returns an `approval_required` envelope and the
-    // downstream handler is only invoked after a matching `confirm_action` call.
-    const DESTRUCTIVE_TOOL_NAMES = new Set([
-        "create_report",
-        "update_report",
-        "create_allocation",
-        "update_allocation",
-        "create_alert",
-        "update_alert",
-        "trigger_cloud_flow",
-        "create_label",
-        "update_label",
-        "assign_objects_to_label",
-        "create_budget",
-        "update_budget",
-        "create_annotation",
-        "update_annotation",
-        "update_user",
-        "invite_user",
-        "create_datahub_dataset",
-        "update_datahub_dataset",
-        "send_datahub_events",
-    ]);
+    // POC scope keeps the gated set minimal; see DESTRUCTIVE_SUMMARIES in toolsHandler.ts.
+    const DESTRUCTIVE_TOOL_NAMES = new Set(["create_budget", "invite_user"]);
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
         const first = await getCallToolHandler()(mockRequest(toolName, args));
