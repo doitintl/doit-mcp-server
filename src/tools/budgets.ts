@@ -247,6 +247,11 @@ export const createBudgetTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
+    summary: (args: any) => {
+        const amount = args?.amount !== undefined ? `${args.amount} ${args?.currency ?? ""}`.trim() : "(no amount)";
+        const period = args?.timeInterval ? ` (${args.timeInterval})` : "";
+        return `Create budget "${args?.name ?? "<unnamed>"}" of ${amount}${period}.`;
+    },
     _meta: {
         "openai/toolInvocation/invoking": "Creating budget...",
         "openai/toolInvocation/invoked": "Budget created",
@@ -410,6 +415,10 @@ export const updateBudgetTool = {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
+    },
+    summary: (args: any) => {
+        const fields = Object.keys(args ?? {}).filter((k) => k !== "id" && k !== "customerContext");
+        return `Update budget ${args?.id ?? "<unknown>"} — fields: ${fields.join(", ") || "(none)"}.`;
     },
     _meta: {
         "openai/toolInvocation/invoking": "Updating budget...",

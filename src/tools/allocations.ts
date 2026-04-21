@@ -356,6 +356,11 @@ export const createAllocationTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
+    summary: (args: any) => {
+        const ruleCount = Array.isArray(args?.rules) ? args.rules.length : 0;
+        const rulesBit = ruleCount > 0 ? ` with ${ruleCount} rule(s)` : "";
+        return `Create allocation "${args?.name ?? "<unnamed>"}"${rulesBit}.`;
+    },
     _meta: {
         "openai/toolInvocation/invoking": "Creating allocation...",
         "openai/toolInvocation/invoked": "Allocation created",
@@ -384,6 +389,10 @@ export const updateAllocationTool = {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
+    },
+    summary: (args: any) => {
+        const fields = Object.keys(args ?? {}).filter((k) => k !== "id" && k !== "customerContext");
+        return `Update allocation ${args?.id ?? "<unknown>"} — fields: ${fields.join(", ") || "(none)"}.`;
     },
     _meta: {
         "openai/toolInvocation/invoking": "Updating allocation...",

@@ -107,6 +107,11 @@ export const updateUserTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
+    summary: (args: any) => {
+        const changedFields = MUTABLE_FIELDS.filter((f) => args?.[f] !== undefined);
+        const parts = changedFields.map((f) => `${f}=${JSON.stringify(args[f])}`).join(", ");
+        return `Update user ${args?.id ?? "<unknown>"} — fields: ${parts || "(none)"}.`;
+    },
     _meta: {
         "openai/toolInvocation/invoking": "Updating user...",
         "openai/toolInvocation/invoked": "User updated",
@@ -139,6 +144,15 @@ export const inviteUserTool = {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
+    },
+    summary: (args: any) => {
+        const extras = [
+            args?.roleId ? `role=${args.roleId}` : null,
+            args?.organizationId ? `org=${args.organizationId}` : null,
+        ]
+            .filter(Boolean)
+            .join(", ");
+        return `Invite user "${args?.email ?? "<unknown>"}"${extras ? ` (${extras})` : ""}. This grants organization access.`;
     },
     _meta: {
         "openai/toolInvocation/invoking": "Inviting user...",

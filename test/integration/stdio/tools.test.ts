@@ -33,6 +33,7 @@ describe("MCP Tools Integration", () => {
                     "ask_ava_sync",
                     "assign_objects_to_label",
                     "compare_spend",
+                    "confirm_action",
                     "cost_breakdown",
                     "cost_trend",
                     "create_alert",

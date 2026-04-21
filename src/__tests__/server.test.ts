@@ -229,6 +229,7 @@ import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
+import { confirmActionTool } from "../tools/confirmAction.js";
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -383,6 +384,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listCommitmentsTool,
                 getCommitmentTool,
                 askAvaSyncTool,
+                confirmActionTool,
             ],
         });
     });
@@ -793,8 +795,38 @@ describe("CallToolRequestSchema handler", () => {
         ["ask_ava_sync", "ask_ava_sync", { question: "What is my spend?" }, handleAskAvaSyncRequest],
     ];
 
+    // Tools gated by the server-side approval flow (confirm_action two-phase commit).
+    // For these, the first dispatch returns an `approval_required` envelope and the
+    // downstream handler is only invoked after a matching `confirm_action` call.
+    const DESTRUCTIVE_TOOL_NAMES = new Set([
+        "create_report",
+        "update_report",
+        "create_allocation",
+        "update_allocation",
+        "create_alert",
+        "update_alert",
+        "trigger_cloud_flow",
+        "create_label",
+        "update_label",
+        "assign_objects_to_label",
+        "create_budget",
+        "update_budget",
+        "create_annotation",
+        "update_annotation",
+        "update_user",
+        "invite_user",
+        "create_datahub_dataset",
+        "update_datahub_dataset",
+        "send_datahub_events",
+    ]);
+
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
-        await getCallToolHandler()(mockRequest(toolName, args));
+        const first = await getCallToolHandler()(mockRequest(toolName, args));
+        if (DESTRUCTIVE_TOOL_NAMES.has(toolName)) {
+            const envelope = JSON.parse(first.content[0].text);
+            expect(envelope.status).toBe("approval_required");
+            await getCallToolHandler()(mockRequest("confirm_action", { token: envelope.approvalToken }));
+        }
         expect(handler).toHaveBeenCalledWith(args, "fake-token");
     });
 });

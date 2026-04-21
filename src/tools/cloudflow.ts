@@ -55,6 +55,13 @@ export const triggerCloudFlowTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
+    summary: (args: any) => {
+        const hasBody =
+            args?.requestBodyJson && typeof args.requestBodyJson === "object"
+                ? Object.keys(args.requestBodyJson).length > 0
+                : false;
+        return `Trigger CloudFlow "${args?.flowID ?? "<unknown>"}"${hasBody ? " with request body" : ""}. This runs automation that may modify cloud resources externally.`;
+    },
     _meta: {
         "openai/toolInvocation/invoking": "Triggering CloudFlow...",
         "openai/toolInvocation/invoked": "CloudFlow triggered",

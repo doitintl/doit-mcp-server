@@ -191,6 +191,10 @@ export const createAnnotationTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
+    summary: (args: any) => {
+        const content = args?.content ? `"${String(args.content).slice(0, 80)}"` : "<empty>";
+        return `Create annotation ${content} at ${args?.timestamp ?? "<no timestamp>"}.`;
+    },
     _meta: {
         "openai/toolInvocation/invoking": "Creating annotation...",
         "openai/toolInvocation/invoked": "Annotation created",
@@ -266,6 +270,10 @@ export const updateAnnotationTool = {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
+    },
+    summary: (args: any) => {
+        const changed = Object.keys(args ?? {}).filter((k) => k !== "id" && k !== "customerContext");
+        return `Update annotation ${args?.id ?? "<unknown>"} — fields: ${changed.join(", ") || "(none)"}.`;
     },
     _meta: {
         "openai/toolInvocation/invoking": "Updating annotation...",
