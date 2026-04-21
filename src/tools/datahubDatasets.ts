@@ -127,8 +127,18 @@ export const CreateDatahubDatasetArgumentsSchema = z.object({
 export const createDatahubDatasetTool = {
     name: "create_datahub_dataset",
     description:
-        "Creates a new DataHub dataset in the DoiT platform. A dataset requires a name and can optionally include a description.",
+        "Use this when the user wants to create a new DataHub dataset. Ask the user to confirm the dataset name and description before executing. Do NOT use this for viewing datasets (use list_datahub_datasets) or sending events (use send_datahub_events).",
     inputSchema: zodToMcpInputSchema(CreateDatahubDatasetArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating DataHub dataset...",
+        "openai/toolInvocation/invoked": "DataHub dataset created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleCreateDatahubDatasetRequest(args: any, token: string) {
@@ -175,8 +185,18 @@ export const UpdateDatahubDatasetArgumentsSchema = UpdateDatahubDatasetBaseSchem
 export const updateDatahubDatasetTool = {
     name: "update_datahub_dataset",
     description:
-        "Updates an existing DataHub dataset in the DoiT platform. The dataset name is required to identify the dataset. Only the description can be changed; at least a description must be provided.",
+        "Use this when the user wants to modify an existing DataHub dataset's description. The dataset name is required to identify the dataset; only the description can be changed. Ask the user to confirm the changes before executing. Do NOT use this for creating datasets (use create_datahub_dataset) or listing datasets (use list_datahub_datasets).",
     inputSchema: zodToMcpInputSchema(UpdateDatahubDatasetArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating DataHub dataset...",
+        "openai/toolInvocation/invoked": "DataHub dataset updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 export async function handleUpdateDatahubDatasetRequest(args: any, token: string) {
