@@ -38,8 +38,8 @@ afterEach(() => {
 
 function makePending(overrides: Partial<PendingAction> = {}): PendingAction {
     return {
-        toolName: "create_budget",
-        args: { name: "demo" },
+        toolName: "create_ticket",
+        args: { ticket: { subject: "demo" } },
         userKey: "api-key-alice",
         expiresAt: Date.now() + APPROVAL_TTL_MS,
         ...overrides,

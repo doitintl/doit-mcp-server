@@ -18,8 +18,8 @@ afterEach(() => {
 
 function makePending(overrides: Partial<PendingAction> = {}): PendingAction {
     return {
-        toolName: "create_budget",
-        args: { name: "demo" },
+        toolName: "create_ticket",
+        args: { ticket: { subject: "demo" } },
         userKey: "stdio-local",
         expiresAt: Date.now() + APPROVAL_TTL_MS,
         ...overrides,
@@ -92,13 +92,13 @@ describe("mintApprovalToken", () => {
 
 describe("buildApprovalResponse", () => {
     it("serializes an approval_required envelope carrying the token and summary", () => {
-        const res = buildApprovalResponse("tok-xyz", 'Create budget "demo".');
+        const res = buildApprovalResponse("tok-xyz", 'Create support ticket: "demo".');
         expect(res.isError).toBeFalsy();
         const text = res.content[0].text;
         const parsed = JSON.parse(text);
         expect(parsed.status).toBe("approval_required");
         expect(parsed.approvalToken).toBe("tok-xyz");
-        expect(parsed.summary).toBe('Create budget "demo".');
+        expect(parsed.summary).toBe('Create support ticket: "demo".');
         expect(parsed.next).toContain("tok-xyz");
     });
 });

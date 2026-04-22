@@ -18,8 +18,8 @@ describe("handleConfirmActionRequest", () => {
 
     async function stash(store: MemoryApprovalStore, token: string) {
         await store.stash(token, {
-            toolName: "create_budget",
-            args: { name: "demo", amount: 100, currency: "USD" },
+            toolName: "create_ticket",
+            args: { ticket: { subject: "demo", severity: "high" } },
             userKey,
             expiresAt: Date.now() + APPROVAL_TTL_MS,
         });
@@ -33,8 +33,8 @@ describe("handleConfirmActionRequest", () => {
         const result = await handleConfirmActionRequest({ token: "tok-happy" }, apiToken, userKey, store, runOriginal);
 
         expect(runOriginal).toHaveBeenCalledWith(
-            "create_budget",
-            { name: "demo", amount: 100, currency: "USD" },
+            "create_ticket",
+            { ticket: { subject: "demo", severity: "high" } },
             apiToken
         );
         expect(result).toEqual({ content: [{ type: "text", text: "ok" }] });

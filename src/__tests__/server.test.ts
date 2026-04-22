@@ -57,6 +57,7 @@ vi.mock(import("../tools/dimension.js"), async (importOriginal) => ({
 vi.mock(import("../tools/tickets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleCreateTicketCommentRequest: vi.fn(),
+    handleCreateTicketRequest: vi.fn(),
     handleGetTicketRequest: vi.fn(),
     handleListTicketCommentsRequest: vi.fn(),
     handleListTicketsRequest: vi.fn(),
@@ -177,6 +178,7 @@ import {
     handleCreateDatahubDatasetRequest,
     handleCreateLabelRequest,
     handleCreateTicketCommentRequest,
+    handleCreateTicketRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
     handleGeneralError,
@@ -263,7 +265,13 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { createTicketCommentTool, getTicketTool, listTicketCommentsTool, listTicketsTool } from "../tools/tickets.js";
+import {
+    createTicketCommentTool,
+    createTicketTool,
+    getTicketTool,
+    listTicketCommentsTool,
+    listTicketsTool,
+} from "../tools/tickets.js";
 import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
@@ -340,6 +348,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getTicketTool,
                 listTicketCommentsTool,
                 createTicketCommentTool,
+                createTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -725,6 +734,21 @@ describe("CallToolRequestSchema handler", () => {
             { ticketId: "12345", body: "test" },
             handleCreateTicketCommentRequest,
         ],
+        [
+            "create_ticket",
+            "create_ticket",
+            {
+                ticket: {
+                    body: "Billing issue",
+                    created: "2026-04-22T00:00:00Z",
+                    platform: "amazon_web_services",
+                    product: "billing",
+                    severity: "high",
+                    subject: "Billing question",
+                },
+            },
+            handleCreateTicketRequest,
+        ],
         ["list_invoices", "list_invoices", { pageToken: "next-page-token" }, handleListInvoicesRequest],
         ["get_invoice", "get_invoice", { id: "invoice-123" }, handleGetInvoiceRequest],
         ["list_allocations", "list_allocations", { pageToken: "next-page-token" }, handleListAllocationsRequest],
@@ -797,7 +821,7 @@ describe("CallToolRequestSchema handler", () => {
 
     // Tools gated by the server-side approval flow (confirm_action two-phase commit).
     // POC scope keeps the gated set minimal; see DESTRUCTIVE_SUMMARIES in toolsHandler.ts.
-    const DESTRUCTIVE_TOOL_NAMES = new Set(["create_budget", "invite_user"]);
+    const DESTRUCTIVE_TOOL_NAMES = new Set(["create_ticket"]);
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
         const first = await getCallToolHandler()(mockRequest(toolName, args));

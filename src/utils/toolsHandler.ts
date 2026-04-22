@@ -22,7 +22,6 @@ import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies
 import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
 import { handleAskAvaSyncRequest } from "../tools/ava.js";
 import {
-    createBudgetTool,
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
     handleListBudgetsRequest,
@@ -71,17 +70,14 @@ import {
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
 import {
+    createTicketTool,
     handleCreateTicketCommentRequest,
+    handleCreateTicketRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
 } from "../tools/tickets.js";
-import {
-    handleInviteUserRequest,
-    handleListUsersRequest,
-    handleUpdateUserRequest,
-    inviteUserTool,
-} from "../tools/users.js";
+import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
 import { APPROVAL_TTL_MS, type ApprovalStore, buildApprovalResponse, mintApprovalToken } from "./approval.js";
 import {
@@ -95,15 +91,14 @@ import {
 /**
  * Registry of destructive tools gated by the two-phase approval flow.
  *
- * POC scope: only `create_budget` and `invite_user` are gated so the demo surface stays
- * small. The mechanism itself (`confirm_action`, {@link ApprovalStore}, single-use tokens)
- * is generic — extending approval to another tool is just (a) adding a `summary(args)` on
- * that tool's definition and (b) adding an entry below. Removing approval enforcement is
- * the inverse. No tool handler code needs to change.
+ * POC scope: only `create_ticket` is gated so the demo surface stays small. The mechanism
+ * itself (`confirm_action`, {@link ApprovalStore}, single-use tokens) is generic —
+ * extending approval to another tool is just (a) adding a `summary(args)` on that tool's
+ * definition and (b) adding an entry below. Removing approval enforcement is the inverse.
+ * No tool handler code needs to change.
  */
 const DESTRUCTIVE_SUMMARIES: Record<string, (args: any) => string> = {
-    [createBudgetTool.name]: createBudgetTool.summary,
-    [inviteUserTool.name]: inviteUserTool.summary,
+    [createTicketTool.name]: createTicketTool.summary,
 };
 
 export interface ToolHandlerOptions {
@@ -273,6 +268,9 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "create_ticket_comment":
             result = await handleCreateTicketCommentRequest(args, token);
+            break;
+        case "create_ticket":
+            result = await handleCreateTicketRequest(args, token);
             break;
         case "list_invoices":
             result = await handleListInvoicesRequest(args, token);

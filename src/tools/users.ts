@@ -140,15 +140,6 @@ export const inviteUserTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
-        const extras = [
-            args?.roleId ? `role=${args.roleId}` : null,
-            args?.organizationId ? `org=${args.organizationId}` : null,
-        ]
-            .filter(Boolean)
-            .join(", ");
-        return `Invite user "${args?.email ?? "<unknown>"}"${extras ? ` (${extras})` : ""}. This grants organization access.`;
-    },
     _meta: {
         "openai/toolInvocation/invoking": "Inviting user...",
         "openai/toolInvocation/invoked": "User invited",

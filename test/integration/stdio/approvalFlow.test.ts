@@ -8,15 +8,15 @@ describe("Destructive-tool approval flow (stdio)", () => {
     let rawClient: { callTool: (p: { name: string; arguments: Record<string, unknown> }) => Promise<any> };
     let cleanup: () => Promise<void>;
 
-    const budgetArgs = {
-        name: "Gated Budget",
-        amount: 100,
-        currency: "USD",
-        type: "recurring" as const,
-        timeInterval: "month" as const,
-        startPeriod: 1704067200000,
-        scopes: [{ id: "cloud_provider", type: "fixed", mode: "is", values: ["amazon-web-services"] }],
-        collaborators: [{ role: "owner", email: "t@example.com" }],
+    const ticketArgs = {
+        ticket: {
+            body: "Need help with billing.",
+            created: "2026-04-22T00:00:00Z",
+            platform: "amazon_web_services",
+            product: "billing",
+            severity: "high",
+            subject: "Gated Ticket",
+        },
     };
 
     beforeEach(async () => {
@@ -30,17 +30,17 @@ describe("Destructive-tool approval flow (stdio)", () => {
     });
 
     it("emits an approval_required envelope on the first call to a destructive tool", async () => {
-        const result = await rawClient.callTool({ name: "create_budget", arguments: budgetArgs });
+        const result = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
         const body = JSON.parse(getTextContent(result));
 
         expect(body.status).toBe("approval_required");
         expect(body.approvalToken).toMatch(/^[0-9a-f-]{36}$/i);
-        expect(body.summary).toContain("Create budget");
+        expect(body.summary).toContain("Create support ticket");
         expect(body.next).toContain("confirm_action");
     });
 
     it("confirm_action with the minted token executes the original destructive call", async () => {
-        const first = await rawClient.callTool({ name: "create_budget", arguments: budgetArgs });
+        const first = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
         const { approvalToken } = JSON.parse(getTextContent(first));
 
         const second = await rawClient.callTool({
@@ -48,11 +48,12 @@ describe("Destructive-tool approval flow (stdio)", () => {
             arguments: { token: approvalToken },
         });
         const parsed = JSON.parse(getTextContent(second));
-        expect(parsed.id).toBe("budget-new-1");
+        expect(parsed.id).toBe(99999);
+        expect(parsed.status).toBe("created");
     });
 
     it("approval tokens are single-use — replaying a consumed token errors out", async () => {
-        const first = await rawClient.callTool({ name: "create_budget", arguments: budgetArgs });
+        const first = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
         const { approvalToken } = JSON.parse(getTextContent(first));
 
         await rawClient.callTool({ name: "confirm_action", arguments: { token: approvalToken } });
@@ -73,8 +74,8 @@ describe("Destructive-tool approval flow (stdio)", () => {
     });
 
     it("calling a destructive tool twice mints two distinct tokens (idempotent on LLM misbehavior)", async () => {
-        const r1 = await rawClient.callTool({ name: "create_budget", arguments: budgetArgs });
-        const r2 = await rawClient.callTool({ name: "create_budget", arguments: budgetArgs });
+        const r1 = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
+        const r2 = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
 
         const t1 = JSON.parse(getTextContent(r1)).approvalToken;
         const t2 = JSON.parse(getTextContent(r2)).approvalToken;

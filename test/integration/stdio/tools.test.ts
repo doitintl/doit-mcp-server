@@ -43,6 +43,7 @@ describe("MCP Tools Integration", () => {
                     "create_datahub_dataset",
                     "create_label",
                     "create_report",
+                    "create_ticket",
                     "create_ticket_comment",
                     "find_cloud_diagrams",
                     "get_alert",

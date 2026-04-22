@@ -247,11 +247,6 @@ export const createBudgetTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
-        const amount = args?.amount !== undefined ? `${args.amount} ${args?.currency ?? ""}`.trim() : "(no amount)";
-        const period = args?.timeInterval ? ` (${args.timeInterval})` : "";
-        return `Create budget "${args?.name ?? "<unnamed>"}" of ${amount}${period}.`;
-    },
     _meta: {
         "openai/toolInvocation/invoking": "Creating budget...",
         "openai/toolInvocation/invoked": "Budget created",
