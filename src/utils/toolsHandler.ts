@@ -175,8 +175,17 @@ export async function executeToolHandler(
                         userKey,
                         expiresAt: Date.now() + APPROVAL_TTL_MS,
                     });
-                    const response = buildApprovalResponse(approvalToken, summaryFn(args));
-                    return convertResponse ? convertResponse(response) : response;
+                    // Return the approval envelope without running it through `convertResponse`
+                    // (i.e. `adaptToolResponse` on the Worker). The envelope is a control
+                    // message for the LLM, not tool output — wrapping it would:
+                    //   (a) attach widget `_meta` / `_llmInstruction` that tells the model to
+                    //       "respond with one short sentence", conflicting with the `next`
+                    //       field that tells it to call `confirm_action`;
+                    //   (b) cause the ChatGPT Cloud Intelligence widget to try to render the
+                    //       approval JSON as if it were tool results.
+                    // The real tool output (after `confirm_action` → `runOriginal`) still
+                    // flows through `convertResponse` normally.
+                    return buildApprovalResponse(approvalToken, summaryFn(args));
                 }
             }
 
