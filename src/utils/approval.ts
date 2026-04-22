@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { createSuccessResponse } from "./util.js";
 
 /**
@@ -73,9 +72,15 @@ export class MemoryApprovalStore implements ApprovalStore {
     }
 }
 
-/** Generates an unguessable one-time approval token. */
+/**
+ * Generates an unguessable one-time approval token.
+ *
+ * Uses the Web Crypto global (`crypto.randomUUID`) rather than `node:crypto` so the
+ * same module works in both the stdio (Node ≥ 19) and Cloudflare Worker runtimes
+ * without requiring the `nodejs_compat` flag.
+ */
 export function mintApprovalToken(): string {
-    return randomUUID();
+    return crypto.randomUUID();
 }
 
 /**
