@@ -408,7 +408,9 @@ export class DoitMCPAgent extends McpAgent {
     // this.props at call-time (after props are set), so registration still works.
     this.props = (this.props ?? {}) as typeof this.props;
 
-    console.log("Initializing Doit MCP Agent", this.props.customerContext);
+    console.log("Initializing Doit MCP Agent", {
+      hasCustomerContext: Boolean(this.props.customerContext),
+    });
 
     // Capture MCP client identity for tracking query params.
     // Stored on the DO instance (_mcpClientInfo), not a module global, to avoid cross-session
@@ -445,7 +447,8 @@ export class DoitMCPAgent extends McpAgent {
       this.loadPersistedSessionUiDomainProvider(),
     ]);
 
-    console.log("After loading persisted props:", this.props.customerContext, {
+    console.log("After loading persisted props:", {
+      hasCustomerContext: Boolean(this.props.customerContext),
       sessionProvider: this._sessionUiDomainProvider,
     });
 
