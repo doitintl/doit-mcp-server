@@ -66,7 +66,11 @@
    * Environment Variables
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
-  "vars": { "WORKER_URL": "https://mcp.doit.com", "DEMO_MODE_ENABLED": "true" },
+  "vars": {
+    "WORKER_URL": "https://mcp.doit.com",
+    "PUBLIC_MCP_URL": "https://mcp.doit.com/sse",
+    "DEMO_MODE_ENABLED": "true"
+  },
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/

@@ -198,6 +198,14 @@ import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
+import type { DoitWorkerEnv, UiDomainProvider } from "./runtimeEnv.js";
+import {
+  buildWidgetResourceContent,
+  classifyUiDomainProvider,
+  resolvePublicMcpUrl,
+  resolveWidgetFetchOrigin,
+  WIDGET_RESOURCE_MIME_TYPE,
+} from "./widgetResource.js";
 
 const KEEP_ALIVE_INTERVAL_MS = 120_000; // 2 minutes in milliseconds
 
@@ -212,6 +220,7 @@ const MCP_NOTIFICATIONS_PING = {
 const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
+const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 // Context Storage Durable Object
 export class ContextStorage extends DurableObject {
@@ -240,47 +249,6 @@ export class ContextStorage extends DurableObject {
   }
 }
 
-/**
- * Generates the tiny loader stub cached by ChatGPT as widget HTML.
- * The stub fetches the real widget from GET /widget on every render, so
- * future widget updates require zero ChatGPT app re-registrations.
- *
- * The stub is intentionally minimal and stable — it should never need to change.
- * If workerUrl ever moves, bump WIDGET_URI and re-register once.
- */
-function buildWidgetStub(workerUrl: string): string {
-  const widgetUrl = `${workerUrl}/widget`;
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>*{box-sizing:border-box}body{margin:0;padding:0;font-family:system-ui,sans-serif}</style>
-</head>
-<body>
-<div id="app"><p style="padding:16px;color:#888;font-size:0.8125rem">Loading…</p></div>
-<script type="module">
-(async()=>{
-  try{
-    const html=await fetch(${JSON.stringify(widgetUrl)},{cache:"no-store"}).then(r=>{if(!r.ok)throw r;return r.text()});
-    const doc=new DOMParser().parseFromString(html,"text/html");
-    for(const e of doc.querySelectorAll("style"))document.head.appendChild(document.adoptNode(e));
-    document.getElementById("app").textContent='';
-    for(const s of doc.querySelectorAll("script")){
-      const n=document.createElement("script");
-      if(s.type)n.type=s.type;
-      n.textContent=s.textContent;
-      document.head.appendChild(n);
-    }
-  }catch(err){
-    document.getElementById("app").innerHTML='<p style="padding:16px;color:#888;font-size:0.8125rem">Widget unavailable — check MCP server connectivity.</p>';
-    console.error("[doit-widget] load failed",err);
-  }
-})();
-</script>
-</body>
-</html>`;
-}
-
 export class DoitMCPAgent extends McpAgent {
   server = new McpServer(
     {
@@ -297,6 +265,7 @@ export class DoitMCPAgent extends McpAgent {
   // Per-instance MCP client info — stored on the DO instance, not a module global,
   // so there is no cross-session bleed between DO instances sharing the same isolate.
   private _mcpClientInfo: TrackingContext = {};
+  private _sessionUiDomainProvider?: UiDomainProvider;
 
   // Helper method to get the current token
   private getToken(): string {
@@ -305,7 +274,7 @@ export class DoitMCPAgent extends McpAgent {
 
   // Persist props to Context Storage Durable Object
   private async saveProps(): Promise<void> {
-    const env = this.env as Env;
+    const env = this.env as DoitWorkerEnv;
     const apiKey = this.props.apiKey as string;
     const customerContext = this.props.customerContext as string;
     if (apiKey && env?.CONTEXT_STORAGE) {
@@ -317,7 +286,7 @@ export class DoitMCPAgent extends McpAgent {
 
   // Load props from Context Storage Durable Object
   private async loadPersistedProps(): Promise<string | null> {
-    const env = this.env as Env;
+    const env = this.env as DoitWorkerEnv;
     const apiKey = this.props.apiKey as string;
     if (apiKey && env?.CONTEXT_STORAGE) {
       const id = env.CONTEXT_STORAGE.idFromName(apiKey);
@@ -330,6 +299,32 @@ export class DoitMCPAgent extends McpAgent {
       }
     }
     return (this.props.customerContext as string) || null;
+  }
+
+  private async persistSessionUiDomainProvider(
+    provider: UiDomainProvider
+  ): Promise<void> {
+    if (provider === "omit") {
+      return;
+    }
+
+    this._sessionUiDomainProvider = provider;
+    await this.ctx.storage.put(SESSION_UI_DOMAIN_PROVIDER_KEY, provider);
+  }
+
+  private async loadPersistedSessionUiDomainProvider(): Promise<
+    UiDomainProvider | undefined
+  > {
+    const provider = await this.ctx.storage.get<UiDomainProvider>(
+      SESSION_UI_DOMAIN_PROVIDER_KEY
+    );
+
+    if (provider === "claude" || provider === "openai") {
+      this._sessionUiDomainProvider = provider;
+      return provider;
+    }
+
+    return undefined;
   }
 
   // Generic callback factory for tools
@@ -413,7 +408,9 @@ export class DoitMCPAgent extends McpAgent {
     // this.props at call-time (after props are set), so registration still works.
     this.props = (this.props ?? {}) as typeof this.props;
 
-    console.log("Initializing Doit MCP Agent", this.props.customerContext);
+    console.log("Initializing Doit MCP Agent", {
+      hasCustomerContext: Boolean(this.props.customerContext),
+    });
 
     // Capture MCP client identity for tracking query params.
     // Stored on the DO instance (_mcpClientInfo), not a module global, to avoid cross-session
@@ -428,12 +425,32 @@ export class DoitMCPAgent extends McpAgent {
         mcpClient: clientInfo?.name,
         mcpClientVersion: clientInfo?.version,
       };
+      const provider = classifyUiDomainProvider(clientInfo?.name);
+      if (provider !== "omit") {
+        void this.persistSessionUiDomainProvider(provider).catch((error) => {
+          console.error(
+            "[mcp] failed to persist session UI domain provider",
+            error
+          );
+        });
+      }
+      console.log("[mcp] initialized client", {
+        ...this._mcpClientInfo,
+        sessionProvider: this._sessionUiDomainProvider,
+      });
     };
 
-    // Load persisted props first (no-op if apiKey not available yet)
-    await this.loadPersistedProps();
+    // Load persisted session state first so widget resource reads can still resolve a
+    // provider after DO hibernation, even before oninitialized runs again.
+    await Promise.all([
+      this.loadPersistedProps(),
+      this.loadPersistedSessionUiDomainProvider(),
+    ]);
 
-    console.log("After loading persisted props:", this.props.customerContext);
+    console.log("After loading persisted props:", {
+      hasCustomerContext: Boolean(this.props.customerContext),
+      sessionProvider: this._sessionUiDomainProvider,
+    });
 
     // Save current props if they exist (for initial OAuth setup)
     if (this.props.apiKey && this.props.customerContext) {
@@ -457,31 +474,30 @@ export class DoitMCPAgent extends McpAgent {
     // The resource returns a tiny loader stub (~600 B) that fetches the real widget
     // HTML from GET /widget on every render. This means widget updates never require
     // ChatGPT app re-registration — only the served HTML at /widget changes.
-    const workerUrl = (this.env as any).WORKER_URL ?? "https://mcp.doit.com";
+    const env = this.env as DoitWorkerEnv;
+    const widgetFetchOrigin = resolveWidgetFetchOrigin(env);
+    const publicMcpUrl = resolvePublicMcpUrl(env, widgetFetchOrigin);
     this.server.resource(
       "cloud-intelligence-widget",
       WIDGET_URI,
-      { mimeType: "text/html;profile=mcp-app" },
+      { mimeType: WIDGET_RESOURCE_MIME_TYPE },
       async () => {
-        console.log("[widget] resources/read called for", WIDGET_URI);
+        console.log("[widget] resources/read called for", WIDGET_URI, {
+          mcpClient: this._mcpClientInfo.mcpClient,
+          mcpClientVersion: this._mcpClientInfo.mcpClientVersion,
+          sessionProvider: this._sessionUiDomainProvider,
+          publicMcpUrl,
+        });
+        const resourceContent = await buildWidgetResourceContent({
+          widgetUri: WIDGET_URI,
+          mcpClient: this._mcpClientInfo.mcpClient,
+          sessionProvider: this._sessionUiDomainProvider,
+          widgetFetchOrigin,
+          publicMcpUrl,
+          env,
+        });
         return {
-          contents: [{
-            uri: WIDGET_URI,
-            mimeType: "text/html;profile=mcp-app",
-            text: buildWidgetStub(workerUrl),
-            _meta: {
-              ui: {
-                domain: workerUrl,
-                csp: {
-                  connectDomains: [
-                    "https://api.doit.com",
-                    "https://mcp.doit.com",
-                    "https://dci-mcp.ngrok.app",
-                  ],
-                },
-              },
-            },
-          } as any],
+          contents: [resourceContent as any],
         };
       }
     );
@@ -754,7 +770,14 @@ const oauthProvider = new OAuthProvider({
   clientRegistrationEndpoint: "/register",
   accessTokenTTL: 60 * 60 * 24 * 30, // 30 days in seconds (OAuthProvider uses seconds, not ms)
   tokenExchangeCallback: async ({ grantType, props }) => {
-    console.log("tokenExchangeCallback", grantType, props);
+    const logProps = props as
+      | Partial<Record<"apiKey" | "customerContext" | "isDoitUser", unknown>>
+      | undefined;
+    console.log("tokenExchangeCallback", grantType, {
+      hasApiKey: Boolean(logProps?.apiKey),
+      hasCustomerContext: Boolean(logProps?.customerContext),
+      isDoitUser: logProps?.isDoitUser,
+    });
     if (grantType === "refresh_token" || grantType === "authorization_code") {
       return {
         newProps: { ...props },
@@ -770,6 +793,7 @@ async function handleRequest(
   ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(req.url);
+  const runtimeEnv = env as DoitWorkerEnv;
 
   // Serve OAuth discovery endpoints unauthenticated at ANY path prefix.
   // Per RFC 9728/8414, ChatGPT appends these well-known paths to the MCP server URL
@@ -783,7 +807,7 @@ async function handleRequest(
       url.pathname.endsWith("/.well-known/oauth-authorization-server")) {
     // PUBLIC_URL overrides everything — required for local dev via tunnel because
     // wrangler dev rewrites request.url and Host to the route pattern (mcp.doit.com).
-    const base = (env as any).PUBLIC_URL ||
+    const base = runtimeEnv.PUBLIC_URL ||
       (() => {
         const host = req.headers.get("host") || url.host;
         const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");

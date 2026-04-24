@@ -13,9 +13,10 @@ import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { handleValidateUserRequest } from "../../src/tools/validateUser";
 import { decodeJWT } from "../../src/utils/util";
 import { DEMO_TOKEN } from "../../src/utils/demoData";
+import type { DoitWorkerEnv } from "./runtimeEnv.js";
 import { WIDGET_HTML } from "./widgetHtml";
 
-export type Bindings = Env & {
+export type Bindings = DoitWorkerEnv & {
   OAUTH_PROVIDER: OAuthHelpers;
   OAUTH_KV: KVNamespace;
 };

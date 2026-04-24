@@ -197,7 +197,9 @@ export function narrate(toolName: string, data: unknown): string {
     return `Operation completed.`;
 }
 
-export const WIDGET_URI = "ui://doit/cloud-intelligence-v9.html";
+// Bump the resource URI when widget metadata semantics change so hosts do not
+// reuse stale cached metadata across provider-specific ui.domain rollouts.
+export const WIDGET_URI = "ui://doit/cloud-intelligence-v10.html";
 
 /**
  * Main adapter. Wraps a raw tool result into the Apps SDK three-field format.
