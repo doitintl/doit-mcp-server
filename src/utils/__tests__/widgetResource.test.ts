@@ -187,6 +187,22 @@ describe("widget resource contract", () => {
         );
     });
 
+    it("does not include the legacy ngrok host in CSP by default", async () => {
+        const content = await buildWidgetResourceContent({
+            widgetUri: "ui://doit/cloud-intelligence-v9.html",
+            mcpClient: "ChatGPT",
+            widgetFetchOrigin: "https://widgets.example.com",
+            publicMcpUrl: "https://widgets.example.com/mcp",
+            env: {},
+        });
+
+        const meta = content._meta as {
+            ui: { domain?: string; csp: { connectDomains: string[] } };
+        };
+
+        expect(meta.ui.csp.connectDomains).not.toContain("https://dci-mcp.ngrok.app");
+    });
+
     it("omits the domain key entirely when the resolver omits ui.domain", async () => {
         const content = await buildWidgetResourceContent({
             widgetUri: "ui://doit/cloud-intelligence-v9.html",

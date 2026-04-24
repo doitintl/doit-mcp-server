@@ -196,7 +196,6 @@ export function buildWidgetConnectDomains(
     new Set([
       "https://api.doit.com",
       "https://mcp.doit.com",
-      "https://dci-mcp.ngrok.app",
       toOrigin(widgetFetchOrigin),
       ...(publicMcpUrl ? [toOrigin(publicMcpUrl)] : []),
     ])
