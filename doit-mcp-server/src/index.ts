@@ -767,7 +767,14 @@ const oauthProvider = new OAuthProvider({
   clientRegistrationEndpoint: "/register",
   accessTokenTTL: 60 * 60 * 24 * 30, // 30 days in seconds (OAuthProvider uses seconds, not ms)
   tokenExchangeCallback: async ({ grantType, props }) => {
-    console.log("tokenExchangeCallback", grantType, props);
+    const logProps = props as
+      | Partial<Record<"apiKey" | "customerContext" | "isDoitUser", unknown>>
+      | undefined;
+    console.log("tokenExchangeCallback", grantType, {
+      hasApiKey: Boolean(logProps?.apiKey),
+      hasCustomerContext: Boolean(logProps?.customerContext),
+      isDoitUser: logProps?.isDoitUser,
+    });
     if (grantType === "refresh_token" || grantType === "authorization_code") {
       return {
         newProps: { ...props },

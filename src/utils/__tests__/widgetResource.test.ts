@@ -127,7 +127,7 @@ describe("widget resource contract", () => {
 
     it("emits the OpenAI alias only for OpenAI clients", async () => {
         const content = await buildWidgetResourceContent({
-            widgetUri: "ui://doit/cloud-intelligence-v9.html",
+            widgetUri: "ui://doit/cloud-intelligence-v10.html",
             mcpClient: "ChatGPT",
             widgetFetchOrigin: "https://widgets.example.com",
             publicMcpUrl: "https://widgets.example.com/mcp",
@@ -148,7 +148,7 @@ describe("widget resource contract", () => {
 
     it("uses a persisted OpenAI provider when the current request lacks mcpClient", async () => {
         const content = await buildWidgetResourceContent({
-            widgetUri: "ui://doit/cloud-intelligence-v9.html",
+            widgetUri: "ui://doit/cloud-intelligence-v10.html",
             sessionProvider: "openai",
             widgetFetchOrigin: "https://widgets.example.com",
             publicMcpUrl: "https://widgets.example.com/mcp",
@@ -166,7 +166,7 @@ describe("widget resource contract", () => {
 
     it("includes the public MCP origin in CSP when it differs from the widget fetch origin", async () => {
         const content = await buildWidgetResourceContent({
-            widgetUri: "ui://doit/cloud-intelligence-v9.html",
+            widgetUri: "ui://doit/cloud-intelligence-v10.html",
             mcpClient: "ChatGPT",
             widgetFetchOrigin: "https://widgets.example.com",
             publicMcpUrl: "https://mcp-alt.example.com/mcp",
@@ -189,7 +189,7 @@ describe("widget resource contract", () => {
 
     it("does not include the legacy ngrok host in CSP by default", async () => {
         const content = await buildWidgetResourceContent({
-            widgetUri: "ui://doit/cloud-intelligence-v9.html",
+            widgetUri: "ui://doit/cloud-intelligence-v10.html",
             mcpClient: "ChatGPT",
             widgetFetchOrigin: "https://widgets.example.com",
             publicMcpUrl: "https://widgets.example.com/mcp",
@@ -205,7 +205,7 @@ describe("widget resource contract", () => {
 
     it("omits the domain key entirely when the resolver omits ui.domain", async () => {
         const content = await buildWidgetResourceContent({
-            widgetUri: "ui://doit/cloud-intelligence-v9.html",
+            widgetUri: "ui://doit/cloud-intelligence-v10.html",
             mcpClient: "acme-mcp-client",
             widgetFetchOrigin: "https://widgets.example.com",
             publicMcpUrl: "https://widgets.example.com/mcp",
