@@ -7,8 +7,8 @@ type ToolResult = { content: Array<{ type: string; text?: string }>; isError?: b
 /**
  * Creates an in-memory MCP client+server pair for integration tests.
  *
- * The returned `client.callTool` is wrapped so that destructive tools which are
- * gated by the server's approval flow (confirm_action two-phase commit) appear
+ * The returned `client.callTool` is wrapped so that write-gated tools which go
+ * through the server's approval flow (confirm_action two-phase commit) appear
  * to behave as before from the test's perspective: the wrapper detects an
  * `approval_required` envelope, issues the follow-up `confirm_action` with the
  * minted token, and returns the final response. This keeps existing assertions

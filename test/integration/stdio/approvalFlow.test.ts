@@ -4,7 +4,7 @@ import { createTestClient, getTextContent } from "../helpers.js";
 // This suite intentionally uses `rawClient` to bypass the test helper's
 // auto-confirm wrapper, so we can observe the two-phase approval envelope
 // emitted by the server directly.
-describe("Destructive-tool approval flow (stdio)", () => {
+describe("Write-gated tool approval flow (stdio)", () => {
     let rawClient: { callTool: (p: { name: string; arguments: Record<string, unknown> }) => Promise<any> };
     let cleanup: () => Promise<void>;
 
@@ -29,7 +29,7 @@ describe("Destructive-tool approval flow (stdio)", () => {
         vi.restoreAllMocks();
     });
 
-    it("emits an approval_required envelope on the first call to a destructive tool", async () => {
+    it("emits an approval_required envelope on the first call to a write-gated tool", async () => {
         const result = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
         const body = JSON.parse(getTextContent(result));
 
@@ -39,7 +39,7 @@ describe("Destructive-tool approval flow (stdio)", () => {
         expect(body.next).toContain("confirm_action");
     });
 
-    it("confirm_action with the minted token executes the original destructive call", async () => {
+    it("confirm_action with the minted token executes the original write-gated call", async () => {
         const first = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
         const { approvalToken } = JSON.parse(getTextContent(first));
 
@@ -73,7 +73,7 @@ describe("Destructive-tool approval flow (stdio)", () => {
         expect(getTextContent(result)).toContain("Approval token unknown or expired");
     });
 
-    it("calling a destructive tool twice mints two distinct tokens (idempotent on LLM misbehavior)", async () => {
+    it("calling a write-gated tool twice mints two distinct tokens (idempotent on LLM misbehavior)", async () => {
         const r1 = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
         const r2 = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
 

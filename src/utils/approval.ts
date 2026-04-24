@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createSuccessResponse } from "./util.js";
 
 /**
- * Represents a destructive tool call that has been staged but not yet executed.
+ * Represents a write-gated tool call that has been staged but not yet executed.
  * The original tool handler is re-invoked only after the matching approval token
  * is consumed via the `confirm_action` tool.
  */
@@ -20,7 +20,7 @@ export interface PendingAction {
 }
 
 /**
- * Storage interface for pending destructive actions. Two impls: an in-memory store for
+ * Storage interface for pending write-gated actions. Two impls: an in-memory store for
  * the stdio transport, and a Durable-Object-backed store for the Cloudflare Worker (so
  * tokens survive isolate eviction between the stage and confirm round-trips).
  */
@@ -85,7 +85,7 @@ export function mintApprovalToken(): string {
 }
 
 /**
- * Builds the structured response returned to the LLM when a destructive tool has been
+ * Builds the structured response returned to the LLM when a write-gated tool has been
  * staged but not yet executed. The LLM is expected to surface `summary` to the user,
  * obtain explicit confirmation, and then call `confirm_action` with `token`.
  */

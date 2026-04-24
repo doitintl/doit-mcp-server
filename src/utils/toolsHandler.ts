@@ -89,7 +89,12 @@ import {
 } from "./util.js";
 
 /**
- * Registry of destructive tools gated by the two-phase approval flow.
+ * Registry of write-gated tools that go through the two-phase approval flow.
+ *
+ * "Write-gated" — not "destructive" — because the gate covers any state-changing call
+ * that warrants explicit user confirmation, including pure creates like `create_ticket`.
+ * (The MCP-spec `destructiveHint` annotation has a narrower meaning — irreversible
+ * updates — and is set per-tool independently of this registry.)
  *
  * POC scope: only `create_ticket` is gated so the demo surface stays small. The mechanism
  * itself (`confirm_action`, {@link ApprovalStore}, single-use tokens) is generic —
@@ -97,7 +102,7 @@ import {
  * definition and (b) adding an entry below. Removing approval enforcement is the inverse.
  * No tool handler code needs to change.
  */
-const DESTRUCTIVE_SUMMARIES: Record<string, (args: any) => string> = {
+const WRITE_GATED_SUMMARIES: Record<string, (args: any) => string> = {
     [createTicketTool.name]: createTicketTool.summary,
 };
 
@@ -111,14 +116,14 @@ export interface ToolHandlerOptions {
      * `"stdio-local"`; on the HTTP/SSE Worker use the OAuth-derived `props.apiKey`.
      *
      * If either this or {@link ToolHandlerOptions.approvalStore} is omitted the approval
-     * gate is **not enforced** — destructive tools run immediately. Callers that want to
+     * gate is **not enforced** — write-gated tools run immediately. Callers that want to
      * enforce approval (both transports, per the plan) must supply both.
      */
     userKey?: string;
     /**
-     * Persistence for staged destructive actions. See `src/utils/approval.ts` for the
+     * Persistence for staged write-gated actions. See `src/utils/approval.ts` for the
      * `MemoryApprovalStore` (stdio) and `doit-mcp-server/src/durableObjectApprovalStore.ts`
-     * (HTTP/SSE) implementations. Omit only in tests that call non-destructive tools.
+     * (HTTP/SSE) implementations. Omit only in tests that call non-gated tools.
      */
     approvalStore?: ApprovalStore;
 }
@@ -140,20 +145,20 @@ export async function executeToolHandler(
     const { trackingContext, convertResponse, userKey, approvalStore } = options;
     return runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
         try {
-            // Dispatches an already-confirmed (or non-destructive) tool call. The approval
-            // gate below never calls this directly for a destructive tool without first
+            // Dispatches an already-confirmed (or non-gated) tool call. The approval
+            // gate below never calls this directly for a write-gated tool without first
             // going through `confirm_action` + `ApprovalStore.consume`.
             const runOriginal = async (innerToolName: string, innerArgs: any, innerToken: string): Promise<any> => {
                 const result = await runOriginalDispatch(innerToolName, innerArgs, innerToken);
                 return convertResponse ? convertResponse(result) : result;
             };
 
-            // Two-phase commit for destructive tools.
+            // Two-phase commit for write-gated tools.
             //
             // Enforcement is opt-in: if either `userKey` or `approvalStore` is missing we
             // bypass the gate and run the tool immediately. Both transports (stdio +
             // HTTP/SSE) wire them through, so in production the gate is always on. Unit
-            // tests that exercise non-destructive tools can continue to omit both.
+            // tests that exercise non-gated tools can continue to omit both.
             if (approvalStore && userKey) {
                 if (toolName === "confirm_action") {
                     const confirmed = await handleConfirmActionRequest(
@@ -166,7 +171,7 @@ export async function executeToolHandler(
                     return confirmed;
                 }
 
-                const summaryFn = DESTRUCTIVE_SUMMARIES[toolName];
+                const summaryFn = WRITE_GATED_SUMMARIES[toolName];
                 if (summaryFn) {
                     const approvalToken = mintApprovalToken();
                     await approvalStore.stash(approvalToken, {
@@ -203,8 +208,8 @@ export async function executeToolHandler(
 
 /**
  * Dispatches a tool call directly to its handler — no approval gating.
- * Used both for non-destructive tools and as the "run original" callback after a
- * destructive tool has passed through `confirm_action`.
+ * Used both for non-gated tools and as the "run original" callback after a
+ * write-gated tool has passed through `confirm_action`.
  */
 async function runOriginalDispatch(toolName: string, args: any, token: string): Promise<any> {
     let result: any;

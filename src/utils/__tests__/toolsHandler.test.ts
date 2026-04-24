@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryApprovalStore } from "../approval.js";
 import { executeToolHandler } from "../toolsHandler.js";
 
-// Mock the underlying HTTP layer so "running" a destructive tool never actually
+// Mock the underlying HTTP layer so "running" a write-gated tool never actually
 // hits the DoiT API. We only want to assert that the approval gate keeps us from
-// reaching the handler's API call on an un-confirmed destructive tool.
+// reaching the handler's API call on an un-confirmed write-gated tool.
 vi.mock("../util.js", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../util.js")>();
     return { ...actual, makeDoitRequest: vi.fn().mockResolvedValue({ ok: true }) };
@@ -34,7 +34,7 @@ describe("executeToolHandler approval gate", () => {
         },
     } as const;
 
-    it("destructive tools return approval_required without calling the API on the first call", async () => {
+    it("write-gated tools return approval_required without calling the API on the first call", async () => {
         const { makeDoitRequest } = await import("../util.js");
         (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
 
@@ -52,7 +52,7 @@ describe("executeToolHandler approval gate", () => {
         expect(parsed.summary).toContain("Create support ticket");
     });
 
-    it("confirm_action with a valid token runs the destructive tool", async () => {
+    it("confirm_action with a valid token runs the write-gated tool", async () => {
         const { makeDoitRequest } = await import("../util.js");
         (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
         (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ticket-new-1" });
@@ -76,7 +76,7 @@ describe("executeToolHandler approval gate", () => {
         expect(opts.method).toBe("POST");
     });
 
-    it("two un-confirmed destructive calls mint two distinct tokens", async () => {
+    it("two un-confirmed write-gated calls mint two distinct tokens", async () => {
         const approvalStore = new MemoryApprovalStore();
 
         const r1 = await executeToolHandler("create_ticket", validTicketArgs, apiToken, { userKey, approvalStore });
@@ -97,7 +97,7 @@ describe("executeToolHandler approval gate", () => {
         expect(makeDoitRequest).toHaveBeenCalledTimes(1);
     });
 
-    it("non-destructive tools pass through even with the gate enabled", async () => {
+    it("non-gated tools pass through even with the gate enabled", async () => {
         const { makeDoitRequest } = await import("../util.js");
         (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
         (makeDoitRequest as any).mockResolvedValue({ budgets: [], rowCount: 0 });

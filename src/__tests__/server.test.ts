@@ -820,12 +820,12 @@ describe("CallToolRequestSchema handler", () => {
     ];
 
     // Tools gated by the server-side approval flow (confirm_action two-phase commit).
-    // POC scope keeps the gated set minimal; see DESTRUCTIVE_SUMMARIES in toolsHandler.ts.
-    const DESTRUCTIVE_TOOL_NAMES = new Set(["create_ticket"]);
+    // POC scope keeps the gated set minimal; see WRITE_GATED_SUMMARIES in toolsHandler.ts.
+    const WRITE_GATED_TOOL_NAMES = new Set(["create_ticket"]);
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
         const first = await getCallToolHandler()(mockRequest(toolName, args));
-        if (DESTRUCTIVE_TOOL_NAMES.has(toolName)) {
+        if (WRITE_GATED_TOOL_NAMES.has(toolName)) {
             const envelope = JSON.parse(first.content[0].text);
             expect(envelope.status).toBe("approval_required");
             await getCallToolHandler()(mockRequest("confirm_action", { token: envelope.approvalToken }));
