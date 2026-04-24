@@ -5,10 +5,39 @@ import {
     buildWidgetStub,
     classifyUiDomainProvider,
     computeClaudeDomain,
+    resolvePublicMcpUrl,
     resolveUiDomain,
+    resolveWidgetFetchOrigin,
 } from "../../../doit-mcp-server/src/widgetResource.js";
 
 const EXPECTED_CLAUDE_DOMAIN = "2f32404e366572ee7f7f5f0eb625e6c4.claudemcpcontent.com";
+
+describe("widget URL resolution", () => {
+    it("falls back to the default widget fetch origin when WORKER_URL is unset", () => {
+        expect(resolveWidgetFetchOrigin({})).toBe("https://mcp.doit.com");
+    });
+
+    it("builds the default public MCP URL from the widget fetch origin", () => {
+        expect(resolvePublicMcpUrl({}, "https://widgets.example.com")).toBe(
+            "https://widgets.example.com/sse"
+        );
+    });
+
+    it("throws a clear error when WORKER_URL is not absolute", () => {
+        expect(() => resolveWidgetFetchOrigin({ WORKER_URL: "widgets.example.com" })).toThrow(
+            "[widget] WORKER_URL must be an absolute URL."
+        );
+    });
+
+    it("throws a clear error when PUBLIC_MCP_URL is not absolute", () => {
+        expect(() =>
+            resolvePublicMcpUrl(
+                { PUBLIC_MCP_URL: "widgets.example.com/mcp" },
+                "https://widgets.example.com"
+            )
+        ).toThrow("[widget] PUBLIC_MCP_URL must be an absolute URL.");
+    });
+});
 
 describe("computeClaudeDomain", () => {
     it("returns the Claude sandbox hostname for the public MCP URL", async () => {

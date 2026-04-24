@@ -4,6 +4,20 @@ export const DEFAULT_WIDGET_FETCH_ORIGIN = "https://mcp.doit.com";
 export const WIDGET_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
 type WebCryptoApi = (typeof import("node:crypto"))["webcrypto"];
 
+function requireAbsoluteUrl(
+  value: string,
+  envName: "WORKER_URL" | "PUBLIC_MCP_URL"
+): string {
+  try {
+    new URL(value);
+    return value;
+  } catch {
+    throw new Error(
+      `[widget] ${envName} must be an absolute URL. Received ${JSON.stringify(value)}.`
+    );
+  }
+}
+
 export interface ResolveUiDomainArgs {
   mcpClient?: string;
   sessionProvider?: UiDomainProvider;
@@ -22,7 +36,9 @@ export interface BuildWidgetResourceContentArgs extends ResolveUiDomainArgs {
 export function resolveWidgetFetchOrigin(
   env: Pick<RuntimeEnvVars, "WORKER_URL">
 ): string {
-  return env.WORKER_URL ?? DEFAULT_WIDGET_FETCH_ORIGIN;
+  return env.WORKER_URL
+    ? requireAbsoluteUrl(env.WORKER_URL, "WORKER_URL")
+    : DEFAULT_WIDGET_FETCH_ORIGIN;
 }
 
 export function resolvePublicMcpUrl(
@@ -31,7 +47,11 @@ export function resolvePublicMcpUrl(
 ): string {
   // Claude-compatible hashes must use the exact public MCP endpoint string,
   // so config can override the /sse fallback when the host-facing URL differs.
-  return env.PUBLIC_MCP_URL ?? new URL("/sse", widgetFetchOrigin).toString();
+  if (env.PUBLIC_MCP_URL) {
+    return requireAbsoluteUrl(env.PUBLIC_MCP_URL, "PUBLIC_MCP_URL");
+  }
+
+  return new URL("/sse", requireAbsoluteUrl(widgetFetchOrigin, "WORKER_URL")).toString();
 }
 
 /**
