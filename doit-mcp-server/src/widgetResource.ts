@@ -2,6 +2,7 @@ import type { RuntimeEnvVars, UiDomainProvider } from "./runtimeEnv.js";
 
 export const DEFAULT_WIDGET_FETCH_ORIGIN = "https://mcp.doit.com";
 export const WIDGET_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
+type WebCryptoApi = (typeof import("node:crypto"))["webcrypto"];
 
 export interface ResolveUiDomainArgs {
   mcpClient?: string;
@@ -73,7 +74,11 @@ export function buildWidgetStub(widgetFetchOrigin: string): string {
 
 export async function computeClaudeDomain(serverUrl: string): Promise<string> {
   const data = new TextEncoder().encode(serverUrl);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const runtimeCrypto = (globalThis as typeof globalThis & {
+    crypto?: WebCryptoApi;
+  }).crypto;
+  const cryptoApi = runtimeCrypto ?? (await import("node:crypto")).webcrypto;
+  const hashBuffer = await cryptoApi.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray
     .map((byte) => byte.toString(16).padStart(2, "0"))
