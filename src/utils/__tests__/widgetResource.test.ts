@@ -18,9 +18,7 @@ describe("widget URL resolution", () => {
     });
 
     it("builds the default public MCP URL from the widget fetch origin", () => {
-        expect(resolvePublicMcpUrl({}, "https://widgets.example.com")).toBe(
-            "https://widgets.example.com/sse"
-        );
+        expect(resolvePublicMcpUrl({}, "https://widgets.example.com")).toBe("https://widgets.example.com/sse");
     });
 
     it("throws a clear error when WORKER_URL is not absolute", () => {
@@ -31,10 +29,7 @@ describe("widget URL resolution", () => {
 
     it("throws a clear error when PUBLIC_MCP_URL is not absolute", () => {
         expect(() =>
-            resolvePublicMcpUrl(
-                { PUBLIC_MCP_URL: "widgets.example.com/mcp" },
-                "https://widgets.example.com"
-            )
+            resolvePublicMcpUrl({ PUBLIC_MCP_URL: "widgets.example.com/mcp" }, "https://widgets.example.com")
         ).toThrow("[widget] PUBLIC_MCP_URL must be an absolute URL.");
     });
 });
