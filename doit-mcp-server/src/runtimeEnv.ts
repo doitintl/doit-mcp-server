@@ -4,7 +4,7 @@ export interface RuntimeEnvVars {
   WORKER_URL?: string;
   PUBLIC_URL?: string;
   PUBLIC_MCP_URL?: string;
-  UI_DOMAIN_PROVIDER?: UiDomainProvider;
+  UI_DOMAIN_PROVIDER?: string;
   CLAUDE_UI_DOMAIN?: string;
   OPENAI_UI_DOMAIN?: string;
 }
