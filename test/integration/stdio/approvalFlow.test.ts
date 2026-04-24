@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestClient, getTextContent } from "../helpers.js";
-import "../setup.js";
 
 // This suite intentionally uses `rawClient` to bypass the test helper's
 // auto-confirm wrapper, so we can observe the two-phase approval envelope

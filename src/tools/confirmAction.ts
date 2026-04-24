@@ -8,26 +8,30 @@ export const ConfirmActionArgumentsSchema = z.object({
         .string()
         .min(1, "token is required and cannot be empty.")
         .describe(
-            "The approval token returned by a previous destructive tool call. Exactly as received, no quoting changes."
+            "The approval token returned by a previous write/mutating tool call. Exactly as received, no quoting changes."
         ),
 });
 
 /**
- * The "gate" tool. This itself is **non-destructive** (`destructiveHint: false`) — the
- * destructive work was already announced upstream when the original tool call returned
- * `status: "approval_required"` with a human-readable summary. Marking this tool as
- * destructive would cause annotation-honoring clients to prompt a second time on top of
- * that summary, which is a confusing UX.
+ * The "gate" tool. This itself is annotated `destructiveHint: false` because, per the MCP
+ * spec, that hint refers specifically to *destructive updates* (irreversible changes) —
+ * `confirm_action` itself just dispatches a previously-staged call. The actual write
+ * (which may be a create, update, or delete — not necessarily destructive) was already
+ * announced upstream when the original tool call returned `status: "approval_required"`
+ * with a human-readable summary. Setting `destructiveHint: true` here would cause
+ * annotation-honoring clients to prompt a second time on top of that summary, which is a
+ * confusing UX.
  *
- * This tool should never be called without a prior destructive staging call.
+ * This tool should never be called without a prior write-action staging call.
  */
 export const confirmActionTool = {
     name: "confirm_action",
     description:
-        "Finalizes a pending destructive action that was previously staged by another tool. " +
-        "Only call this after the user has explicitly confirmed the action summary returned by " +
-        "the previous tool call. If the user declined, do not call this tool — the token will " +
-        "expire automatically. Pass the token exactly as it was returned.",
+        "Finalizes a pending write action (e.g. creating, updating, or deleting a resource) " +
+        "that was previously staged by another tool. Only call this after the user has " +
+        "explicitly confirmed the action summary returned by the previous tool call. If the " +
+        "user declined, do not call this tool — the token will expire automatically. Pass the " +
+        "token exactly as it was returned.",
     inputSchema: zodToMcpInputSchema(ConfirmActionArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -42,7 +46,7 @@ export const confirmActionTool = {
 };
 
 /**
- * Runs a previously-staged destructive tool, identified by `token`. The caller supplies
+ * Runs a previously-staged write-gated tool, identified by `token`. The caller supplies
  * `runOriginal` so this module does not have to depend on the full dispatch switch in
  * `toolsHandler.ts` — this keeps the wiring direction one-way and avoids a cycle.
  */
