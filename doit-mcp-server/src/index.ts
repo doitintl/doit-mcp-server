@@ -417,7 +417,7 @@ export class DoitMCPAgent extends McpAgent {
     // takes no arguments and getClientVersion() only returns { name, version }. The SDK
     // computes the negotiated protocol version in _oninitialize() but discards it without
     // storing it. The STDIO path has direct access via InitializeRequest params; SSE does not.
-    this.server.server.oninitialized = async () => {
+    this.server.server.oninitialized = () => {
       const clientInfo = this.server.server.getClientVersion();
       this._mcpClientInfo = {
         mcpClient: clientInfo?.name,
@@ -425,7 +425,12 @@ export class DoitMCPAgent extends McpAgent {
       };
       const provider = classifyUiDomainProvider(clientInfo?.name);
       if (provider !== "omit") {
-        await this.persistSessionUiDomainProvider(provider);
+        void this.persistSessionUiDomainProvider(provider).catch((error) => {
+          console.error(
+            "[mcp] failed to persist session UI domain provider",
+            error
+          );
+        });
       }
       console.log("[mcp] initialized client", {
         ...this._mcpClientInfo,
