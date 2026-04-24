@@ -164,6 +164,29 @@ describe("widget resource contract", () => {
         expect(meta["openai/widgetDomain"]).toBe("https://widgets.example.com");
     });
 
+    it("includes the public MCP origin in CSP when it differs from the widget fetch origin", async () => {
+        const content = await buildWidgetResourceContent({
+            widgetUri: "ui://doit/cloud-intelligence-v9.html",
+            mcpClient: "ChatGPT",
+            widgetFetchOrigin: "https://widgets.example.com",
+            publicMcpUrl: "https://mcp-alt.example.com/mcp",
+            env: {},
+        });
+
+        const meta = content._meta as {
+            ui: { domain?: string; csp: { connectDomains: string[] } };
+        };
+
+        expect(meta.ui.csp.connectDomains).toEqual(
+            expect.arrayContaining([
+                "https://api.doit.com",
+                "https://mcp.doit.com",
+                "https://widgets.example.com",
+                "https://mcp-alt.example.com",
+            ])
+        );
+    });
+
     it("omits the domain key entirely when the resolver omits ui.domain", async () => {
         const content = await buildWidgetResourceContent({
             widgetUri: "ui://doit/cloud-intelligence-v9.html",

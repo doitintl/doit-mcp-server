@@ -188,13 +188,17 @@ export async function resolveUiDomain(
   return { provider: "omit" };
 }
 
-export function buildWidgetConnectDomains(widgetFetchOrigin: string): string[] {
+export function buildWidgetConnectDomains(
+  widgetFetchOrigin: string,
+  publicMcpUrl?: string
+): string[] {
   return Array.from(
     new Set([
       "https://api.doit.com",
       "https://mcp.doit.com",
       "https://dci-mcp.ngrok.app",
       toOrigin(widgetFetchOrigin),
+      ...(publicMcpUrl ? [toOrigin(publicMcpUrl)] : []),
     ])
   );
 }
@@ -214,7 +218,10 @@ export async function buildWidgetResourceContent(
     domain?: string;
   } = {
     csp: {
-      connectDomains: buildWidgetConnectDomains(args.widgetFetchOrigin),
+      connectDomains: buildWidgetConnectDomains(
+        args.widgetFetchOrigin,
+        args.publicMcpUrl
+      ),
     },
   };
 
