@@ -58,14 +58,14 @@ export async function handleChangeCustomerRequest(
         const _previousContext = args.customerContext;
 
         // Verify that the new context is valid
-        const newCustomerDomain = await handleValidateUserRequest(
+        const validateResponse = await handleValidateUserRequest(
             { customerContext: newContext },
             token
         );
 
         let validatedUser: ValidateUserResponse;
         try {
-            validatedUser = parseValidatedUserResponse(newCustomerDomain);
+            validatedUser = parseValidatedUserResponse(validateResponse);
         } catch {
             return createErrorResponse("Customer context is invalid. Please try again with a valid customer id.");
         }
