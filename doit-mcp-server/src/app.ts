@@ -194,14 +194,14 @@ app.post("/customer-context", async (c) => {
         }
       : {};
 
-    const validatePromise = await handleValidateUserRequest(
+    const validateResponse = await handleValidateUserRequest(
       doitEmployeeContext,
       apiKey
     );
 
     let validatedUser: ValidateUserResponse;
     try {
-      validatedUser = parseValidatedUserResponse(validatePromise);
+      validatedUser = parseValidatedUserResponse(validateResponse);
     } catch (error) {
       console.error("OAuth validate response parsing failed", {
         reason: error instanceof Error ? error.message : String(error),
