@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createErrorResponse, createSuccessResponse, handleGeneralError, makeDoitRequest } from "../../utils/util.js";
-import { handleValidateUserRequest } from "../validateUser.js";
+import { handleValidateUserRequest, parseValidatedUserResponse } from "../validateUser.js";
 
 // Mock the utility functions
 vi.mock("../../utils/util.js", () => ({
@@ -32,7 +32,7 @@ describe("validateUser", () => {
                 domain: "example.com",
                 email: "user@example.com",
             };
-            (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+            vi.mocked(makeDoitRequest).mockResolvedValue(mockApiResponse);
 
             const response = await handleValidateUserRequest(mockArgs, mockToken);
 
@@ -40,12 +40,20 @@ describe("validateUser", () => {
                 appendParams: true,
                 method: "GET",
             });
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("example.com"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(
+                JSON.stringify({
+                    domain: "example.com",
+                    email: "user@example.com",
+                })
+            );
             expect(response).toEqual({
                 content: [
                     {
                         type: "text",
-                        text: expect.stringContaining("example.com"),
+                        text: JSON.stringify({
+                            domain: "example.com",
+                            email: "user@example.com",
+                        }),
                     },
                 ],
             });
@@ -53,7 +61,7 @@ describe("validateUser", () => {
 
         it("should handle API request failure", async () => {
             const mockArgs = {};
-            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+            vi.mocked(makeDoitRequest).mockResolvedValue(null);
 
             const response = await handleValidateUserRequest(mockArgs, mockToken);
 
@@ -69,7 +77,7 @@ describe("validateUser", () => {
 
         it("should handle general errors", async () => {
             const mockArgs = {};
-            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+            vi.mocked(makeDoitRequest).mockRejectedValue(new Error("Network error"));
 
             const response = await handleValidateUserRequest(mockArgs, mockToken);
 
@@ -77,6 +85,79 @@ describe("validateUser", () => {
             expect(response).toEqual({
                 content: [{ type: "text", text: "General Error: making DoiT API request" }],
             });
+        });
+    });
+
+    describe("parseValidatedUserResponse", () => {
+        it("should parse a successful JSON validate response", () => {
+            const response = {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify({
+                            domain: "example.com",
+                            email: "user@example.com",
+                        }),
+                    },
+                ],
+            };
+
+            expect(parseValidatedUserResponse(response)).toEqual({
+                domain: "example.com",
+                email: "user@example.com",
+            });
+        });
+
+        it("should reject validate errors", () => {
+            const response = {
+                content: [{ type: "text", text: "The customer context is not authorized" }],
+                isError: true,
+            };
+
+            expect(() => parseValidatedUserResponse(response)).toThrow("Failed to validate user");
+        });
+
+        it("should reject malformed JSON", () => {
+            const response = {
+                content: [{ type: "text", text: "Domain: example.com\nEmail: user@example.com" }],
+            };
+
+            expect(() => parseValidatedUserResponse(response)).toThrow();
+        });
+
+        it("should reject JSON missing required fields", () => {
+            const response = {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify({
+                            email: "user@example.com",
+                        }),
+                    },
+                ],
+            };
+
+            expect(() => parseValidatedUserResponse(response)).toThrow(
+                "Validate user response missing domain or email"
+            );
+        });
+
+        it("should reject JSON with non-string required fields", () => {
+            const response = {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify({
+                            domain: 123,
+                            email: "user@example.com",
+                        }),
+                    },
+                ],
+            };
+
+            expect(() => parseValidatedUserResponse(response)).toThrow(
+                "Validate user response missing domain or email"
+            );
         });
     });
 });

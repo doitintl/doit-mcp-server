@@ -19,6 +19,40 @@ export interface ValidateUserResponse {
     email: string;
 }
 
+export interface ValidateUserToolResponse {
+    content: Array<{
+        type: string;
+        text: string;
+    }>;
+    isError?: boolean;
+}
+
+/**
+ * Parse the result of `handleValidateUserRequest` into typed user data.
+ * Throws on `isError`, empty content, malformed JSON, or missing/invalid fields.
+ * Use this anywhere internal control flow depends on validate-user data.
+ */
+export function parseValidatedUserResponse(response: ValidateUserToolResponse): ValidateUserResponse {
+    if (response.isError) {
+        throw new Error("Failed to validate user");
+    }
+
+    const text = response.content[0]?.text;
+    if (!text) {
+        throw new Error("Validate user response is empty");
+    }
+
+    const parsed = JSON.parse(text) as { domain?: unknown; email?: unknown };
+    if (typeof parsed.domain !== "string" || !parsed.domain || typeof parsed.email !== "string" || !parsed.email) {
+        throw new Error("Validate user response missing domain or email");
+    }
+
+    return {
+        domain: parsed.domain,
+        email: parsed.email,
+    };
+}
+
 // Tool metadata
 export const validateUserTool = {
     name: "validate_user",
