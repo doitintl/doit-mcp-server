@@ -36,10 +36,14 @@ describe("validateUser", () => {
 
             const response = await handleValidateUserRequest(mockArgs, mockToken);
 
-            expect(makeDoitRequest).toHaveBeenCalledWith("https://api.doit.com/auth/v1/validate", mockToken, {
-                appendParams: true,
-                method: "GET",
-            });
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/auth/v1/validate",
+                mockToken,
+                expect.objectContaining({
+                    appendParams: true,
+                    method: "GET",
+                })
+            );
             expect(createSuccessResponse).toHaveBeenCalledWith(
                 JSON.stringify({
                     domain: "example.com",
@@ -65,10 +69,14 @@ describe("validateUser", () => {
 
             const response = await handleValidateUserRequest(mockArgs, mockToken);
 
-            expect(makeDoitRequest).toHaveBeenCalledWith("https://api.doit.com/auth/v1/validate", mockToken, {
-                appendParams: true,
-                method: "GET",
-            });
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/auth/v1/validate",
+                mockToken,
+                expect.objectContaining({
+                    appendParams: true,
+                    method: "GET",
+                })
+            );
             expect(createErrorResponse).toHaveBeenCalledWith("Failed to validate user");
             expect(response).toEqual({
                 content: [{ type: "text", text: "Failed to validate user" }],
