@@ -58,10 +58,7 @@ export async function handleChangeCustomerRequest(
         const _previousContext = args.customerContext;
 
         // Verify that the new context is valid
-        const validateResponse = await handleValidateUserRequest(
-            { customerContext: newContext },
-            token
-        );
+        const validateResponse = await handleValidateUserRequest({ customerContext: newContext }, token);
 
         let validatedUser: ValidateUserResponse;
         try {
