@@ -59,7 +59,7 @@ export async function handleChangeCustomerRequest(
 
         // Verify that the new context is valid
         const newCustomerDomain = await handleValidateUserRequest(
-            { customerContext: newContext }, // Validate doers
+            { customerContext: newContext },
             token
         );
 
