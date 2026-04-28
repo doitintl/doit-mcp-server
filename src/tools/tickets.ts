@@ -156,6 +156,12 @@ export const createTicketTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
+    summary: (args: any) => {
+        const ticket = args?.ticket ?? {};
+        const severity = ticket.severity ? ` [${ticket.severity}]` : "";
+        const platform = ticket.platform ? ` on ${ticket.platform}` : "";
+        return `Create support ticket${severity}${platform}: "${ticket.subject ?? "<no subject>"}".`;
+    },
     _meta: {
         "openai/toolInvocation/invoking": "Creating support ticket...",
         "openai/toolInvocation/invoked": "Ticket created",

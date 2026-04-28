@@ -57,6 +57,7 @@ vi.mock(import("../tools/dimension.js"), async (importOriginal) => ({
 vi.mock(import("../tools/tickets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleCreateTicketCommentRequest: vi.fn(),
+    handleCreateTicketRequest: vi.fn(),
     handleGetTicketRequest: vi.fn(),
     handleListTicketCommentsRequest: vi.fn(),
     handleListTicketsRequest: vi.fn(),
@@ -177,6 +178,7 @@ import {
     handleCreateDatahubDatasetRequest,
     handleCreateLabelRequest,
     handleCreateTicketCommentRequest,
+    handleCreateTicketRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
     handleGeneralError,
@@ -229,6 +231,7 @@ import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
+import { confirmActionTool } from "../tools/confirmAction.js";
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -262,7 +265,13 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { createTicketCommentTool, getTicketTool, listTicketCommentsTool, listTicketsTool } from "../tools/tickets.js";
+import {
+    createTicketCommentTool,
+    createTicketTool,
+    getTicketTool,
+    listTicketCommentsTool,
+    listTicketsTool,
+} from "../tools/tickets.js";
 import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
@@ -339,6 +348,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getTicketTool,
                 listTicketCommentsTool,
                 createTicketCommentTool,
+                createTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -383,6 +393,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listCommitmentsTool,
                 getCommitmentTool,
                 askAvaSyncTool,
+                confirmActionTool,
             ],
         });
     });
@@ -723,6 +734,21 @@ describe("CallToolRequestSchema handler", () => {
             { ticketId: "12345", body: "test" },
             handleCreateTicketCommentRequest,
         ],
+        [
+            "create_ticket",
+            "create_ticket",
+            {
+                ticket: {
+                    body: "Billing issue",
+                    created: "2026-04-22T00:00:00Z",
+                    platform: "amazon_web_services",
+                    product: "billing",
+                    severity: "high",
+                    subject: "Billing question",
+                },
+            },
+            handleCreateTicketRequest,
+        ],
         ["list_invoices", "list_invoices", { pageToken: "next-page-token" }, handleListInvoicesRequest],
         ["get_invoice", "get_invoice", { id: "invoice-123" }, handleGetInvoiceRequest],
         ["list_allocations", "list_allocations", { pageToken: "next-page-token" }, handleListAllocationsRequest],
@@ -793,8 +819,17 @@ describe("CallToolRequestSchema handler", () => {
         ["ask_ava_sync", "ask_ava_sync", { question: "What is my spend?" }, handleAskAvaSyncRequest],
     ];
 
+    // Tools gated by the server-side approval flow (confirm_action two-phase commit).
+    // POC scope keeps the gated set minimal; see WRITE_GATED_SUMMARIES in toolsHandler.ts.
+    const WRITE_GATED_TOOL_NAMES = new Set(["create_ticket"]);
+
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
-        await getCallToolHandler()(mockRequest(toolName, args));
+        const first = await getCallToolHandler()(mockRequest(toolName, args));
+        if (WRITE_GATED_TOOL_NAMES.has(toolName)) {
+            const envelope = JSON.parse(first.content[0].text);
+            expect(envelope.status).toBe("approval_required");
+            await getCallToolHandler()(mockRequest("confirm_action", { token: envelope.approvalToken }));
+        }
         expect(handler).toHaveBeenCalledWith(args, "fake-token");
     });
 });

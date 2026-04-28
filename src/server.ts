@@ -67,6 +67,7 @@ import {
     handleListCommitmentsRequest,
     listCommitmentsTool,
 } from "./tools/commitmentManager.js";
+import { confirmActionTool } from "./tools/confirmAction.js";
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -123,8 +124,10 @@ import {
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
 import {
     createTicketCommentTool,
+    createTicketTool,
     getTicketTool,
     handleCreateTicketCommentRequest,
+    handleCreateTicketRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
@@ -140,6 +143,7 @@ import {
     updateUserTool,
 } from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
+import { MemoryApprovalStore } from "./utils/approval.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError, type TrackingContext } from "./utils/util.js";
@@ -148,6 +152,12 @@ export function createServer() {
     // Connection-level MCP client info — set once on initialize, read on every tool call.
     // Stored in a closure (not a module global) so each server instance is isolated.
     let mcpClientInfo: TrackingContext = {};
+
+    // stdio is single-process and single-user, so a stable string is sufficient as the
+    // identity the approval flow is bound to. The Worker transport binds to the
+    // OAuth-derived api key instead — see doit-mcp-server/src/index.ts.
+    const approvalStore = new MemoryApprovalStore();
+    const userKey = "stdio-local";
     const server = new Server(
         {
             name: SERVER_NAME,
@@ -188,6 +198,7 @@ export function createServer() {
                 getTicketTool,
                 listTicketCommentsTool,
                 createTicketCommentTool,
+                createTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -232,6 +243,7 @@ export function createServer() {
                 listCommitmentsTool,
                 getCommitmentTool,
                 askAvaSyncTool,
+                confirmActionTool,
             ],
         };
     });
@@ -290,7 +302,11 @@ export function createServer() {
             return createErrorResponse("Unauthorized");
         }
 
-        return await executeToolHandler(name, args, token, { trackingContext: mcpClientInfo });
+        return await executeToolHandler(name, args, token, {
+            trackingContext: mcpClientInfo,
+            userKey,
+            approvalStore,
+        });
     });
 
     server.setRequestHandler(InitializeRequestSchema, async (request) => {
@@ -333,6 +349,7 @@ export {
     handleCreateLabelRequest,
     handleCreateReportRequest,
     handleCreateTicketCommentRequest,
+    handleCreateTicketRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
     handleFindCloudDiagramsRequest,

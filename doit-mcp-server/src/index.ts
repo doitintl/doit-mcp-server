@@ -60,6 +60,8 @@ import {
   dimensionTool,
 } from "../../src/tools/dimension.js";
 import {
+  CreateTicketArgumentsSchema,
+  createTicketTool,
   CreateTicketCommentArgumentsSchema,
   createTicketCommentTool,
   GetTicketArgumentsSchema,
@@ -109,6 +111,10 @@ import {
   TriggerCloudFlowArgumentsSchema,
   triggerCloudFlowTool,
 } from "../../src/tools/cloudflow.js";
+import {
+  ConfirmActionArgumentsSchema,
+  confirmActionTool,
+} from "../../src/tools/confirmAction.js";
 import {
   ListOrganizationsArgumentsSchema,
   listOrganizationsTool,
@@ -193,8 +199,10 @@ import {
 } from "../../src/tools/datahubEvents.js";
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
+import type { ApprovalStore } from "../../src/utils/approval.js";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
+import { DurableObjectApprovalStore } from "./durableObjectApprovalStore.js";
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
@@ -266,6 +274,19 @@ export class DoitMCPAgent extends McpAgent {
   // so there is no cross-session bleed between DO instances sharing the same isolate.
   private _mcpClientInfo: TrackingContext = {};
   private _sessionUiDomainProvider?: UiDomainProvider;
+
+  // Per-instance approval store for the two-phase destructive-tool commit flow.
+  // Backed by `this.ctx.storage` (DurableObject storage) so that a staged action
+  // survives isolate eviction between the initial destructive call and the matching
+  // `confirm_action`. Lazily created on first use so test harnesses that instantiate
+  // the class without a full DO context don't crash at construction time.
+  private _approvalStore: ApprovalStore | null = null;
+  private getApprovalStore(): ApprovalStore {
+    if (!this._approvalStore) {
+      this._approvalStore = new DurableObjectApprovalStore(this.ctx.storage);
+    }
+    return this._approvalStore;
+  }
 
   // Helper method to get the current token
   private getToken(): string {
@@ -346,6 +367,11 @@ export class DoitMCPAgent extends McpAgent {
         {
           trackingContext: this._mcpClientInfo,
           convertResponse: (rawResult) => adaptToolResponse(toolName, rawResult),
+          // The identity the approval flow is bound to. `props.apiKey` is the
+          // OAuth-derived DoiT API key and is per-user, so staged actions cannot
+          // be consumed across users even if a token somehow leaked.
+          userKey: token,
+          approvalStore: this.getApprovalStore(),
         }
       );
       return result;
@@ -538,6 +564,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getTicketTool, GetTicketArgumentsSchema);
     this.registerTool(listTicketCommentsTool, ListTicketCommentsArgumentsSchema);
     this.registerTool(createTicketCommentTool, CreateTicketCommentArgumentsSchema);
+    this.registerTool(createTicketTool, CreateTicketArgumentsSchema);
 
     // Invoices tools
     this.registerTool(listInvoicesTool, ListInvoicesArgumentsSchema);
@@ -616,6 +643,10 @@ export class DoitMCPAgent extends McpAgent {
 
     // AVA tools
     this.registerTool(askAvaSyncTool, AskAvaSyncArgumentsSchema);
+
+    // Approval flow — exposed so the LLM can finalize destructive actions that
+    // were previously staged by other tools. See src/tools/confirmAction.ts.
+    this.registerTool(confirmActionTool, ConfirmActionArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
