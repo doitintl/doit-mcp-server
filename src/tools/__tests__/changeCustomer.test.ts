@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createErrorResponse, createSuccessResponse, formatZodError, handleGeneralError } from "../../utils/util.js";
 import { ChangeCustomerArgumentsSchema, handleChangeCustomerRequest } from "../changeCustomer.js";
+import { handleValidateUserRequest } from "../validateUser.js";
 
 // Mock the utility functions
 vi.mock("../../utils/util.js", () => ({
@@ -14,23 +15,32 @@ vi.mock("../../utils/util.js", () => ({
     handleGeneralError: vi.fn((error, context) => ({
         content: [{ type: "text", text: `Error in ${context}: ${error.message}` }],
     })),
+    DOIT_API_BASE: "https://api.doit.com",
 }));
 
 // Mock the validateUser function
-vi.mock("../validateUser.js", () => ({
-    handleValidateUserRequest: vi.fn(() => ({
-        content: [
-            {
-                type: "text",
-                text: "User validation successful:\nDomain: example.com (the domain of the user, make it bold)\nEmail: user@example.com",
-            },
-        ],
-    })),
-}));
+vi.mock("../validateUser.js", async () => {
+    const actual = await vi.importActual<typeof import("../validateUser.js")>("../validateUser.js");
+    return {
+        ...actual,
+        handleValidateUserRequest: vi.fn(),
+    };
+});
 
 describe("changeCustomer", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.mocked(handleValidateUserRequest).mockResolvedValue({
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify({
+                        domain: "example.com",
+                        email: "user@example.com",
+                    }),
+                },
+            ],
+        });
     });
 
     describe("ChangeCustomerArgumentsSchema", () => {
@@ -77,7 +87,7 @@ describe("changeCustomer", () => {
 
             expect(updateCallback).toHaveBeenCalledWith(newContext);
             expect(createSuccessResponse).toHaveBeenCalledWith(
-                "Customer context successfully changed to 'example.com (the domain of the user, make it bold)\nEmail: user@example.com'"
+                "Customer context successfully changed to 'example.com'"
             );
         });
 
@@ -95,7 +105,7 @@ describe("changeCustomer", () => {
 
             expect(updateCallback).toHaveBeenCalledWith(newContext);
             expect(createSuccessResponse).toHaveBeenCalledWith(
-                "Customer context successfully changed to 'example.com (the domain of the user, make it bold)\nEmail: user@example.com'"
+                "Customer context successfully changed to 'example.com'"
             );
         });
 
@@ -109,7 +119,24 @@ describe("changeCustomer", () => {
             const _result = await handleChangeCustomerRequest({ ...args, customerContext: newContext }, token);
 
             expect(createSuccessResponse).toHaveBeenCalledWith(
-                "Customer context successfully changed to 'example.com (the domain of the user, make it bold)\nEmail: user@example.com'"
+                "Customer context successfully changed to 'example.com'"
+            );
+        });
+
+        it("should reject an invalid customer context when validation returns an error", async () => {
+            vi.mocked(handleValidateUserRequest).mockResolvedValue({
+                content: [{ type: "text", text: "The customer context is not authorized" }],
+                isError: true,
+            } as any);
+            const newContext = "new-customer-123";
+            const token = "mock-token";
+            const updateCallback = vi.fn();
+
+            await handleChangeCustomerRequest({ customerContext: newContext }, token, updateCallback);
+
+            expect(updateCallback).not.toHaveBeenCalled();
+            expect(createErrorResponse).toHaveBeenCalledWith(
+                "Customer context is invalid. Please try again with a valid customer id."
             );
         });
 

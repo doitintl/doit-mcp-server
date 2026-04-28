@@ -10,7 +10,7 @@ import {
   renderCustomerContextScreen,
 } from "./utils";
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
-import { handleValidateUserRequest } from "../../src/tools/validateUser";
+import { handleValidateUserRequest, parseValidatedUserResponse, type ValidateUserResponse } from "../../src/tools/validateUser";
 import { decodeJWT } from "../../src/utils/util";
 import { DEMO_TOKEN } from "../../src/utils/demoData";
 import { WIDGET_HTML } from "./widgetHtml";
@@ -194,13 +194,30 @@ app.post("/customer-context", async (c) => {
         }
       : {};
 
-    const validatePromise = await handleValidateUserRequest(
+    const validateResponse = await handleValidateUserRequest(
       doitEmployeeContext,
       apiKey
     );
-    const result = validatePromise.content[0].text;
 
-    if (!result.toLowerCase().includes(payload.sub)) {
+    let validatedUser: ValidateUserResponse;
+    try {
+      validatedUser = parseValidatedUserResponse(validateResponse);
+    } catch (error) {
+      console.error("OAuth validate response parsing failed", {
+        reason: error instanceof Error ? error.message : String(error),
+        isDoitEmployee: Boolean(payload.DoitEmployee),
+      });
+      return await renderAuthorizationRejection(
+        c,
+        oauthReqInfo?.redirectUri || "/"
+      );
+    }
+
+    const payloadSub = typeof payload.sub === "string" ? payload.sub : "";
+    if (validatedUser.email.toLowerCase() !== payloadSub.toLowerCase()) {
+      console.error("OAuth validate email mismatch", {
+        isDoitEmployee: Boolean(payload.DoitEmployee),
+      });
       return await renderAuthorizationRejection(
         c,
         oauthReqInfo?.redirectUri || "/"
@@ -208,10 +225,8 @@ app.post("/customer-context", async (c) => {
     }
 
     if (!payload.DoitEmployee) {
-      // For non-DoiT employees, extract the domain from the validate response
-      // and use it as customerContext (the DoiT API identifies their account by domain).
-      const domainMatch = result.match(/Domain:\s*(\S+)/);
-      const customerContext = domainMatch ? domainMatch[1] : undefined;
+      // For non-DoiT employees, the DoiT API identifies their account by domain.
+      const customerContext = validatedUser.domain;
 
       if (!oauthReqInfo) {
         return c.html("INVALID LOGIN", 401);
