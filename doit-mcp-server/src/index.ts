@@ -503,7 +503,7 @@ export class DoitMCPAgent extends McpAgent {
               logContext
             );
             return {
-              contents: [buildFallbackWidgetResourceContent(WIDGET_URI) as any],
+              contents: [buildFallbackWidgetResourceContent(WIDGET_URI)],
             };
           }
 
