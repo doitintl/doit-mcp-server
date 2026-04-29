@@ -241,10 +241,14 @@ function logMcpInitStorageError(
   error: unknown,
   props: Record<string, unknown>
 ) {
-  console.error(message, {
-    reason: getErrorMessage(error),
-    hasApiKey: Boolean(props.apiKey),
-  });
+  console.error(
+    message,
+    {
+      reason: getErrorMessage(error),
+      hasApiKey: Boolean(props.apiKey),
+    },
+    error
+  );
 }
 
 function logWidgetResourceError(
