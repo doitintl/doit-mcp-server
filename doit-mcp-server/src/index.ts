@@ -554,9 +554,13 @@ export class DoitMCPAgent extends McpAgent {
         }
       );
     } catch (error) {
-      console.error("[widget] failed to register widget resource", {
-        reason: getErrorMessage(error),
-      });
+      console.error(
+        "[widget] failed to register widget resource",
+        {
+          reason: getErrorMessage(error),
+        },
+        error
+      );
     }
   }
 
