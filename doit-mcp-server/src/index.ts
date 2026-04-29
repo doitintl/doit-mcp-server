@@ -533,7 +533,7 @@ export class DoitMCPAgent extends McpAgent {
             resourceContent = buildFallbackWidgetResourceContent(WIDGET_URI);
           }
           return {
-            contents: [resourceContent as any],
+            contents: [resourceContent],
           };
         }
       );
