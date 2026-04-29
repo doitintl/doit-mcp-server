@@ -475,13 +475,15 @@ export class DoitMCPAgent extends McpAgent {
 
   private registerWidgetResource() {
     try {
-      void this.loadPersistedSessionUiDomainProvider();
       const env = this.env as DoitWorkerEnv;
       this.server.resource(
         "cloud-intelligence-widget",
         WIDGET_URI,
         { mimeType: WIDGET_RESOURCE_MIME_TYPE },
         async () => {
+          if (!this._mcpClientInfo.mcpClient && !this._sessionUiDomainProvider) {
+            await this.loadPersistedSessionUiDomainProvider();
+          }
           const logContext = {
             mcpClient: this._mcpClientInfo.mcpClient,
             mcpClientVersion: this._mcpClientInfo.mcpClientVersion,
