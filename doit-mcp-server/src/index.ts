@@ -260,10 +260,14 @@ function logWidgetResourceError(
     hasOpenAiUiDomain: boolean;
   }
 ) {
-  console.error(message, {
-    reason: getErrorMessage(error),
-    ...context,
-  });
+  console.error(
+    message,
+    {
+      reason: getErrorMessage(error),
+      ...context,
+    },
+    error
+  );
 }
 
 // Context Storage Durable Object
