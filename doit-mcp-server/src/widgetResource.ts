@@ -2,6 +2,10 @@ import type { RuntimeEnvVars, UiDomainProvider } from "./runtimeEnv.js";
 
 export const DEFAULT_WIDGET_FETCH_ORIGIN = "https://mcp.doit.com";
 export const WIDGET_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
+const DEFAULT_WIDGET_CONNECT_DOMAINS = [
+  "https://api.doit.com",
+  "https://mcp.doit.com",
+];
 type WebCryptoApi = (typeof import("node:crypto"))["webcrypto"];
 
 function requireAbsoluteUrl(
@@ -221,8 +225,7 @@ export function buildWidgetConnectDomains(
 ): string[] {
   return Array.from(
     new Set([
-      "https://api.doit.com",
-      "https://mcp.doit.com",
+      ...DEFAULT_WIDGET_CONNECT_DOMAINS,
       toOrigin(widgetFetchOrigin),
       ...(publicMcpUrl ? [toOrigin(publicMcpUrl)] : []),
     ])
@@ -248,7 +251,7 @@ Widget unavailable — MCP tools are still available.
       ui: {
         // Intentionally omit ui.domain so strict clients cannot reject the fallback.
         csp: {
-          connectDomains: ["https://api.doit.com", "https://mcp.doit.com"],
+          connectDomains: DEFAULT_WIDGET_CONNECT_DOMAINS,
         },
       },
     },
