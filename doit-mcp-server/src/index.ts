@@ -381,11 +381,11 @@ export class DoitMCPAgent extends McpAgent {
   private async loadPersistedSessionUiDomainProvider(): Promise<
     UiDomainProvider | undefined
   > {
-    this._didAttemptLoadSessionUiDomainProvider = true;
     try {
       const provider = await this.ctx.storage.get<UiDomainProvider>(
         SESSION_UI_DOMAIN_PROVIDER_KEY
       );
+      this._didAttemptLoadSessionUiDomainProvider = true;
 
       if (provider === "claude" || provider === "openai") {
         this._sessionUiDomainProvider = provider;
