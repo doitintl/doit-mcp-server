@@ -390,9 +390,13 @@ export class DoitMCPAgent extends McpAgent {
         return provider;
       }
     } catch (error) {
-      console.error("[widget] failed to load persisted UI domain provider", {
-        reason: getErrorMessage(error),
-      });
+      console.error(
+        "[widget] failed to load persisted UI domain provider",
+        {
+          reason: getErrorMessage(error),
+        },
+        error
+      );
     }
 
     return undefined;
