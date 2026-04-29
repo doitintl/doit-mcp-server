@@ -318,7 +318,6 @@ export class DoitMCPAgent extends McpAgent {
   // so there is no cross-session bleed between DO instances sharing the same isolate.
   private _mcpClientInfo: TrackingContext = {};
   private _sessionUiDomainProvider?: UiDomainProvider;
-  private _didAttemptLoadSessionUiDomainProvider = false;
 
   // Per-instance approval store for the two-phase destructive-tool commit flow.
   // Backed by `this.ctx.storage` (DurableObject storage) so that a staged action
@@ -385,7 +384,6 @@ export class DoitMCPAgent extends McpAgent {
       const provider = await this.ctx.storage.get<UiDomainProvider>(
         SESSION_UI_DOMAIN_PROVIDER_KEY
       );
-      this._didAttemptLoadSessionUiDomainProvider = true;
 
       if (provider === "claude" || provider === "openai") {
         this._sessionUiDomainProvider = provider;
@@ -505,8 +503,7 @@ export class DoitMCPAgent extends McpAgent {
         async () => {
           if (
             !this._mcpClientInfo.mcpClient &&
-            !this._sessionUiDomainProvider &&
-            !this._didAttemptLoadSessionUiDomainProvider
+            !this._sessionUiDomainProvider
           ) {
             await this.loadPersistedSessionUiDomainProvider();
           }
