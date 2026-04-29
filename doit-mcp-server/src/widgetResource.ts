@@ -33,6 +33,13 @@ export interface BuildWidgetResourceContentArgs extends ResolveUiDomainArgs {
   widgetUri: string;
 }
 
+export interface WidgetResourceContent {
+  uri: string;
+  mimeType: string;
+  text: string;
+  _meta: Record<string, unknown>;
+}
+
 export function resolveWidgetFetchOrigin(
   env: Pick<RuntimeEnvVars, "WORKER_URL">
 ): string {
@@ -222,14 +229,35 @@ export function buildWidgetConnectDomains(
   );
 }
 
+export function buildFallbackWidgetResourceContent(
+  widgetUri: string
+): WidgetResourceContent {
+  return {
+    uri: widgetUri,
+    mimeType: WIDGET_RESOURCE_MIME_TYPE,
+    text: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<p style="padding:16px;color:#888;font-size:0.8125rem;font-family:system-ui,sans-serif">
+Widget unavailable — MCP tools are still available.
+</p>
+</body>
+</html>`,
+    _meta: {
+      ui: {
+        // Intentionally omit ui.domain so strict clients cannot reject the fallback.
+        csp: {
+          connectDomains: ["https://api.doit.com", "https://mcp.doit.com"],
+        },
+      },
+    },
+  };
+}
+
 export async function buildWidgetResourceContent(
   args: BuildWidgetResourceContentArgs
-): Promise<{
-  uri: string;
-  mimeType: string;
-  text: string;
-  _meta: Record<string, unknown>;
-}> {
+): Promise<WidgetResourceContent> {
   const { provider, uiDomain } = await resolveUiDomain(args);
 
   const uiMeta: {
