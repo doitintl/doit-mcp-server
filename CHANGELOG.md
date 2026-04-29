@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.12.0 (2026-04-29)
+
+### Features
+
+- feat: enhance DoitMCPAgent and widget resource handling (#160) (`5e024c8`)
+- feat: enhance user validation handling with new parsing function (#161) (`13a5470`)
+- feat: implement MCP client tracking context for enhanced request handling (#156) (`70e66ff`)
+- feat: add ask_ava_sync tool for querying cloud cost insights (`bb15f87`)
+- feat: add widget configs for insights, cost_breakdown, cost_trend (`676ff1a`)
+- feat: add list_insights and get_insight_resources tools (`6502bf2`)
+- feat: add create_ticket_comment tool for adding comments to tickets (#152) (`3ea5fb6`)
+- feat: add cost_breakdown, cost_trend, compare_spend wrapper tools (`40c4092`)
+- feat: proxy anomaly chart images through CF Worker for CSP compat (`a538276`)
+- feat: redesign onboarding screen with DoiT logo and progress bar (`f116ae0`)
+
+### Chores
+
+- chore: improve CI to compile check http server, better test (`8bbb29c`)
+- chore: pin biomejs to 2.4.10 latest now, and specific version (`19a03f0`)
+
 ## v0.11.0 (2026-04-01)
 
 ### Features
