@@ -4,7 +4,7 @@ export const DEFAULT_WIDGET_FETCH_ORIGIN = "https://mcp.doit.com";
 export const WIDGET_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
 const DEFAULT_WIDGET_CONNECT_DOMAINS = [
   "https://api.doit.com",
-  "https://mcp.doit.com",
+  DEFAULT_WIDGET_FETCH_ORIGIN,
 ];
 type WebCryptoApi = (typeof import("node:crypto"))["webcrypto"];
 
