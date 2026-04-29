@@ -251,7 +251,7 @@ Widget unavailable — MCP tools are still available.
       ui: {
         // Intentionally omit ui.domain so strict clients cannot reject the fallback.
         csp: {
-          connectDomains: DEFAULT_WIDGET_CONNECT_DOMAINS,
+          connectDomains: [...DEFAULT_WIDGET_CONNECT_DOMAINS],
         },
       },
     },
