@@ -583,7 +583,7 @@ export class DoitMCPAgent extends McpAgent {
       });
     };
 
-    // Swallow transient DO storage errors so init never aborts; tools fall back to in-memory props.
+    // Swallow transient DO storage errors here so init never aborts.
     // Customer context predates widget support and is needed by tool callbacks.
     try {
       await this.loadPersistedProps();
