@@ -408,7 +408,19 @@ export class DoitMCPAgent extends McpAgent {
   private createToolCallback(toolName: string) {
     return async (args: any) => {
       const token = this.getToken();
-      const persistedCustomerContext = await this.loadPersistedProps();
+      let persistedCustomerContext: string | null = null;
+      try {
+        persistedCustomerContext = await this.loadPersistedProps();
+      } catch (error) {
+        console.error(
+          "[mcp] loadPersistedProps failed during tool call",
+          {
+            reason: getErrorMessage(error),
+            toolName,
+          },
+          error
+        );
+      }
       const customerContext =
         persistedCustomerContext || (this.props.customerContext as string);
 
