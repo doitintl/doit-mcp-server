@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+    getDurationMs,
     getMcpDiagnosticsMessage,
+    getMcpTraceId,
     getMcpTraceIdFromHeaders,
+    getRequestBodyDiagnostics,
+    getRequestDiagnostics,
+    getUserAgentFamily,
     installMcpMethodDiagnosticsFromHandlers,
     installMcpMethodDiagnosticsFromServer,
     withMcpTraceId,
@@ -119,8 +124,29 @@ describe("installMcpMethodDiagnosticsFromHandlers", () => {
 });
 
 describe("MCP diagnostics trace helpers", () => {
+    it("uses a valid inbound trace ID from request headers", () => {
+        const request = new Request("https://mcp.example.com/mcp", {
+            headers: { "x-mcp-trace-id": " trace-ABC_123 " },
+        });
+
+        expect(getMcpTraceId(request)).toBe("trace-ABC_123");
+    });
+
     it("normalizes trace IDs from plain-object headers", () => {
         expect(getMcpTraceIdFromHeaders({ "x-mcp-trace-id": " trace-ABC_123 " })).toBe("trace-ABC_123");
+    });
+
+    it("adds the trace header when the request body is still available", () => {
+        const request = new Request("https://mcp.example.com/mcp", {
+            body: "{}",
+            method: "POST",
+        });
+
+        const tracedRequest = withMcpTraceId(request, "trace-ABC_123");
+
+        expect(tracedRequest).not.toBe(request);
+        expect(tracedRequest.headers.get("x-mcp-trace-id")).toBe("trace-ABC_123");
+        expect(tracedRequest.bodyUsed).toBe(false);
     });
 
     it("does not reconstruct a request after its body has been consumed", async () => {
@@ -144,5 +170,67 @@ describe("MCP diagnostics trace helpers", () => {
         expect(getMcpDiagnosticsMessage("route start", "bad\ntrace")).toBe(
             "[mcp] route start: diagnostics-v1 traceId=invalid"
         );
+    });
+});
+
+describe("MCP request diagnostics", () => {
+    it("classifies known user-agent families", () => {
+        expect(getUserAgentFamily("Anthropic ClaudeAI")).toBe("claude");
+        expect(getUserAgentFamily("OpenAI ChatGPT")).toBe("openai");
+        expect(getUserAgentFamily("Cursor")).toBe("cursor");
+        expect(getUserAgentFamily("node-fetch")).toBe("node");
+        expect(getUserAgentFamily("python-httpx")).toBe("python");
+        expect(getUserAgentFamily("CustomClient")).toBe("other");
+        expect(getUserAgentFamily(null)).toBeUndefined();
+    });
+
+    it("builds safe request diagnostics without full headers", () => {
+        const request = new Request("https://mcp.example.com/mcp", {
+            headers: {
+                accept: "application/json",
+                authorization: "Bearer secret",
+                "content-type": "application/json",
+                "mcp-session-id": "session-1",
+                "user-agent": "Claude",
+            },
+            method: "POST",
+        });
+
+        expect(getRequestDiagnostics(request, "/mcp")).toEqual({
+            accept: "application/json",
+            contentType: "application/json",
+            hasAuthorization: true,
+            hasMcpSessionId: true,
+            method: "POST",
+            pathname: "/mcp",
+            userAgentFamily: "claude",
+        });
+    });
+
+    it("skips request body inspection for POST routes", () => {
+        const request = new Request("https://mcp.example.com/mcp", {
+            body: "{}",
+            method: "POST",
+        });
+
+        expect(getRequestBodyDiagnostics(request)).toEqual({
+            requestBodyInspection: "skipped_to_preserve_forwarded_body",
+        });
+    });
+
+    it("does not include body diagnostics for non-POST routes", () => {
+        const request = new Request("https://mcp.example.com/sse", {
+            method: "GET",
+        });
+
+        expect(getRequestBodyDiagnostics(request)).toEqual({});
+    });
+
+    it("measures elapsed duration", () => {
+        const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1500);
+
+        expect(getDurationMs(1200)).toBe(300);
+
+        nowSpy.mockRestore();
     });
 });

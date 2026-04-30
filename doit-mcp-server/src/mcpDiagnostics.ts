@@ -31,6 +31,57 @@ function getDurationMs(startedAt: number): number {
   return Date.now() - startedAt;
 }
 
+export { getDurationMs };
+
+export function getUserAgentFamily(
+  userAgent: string | null
+): string | undefined {
+  if (!userAgent) {
+    return undefined;
+  }
+
+  const normalized = userAgent.toLowerCase();
+  if (normalized.includes("claude")) {
+    return "claude";
+  }
+  if (normalized.includes("chatgpt") || normalized.includes("openai")) {
+    return "openai";
+  }
+  if (normalized.includes("cursor")) {
+    return "cursor";
+  }
+  // Runtime buckets are last-resort matches; add specific clients above them.
+  if (normalized.includes("node")) {
+    return "node";
+  }
+  if (normalized.includes("python")) {
+    return "python";
+  }
+  return "other";
+}
+
+export function getRequestDiagnostics(req: Request, pathname: string) {
+  return {
+    method: req.method,
+    pathname,
+    hasAuthorization: Boolean(req.headers.get("authorization")),
+    hasMcpSessionId: Boolean(req.headers.get("mcp-session-id")),
+    contentType: req.headers.get("content-type") ?? undefined,
+    accept: req.headers.get("accept") ?? undefined,
+    userAgentFamily: getUserAgentFamily(req.headers.get("user-agent")),
+  };
+}
+
+export function getRequestBodyDiagnostics(req: Request) {
+  if (req.method !== "POST") {
+    return {};
+  }
+
+  return {
+    requestBodyInspection: "skipped_to_preserve_forwarded_body",
+  };
+}
+
 function normalizeMcpTraceId(
   traceId: string | string[] | null | undefined
 ): string | undefined {

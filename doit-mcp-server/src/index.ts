@@ -204,8 +204,11 @@ import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
 import { DurableObjectApprovalStore } from "./durableObjectApprovalStore.js";
 import {
+  getDurationMs,
   getMcpDiagnosticsMessage,
   getMcpTraceId,
+  getRequestBodyDiagnostics,
+  getRequestDiagnostics,
   installMcpMethodDiagnosticsFromServer,
   withMcpTraceId,
 } from "./mcpDiagnostics.js";
@@ -240,57 +243,6 @@ const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function getUserAgentFamily(userAgent: string | null): string | undefined {
-  if (!userAgent) {
-    return undefined;
-  }
-
-  const normalized = userAgent.toLowerCase();
-  if (normalized.includes("claude")) {
-    return "claude";
-  }
-  if (normalized.includes("chatgpt") || normalized.includes("openai")) {
-    return "openai";
-  }
-  if (normalized.includes("cursor")) {
-    return "cursor";
-  }
-  // Runtime buckets are last-resort matches; add specific clients above them.
-  if (normalized.includes("node")) {
-    return "node";
-  }
-  if (normalized.includes("python")) {
-    return "python";
-  }
-  return "other";
-}
-
-function getRequestDiagnostics(req: Request, pathname: string) {
-  return {
-    method: req.method,
-    pathname,
-    hasAuthorization: Boolean(req.headers.get("authorization")),
-    hasMcpSessionId: Boolean(req.headers.get("mcp-session-id")),
-    contentType: req.headers.get("content-type") ?? undefined,
-    accept: req.headers.get("accept") ?? undefined,
-    userAgentFamily: getUserAgentFamily(req.headers.get("user-agent")),
-  };
-}
-
-function getRequestBodyDiagnostics(req: Request) {
-  if (req.method !== "POST") {
-    return {};
-  }
-
-  return {
-    requestBodyInspection: "skipped_to_preserve_forwarded_body",
-  };
-}
-
-function getDurationMs(startedAt: number): number {
-  return Date.now() - startedAt;
 }
 
 function isMcpDiscoveryPath(pathname: string): boolean {
