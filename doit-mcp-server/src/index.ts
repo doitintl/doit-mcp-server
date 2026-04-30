@@ -203,6 +203,12 @@ import type { ApprovalStore } from "../../src/utils/approval.js";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
 import { DurableObjectApprovalStore } from "./durableObjectApprovalStore.js";
+import {
+  getMcpDiagnosticsMessage,
+  getMcpTraceId,
+  installMcpMethodDiagnosticsFromHandlers,
+  withMcpTraceId,
+} from "./mcpDiagnostics.js";
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
@@ -230,19 +236,6 @@ const MCP_NOTIFICATIONS_PING = {
 const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
-const MCP_TRACE_ID_HEADER = "x-mcp-trace-id";
-// Accept common upstream trace formats such as W3C traceparent/OTel IDs, but
-// bound and sanitize before embedding values in log messages.
-const MCP_TRACE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
-const MCP_METHOD_DIAGNOSTICS = [
-  "initialize",
-  "prompts/list",
-  "tools/call",
-  "tools/list",
-  "resources/list",
-  "resources/read",
-] as const;
-const MCP_METHOD_DIAGNOSTICS_WRAPPED = Symbol("mcpMethodDiagnosticsWrapped");
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 function getErrorMessage(error: unknown): string {
@@ -296,58 +289,8 @@ function getRequestBodyDiagnostics(req: Request) {
   };
 }
 
-function createMcpTraceId(): string {
-  return crypto.randomUUID().replaceAll("-", "").slice(0, 12);
-}
-
-function getMcpTraceId(req: Request): string {
-  const traceId = req.headers.get(MCP_TRACE_ID_HEADER)?.trim();
-  return traceId && MCP_TRACE_ID_PATTERN.test(traceId)
-    ? traceId
-    : createMcpTraceId();
-}
-
-/**
- * SDK transports expose requestInfo.headers as either Web Headers or a plain
- * object depending on the runtime/transport path.
- */
-function getMcpTraceIdFromHeaders(
-  headers: Headers | Record<string, string | string[] | undefined> | undefined
-): string | undefined {
-  const traceId =
-    headers instanceof Headers
-      ? headers.get(MCP_TRACE_ID_HEADER)?.trim()
-      : headers?.[MCP_TRACE_ID_HEADER];
-  const normalizedTraceId = Array.isArray(traceId) ? traceId[0] : traceId;
-  return normalizedTraceId && MCP_TRACE_ID_PATTERN.test(normalizedTraceId)
-    ? normalizedTraceId
-    : undefined;
-}
-
-function getMcpDiagnosticsMessage(event: string, traceId?: string): string {
-  return traceId
-    ? `[mcp] ${event}: diagnostics-v1 traceId=${traceId}`
-    : `[mcp] ${event}: diagnostics-v1`;
-}
-
-function withMcpTraceId(req: Request, traceId: string | undefined): Request {
-  if (!traceId) {
-    return req;
-  }
-
-  const headers = new Headers(req.headers);
-  // Diagnostics correlation header; it may originate from the client, then gets
-  // passed through OAuthProvider into handleMcpRequest.
-  headers.set(MCP_TRACE_ID_HEADER, traceId);
-  return new Request(req, { headers });
-}
-
 function getDurationMs(startedAt: number): number {
   return Date.now() - startedAt;
-}
-
-function getJsonRpcIdType(id: unknown): string {
-  return id === null ? "null" : typeof id;
 }
 
 function isMcpDiscoveryPath(pathname: string): boolean {
@@ -761,69 +704,9 @@ export class DoitMCPAgent extends McpAgent {
   }
 
   private installMcpMethodDiagnostics() {
-    // Intentionally hooks @modelcontextprotocol/sdk@1.28.0 internals. The SDK
-    // stores schema-validating request handlers in this Map, so wrapping here
-    // observes parsed MCP methods without reading forwarded HTTP bodies.
-    const handlers = (this.server.server as any)._requestHandlers;
-    if (!(handlers instanceof Map)) {
-      console.warn("[mcp] method diagnostics unavailable: diagnostics-v1");
-      return;
-    }
-
-    const installedMethods: string[] = [];
-    const missingMethods: string[] = [];
-    const alreadyWrappedMethods: string[] = [];
-
-    for (const method of MCP_METHOD_DIAGNOSTICS) {
-      const handler = handlers.get(method);
-      if (!handler) {
-        missingMethods.push(method);
-        continue;
-      }
-      if (handler[MCP_METHOD_DIAGNOSTICS_WRAPPED]) {
-        alreadyWrappedMethods.push(method);
-        continue;
-      }
-
-      const wrappedHandler = async (request: any, extra: any) => {
-        const traceId = getMcpTraceIdFromHeaders(extra?.requestInfo?.headers);
-        const startedAt = Date.now();
-        const context = {
-          jsonRpcMethod: method,
-          requestIdType: getJsonRpcIdType(request?.id),
-        };
-
-        console.log(getMcpDiagnosticsMessage("method start", traceId), context);
-        try {
-          const result = await handler(request, extra);
-          console.log(getMcpDiagnosticsMessage("method complete", traceId), {
-            ...context,
-            durationMs: getDurationMs(startedAt),
-          });
-          return result;
-        } catch (error) {
-          console.error(
-            getMcpDiagnosticsMessage("method error", traceId),
-            {
-              ...context,
-              durationMs: getDurationMs(startedAt),
-              reason: getErrorMessage(error),
-            },
-            error
-          );
-          throw error;
-        }
-      };
-      wrappedHandler[MCP_METHOD_DIAGNOSTICS_WRAPPED] = true;
-      handlers.set(method, wrappedHandler);
-      installedMethods.push(method);
-    }
-
-    console.log(getMcpDiagnosticsMessage("method diagnostics installed"), {
-      installedMethods,
-      missingMethods,
-      alreadyWrappedMethods,
-    });
+    installMcpMethodDiagnosticsFromHandlers(
+      (this.server.server as any)._requestHandlers
+    );
   }
 
   async init() {
