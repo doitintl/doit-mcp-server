@@ -307,13 +307,19 @@ function getDurationMs(startedAt: number): number {
   return Date.now() - startedAt;
 }
 
+function isMcpDiscoveryPath(pathname: string): boolean {
+  return (
+    pathname.endsWith("/.well-known/oauth-protected-resource") ||
+    pathname.endsWith("/.well-known/oauth-authorization-server")
+  );
+}
+
 function isMcpDiagnosticsPath(pathname: string): boolean {
   return (
     pathname === "/sse" ||
     pathname === "/sse/message" ||
     pathname === "/mcp" ||
-    pathname.endsWith("/.well-known/oauth-protected-resource") ||
-    pathname.endsWith("/.well-known/oauth-authorization-server")
+    isMcpDiscoveryPath(pathname)
   );
 }
 
@@ -1203,15 +1209,9 @@ async function handleRequest(
   const url = new URL(req.url);
   const runtimeEnv = env as DoitWorkerEnv;
   const startedAt = Date.now();
-  const shouldLogDiagnostics = isMcpDiagnosticsPath(url.pathname);
-  const traceId = shouldLogDiagnostics ? getMcpTraceId(req) : undefined;
-
-  if (shouldLogDiagnostics) {
-    console.log("[mcp] request start: diagnostics-v1", {
-      traceId,
-      ...getRequestDiagnostics(req, url.pathname),
-    });
-  }
+  const shouldPassTraceId = isMcpDiagnosticsPath(url.pathname);
+  const shouldLogRequestDiagnostics = isMcpDiscoveryPath(url.pathname);
+  const traceId = shouldPassTraceId ? getMcpTraceId(req) : undefined;
 
   try {
     // Serve OAuth discovery endpoints unauthenticated at ANY path prefix.
@@ -1222,10 +1222,7 @@ async function handleRequest(
     // Use the Host request header (not url.origin) because wrangler dev rewrites request.url
     // to use the route pattern host (mcp.doit.com) regardless of the actual incoming host.
     // The Host header correctly reflects the public URL (ngrok, cloudflare tunnel, or prod).
-    if (
-      url.pathname.endsWith("/.well-known/oauth-protected-resource") ||
-      url.pathname.endsWith("/.well-known/oauth-authorization-server")
-    ) {
+    if (isMcpDiscoveryPath(url.pathname)) {
       // PUBLIC_URL overrides everything — required for local dev via tunnel because
       // wrangler dev rewrites request.url and Host to the route pattern (mcp.doit.com).
       const base =
@@ -1274,10 +1271,9 @@ async function handleRequest(
       env,
       ctx
     );
-    logMcpRequestComplete(traceId, response, startedAt);
     return response;
   } catch (error) {
-    if (shouldLogDiagnostics) {
+    if (shouldLogRequestDiagnostics) {
       console.error(
         "[mcp] request error: diagnostics-v1",
         {
