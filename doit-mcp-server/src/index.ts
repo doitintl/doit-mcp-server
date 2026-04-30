@@ -494,83 +494,73 @@ export class DoitMCPAgent extends McpAgent {
   }
 
   private registerWidgetResource() {
-    try {
-      const env = this.env as DoitWorkerEnv;
-      this.server.resource(
-        "cloud-intelligence-widget",
-        WIDGET_URI,
-        { mimeType: WIDGET_RESOURCE_MIME_TYPE },
-        async () => {
-          if (
-            !this._mcpClientInfo.mcpClient &&
-            !this._sessionUiDomainProvider
-          ) {
-            await this.loadPersistedSessionUiDomainProvider();
-          }
-          const logContext = {
-            mcpClient: this._mcpClientInfo.mcpClient,
-            mcpClientVersion: this._mcpClientInfo.mcpClientVersion,
-            sessionProvider: this._sessionUiDomainProvider,
-            hasWorkerUrl: Boolean(env.WORKER_URL),
-            hasPublicMcpUrl: Boolean(env.PUBLIC_MCP_URL),
-            hasClaudeUiDomain: Boolean(env.CLAUDE_UI_DOMAIN),
-            hasOpenAiUiDomain: Boolean(env.OPENAI_UI_DOMAIN),
+    const env = this.env as DoitWorkerEnv;
+    this.server.resource(
+      "cloud-intelligence-widget",
+      WIDGET_URI,
+      { mimeType: WIDGET_RESOURCE_MIME_TYPE },
+      async () => {
+        if (
+          !this._mcpClientInfo.mcpClient &&
+          !this._sessionUiDomainProvider
+        ) {
+          await this.loadPersistedSessionUiDomainProvider();
+        }
+        const logContext = {
+          mcpClient: this._mcpClientInfo.mcpClient,
+          mcpClientVersion: this._mcpClientInfo.mcpClientVersion,
+          sessionProvider: this._sessionUiDomainProvider,
+          hasWorkerUrl: Boolean(env.WORKER_URL),
+          hasPublicMcpUrl: Boolean(env.PUBLIC_MCP_URL),
+          hasClaudeUiDomain: Boolean(env.CLAUDE_UI_DOMAIN),
+          hasOpenAiUiDomain: Boolean(env.OPENAI_UI_DOMAIN),
+        };
+        let widgetFetchOrigin: string;
+        let publicMcpUrl: string;
+        try {
+          widgetFetchOrigin = resolveWidgetFetchOrigin(env);
+          publicMcpUrl = resolvePublicMcpUrl(env, widgetFetchOrigin);
+        } catch (error) {
+          logWidgetResourceError(
+            "[widget] config resolution failed",
+            error,
+            logContext
+          );
+          return {
+            contents: [buildFallbackWidgetResourceContent(WIDGET_URI)],
           };
-          let widgetFetchOrigin: string;
-          let publicMcpUrl: string;
-          try {
-            widgetFetchOrigin = resolveWidgetFetchOrigin(env);
-            publicMcpUrl = resolvePublicMcpUrl(env, widgetFetchOrigin);
-          } catch (error) {
-            logWidgetResourceError(
-              "[widget] config resolution failed",
-              error,
-              logContext
-            );
-            return {
-              contents: [buildFallbackWidgetResourceContent(WIDGET_URI)],
-            };
-          }
+        }
 
-          console.log("[widget] resources/read called for", WIDGET_URI, {
+        console.log("[widget] resources/read called for", WIDGET_URI, {
+          mcpClient: this._mcpClientInfo.mcpClient,
+          mcpClientVersion: this._mcpClientInfo.mcpClientVersion,
+          sessionProvider: this._sessionUiDomainProvider,
+          widgetFetchOrigin,
+          publicMcpUrl,
+        });
+        let resourceContent: WidgetResourceContent;
+        try {
+          resourceContent = await buildWidgetResourceContent({
+            widgetUri: WIDGET_URI,
             mcpClient: this._mcpClientInfo.mcpClient,
-            mcpClientVersion: this._mcpClientInfo.mcpClientVersion,
             sessionProvider: this._sessionUiDomainProvider,
             widgetFetchOrigin,
             publicMcpUrl,
+            env,
           });
-          let resourceContent: WidgetResourceContent;
-          try {
-            resourceContent = await buildWidgetResourceContent({
-              widgetUri: WIDGET_URI,
-              mcpClient: this._mcpClientInfo.mcpClient,
-              sessionProvider: this._sessionUiDomainProvider,
-              widgetFetchOrigin,
-              publicMcpUrl,
-              env,
-            });
-          } catch (error) {
-            logWidgetResourceError(
-              "[widget] resource content build failed",
-              error,
-              logContext
-            );
-            resourceContent = buildFallbackWidgetResourceContent(WIDGET_URI);
-          }
-          return {
-            contents: [resourceContent],
-          };
+        } catch (error) {
+          logWidgetResourceError(
+            "[widget] resource content build failed",
+            error,
+            logContext
+          );
+          resourceContent = buildFallbackWidgetResourceContent(WIDGET_URI);
         }
-      );
-    } catch (error) {
-      console.error(
-        "[widget] failed to register widget resource",
-        {
-          reason: getErrorMessage(error),
-        },
-        error
-      );
-    }
+        return {
+          contents: [resourceContent],
+        };
+      }
+    );
   }
 
   async init() {
@@ -794,7 +784,17 @@ export class DoitMCPAgent extends McpAgent {
       );
     }
 
-    this.registerWidgetResource();
+    try {
+      this.registerWidgetResource();
+    } catch (error) {
+      console.error(
+        "[widget] failed to register widget resource",
+        {
+          reason: getErrorMessage(error),
+        },
+        error
+      );
+    }
   }
 }
 
