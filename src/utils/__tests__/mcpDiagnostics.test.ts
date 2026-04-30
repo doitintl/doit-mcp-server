@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+    getMcpDiagnosticsMessage,
     installMcpMethodDiagnosticsFromHandlers,
     installMcpMethodDiagnosticsFromServer,
+    withMcpTraceId,
 } from "../../../doit-mcp-server/src/mcpDiagnostics.js";
 
 function createLogger() {
@@ -36,6 +38,21 @@ describe("installMcpMethodDiagnosticsFromHandlers", () => {
                 requestIdType: "string",
             })
         );
+    });
+
+    it("forwards all handler arguments to the original SDK handler", async () => {
+        const logger = createLogger();
+        const originalHandler = vi.fn(async () => ({ tools: [] }));
+        const handlers = new Map<string, any>([["tools/list", originalHandler]]);
+        const request = { id: "request-1" };
+        const extra = { requestInfo: { headers: { "x-mcp-trace-id": "trace-ABC_123" } } };
+        const cancellationToken = { cancelled: false };
+
+        installMcpMethodDiagnosticsFromHandlers(handlers, logger);
+
+        await handlers.get("tools/list")(request, extra, cancellationToken);
+
+        expect(originalHandler).toHaveBeenCalledWith(request, extra, cancellationToken);
     });
 
     it("does not wrap a handler more than once", async () => {
@@ -96,6 +113,31 @@ describe("installMcpMethodDiagnosticsFromHandlers", () => {
                 jsonRpcMethod: "tools/list",
                 requestIdType: "number",
             })
+        );
+    });
+});
+
+describe("MCP diagnostics trace helpers", () => {
+    it("does not reconstruct a request after its body has been consumed", async () => {
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+        const request = new Request("https://mcp.example.com/mcp", {
+            body: "{}",
+            method: "POST",
+        });
+        await request.text();
+
+        const tracedRequest = withMcpTraceId(request, "trace-ABC_123");
+
+        expect(tracedRequest).toBe(request);
+        expect(warnSpy).toHaveBeenCalledWith(
+            "[mcp] trace propagation skipped because request body was already used: diagnostics-v1"
+        );
+        warnSpy.mockRestore();
+    });
+
+    it("sanitizes invalid trace IDs before embedding them in log messages", () => {
+        expect(getMcpDiagnosticsMessage("route start", "bad\ntrace")).toBe(
+            "[mcp] route start: diagnostics-v1 traceId=invalid"
         );
     });
 });

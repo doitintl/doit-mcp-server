@@ -13,12 +13,13 @@ const MCP_METHOD_DIAGNOSTICS = [
   "resources/read",
 ] as const;
 
-const MCP_METHOD_DIAGNOSTICS_WRAPPED = Symbol("mcpMethodDiagnosticsWrapped");
+const MCP_METHOD_DIAGNOSTICS_WRAPPED = "__mcpDiagnosticsWrapped__";
+let didWarnSkippedTracePropagation = false;
 
 type McpMethodDiagnosticsLogger = Pick<Console, "error" | "log" | "warn">;
 
 type McpRequestHandler = {
-  (request: any, extra: any): Promise<unknown>;
+  (...args: any[]): Promise<unknown>;
   [MCP_METHOD_DIAGNOSTICS_WRAPPED]?: boolean;
 };
 
@@ -62,9 +63,12 @@ export function getMcpDiagnosticsMessage(
   event: string,
   traceId?: string
 ): string {
-  return traceId
-    ? `[mcp] ${event}: diagnostics-v1 traceId=${traceId}`
-    : `[mcp] ${event}: diagnostics-v1`;
+  if (!traceId) {
+    return `[mcp] ${event}: diagnostics-v1`;
+  }
+
+  const safeTraceId = MCP_TRACE_ID_PATTERN.test(traceId) ? traceId : "invalid";
+  return `[mcp] ${event}: diagnostics-v1 traceId=${safeTraceId}`;
 }
 
 export function withMcpTraceId(
@@ -72,6 +76,15 @@ export function withMcpTraceId(
   traceId: string | undefined
 ): Request {
   if (!traceId) {
+    return req;
+  }
+  if (req.bodyUsed) {
+    if (!didWarnSkippedTracePropagation) {
+      didWarnSkippedTracePropagation = true;
+      console.warn(
+        "[mcp] trace propagation skipped because request body was already used: diagnostics-v1"
+      );
+    }
     return req;
   }
 
@@ -118,7 +131,8 @@ export function installMcpMethodDiagnosticsFromHandlers(
       continue;
     }
 
-    const wrappedHandler: McpRequestHandler = async (request, extra) => {
+    const wrappedHandler: McpRequestHandler = async (...args) => {
+      const [request, extra] = args;
       const traceId = getMcpTraceIdFromHeaders(extra?.requestInfo?.headers);
       const startedAt = Date.now();
       const context = {
@@ -128,7 +142,7 @@ export function installMcpMethodDiagnosticsFromHandlers(
 
       logger.log(getMcpDiagnosticsMessage("method start", traceId), context);
       try {
-        const result = await handler(request, extra);
+        const result = await handler(...args);
         logger.log(getMcpDiagnosticsMessage("method complete", traceId), {
           ...context,
           durationMs: getDurationMs(startedAt),
