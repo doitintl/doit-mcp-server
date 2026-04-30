@@ -231,7 +231,7 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
 const MCP_TRACE_ID_HEADER = "x-mcp-trace-id";
-const MCP_TRACE_ID_PATTERN = /^[a-f0-9]{12}$/;
+const MCP_TRACE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 function getErrorMessage(error: unknown): string {
@@ -349,6 +349,9 @@ async function logMcpRoute(
       status: response.status,
       contentType: response.headers.get("content-type") ?? undefined,
       durationMs: getDurationMs(startedAt),
+      ...(route === "sse-open"
+        ? { durationMeaning: "time_to_response_headers" }
+        : {}),
       ...(response.status >= 400
         ? { responseBodyInspection: "skipped_for_security_and_performance" }
         : {}),
@@ -1008,6 +1011,7 @@ function wrapSSEResponseWithKeepAlive(
 
   let keepAliveTimer: number | null = null;
   let isStreamActive = true;
+  let streamCanceled = false;
   let originalReader = originalBody.getReader();
 
   const transformedStream = new ReadableStream({
@@ -1075,7 +1079,7 @@ function wrapSSEResponseWithKeepAlive(
           clearTimeout(keepAliveTimer);
           keepAliveTimer = null;
         }
-        if (!streamErrored) {
+        if (!streamErrored && !streamCanceled) {
           controller.close();
         }
       }
@@ -1085,11 +1089,12 @@ function wrapSSEResponseWithKeepAlive(
 
       // Clean up when the client disconnects
       isStreamActive = false;
+      streamCanceled = true;
       if (keepAliveTimer !== null) {
         clearTimeout(keepAliveTimer);
         keepAliveTimer = null;
       }
-      originalReader.cancel();
+      return originalReader.cancel();
     }
   });
 
