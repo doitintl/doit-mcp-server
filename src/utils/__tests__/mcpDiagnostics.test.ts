@@ -64,6 +64,22 @@ describe("installMcpMethodDiagnosticsFromHandlers", () => {
         expect(logger.warn).toHaveBeenCalledWith("[mcp] method diagnostics unavailable: diagnostics-v1");
     });
 
+    it("does not wrap unsupported handler shapes", () => {
+        const logger = createLogger();
+        const handlers = new Map<string, any>([["tools/list", { handler: vi.fn() }]]);
+
+        installMcpMethodDiagnosticsFromHandlers(handlers, logger);
+
+        expect(handlers.get("tools/list")).toEqual({ handler: expect.any(Function) });
+        expect(logger.log).toHaveBeenCalledWith(
+            "[mcp] method diagnostics installed: diagnostics-v1",
+            expect.objectContaining({
+                installedMethods: [],
+                unsupportedMethods: ["tools/list"],
+            })
+        );
+    });
+
     it("extracts SDK handler internals from the server shape", async () => {
         const logger = createLogger();
         const originalHandler = vi.fn(async () => ({ tools: [] }));

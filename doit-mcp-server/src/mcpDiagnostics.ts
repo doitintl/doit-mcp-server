@@ -100,12 +100,17 @@ export function installMcpMethodDiagnosticsFromHandlers(
 
   const installedMethods: string[] = [];
   const missingMethods: string[] = [];
+  const unsupportedMethods: string[] = [];
   const alreadyWrappedMethods: string[] = [];
 
   for (const method of MCP_METHOD_DIAGNOSTICS) {
     const handler = handlers.get(method) as McpRequestHandler | undefined;
     if (!handler) {
       missingMethods.push(method);
+      continue;
+    }
+    if (typeof handler !== "function") {
+      unsupportedMethods.push(method);
       continue;
     }
     if (handler[MCP_METHOD_DIAGNOSTICS_WRAPPED]) {
@@ -150,6 +155,7 @@ export function installMcpMethodDiagnosticsFromHandlers(
   logger.log(getMcpDiagnosticsMessage("method diagnostics installed"), {
     installedMethods,
     missingMethods,
+    unsupportedMethods,
     alreadyWrappedMethods,
   });
 }
