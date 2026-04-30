@@ -1204,7 +1204,7 @@ async function handleRequest(
   const runtimeEnv = env as DoitWorkerEnv;
   const startedAt = Date.now();
   const shouldLogDiagnostics = isMcpDiagnosticsPath(url.pathname);
-  const traceId = shouldLogDiagnostics ? createMcpTraceId() : undefined;
+  const traceId = shouldLogDiagnostics ? getMcpTraceId(req) : undefined;
 
   if (shouldLogDiagnostics) {
     console.log("[mcp] request start: diagnostics-v1", {
