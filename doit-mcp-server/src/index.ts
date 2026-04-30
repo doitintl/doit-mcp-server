@@ -297,6 +297,12 @@ function getMcpTraceId(req: Request): string {
     : createMcpTraceId();
 }
 
+function getMcpDiagnosticsMessage(event: string, traceId?: string): string {
+  return traceId
+    ? `[mcp] ${event}: diagnostics-v1 traceId=${traceId}`
+    : `[mcp] ${event}: diagnostics-v1`;
+}
+
 function withMcpTraceId(req: Request, traceId: string | undefined): Request {
   if (!traceId) {
     return req;
@@ -338,7 +344,7 @@ async function logMcpRoute(
   const startedAt = Date.now();
   const pathname = new URL(req.url).pathname;
 
-  console.log("[mcp] route start: diagnostics-v1", {
+  console.log(getMcpDiagnosticsMessage("route start", traceId), {
     traceId,
     route,
     ...getRequestDiagnostics(req, pathname),
@@ -348,7 +354,7 @@ async function logMcpRoute(
 
   try {
     const response = await handler();
-    console.log("[mcp] route complete: diagnostics-v1", {
+    console.log(getMcpDiagnosticsMessage("route complete", traceId), {
       traceId,
       route,
       status: response.status,
@@ -364,7 +370,7 @@ async function logMcpRoute(
     return response;
   } catch (error) {
     console.error(
-      "[mcp] route error: diagnostics-v1",
+      getMcpDiagnosticsMessage("route error", traceId),
       {
         traceId,
         route,
@@ -386,7 +392,7 @@ function logMcpRequestComplete(
     return;
   }
 
-  console.log("[mcp] request complete: diagnostics-v1", {
+  console.log(getMcpDiagnosticsMessage("request complete", traceId), {
     traceId,
     status: response.status,
     contentType: response.headers.get("content-type") ?? undefined,
@@ -1007,10 +1013,13 @@ function wrapSSEResponseWithKeepAlive(
   const originalBody = response.body;
 
   if (!originalBody) {
-    console.log("[mcp] sse stream missing body: diagnostics-v1", {
-      traceId,
-      status: response.status,
-    });
+    console.log(
+      getMcpDiagnosticsMessage("sse stream missing body", traceId),
+      {
+        traceId,
+        status: response.status,
+      }
+    );
     return response;
   }
 
@@ -1021,7 +1030,9 @@ function wrapSSEResponseWithKeepAlive(
 
   const transformedStream = new ReadableStream({
     async start(controller) {
-      console.log("[mcp] sse stream start: diagnostics-v1", { traceId });
+      console.log(getMcpDiagnosticsMessage("sse stream start", traceId), {
+        traceId,
+      });
 
       // Recursive function to schedule the next keep-alive message
       const scheduleKeepAlive = () => {
@@ -1040,7 +1051,7 @@ function wrapSSEResponseWithKeepAlive(
             scheduleKeepAlive();
           } catch (error) {
             console.error(
-              "[mcp] sse keepalive enqueue error: diagnostics-v1",
+              getMcpDiagnosticsMessage("sse keepalive enqueue error", traceId),
               {
                 traceId,
                 reason: getErrorMessage(error),
@@ -1061,14 +1072,16 @@ function wrapSSEResponseWithKeepAlive(
         while (true) {
           const { done, value } = await originalReader.read();
           if (done) {
-            console.log("[mcp] sse stream done: diagnostics-v1", { traceId });
+            console.log(getMcpDiagnosticsMessage("sse stream done", traceId), {
+              traceId,
+            });
             break;
           }
           controller.enqueue(value);
         }
       } catch (error) {
         console.error(
-          "[mcp] sse stream read error: diagnostics-v1",
+          getMcpDiagnosticsMessage("sse stream read error", traceId),
           {
             traceId,
             reason: getErrorMessage(error),
@@ -1090,7 +1103,9 @@ function wrapSSEResponseWithKeepAlive(
       }
     },
     cancel() {
-      console.log("[mcp] sse stream cancel: diagnostics-v1", { traceId });
+      console.log(getMcpDiagnosticsMessage("sse stream cancel", traceId), {
+        traceId,
+      });
 
       // Clean up when the client disconnects
       isStreamActive = false;
@@ -1269,7 +1284,7 @@ async function handleRequest(
   } catch (error) {
     if (shouldLogRequestDiagnostics) {
       console.error(
-        "[mcp] request error: diagnostics-v1",
+        getMcpDiagnosticsMessage("request error", traceId),
         {
           traceId,
           durationMs: getDurationMs(startedAt),
