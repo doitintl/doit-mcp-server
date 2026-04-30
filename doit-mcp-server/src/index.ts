@@ -1020,6 +1020,7 @@ function wrapSSEResponseWithKeepAlive(
       scheduleKeepAlive();
 
       // Forward all messages from the original SSE response
+      let streamErrored = false;
       try {
         while (true) {
           const { done, value } = await originalReader.read();
@@ -1038,6 +1039,7 @@ function wrapSSEResponseWithKeepAlive(
           },
           error
         );
+        streamErrored = true;
         controller.error(error);
       } finally {
         // Clean up when the stream ends
@@ -1046,7 +1048,9 @@ function wrapSSEResponseWithKeepAlive(
           clearTimeout(keepAliveTimer);
           keepAliveTimer = null;
         }
-        controller.close();
+        if (!streamErrored) {
+          controller.close();
+        }
       }
     },
     cancel() {
