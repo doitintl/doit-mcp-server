@@ -231,6 +231,7 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
 const MCP_TRACE_ID_HEADER = "x-mcp-trace-id";
+const MCP_TRACE_ID_PATTERN = /^[a-f0-9]{12}$/;
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 function getErrorMessage(error: unknown): string {
@@ -286,7 +287,10 @@ function createMcpTraceId(): string {
 }
 
 function getMcpTraceId(req: Request): string {
-  return req.headers.get(MCP_TRACE_ID_HEADER)?.trim() || createMcpTraceId();
+  const traceId = req.headers.get(MCP_TRACE_ID_HEADER)?.trim();
+  return traceId && MCP_TRACE_ID_PATTERN.test(traceId)
+    ? traceId
+    : createMcpTraceId();
 }
 
 function withMcpTraceId(req: Request, traceId: string | undefined): Request {
