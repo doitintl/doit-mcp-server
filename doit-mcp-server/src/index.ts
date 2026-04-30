@@ -978,7 +978,7 @@ export class DoitMCPAgent extends McpAgent {
         error
       );
     }
-    console.log("[mcp] registered capabilities", {
+    console.log("[mcp] registered capabilities: diagnostics-v1", {
       toolCount: this._registeredToolCount,
       promptCount: this._registeredPromptCount,
       resourceCount: this._registeredResourceCount,
