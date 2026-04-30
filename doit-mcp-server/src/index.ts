@@ -234,6 +234,12 @@ const MCP_TRACE_ID_HEADER = "x-mcp-trace-id";
 // Accept common upstream trace formats such as W3C traceparent/OTel IDs, but
 // bound and sanitize before embedding values in log messages.
 const MCP_TRACE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
+const MCP_METHOD_DIAGNOSTICS = [
+  "initialize",
+  "tools/list",
+  "resources/list",
+  "resources/read",
+] as const;
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 function getErrorMessage(error: unknown): string {
@@ -298,6 +304,19 @@ function getMcpTraceId(req: Request): string {
     : createMcpTraceId();
 }
 
+function getMcpTraceIdFromHeaders(
+  headers: Headers | Record<string, string | string[] | undefined> | undefined
+): string | undefined {
+  const traceId =
+    headers instanceof Headers
+      ? headers.get(MCP_TRACE_ID_HEADER)?.trim()
+      : headers?.[MCP_TRACE_ID_HEADER];
+  const normalizedTraceId = Array.isArray(traceId) ? traceId[0] : traceId;
+  return normalizedTraceId && MCP_TRACE_ID_PATTERN.test(normalizedTraceId)
+    ? normalizedTraceId
+    : undefined;
+}
+
 function getMcpDiagnosticsMessage(event: string, traceId?: string): string {
   return traceId
     ? `[mcp] ${event}: diagnostics-v1 traceId=${traceId}`
@@ -318,6 +337,16 @@ function withMcpTraceId(req: Request, traceId: string | undefined): Request {
 
 function getDurationMs(startedAt: number): number {
   return Date.now() - startedAt;
+}
+
+function getJsonRpcIdType(id: unknown): string {
+  if (typeof id === "string" || typeof id === "number") {
+    return typeof id;
+  }
+  if (id === null) {
+    return "null";
+  }
+  return typeof id;
 }
 
 function isMcpDiscoveryPath(pathname: string): boolean {
@@ -483,6 +512,7 @@ export class DoitMCPAgent extends McpAgent {
   private _registeredPromptCount = 0;
   private _registeredResourceCount = 0;
   private _registeredToolCount = 0;
+  private _didInstallMcpMethodDiagnostics = false;
 
   // Per-instance approval store for the two-phase destructive-tool commit flow.
   // Backed by `this.ctx.storage` (DurableObject storage) so that a staged action
@@ -730,6 +760,57 @@ export class DoitMCPAgent extends McpAgent {
     this._registeredResourceCount += 1;
   }
 
+  private installMcpMethodDiagnostics() {
+    if (this._didInstallMcpMethodDiagnostics) {
+      return;
+    }
+
+    const handlers = (this.server.server as any)._requestHandlers;
+    if (!(handlers instanceof Map)) {
+      console.warn("[mcp] method diagnostics unavailable: diagnostics-v1");
+      return;
+    }
+
+    for (const method of MCP_METHOD_DIAGNOSTICS) {
+      const handler = handlers.get(method);
+      if (!handler) {
+        continue;
+      }
+
+      handlers.set(method, async (request: any, extra: any) => {
+        const traceId = getMcpTraceIdFromHeaders(extra?.requestInfo?.headers);
+        const startedAt = Date.now();
+        const context = {
+          jsonRpcMethod: method,
+          requestIdType: getJsonRpcIdType(request?.id),
+        };
+
+        console.log(getMcpDiagnosticsMessage("method start", traceId), context);
+        try {
+          const result = await handler(request, extra);
+          console.log(getMcpDiagnosticsMessage("method complete", traceId), {
+            ...context,
+            durationMs: getDurationMs(startedAt),
+          });
+          return result;
+        } catch (error) {
+          console.error(
+            getMcpDiagnosticsMessage("method error", traceId),
+            {
+              ...context,
+              durationMs: getDurationMs(startedAt),
+              reason: getErrorMessage(error),
+            },
+            error
+          );
+          throw error;
+        }
+      });
+    }
+
+    this._didInstallMcpMethodDiagnostics = true;
+  }
+
   async init() {
     // Guard: this.props may be undefined on the very first connection because
     // McpAgent.onStart() calls _init(stored_props) → init() BEFORE the Worker-side
@@ -975,6 +1056,8 @@ export class DoitMCPAgent extends McpAgent {
         error
       );
     }
+    this.installMcpMethodDiagnostics();
+
     console.log(getMcpDiagnosticsMessage("registered capabilities"), {
       toolCount: this._registeredToolCount,
       promptCount: this._registeredPromptCount,
