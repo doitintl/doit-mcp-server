@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { WIDGET_URI } from "../../../doit-mcp-server/src/responseAdapter.js";
 import {
+    buildFallbackWidgetResourceContent,
     buildWidgetResourceContent,
     buildWidgetStub,
     classifyUiDomainProvider,
@@ -146,6 +147,23 @@ describe("resolveUiDomain", () => {
 });
 
 describe("widget resource contract", () => {
+    it("builds a safe fallback resource without ui.domain", () => {
+        const content = buildFallbackWidgetResourceContent(WIDGET_URI);
+        const meta = content._meta as {
+            ui: { domain?: string; csp: { connectDomains: string[] } };
+            "openai/widgetDomain"?: string;
+        };
+
+        expect(content.uri).toBe(WIDGET_URI);
+        expect(content.mimeType).toBe("text/html;profile=mcp-app");
+        expect(content.text).toContain("MCP tools are still available");
+        expect(meta.ui).not.toHaveProperty("domain");
+        expect(meta).not.toHaveProperty("openai/widgetDomain");
+        expect(meta.ui.csp.connectDomains).toEqual(
+            expect.arrayContaining(["https://api.doit.com", "https://mcp.doit.com"])
+        );
+    });
+
     it("keeps the widget stub pointed at the real widget fetch origin", () => {
         expect(buildWidgetStub("https://widgets.example.com")).toContain('"https://widgets.example.com/widget"');
     });

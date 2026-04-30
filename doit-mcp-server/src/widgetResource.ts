@@ -2,6 +2,10 @@ import type { RuntimeEnvVars, UiDomainProvider } from "./runtimeEnv.js";
 
 export const DEFAULT_WIDGET_FETCH_ORIGIN = "https://mcp.doit.com";
 export const WIDGET_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
+const DEFAULT_WIDGET_CONNECT_DOMAINS = [
+  "https://api.doit.com",
+  DEFAULT_WIDGET_FETCH_ORIGIN,
+];
 type WebCryptoApi = (typeof import("node:crypto"))["webcrypto"];
 
 function requireAbsoluteUrl(
@@ -31,6 +35,13 @@ export interface ResolveUiDomainArgs {
 
 export interface BuildWidgetResourceContentArgs extends ResolveUiDomainArgs {
   widgetUri: string;
+}
+
+export interface WidgetResourceContent {
+  uri: string;
+  mimeType: string;
+  text: string;
+  _meta: Record<string, unknown>;
 }
 
 export function resolveWidgetFetchOrigin(
@@ -214,22 +225,42 @@ export function buildWidgetConnectDomains(
 ): string[] {
   return Array.from(
     new Set([
-      "https://api.doit.com",
-      "https://mcp.doit.com",
+      ...DEFAULT_WIDGET_CONNECT_DOMAINS,
       toOrigin(widgetFetchOrigin),
       ...(publicMcpUrl ? [toOrigin(publicMcpUrl)] : []),
     ])
   );
 }
 
+export function buildFallbackWidgetResourceContent(
+  widgetUri: string
+): WidgetResourceContent {
+  return {
+    uri: widgetUri,
+    mimeType: WIDGET_RESOURCE_MIME_TYPE,
+    text: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<p style="padding:16px;color:#888;font-size:0.8125rem;font-family:system-ui,sans-serif">
+Widget unavailable — MCP tools are still available.
+</p>
+</body>
+</html>`,
+    _meta: {
+      ui: {
+        // Intentionally omit ui.domain so strict clients cannot reject the fallback.
+        csp: {
+          connectDomains: [...DEFAULT_WIDGET_CONNECT_DOMAINS],
+        },
+      },
+    },
+  };
+}
+
 export async function buildWidgetResourceContent(
   args: BuildWidgetResourceContentArgs
-): Promise<{
-  uri: string;
-  mimeType: string;
-  text: string;
-  _meta: Record<string, unknown>;
-}> {
+): Promise<WidgetResourceContent> {
   const { provider, uiDomain } = await resolveUiDomain(args);
 
   const uiMeta: {
