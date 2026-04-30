@@ -90,9 +90,9 @@ export function installMcpMethodDiagnosticsFromHandlers(
   handlers: unknown,
   logger: McpMethodDiagnosticsLogger = console
 ) {
-  // Intentionally hooks @modelcontextprotocol/sdk@1.28.0 internals. The SDK
-  // stores schema-validating request handlers in this Map, so wrapping here
-  // observes parsed MCP methods without reading forwarded HTTP bodies.
+  // Intentionally hooks MCP SDK internals only when the expected handler Map is
+  // present. Wrapping here observes parsed MCP methods without reading forwarded
+  // HTTP bodies; if the SDK shape changes, we fail closed with a warning.
   if (!(handlers instanceof Map)) {
     logger.warn("[mcp] method diagnostics unavailable: diagnostics-v1");
     return;
