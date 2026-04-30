@@ -230,6 +230,7 @@ const MCP_NOTIFICATIONS_PING = {
 const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
+const MCP_TRACE_ID_HEADER = "x-mcp-trace-id";
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 function getErrorMessage(error: unknown): string {
@@ -282,6 +283,20 @@ function getRequestBodyDiagnostics(req: Request) {
 
 function createMcpTraceId(): string {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function getMcpTraceId(req: Request): string {
+  return req.headers.get(MCP_TRACE_ID_HEADER)?.trim() || createMcpTraceId();
+}
+
+function withMcpTraceId(req: Request, traceId: string | undefined): Request {
+  if (!traceId) {
+    return req;
+  }
+
+  const headers = new Headers(req.headers);
+  headers.set(MCP_TRACE_ID_HEADER, traceId);
+  return new Request(req, { headers });
 }
 
 function getDurationMs(startedAt: number): number {
@@ -1079,7 +1094,7 @@ function wrapSSEResponseWithKeepAlive(
 async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
   const url = new URL(req.url);
   const { pathname } = url;
-  const traceId = createMcpTraceId();
+  const traceId = getMcpTraceId(req);
 
   // SSE transport: GET /sse opens the event stream; POST /sse/message sends messages
   if (pathname === "/sse" && req.method === "GET") {
@@ -1250,7 +1265,11 @@ async function handleRequest(
     }
 
     // If no Authorization header or not an API route, use the OAuth provider
-    const response = await oauthProvider.fetch(req, env, ctx);
+    const response = await oauthProvider.fetch(
+      withMcpTraceId(req, traceId),
+      env,
+      ctx
+    );
     logMcpRequestComplete(traceId, response, startedAt);
     return response;
   } catch (error) {
