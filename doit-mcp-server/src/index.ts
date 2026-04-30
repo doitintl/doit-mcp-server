@@ -963,6 +963,7 @@ export class DoitMCPAgent extends McpAgent {
  * Returns a wrapped response whose body stream sends all the messages from the original
  * response, plus an internal timer to send keep-alive messages at regular intervals.
  * @param response The original SSE response to wrap
+ * @param traceId Trace ID used to correlate SSE lifecycle diagnostics
  * @param keepAliveIntervalMs Optional interval in milliseconds between keep-alive messages
  */
 function wrapSSEResponseWithKeepAlive(
