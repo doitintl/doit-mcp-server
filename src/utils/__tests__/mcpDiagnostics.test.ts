@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
     getDurationMs,
     getMcpDiagnosticsMessage,
+    getMcpTraceContext,
     getMcpTraceId,
     getMcpTraceIdFromHeaders,
     getRequestBodyDiagnostics,
@@ -33,12 +34,14 @@ describe("installMcpMethodDiagnosticsFromHandlers", () => {
 
         expect(originalHandler).toHaveBeenCalledTimes(1);
         expect(logger.log).toHaveBeenCalledWith("[mcp] method start: diagnostics-v1 traceId=trace-ABC_123", {
+            traceId: "trace-ABC_123",
             jsonRpcMethod: "tools/list",
             requestIdType: "string",
         });
         expect(logger.log).toHaveBeenCalledWith(
             "[mcp] method complete: diagnostics-v1 traceId=trace-ABC_123",
             expect.objectContaining({
+                traceId: "trace-ABC_123",
                 durationMs: expect.any(Number),
                 jsonRpcMethod: "tools/list",
                 requestIdType: "string",
@@ -134,6 +137,15 @@ describe("MCP diagnostics trace helpers", () => {
 
     it("normalizes trace IDs from plain-object headers", () => {
         expect(getMcpTraceIdFromHeaders({ "x-mcp-trace-id": " trace-ABC_123 " })).toBe("trace-ABC_123");
+    });
+
+    it("reads plain-object trace headers case-insensitively", () => {
+        expect(getMcpTraceIdFromHeaders({ "X-Mcp-Trace-Id": "trace-ABC_123" })).toBe("trace-ABC_123");
+    });
+
+    it("builds optional structured trace context", () => {
+        expect(getMcpTraceContext("trace-ABC_123")).toEqual({ traceId: "trace-ABC_123" });
+        expect(getMcpTraceContext()).toEqual({});
     });
 
     it("adds the trace header when the request body is still available", () => {

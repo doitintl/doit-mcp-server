@@ -206,6 +206,7 @@ import { DurableObjectApprovalStore } from "./durableObjectApprovalStore.js";
 import {
   getDurationMs,
   getMcpDiagnosticsMessage,
+  getMcpTraceContext,
   getMcpTraceId,
   getRequestBodyDiagnostics,
   getRequestDiagnostics,
@@ -272,6 +273,7 @@ async function logMcpRoute(
   const pathname = new URL(req.url).pathname;
 
   console.log(getMcpDiagnosticsMessage("route start", traceId), {
+    ...getMcpTraceContext(traceId),
     route,
     ...getRequestDiagnostics(req, pathname),
     ...getRequestBodyDiagnostics(req),
@@ -281,6 +283,7 @@ async function logMcpRoute(
   try {
     const response = await handler();
     console.log(getMcpDiagnosticsMessage("route complete", traceId), {
+      ...getMcpTraceContext(traceId),
       route,
       status: response.status,
       contentType: response.headers.get("content-type") ?? undefined,
@@ -297,6 +300,7 @@ async function logMcpRoute(
     console.error(
       getMcpDiagnosticsMessage("route error", traceId),
       {
+        ...getMcpTraceContext(traceId),
         route,
         durationMs: getDurationMs(startedAt),
         reason: getErrorMessage(error),
@@ -317,6 +321,7 @@ function logMcpRequestComplete(
   }
 
   console.log(getMcpDiagnosticsMessage("request complete", traceId), {
+    ...getMcpTraceContext(traceId),
     status: response.status,
     contentType: response.headers.get("content-type") ?? undefined,
     durationMs: getDurationMs(startedAt),
@@ -945,6 +950,7 @@ function wrapSSEResponseWithKeepAlive(
     console.log(
       getMcpDiagnosticsMessage("sse stream missing body", traceId),
       {
+        ...getMcpTraceContext(traceId),
         status: response.status,
       }
     );
@@ -958,7 +964,9 @@ function wrapSSEResponseWithKeepAlive(
 
   const transformedStream = new ReadableStream({
     async start(controller) {
-      console.log(getMcpDiagnosticsMessage("sse stream start", traceId));
+      console.log(getMcpDiagnosticsMessage("sse stream start", traceId), {
+        ...getMcpTraceContext(traceId),
+      });
 
       // Recursive function to schedule the next keep-alive message
       const scheduleKeepAlive = () => {
@@ -979,6 +987,7 @@ function wrapSSEResponseWithKeepAlive(
             console.error(
               getMcpDiagnosticsMessage("sse keepalive enqueue error", traceId),
               {
+                ...getMcpTraceContext(traceId),
                 reason: getErrorMessage(error),
               },
               error
@@ -997,7 +1006,9 @@ function wrapSSEResponseWithKeepAlive(
         while (true) {
           const { done, value } = await originalReader.read();
           if (done) {
-            console.log(getMcpDiagnosticsMessage("sse stream done", traceId));
+            console.log(getMcpDiagnosticsMessage("sse stream done", traceId), {
+              ...getMcpTraceContext(traceId),
+            });
             break;
           }
           controller.enqueue(value);
@@ -1006,6 +1017,7 @@ function wrapSSEResponseWithKeepAlive(
         console.error(
           getMcpDiagnosticsMessage("sse stream read error", traceId),
           {
+            ...getMcpTraceContext(traceId),
             reason: getErrorMessage(error),
           },
           error
@@ -1025,7 +1037,9 @@ function wrapSSEResponseWithKeepAlive(
       }
     },
     cancel() {
-      console.log(getMcpDiagnosticsMessage("sse stream cancel", traceId));
+      console.log(getMcpDiagnosticsMessage("sse stream cancel", traceId), {
+        ...getMcpTraceContext(traceId),
+      });
 
       // Clean up when the client disconnects
       isStreamActive = false;
@@ -1208,6 +1222,7 @@ async function handleRequest(
       console.error(
         getMcpDiagnosticsMessage("request error", traceId),
         {
+          ...getMcpTraceContext(traceId),
           durationMs: getDurationMs(startedAt),
           reason: getErrorMessage(error),
         },

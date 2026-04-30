@@ -91,6 +91,18 @@ function normalizeMcpTraceId(
     : undefined;
 }
 
+function getHeaderValue(
+  headers: Record<string, string | string[] | undefined>,
+  headerName: string
+): string | string[] | undefined {
+  return (
+    headers[headerName] ??
+    Object.entries(headers).find(
+      ([name]) => name.toLowerCase() === headerName
+    )?.[1]
+  );
+}
+
 export function createMcpTraceId(): string {
   return crypto.randomUUID().replaceAll("-", "").slice(0, 12);
 }
@@ -109,8 +121,14 @@ export function getMcpTraceIdFromHeaders(
   const traceId =
     headers instanceof Headers
       ? headers.get(MCP_TRACE_ID_HEADER)
-      : headers?.[MCP_TRACE_ID_HEADER];
+      : headers
+        ? getHeaderValue(headers, MCP_TRACE_ID_HEADER)
+        : undefined;
   return normalizeMcpTraceId(traceId);
+}
+
+export function getMcpTraceContext(traceId?: string) {
+  return traceId ? { traceId } : {};
 }
 
 export function getMcpDiagnosticsMessage(
@@ -190,6 +208,7 @@ export function installMcpMethodDiagnosticsFromHandlers(
       const traceId = getMcpTraceIdFromHeaders(extra?.requestInfo?.headers);
       const startedAt = Date.now();
       const context = {
+        ...getMcpTraceContext(traceId),
         jsonRpcMethod: method,
         requestIdType: getJsonRpcIdType(request?.id),
       };
