@@ -703,8 +703,9 @@ export class DoitMCPAgent extends McpAgent {
     this._registeredResourceCount = 0;
     this._registeredToolCount = 0;
 
-    console.log("[mcp] deployment marker: pr163-transport-diagnostics");
     console.log("[mcp] init start: diagnostics-v1", {
+      serverName: SERVER_NAME_WEB,
+      serverVersion: SERVER_VERSION,
       hasApiKey: Boolean(this.props.apiKey),
       hasCustomerContext: Boolean(this.props.customerContext),
       isDoitUser: this.props.isDoitUser,
