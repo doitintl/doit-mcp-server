@@ -231,7 +231,8 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
 const MCP_TRACE_ID_HEADER = "x-mcp-trace-id";
-// Bound inbound values before logging; invalid or oversized trace IDs are regenerated.
+// Accept common upstream trace formats such as W3C traceparent/OTel IDs, but
+// bound and sanitize before embedding values in log messages.
 const MCP_TRACE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
@@ -346,7 +347,6 @@ async function logMcpRoute(
   const pathname = new URL(req.url).pathname;
 
   console.log(getMcpDiagnosticsMessage("route start", traceId), {
-    traceId,
     route,
     ...getRequestDiagnostics(req, pathname),
     ...getRequestBodyDiagnostics(req),
@@ -356,7 +356,6 @@ async function logMcpRoute(
   try {
     const response = await handler();
     console.log(getMcpDiagnosticsMessage("route complete", traceId), {
-      traceId,
       route,
       status: response.status,
       contentType: response.headers.get("content-type") ?? undefined,
@@ -373,7 +372,6 @@ async function logMcpRoute(
     console.error(
       getMcpDiagnosticsMessage("route error", traceId),
       {
-        traceId,
         route,
         durationMs: getDurationMs(startedAt),
         reason: getErrorMessage(error),
@@ -394,7 +392,6 @@ function logMcpRequestComplete(
   }
 
   console.log(getMcpDiagnosticsMessage("request complete", traceId), {
-    traceId,
     status: response.status,
     contentType: response.headers.get("content-type") ?? undefined,
     durationMs: getDurationMs(startedAt),
@@ -743,7 +740,7 @@ export class DoitMCPAgent extends McpAgent {
     this._registeredResourceCount = 0;
     this._registeredToolCount = 0;
 
-    console.log("[mcp] init start: diagnostics-v1", {
+    console.log(getMcpDiagnosticsMessage("init start"), {
       serverName: SERVER_NAME_WEB,
       serverVersion: SERVER_VERSION,
       hasApiKey: Boolean(this.props.apiKey),
@@ -751,7 +748,7 @@ export class DoitMCPAgent extends McpAgent {
       isDoitUser: this.props.isDoitUser,
     });
 
-    console.log("[mcp] initializing agent: diagnostics-v1", {
+    console.log(getMcpDiagnosticsMessage("initializing agent"), {
       hasCustomerContext: Boolean(this.props.customerContext),
     });
 
@@ -795,7 +792,7 @@ export class DoitMCPAgent extends McpAgent {
       );
     }
 
-    console.log("[mcp] persisted props loaded: diagnostics-v1", {
+    console.log(getMcpDiagnosticsMessage("persisted props loaded"), {
       hasCustomerContext: Boolean(this.props.customerContext),
       sessionProvider: this._sessionUiDomainProvider,
     });
@@ -978,7 +975,7 @@ export class DoitMCPAgent extends McpAgent {
         error
       );
     }
-    console.log("[mcp] registered capabilities: diagnostics-v1", {
+    console.log(getMcpDiagnosticsMessage("registered capabilities"), {
       toolCount: this._registeredToolCount,
       promptCount: this._registeredPromptCount,
       resourceCount: this._registeredResourceCount,
@@ -988,7 +985,7 @@ export class DoitMCPAgent extends McpAgent {
       isDoitUser: this.props.isDoitUser,
     });
 
-    console.log("[mcp] init complete: diagnostics-v1", {
+    console.log(getMcpDiagnosticsMessage("init complete"), {
       hasApiKey: Boolean(this.props.apiKey),
       hasCustomerContext: Boolean(this.props.customerContext),
       isDoitUser: this.props.isDoitUser,
@@ -1017,7 +1014,6 @@ function wrapSSEResponseWithKeepAlive(
     console.log(
       getMcpDiagnosticsMessage("sse stream missing body", traceId),
       {
-        traceId,
         status: response.status,
       }
     );
@@ -1031,9 +1027,7 @@ function wrapSSEResponseWithKeepAlive(
 
   const transformedStream = new ReadableStream({
     async start(controller) {
-      console.log(getMcpDiagnosticsMessage("sse stream start", traceId), {
-        traceId,
-      });
+      console.log(getMcpDiagnosticsMessage("sse stream start", traceId));
 
       // Recursive function to schedule the next keep-alive message
       const scheduleKeepAlive = () => {
@@ -1054,7 +1048,6 @@ function wrapSSEResponseWithKeepAlive(
             console.error(
               getMcpDiagnosticsMessage("sse keepalive enqueue error", traceId),
               {
-                traceId,
                 reason: getErrorMessage(error),
               },
               error
@@ -1073,9 +1066,7 @@ function wrapSSEResponseWithKeepAlive(
         while (true) {
           const { done, value } = await originalReader.read();
           if (done) {
-            console.log(getMcpDiagnosticsMessage("sse stream done", traceId), {
-              traceId,
-            });
+            console.log(getMcpDiagnosticsMessage("sse stream done", traceId));
             break;
           }
           controller.enqueue(value);
@@ -1084,7 +1075,6 @@ function wrapSSEResponseWithKeepAlive(
         console.error(
           getMcpDiagnosticsMessage("sse stream read error", traceId),
           {
-            traceId,
             reason: getErrorMessage(error),
           },
           error
@@ -1104,9 +1094,7 @@ function wrapSSEResponseWithKeepAlive(
       }
     },
     cancel() {
-      console.log(getMcpDiagnosticsMessage("sse stream cancel", traceId), {
-        traceId,
-      });
+      console.log(getMcpDiagnosticsMessage("sse stream cancel", traceId));
 
       // Clean up when the client disconnects
       isStreamActive = false;
@@ -1196,7 +1184,7 @@ const oauthProvider = new OAuthProvider({
     const logProps = props as
       | Partial<Record<"apiKey" | "customerContext" | "isDoitUser", unknown>>
       | undefined;
-    console.log("[mcp] token exchange callback: diagnostics-v1", {
+    console.log(getMcpDiagnosticsMessage("token exchange callback"), {
       grantType,
       hasApiKey: Boolean(logProps?.apiKey),
       hasCustomerContext: Boolean(logProps?.customerContext),
@@ -1220,7 +1208,6 @@ async function handleRequest(
   const runtimeEnv = env as DoitWorkerEnv;
   const startedAt = Date.now();
   const shouldPassTraceId = isMcpDiagnosticsPath(url.pathname);
-  const shouldLogRequestDiagnostics = isMcpDiscoveryPath(url.pathname);
   const traceId = shouldPassTraceId ? getMcpTraceId(req) : undefined;
 
   try {
@@ -1281,13 +1268,15 @@ async function handleRequest(
       env,
       ctx
     );
+    if (response.status >= 400) {
+      logMcpRequestComplete(traceId, response, startedAt);
+    }
     return response;
   } catch (error) {
-    if (shouldLogRequestDiagnostics) {
+    if (shouldPassTraceId) {
       console.error(
         getMcpDiagnosticsMessage("request error", traceId),
         {
-          traceId,
           durationMs: getDurationMs(startedAt),
           reason: getErrorMessage(error),
         },
