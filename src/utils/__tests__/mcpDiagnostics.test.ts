@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
     getMcpDiagnosticsMessage,
+    getMcpTraceIdFromHeaders,
     installMcpMethodDiagnosticsFromHandlers,
     installMcpMethodDiagnosticsFromServer,
     withMcpTraceId,
@@ -118,6 +119,10 @@ describe("installMcpMethodDiagnosticsFromHandlers", () => {
 });
 
 describe("MCP diagnostics trace helpers", () => {
+    it("normalizes trace IDs from plain-object headers", () => {
+        expect(getMcpTraceIdFromHeaders({ "x-mcp-trace-id": " trace-ABC_123 " })).toBe("trace-ABC_123");
+    });
+
     it("does not reconstruct a request after its body has been consumed", async () => {
         const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
         const request = new Request("https://mcp.example.com/mcp", {

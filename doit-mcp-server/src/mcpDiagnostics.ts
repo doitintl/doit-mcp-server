@@ -31,15 +31,21 @@ function getDurationMs(startedAt: number): number {
   return Date.now() - startedAt;
 }
 
+function normalizeMcpTraceId(
+  traceId: string | string[] | null | undefined
+): string | undefined {
+  const normalizedTraceId = (Array.isArray(traceId) ? traceId[0] : traceId)?.trim();
+  return normalizedTraceId && MCP_TRACE_ID_PATTERN.test(normalizedTraceId)
+    ? normalizedTraceId
+    : undefined;
+}
+
 export function createMcpTraceId(): string {
   return crypto.randomUUID().replaceAll("-", "").slice(0, 12);
 }
 
 export function getMcpTraceId(req: Request): string {
-  const traceId = req.headers.get(MCP_TRACE_ID_HEADER)?.trim();
-  return traceId && MCP_TRACE_ID_PATTERN.test(traceId)
-    ? traceId
-    : createMcpTraceId();
+  return normalizeMcpTraceId(req.headers.get(MCP_TRACE_ID_HEADER)) ?? createMcpTraceId();
 }
 
 /**
@@ -51,12 +57,9 @@ export function getMcpTraceIdFromHeaders(
 ): string | undefined {
   const traceId =
     headers instanceof Headers
-      ? headers.get(MCP_TRACE_ID_HEADER)?.trim()
+      ? headers.get(MCP_TRACE_ID_HEADER)
       : headers?.[MCP_TRACE_ID_HEADER];
-  const normalizedTraceId = Array.isArray(traceId) ? traceId[0] : traceId;
-  return normalizedTraceId && MCP_TRACE_ID_PATTERN.test(normalizedTraceId)
-    ? normalizedTraceId
-    : undefined;
+  return normalizeMcpTraceId(traceId);
 }
 
 export function getMcpDiagnosticsMessage(
