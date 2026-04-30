@@ -236,6 +236,146 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function getUserAgentFamily(userAgent: string | null): string | undefined {
+  if (!userAgent) {
+    return undefined;
+  }
+
+  const normalized = userAgent.toLowerCase();
+  if (normalized.includes("claude")) {
+    return "claude";
+  }
+  if (normalized.includes("chatgpt") || normalized.includes("openai")) {
+    return "openai";
+  }
+  if (normalized.includes("cursor")) {
+    return "cursor";
+  }
+  if (normalized.includes("node")) {
+    return "node";
+  }
+  if (normalized.includes("python")) {
+    return "python";
+  }
+  return "other";
+}
+
+function getRequestDiagnostics(req: Request, pathname: string) {
+  return {
+    method: req.method,
+    pathname,
+    hasAuthorization: Boolean(req.headers.get("authorization")),
+    hasMcpSessionId: Boolean(req.headers.get("mcp-session-id")),
+    contentType: req.headers.get("content-type") ?? undefined,
+    accept: req.headers.get("accept") ?? undefined,
+    userAgentFamily: getUserAgentFamily(req.headers.get("user-agent")),
+  };
+}
+
+function getRequestBodyDiagnostics(req: Request) {
+  return {
+    requestBodyInspection:
+      req.method === "POST" ? "skipped_to_preserve_forwarded_body" : undefined,
+    requestBodyUsed: req.bodyUsed,
+  };
+}
+
+function createMcpTraceId(): string {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function getDurationMs(startedAt: number): number {
+  return Date.now() - startedAt;
+}
+
+async function getErrorResponseDiagnostics(response: Response) {
+  if (response.status < 400) {
+    return {};
+  }
+
+  try {
+    const text = await response.clone().text();
+    return {
+      responseBody: text.slice(0, 500),
+    };
+  } catch (error) {
+    return {
+      responseBodyReadError: getErrorMessage(error),
+    };
+  }
+}
+
+function isMcpDiagnosticsPath(pathname: string): boolean {
+  return (
+    pathname === "/sse" ||
+    pathname === "/sse/message" ||
+    pathname === "/mcp" ||
+    pathname.endsWith("/.well-known/oauth-protected-resource") ||
+    pathname.endsWith("/.well-known/oauth-authorization-server")
+  );
+}
+
+async function logMcpRoute(
+  traceId: string,
+  route: string,
+  req: Request,
+  handler: () => Promise<Response>,
+  extraContext: Record<string, unknown> = {}
+): Promise<Response> {
+  const startedAt = Date.now();
+  const pathname = new URL(req.url).pathname;
+
+  console.log("[mcp] route start: diagnostics-v1", {
+    traceId,
+    route,
+    ...getRequestDiagnostics(req, pathname),
+    ...getRequestBodyDiagnostics(req),
+    ...extraContext,
+  });
+
+  try {
+    const response = await handler();
+    console.log("[mcp] route complete: diagnostics-v1", {
+      traceId,
+      route,
+      status: response.status,
+      contentType: response.headers.get("content-type") ?? undefined,
+      durationMs: getDurationMs(startedAt),
+      ...(await getErrorResponseDiagnostics(response)),
+    });
+    return response;
+  } catch (error) {
+    console.error(
+      "[mcp] route error: diagnostics-v1",
+      {
+        traceId,
+        route,
+        durationMs: getDurationMs(startedAt),
+        reason: getErrorMessage(error),
+      },
+      error
+    );
+    throw error;
+  }
+}
+
+function logMcpRequestComplete(
+  traceId: string | undefined,
+  response: Response,
+  startedAt: number
+) {
+  if (!traceId) {
+    return;
+  }
+
+  console.log("[mcp] request complete: diagnostics-v1", {
+    traceId,
+    status: response.status,
+    contentType: response.headers.get("content-type") ?? undefined,
+    durationMs: getDurationMs(startedAt),
+  });
+}
+
 function logMcpInitStorageError(
   message: string,
   error: unknown,
@@ -318,6 +458,9 @@ export class DoitMCPAgent extends McpAgent {
   // so there is no cross-session bleed between DO instances sharing the same isolate.
   private _mcpClientInfo: TrackingContext = {};
   private _sessionUiDomainProvider?: UiDomainProvider;
+  private _registeredPromptCount = 0;
+  private _registeredResourceCount = 0;
+  private _registeredToolCount = 0;
 
   // Per-instance approval store for the two-phase destructive-tool commit flow.
   // Backed by `this.ctx.storage` (DurableObject storage) so that a staged action
@@ -491,6 +634,7 @@ export class DoitMCPAgent extends McpAgent {
       },
       this.createToolCallback(tool.name)
     );
+    this._registeredToolCount += 1;
   }
 
   private registerWidgetResource() {
@@ -561,6 +705,7 @@ export class DoitMCPAgent extends McpAgent {
         };
       }
     );
+    this._registeredResourceCount += 1;
   }
 
   async init() {
@@ -569,6 +714,16 @@ export class DoitMCPAgent extends McpAgent {
     // doStub._init(ctx.props) RPC delivers the OAuth props. Tool callbacks read
     // this.props at call-time (after props are set), so registration still works.
     this.props = (this.props ?? {}) as typeof this.props;
+    this._registeredPromptCount = 0;
+    this._registeredResourceCount = 0;
+    this._registeredToolCount = 0;
+
+    console.log("[mcp] deployment marker: pr163-transport-diagnostics");
+    console.log("[mcp] init start: diagnostics-v1", {
+      hasApiKey: Boolean(this.props.apiKey),
+      hasCustomerContext: Boolean(this.props.customerContext),
+      isDoitUser: this.props.isDoitUser,
+    });
 
     console.log("Initializing Doit MCP Agent", {
       hasCustomerContext: Boolean(this.props.customerContext),
@@ -643,6 +798,7 @@ export class DoitMCPAgent extends McpAgent {
           },
         })),
       }));
+      this._registeredPromptCount += 1;
     });
 
     // Cloud Overview tool
@@ -782,6 +938,7 @@ export class DoitMCPAgent extends McpAgent {
         },
         this.createChangeCustomerCallback()
       );
+      this._registeredToolCount += 1;
     }
 
     try {
@@ -795,6 +952,23 @@ export class DoitMCPAgent extends McpAgent {
         error
       );
     }
+
+    console.log("[mcp] registered capabilities", {
+      toolCount: this._registeredToolCount,
+      promptCount: this._registeredPromptCount,
+      resourceCount: this._registeredResourceCount,
+      hasChangeCustomerTool: this.props.isDoitUser === "true",
+      hasApiKey: Boolean(this.props.apiKey),
+      hasCustomerContext: Boolean(this.props.customerContext),
+      isDoitUser: this.props.isDoitUser,
+    });
+
+    console.log("[mcp] init complete: diagnostics-v1", {
+      hasApiKey: Boolean(this.props.apiKey),
+      hasCustomerContext: Boolean(this.props.customerContext),
+      isDoitUser: this.props.isDoitUser,
+      sessionProvider: this._sessionUiDomainProvider,
+    });
   }
 }
 
@@ -808,11 +982,16 @@ export class DoitMCPAgent extends McpAgent {
  */
 function wrapSSEResponseWithKeepAlive(
   response: Response,
+  traceId: string,
   keepAliveIntervalMs: number = KEEP_ALIVE_INTERVAL_MS
 ): Response {
   const originalBody = response.body;
 
   if (!originalBody) {
+    console.log("[mcp] sse stream missing body: diagnostics-v1", {
+      traceId,
+      status: response.status,
+    });
     return response;
   }
 
@@ -822,6 +1001,8 @@ function wrapSSEResponseWithKeepAlive(
 
   const transformedStream = new ReadableStream({
     async start(controller) {
+      console.log("[mcp] sse stream start: diagnostics-v1", { traceId });
+
       // Recursive function to schedule the next keep-alive message
       const scheduleKeepAlive = () => {
         if (!isStreamActive) {
@@ -838,7 +1019,14 @@ function wrapSSEResponseWithKeepAlive(
             // Schedule the next keep-alive
             scheduleKeepAlive();
           } catch (error) {
-            console.error("Error sending MCP ping notification:", error);
+            console.error(
+              "[mcp] sse keepalive enqueue error: diagnostics-v1",
+              {
+                traceId,
+                reason: getErrorMessage(error),
+              },
+              error
+            );
             isStreamActive = false;
           }
         }, keepAliveIntervalMs) as unknown as number;
@@ -852,12 +1040,20 @@ function wrapSSEResponseWithKeepAlive(
         while (true) {
           const { done, value } = await originalReader.read();
           if (done) {
+            console.log("[mcp] sse stream done: diagnostics-v1", { traceId });
             break;
           }
           controller.enqueue(value);
         }
       } catch (error) {
-        console.error("Error reading from original SSE stream:", error);
+        console.error(
+          "[mcp] sse stream read error: diagnostics-v1",
+          {
+            traceId,
+            reason: getErrorMessage(error),
+          },
+          error
+        );
         controller.error(error);
       } finally {
         // Clean up when the stream ends
@@ -870,6 +1066,8 @@ function wrapSSEResponseWithKeepAlive(
       }
     },
     cancel() {
+      console.log("[mcp] sse stream cancel: diagnostics-v1", { traceId });
+
       // Clean up when the client disconnects
       isStreamActive = false;
       if (keepAliveTimer !== null) {
@@ -891,20 +1089,30 @@ function wrapSSEResponseWithKeepAlive(
 async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
   const url = new URL(req.url);
   const { pathname } = url;
+  const traceId = createMcpTraceId();
 
   // SSE transport: GET /sse opens the event stream; POST /sse/message sends messages
   if (pathname === "/sse" && req.method === "GET") {
-    const response = await DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
-    return wrapSSEResponseWithKeepAlive(response);
+    const response = await logMcpRoute(
+      traceId,
+      "sse-open",
+      req,
+      () => DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx),
+      { wrapsKeepAlive: true }
+    );
+    return wrapSSEResponseWithKeepAlive(response, traceId);
   }
   if (pathname === "/sse/message") {
-    return DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx);
+    return logMcpRoute(traceId, "sse-message", req, () =>
+      DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx)
+    );
   }
 
   // StreamableHTTP transport: POST /mcp (native) or POST /sse (ChatGPT tries the
   // configured MCP URL with POST first per the new MCP spec).
   // Rewrite /sse → /mcp so the agents SDK basePattern matches.
   if (pathname === "/mcp" || (pathname === "/sse" && req.method === "POST")) {
+    const rewrittenPathname = pathname === "/sse" ? "/mcp" : pathname;
     const mcpReq =
       pathname === "/sse"
         ? new Request(
@@ -912,10 +1120,41 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
             req
           )
         : req;
-    return DoitMCPAgent.serve("/mcp").fetch(mcpReq, env, ctx);
+    return logMcpRoute(
+      traceId,
+      "streamable-http",
+      req,
+      () => {
+        console.log("[mcp] streamable request dispatch: diagnostics-v1", {
+          traceId,
+          originalPathname: pathname,
+          rewrittenPathname,
+          originalBodyUsed: req.bodyUsed,
+          isRewrite: pathname === "/sse",
+        });
+
+        console.log("[mcp] streamable request ready: diagnostics-v1", {
+          traceId,
+          originalPathname: pathname,
+          rewrittenPathname,
+          originalBodyUsed: req.bodyUsed,
+          rewrittenBodyUsed: mcpReq.bodyUsed,
+          rewrittenUrlPathname: new URL(mcpReq.url).pathname,
+          hasAuthorization: Boolean(mcpReq.headers.get("authorization")),
+          hasMcpSessionId: Boolean(mcpReq.headers.get("mcp-session-id")),
+          contentType: mcpReq.headers.get("content-type") ?? undefined,
+          accept: mcpReq.headers.get("accept") ?? undefined,
+        });
+
+        return DoitMCPAgent.serve("/mcp").fetch(mcpReq, env, ctx);
+      },
+      { rewrittenPathname }
+    );
   }
 
-  return new Response("Not found", { status: 404 });
+  return logMcpRoute(traceId, "not-found", req, async () =>
+    new Response("Not found", { status: 404 })
+  );
 }
 
 
@@ -954,50 +1193,90 @@ async function handleRequest(
 ): Promise<Response> {
   const url = new URL(req.url);
   const runtimeEnv = env as DoitWorkerEnv;
+  const startedAt = Date.now();
+  const shouldLogDiagnostics = isMcpDiagnosticsPath(url.pathname);
+  const traceId = shouldLogDiagnostics ? createMcpTraceId() : undefined;
 
-  // Serve OAuth discovery endpoints unauthenticated at ANY path prefix.
-  // Per RFC 9728/8414, ChatGPT appends these well-known paths to the MCP server URL
-  // (e.g. /sse/.well-known/oauth-protected-resource), but the OAuthProvider
-  // intercepts /sse/* and demands auth. We handle them here before the provider sees it.
-  //
-  // Use the Host request header (not url.origin) because wrangler dev rewrites request.url
-  // to use the route pattern host (mcp.doit.com) regardless of the actual incoming host.
-  // The Host header correctly reflects the public URL (ngrok, cloudflare tunnel, or prod).
-  if (url.pathname.endsWith("/.well-known/oauth-protected-resource") ||
-      url.pathname.endsWith("/.well-known/oauth-authorization-server")) {
-    // PUBLIC_URL overrides everything — required for local dev via tunnel because
-    // wrangler dev rewrites request.url and Host to the route pattern (mcp.doit.com).
-    const base = runtimeEnv.PUBLIC_URL ||
-      (() => {
-        const host = req.headers.get("host") || url.host;
-        const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
-        return `${isLocal ? "http" : "https"}://${host}`;
-      })();
-
-    if (url.pathname.endsWith("/.well-known/oauth-protected-resource")) {
-      return Response.json({
-        resource: base,
-        authorization_servers: [base],
-        scopes_supported: ["read_profile", "read_data", "write_data"],
-      });
-    }
-    return Response.json({
-      issuer: base,
-      authorization_endpoint: `${base}/authorize`,
-      token_endpoint: `${base}/token`,
-      registration_endpoint: `${base}/register`,
-      revocation_endpoint: `${base}/token`,
-      scopes_supported: ["read_profile", "read_data", "write_data"],
-      response_types_supported: ["code"],
-      response_modes_supported: ["query"],
-      grant_types_supported: ["authorization_code", "refresh_token"],
-      token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post", "none"],
-      code_challenge_methods_supported: ["S256"],
+  if (shouldLogDiagnostics) {
+    console.log("[mcp] request start: diagnostics-v1", {
+      traceId,
+      ...getRequestDiagnostics(req, url.pathname),
     });
   }
 
-  // If no Authorization header or not an API route, use the OAuth provider
-  return oauthProvider.fetch(req, env, ctx);
+  try {
+    // Serve OAuth discovery endpoints unauthenticated at ANY path prefix.
+    // Per RFC 9728/8414, ChatGPT appends these well-known paths to the MCP server URL
+    // (e.g. /sse/.well-known/oauth-protected-resource), but the OAuthProvider
+    // intercepts /sse/* and demands auth. We handle them here before the provider sees it.
+    //
+    // Use the Host request header (not url.origin) because wrangler dev rewrites request.url
+    // to use the route pattern host (mcp.doit.com) regardless of the actual incoming host.
+    // The Host header correctly reflects the public URL (ngrok, cloudflare tunnel, or prod).
+    if (
+      url.pathname.endsWith("/.well-known/oauth-protected-resource") ||
+      url.pathname.endsWith("/.well-known/oauth-authorization-server")
+    ) {
+      // PUBLIC_URL overrides everything — required for local dev via tunnel because
+      // wrangler dev rewrites request.url and Host to the route pattern (mcp.doit.com).
+      const base =
+        runtimeEnv.PUBLIC_URL ||
+        (() => {
+          const host = req.headers.get("host") || url.host;
+          const isLocal =
+            host.startsWith("localhost") || host.startsWith("127.0.0.1");
+          return `${isLocal ? "http" : "https"}://${host}`;
+        })();
+
+      if (url.pathname.endsWith("/.well-known/oauth-protected-resource")) {
+        const response = Response.json({
+          resource: base,
+          authorization_servers: [base],
+          scopes_supported: ["read_profile", "read_data", "write_data"],
+        });
+        logMcpRequestComplete(traceId, response, startedAt);
+        return response;
+      }
+
+      const response = Response.json({
+        issuer: base,
+        authorization_endpoint: `${base}/authorize`,
+        token_endpoint: `${base}/token`,
+        registration_endpoint: `${base}/register`,
+        revocation_endpoint: `${base}/token`,
+        scopes_supported: ["read_profile", "read_data", "write_data"],
+        response_types_supported: ["code"],
+        response_modes_supported: ["query"],
+        grant_types_supported: ["authorization_code", "refresh_token"],
+        token_endpoint_auth_methods_supported: [
+          "client_secret_basic",
+          "client_secret_post",
+          "none",
+        ],
+        code_challenge_methods_supported: ["S256"],
+      });
+      logMcpRequestComplete(traceId, response, startedAt);
+      return response;
+    }
+
+    // If no Authorization header or not an API route, use the OAuth provider
+    const response = await oauthProvider.fetch(req, env, ctx);
+    logMcpRequestComplete(traceId, response, startedAt);
+    return response;
+  } catch (error) {
+    if (shouldLogDiagnostics) {
+      console.error(
+        "[mcp] request error: diagnostics-v1",
+        {
+          traceId,
+          durationMs: getDurationMs(startedAt),
+          reason: getErrorMessage(error),
+        },
+        error
+      );
+    }
+    throw error;
+  }
 }
 
 // Export the main handler as the default
