@@ -153,3 +153,18 @@ export function installMcpMethodDiagnosticsFromHandlers(
     alreadyWrappedMethods,
   });
 }
+
+export function installMcpMethodDiagnosticsFromServer(
+  server: unknown,
+  logger: McpMethodDiagnosticsLogger = console
+) {
+  if (!server || typeof server !== "object") {
+    logger.warn("[mcp] method diagnostics unavailable: diagnostics-v1");
+    return;
+  }
+
+  installMcpMethodDiagnosticsFromHandlers(
+    (server as Record<string, unknown>)._requestHandlers,
+    logger
+  );
+}

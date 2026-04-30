@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { installMcpMethodDiagnosticsFromHandlers } from "../../../doit-mcp-server/src/mcpDiagnostics.js";
+import {
+    installMcpMethodDiagnosticsFromHandlers,
+    installMcpMethodDiagnosticsFromServer,
+} from "../../../doit-mcp-server/src/mcpDiagnostics.js";
 
 function createLogger() {
     return {
@@ -59,5 +62,24 @@ describe("installMcpMethodDiagnosticsFromHandlers", () => {
         installMcpMethodDiagnosticsFromHandlers({}, logger);
 
         expect(logger.warn).toHaveBeenCalledWith("[mcp] method diagnostics unavailable: diagnostics-v1");
+    });
+
+    it("extracts SDK handler internals from the server shape", async () => {
+        const logger = createLogger();
+        const originalHandler = vi.fn(async () => ({ tools: [] }));
+        const handlers = new Map<string, any>([["tools/list", originalHandler]]);
+
+        installMcpMethodDiagnosticsFromServer({ _requestHandlers: handlers }, logger);
+
+        await handlers.get("tools/list")({ id: 1 }, {});
+
+        expect(originalHandler).toHaveBeenCalledTimes(1);
+        expect(logger.log).toHaveBeenCalledWith(
+            "[mcp] method complete: diagnostics-v1",
+            expect.objectContaining({
+                jsonRpcMethod: "tools/list",
+                requestIdType: "number",
+            })
+        );
     });
 });

@@ -206,7 +206,7 @@ import { DurableObjectApprovalStore } from "./durableObjectApprovalStore.js";
 import {
   getMcpDiagnosticsMessage,
   getMcpTraceId,
-  installMcpMethodDiagnosticsFromHandlers,
+  installMcpMethodDiagnosticsFromServer,
   withMcpTraceId,
 } from "./mcpDiagnostics.js";
 import { adaptToolResponse } from "./responseAdapter.js";
@@ -704,9 +704,7 @@ export class DoitMCPAgent extends McpAgent {
   }
 
   private installMcpMethodDiagnostics() {
-    installMcpMethodDiagnosticsFromHandlers(
-      (this.server.server as any)._requestHandlers
-    );
+    installMcpMethodDiagnosticsFromServer(this.server.server);
   }
 
   async init() {
