@@ -288,23 +288,6 @@ function getDurationMs(startedAt: number): number {
   return Date.now() - startedAt;
 }
 
-async function getErrorResponseDiagnostics(response: Response) {
-  if (response.status < 400) {
-    return {};
-  }
-
-  try {
-    const text = await response.clone().text();
-    return {
-      responseBody: text.slice(0, 500),
-    };
-  } catch (error) {
-    return {
-      responseBodyReadError: getErrorMessage(error),
-    };
-  }
-}
-
 function isMcpDiagnosticsPath(pathname: string): boolean {
   return (
     pathname === "/sse" ||
@@ -341,7 +324,9 @@ async function logMcpRoute(
       status: response.status,
       contentType: response.headers.get("content-type") ?? undefined,
       durationMs: getDurationMs(startedAt),
-      ...(await getErrorResponseDiagnostics(response)),
+      ...(response.status >= 400
+        ? { responseBodyInspection: "skipped_for_security_and_performance" }
+        : {}),
     });
     return response;
   } catch (error) {
