@@ -236,10 +236,13 @@ const MCP_TRACE_ID_HEADER = "x-mcp-trace-id";
 const MCP_TRACE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 const MCP_METHOD_DIAGNOSTICS = [
   "initialize",
+  "prompts/list",
+  "tools/call",
   "tools/list",
   "resources/list",
   "resources/read",
 ] as const;
+const MCP_METHOD_DIAGNOSTICS_WRAPPED = Symbol("mcpMethodDiagnosticsWrapped");
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 function getErrorMessage(error: unknown): string {
@@ -304,6 +307,10 @@ function getMcpTraceId(req: Request): string {
     : createMcpTraceId();
 }
 
+/**
+ * SDK transports expose requestInfo.headers as either Web Headers or a plain
+ * object depending on the runtime/transport path.
+ */
 function getMcpTraceIdFromHeaders(
   headers: Headers | Record<string, string | string[] | undefined> | undefined
 ): string | undefined {
@@ -340,13 +347,7 @@ function getDurationMs(startedAt: number): number {
 }
 
 function getJsonRpcIdType(id: unknown): string {
-  if (typeof id === "string" || typeof id === "number") {
-    return typeof id;
-  }
-  if (id === null) {
-    return "null";
-  }
-  return typeof id;
+  return id === null ? "null" : typeof id;
 }
 
 function isMcpDiscoveryPath(pathname: string): boolean {
@@ -512,7 +513,6 @@ export class DoitMCPAgent extends McpAgent {
   private _registeredPromptCount = 0;
   private _registeredResourceCount = 0;
   private _registeredToolCount = 0;
-  private _didInstallMcpMethodDiagnostics = false;
 
   // Per-instance approval store for the two-phase destructive-tool commit flow.
   // Backed by `this.ctx.storage` (DurableObject storage) so that a staged action
@@ -761,23 +761,31 @@ export class DoitMCPAgent extends McpAgent {
   }
 
   private installMcpMethodDiagnostics() {
-    if (this._didInstallMcpMethodDiagnostics) {
-      return;
-    }
-
+    // Intentionally hooks @modelcontextprotocol/sdk@1.28.0 internals. The SDK
+    // stores schema-validating request handlers in this Map, so wrapping here
+    // observes parsed MCP methods without reading forwarded HTTP bodies.
     const handlers = (this.server.server as any)._requestHandlers;
     if (!(handlers instanceof Map)) {
       console.warn("[mcp] method diagnostics unavailable: diagnostics-v1");
       return;
     }
 
+    const installedMethods: string[] = [];
+    const missingMethods: string[] = [];
+    const alreadyWrappedMethods: string[] = [];
+
     for (const method of MCP_METHOD_DIAGNOSTICS) {
       const handler = handlers.get(method);
       if (!handler) {
+        missingMethods.push(method);
+        continue;
+      }
+      if (handler[MCP_METHOD_DIAGNOSTICS_WRAPPED]) {
+        alreadyWrappedMethods.push(method);
         continue;
       }
 
-      handlers.set(method, async (request: any, extra: any) => {
+      const wrappedHandler = async (request: any, extra: any) => {
         const traceId = getMcpTraceIdFromHeaders(extra?.requestInfo?.headers);
         const startedAt = Date.now();
         const context = {
@@ -805,10 +813,17 @@ export class DoitMCPAgent extends McpAgent {
           );
           throw error;
         }
-      });
+      };
+      wrappedHandler[MCP_METHOD_DIAGNOSTICS_WRAPPED] = true;
+      handlers.set(method, wrappedHandler);
+      installedMethods.push(method);
     }
 
-    this._didInstallMcpMethodDiagnostics = true;
+    console.log(getMcpDiagnosticsMessage("method diagnostics installed"), {
+      installedMethods,
+      missingMethods,
+      alreadyWrappedMethods,
+    });
   }
 
   async init() {
