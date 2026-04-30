@@ -309,7 +309,8 @@ function withMcpTraceId(req: Request, traceId: string | undefined): Request {
   }
 
   const headers = new Headers(req.headers);
-  // Internal-only correlation header passed through OAuthProvider into handleMcpRequest.
+  // Diagnostics correlation header; it may originate from the client, then gets
+  // passed through OAuthProvider into handleMcpRequest.
   headers.set(MCP_TRACE_ID_HEADER, traceId);
   return new Request(req, { headers });
 }
