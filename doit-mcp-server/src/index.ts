@@ -231,6 +231,7 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
 const MCP_TRACE_ID_HEADER = "x-mcp-trace-id";
+// Bound inbound values before logging; invalid or oversized trace IDs are regenerated.
 const MCP_TRACE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
@@ -253,6 +254,7 @@ function getUserAgentFamily(userAgent: string | null): string | undefined {
   if (normalized.includes("cursor")) {
     return "cursor";
   }
+  // Runtime buckets are last-resort matches; add specific clients above them.
   if (normalized.includes("node")) {
     return "node";
   }
@@ -275,10 +277,12 @@ function getRequestDiagnostics(req: Request, pathname: string) {
 }
 
 function getRequestBodyDiagnostics(req: Request) {
+  if (req.method !== "POST") {
+    return {};
+  }
+
   return {
-    requestBodyInspection:
-      req.method === "POST" ? "skipped_to_preserve_forwarded_body" : undefined,
-    requestBodyUsed: req.bodyUsed,
+    requestBodyInspection: "skipped_to_preserve_forwarded_body",
   };
 }
 
@@ -299,6 +303,7 @@ function withMcpTraceId(req: Request, traceId: string | undefined): Request {
   }
 
   const headers = new Headers(req.headers);
+  // Internal-only correlation header passed through OAuthProvider into handleMcpRequest.
   headers.set(MCP_TRACE_ID_HEADER, traceId);
   return new Request(req, { headers });
 }
@@ -739,7 +744,7 @@ export class DoitMCPAgent extends McpAgent {
       isDoitUser: this.props.isDoitUser,
     });
 
-    console.log("Initializing Doit MCP Agent", {
+    console.log("[mcp] initializing agent: diagnostics-v1", {
       hasCustomerContext: Boolean(this.props.customerContext),
     });
 
@@ -783,7 +788,7 @@ export class DoitMCPAgent extends McpAgent {
       );
     }
 
-    console.log("After loading persisted props:", {
+    console.log("[mcp] persisted props loaded: diagnostics-v1", {
       hasCustomerContext: Boolean(this.props.customerContext),
       sessionProvider: this._sessionUiDomainProvider,
     });
@@ -1144,31 +1149,14 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
       traceId,
       "streamable-http",
       req,
-      () => {
-        console.log("[mcp] streamable request dispatch: diagnostics-v1", {
-          traceId,
-          originalPathname: pathname,
-          rewrittenPathname,
-          originalBodyUsed: req.bodyUsed,
-          isRewrite: pathname === "/sse",
-        });
-
-        console.log("[mcp] streamable request ready: diagnostics-v1", {
-          traceId,
-          originalPathname: pathname,
-          rewrittenPathname,
-          originalBodyUsed: req.bodyUsed,
-          rewrittenBodyUsed: mcpReq.bodyUsed,
-          rewrittenUrlPathname: new URL(mcpReq.url).pathname,
-          hasAuthorization: Boolean(mcpReq.headers.get("authorization")),
-          hasMcpSessionId: Boolean(mcpReq.headers.get("mcp-session-id")),
-          contentType: mcpReq.headers.get("content-type") ?? undefined,
-          accept: mcpReq.headers.get("accept") ?? undefined,
-        });
-
-        return DoitMCPAgent.serve("/mcp").fetch(mcpReq, env, ctx);
-      },
-      { rewrittenPathname }
+      () => DoitMCPAgent.serve("/mcp").fetch(mcpReq, env, ctx),
+      {
+        rewrittenPathname,
+        isRewrite: pathname === "/sse",
+        rewrittenUrlPathname: new URL(mcpReq.url).pathname,
+        rewrittenHasAuthorization: Boolean(mcpReq.headers.get("authorization")),
+        rewrittenHasMcpSessionId: Boolean(mcpReq.headers.get("mcp-session-id")),
+      }
     );
   }
 
@@ -1192,7 +1180,8 @@ const oauthProvider = new OAuthProvider({
     const logProps = props as
       | Partial<Record<"apiKey" | "customerContext" | "isDoitUser", unknown>>
       | undefined;
-    console.log("tokenExchangeCallback", grantType, {
+    console.log("[mcp] token exchange callback: diagnostics-v1", {
+      grantType,
       hasApiKey: Boolean(logProps?.apiKey),
       hasCustomerContext: Boolean(logProps?.customerContext),
       isDoitUser: logProps?.isDoitUser,
