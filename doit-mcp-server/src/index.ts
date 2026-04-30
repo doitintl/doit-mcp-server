@@ -282,7 +282,7 @@ function getRequestBodyDiagnostics(req: Request) {
 }
 
 function createMcpTraceId(): string {
-  return Math.random().toString(36).slice(2, 10);
+  return crypto.randomUUID().replaceAll("-", "").slice(0, 12);
 }
 
 function getMcpTraceId(req: Request): string {
