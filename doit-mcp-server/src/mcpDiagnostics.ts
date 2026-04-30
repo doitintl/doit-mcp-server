@@ -23,7 +23,7 @@ type McpRequestHandler = {
   [MCP_METHOD_DIAGNOSTICS_WRAPPED]?: boolean;
 };
 
-function getErrorMessage(error: unknown): string {
+export function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -141,6 +141,108 @@ export function getMcpDiagnosticsMessage(
 
   const safeTraceId = MCP_TRACE_ID_PATTERN.test(traceId) ? traceId : "invalid";
   return `[mcp] ${event}: diagnostics-v1 traceId=${safeTraceId}`;
+}
+
+function isMcpDiagnosticsWellKnownPath(pathname: string): boolean {
+  return (
+    pathname.endsWith("/.well-known/oauth-protected-resource") ||
+    pathname.endsWith("/.well-known/oauth-authorization-server")
+  );
+}
+
+export function isMcpDiagnosticsPath(pathname: string): boolean {
+  return (
+    pathname === "/sse" ||
+    pathname === "/sse/message" ||
+    pathname === "/mcp" ||
+    isMcpDiagnosticsWellKnownPath(pathname)
+  );
+}
+
+export async function logMcpRoute(
+  traceId: string,
+  route: string,
+  req: Request,
+  handler: () => Promise<Response>,
+  extraContext: Record<string, unknown> = {}
+): Promise<Response> {
+  const startedAt = Date.now();
+  const pathname = new URL(req.url).pathname;
+
+  console.log(getMcpDiagnosticsMessage("route start", traceId), {
+    ...getMcpTraceContext(traceId),
+    route,
+    ...getRequestDiagnostics(req, pathname),
+    ...getRequestBodyDiagnostics(req),
+    ...extraContext,
+  });
+
+  try {
+    const response = await handler();
+    console.log(getMcpDiagnosticsMessage("route complete", traceId), {
+      ...getMcpTraceContext(traceId),
+      route,
+      status: response.status,
+      contentType: response.headers.get("content-type") ?? undefined,
+      durationMs: getDurationMs(startedAt),
+      ...(route === "sse-open"
+        ? { durationMeaning: "time_to_response_headers" }
+        : {}),
+      ...(response.status >= 400
+        ? { responseBodyInspection: "skipped_for_security_and_performance" }
+        : {}),
+    });
+    return response;
+  } catch (error) {
+    console.error(
+      getMcpDiagnosticsMessage("route error", traceId),
+      {
+        ...getMcpTraceContext(traceId),
+        route,
+        durationMs: getDurationMs(startedAt),
+        reason: getErrorMessage(error),
+      },
+      error
+    );
+    throw error;
+  }
+}
+
+export function logMcpRequestComplete(
+  traceId: string | undefined,
+  response: Response,
+  startedAt: number
+) {
+  if (!traceId) {
+    return;
+  }
+
+  console.log(getMcpDiagnosticsMessage("request complete", traceId), {
+    ...getMcpTraceContext(traceId),
+    status: response.status,
+    contentType: response.headers.get("content-type") ?? undefined,
+    durationMs: getDurationMs(startedAt),
+  });
+}
+
+export function logMcpRequestError(
+  traceId: string | undefined,
+  error: unknown,
+  startedAt: number
+) {
+  if (!traceId) {
+    return;
+  }
+
+  console.error(
+    getMcpDiagnosticsMessage("request error", traceId),
+    {
+      ...getMcpTraceContext(traceId),
+      durationMs: getDurationMs(startedAt),
+      reason: getErrorMessage(error),
+    },
+    error
+  );
 }
 
 export function withMcpTraceId(

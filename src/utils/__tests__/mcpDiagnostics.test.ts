@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
     getDurationMs,
+    getErrorMessage,
     getMcpDiagnosticsMessage,
     getMcpTraceContext,
     getMcpTraceId,
@@ -10,6 +11,9 @@ import {
     getUserAgentFamily,
     installMcpMethodDiagnosticsFromHandlers,
     installMcpMethodDiagnosticsFromServer,
+    isMcpDiagnosticsPath,
+    logMcpRequestComplete,
+    logMcpRoute,
     withMcpTraceId,
 } from "../../../doit-mcp-server/src/mcpDiagnostics.js";
 
@@ -186,6 +190,60 @@ describe("MCP diagnostics trace helpers", () => {
 });
 
 describe("MCP request diagnostics", () => {
+    it("identifies paths that should get MCP diagnostic tracing", () => {
+        expect(isMcpDiagnosticsPath("/mcp")).toBe(true);
+        expect(isMcpDiagnosticsPath("/sse")).toBe(true);
+        expect(isMcpDiagnosticsPath("/sse/message")).toBe(true);
+        expect(isMcpDiagnosticsPath("/sse/.well-known/oauth-protected-resource")).toBe(true);
+        expect(isMcpDiagnosticsPath("/sse/.well-known/oauth-authorization-server")).toBe(true);
+        expect(isMcpDiagnosticsPath("/authorize")).toBe(false);
+    });
+
+    it("logs route start and complete diagnostics", async () => {
+        const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+        const request = new Request("https://mcp.example.com/mcp", {
+            body: "{}",
+            headers: { "content-type": "application/json" },
+            method: "POST",
+        });
+
+        const response = await logMcpRoute("trace-ABC_123", "streamable-http", request, async () =>
+            Response.json({ ok: true })
+        );
+
+        expect(response.status).toBe(200);
+        expect(logSpy).toHaveBeenCalledWith(
+            "[mcp] route start: diagnostics-v1 traceId=trace-ABC_123",
+            expect.objectContaining({
+                traceId: "trace-ABC_123",
+                route: "streamable-http",
+                method: "POST",
+                pathname: "/mcp",
+                requestBodyInspection: "skipped_to_preserve_forwarded_body",
+            })
+        );
+        expect(logSpy).toHaveBeenCalledWith(
+            "[mcp] route complete: diagnostics-v1 traceId=trace-ABC_123",
+            expect.objectContaining({
+                traceId: "trace-ABC_123",
+                route: "streamable-http",
+                status: 200,
+                durationMs: expect.any(Number),
+            })
+        );
+        expect(request.bodyUsed).toBe(false);
+        logSpy.mockRestore();
+    });
+
+    it("skips request complete logs without a trace ID", () => {
+        const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+        logMcpRequestComplete(undefined, Response.json({ ok: true }), Date.now());
+
+        expect(logSpy).not.toHaveBeenCalled();
+        logSpy.mockRestore();
+    });
+
     it("classifies known user-agent families", () => {
         expect(getUserAgentFamily("Anthropic ClaudeAI")).toBe("claude");
         expect(getUserAgentFamily("OpenAI ChatGPT")).toBe("openai");
@@ -244,5 +302,10 @@ describe("MCP request diagnostics", () => {
         expect(getDurationMs(1200)).toBe(300);
 
         nowSpy.mockRestore();
+    });
+
+    it("normalizes unknown thrown values to loggable messages", () => {
+        expect(getErrorMessage(new Error("boom"))).toBe("boom");
+        expect(getErrorMessage("plain failure")).toBe("plain failure");
     });
 });

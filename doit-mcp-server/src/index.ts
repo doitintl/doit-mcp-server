@@ -204,13 +204,15 @@ import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
 import { DurableObjectApprovalStore } from "./durableObjectApprovalStore.js";
 import {
-  getDurationMs,
+  getErrorMessage,
   getMcpDiagnosticsMessage,
   getMcpTraceContext,
   getMcpTraceId,
-  getRequestBodyDiagnostics,
-  getRequestDiagnostics,
   installMcpMethodDiagnosticsFromServer,
+  isMcpDiagnosticsPath,
+  logMcpRequestComplete,
+  logMcpRequestError,
+  logMcpRoute,
   withMcpTraceId,
 } from "./mcpDiagnostics.js";
 import { adaptToolResponse } from "./responseAdapter.js";
@@ -242,90 +244,11 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
 );
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 function isMcpDiscoveryPath(pathname: string): boolean {
   return (
     pathname.endsWith("/.well-known/oauth-protected-resource") ||
     pathname.endsWith("/.well-known/oauth-authorization-server")
   );
-}
-
-function isMcpDiagnosticsPath(pathname: string): boolean {
-  return (
-    pathname === "/sse" ||
-    pathname === "/sse/message" ||
-    pathname === "/mcp" ||
-    isMcpDiscoveryPath(pathname)
-  );
-}
-
-async function logMcpRoute(
-  traceId: string,
-  route: string,
-  req: Request,
-  handler: () => Promise<Response>,
-  extraContext: Record<string, unknown> = {}
-): Promise<Response> {
-  const startedAt = Date.now();
-  const pathname = new URL(req.url).pathname;
-
-  console.log(getMcpDiagnosticsMessage("route start", traceId), {
-    ...getMcpTraceContext(traceId),
-    route,
-    ...getRequestDiagnostics(req, pathname),
-    ...getRequestBodyDiagnostics(req),
-    ...extraContext,
-  });
-
-  try {
-    const response = await handler();
-    console.log(getMcpDiagnosticsMessage("route complete", traceId), {
-      ...getMcpTraceContext(traceId),
-      route,
-      status: response.status,
-      contentType: response.headers.get("content-type") ?? undefined,
-      durationMs: getDurationMs(startedAt),
-      ...(route === "sse-open"
-        ? { durationMeaning: "time_to_response_headers" }
-        : {}),
-      ...(response.status >= 400
-        ? { responseBodyInspection: "skipped_for_security_and_performance" }
-        : {}),
-    });
-    return response;
-  } catch (error) {
-    console.error(
-      getMcpDiagnosticsMessage("route error", traceId),
-      {
-        ...getMcpTraceContext(traceId),
-        route,
-        durationMs: getDurationMs(startedAt),
-        reason: getErrorMessage(error),
-      },
-      error
-    );
-    throw error;
-  }
-}
-
-function logMcpRequestComplete(
-  traceId: string | undefined,
-  response: Response,
-  startedAt: number
-) {
-  if (!traceId) {
-    return;
-  }
-
-  console.log(getMcpDiagnosticsMessage("request complete", traceId), {
-    ...getMcpTraceContext(traceId),
-    status: response.status,
-    contentType: response.headers.get("content-type") ?? undefined,
-    durationMs: getDurationMs(startedAt),
-  });
 }
 
 function logMcpInitStorageError(
@@ -1152,8 +1075,9 @@ async function handleRequest(
   const url = new URL(req.url);
   const runtimeEnv = env as DoitWorkerEnv;
   const startedAt = Date.now();
-  const shouldPassTraceId = isMcpDiagnosticsPath(url.pathname);
-  const traceId = shouldPassTraceId ? getMcpTraceId(req) : undefined;
+  const traceId = isMcpDiagnosticsPath(url.pathname)
+    ? getMcpTraceId(req)
+    : undefined;
 
   try {
     // Serve OAuth discovery endpoints unauthenticated at ANY path prefix.
@@ -1218,17 +1142,7 @@ async function handleRequest(
     }
     return response;
   } catch (error) {
-    if (shouldPassTraceId) {
-      console.error(
-        getMcpDiagnosticsMessage("request error", traceId),
-        {
-          ...getMcpTraceContext(traceId),
-          durationMs: getDurationMs(startedAt),
-          reason: getErrorMessage(error),
-        },
-        error
-      );
-    }
+    logMcpRequestError(traceId, error, startedAt);
     throw error;
   }
 }
