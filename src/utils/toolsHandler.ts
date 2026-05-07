@@ -70,7 +70,6 @@ import {
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
 import {
-    createTicketTool,
     handleCreateTicketCommentRequest,
     handleCreateTicketRequest,
     handleGetTicketRequest,
@@ -102,9 +101,7 @@ import {
  * definition and (b) adding an entry below. Removing approval enforcement is the inverse.
  * No tool handler code needs to change.
  */
-const WRITE_GATED_SUMMARIES: Record<string, (args: any) => string> = {
-    [createTicketTool.name]: createTicketTool.summary,
-};
+const WRITE_GATED_SUMMARIES: Record<string, (args: any) => string> = {};
 
 export interface ToolHandlerOptions {
     /** Connection-level MCP client metadata (mcpClient, mcpClientVersion, etc.) */
@@ -173,8 +170,8 @@ export async function executeToolHandler(
 
                 const summaryFn = WRITE_GATED_SUMMARIES[toolName];
                 if (summaryFn) {
-                    const approvalToken = mintApprovalToken();
-                    await approvalStore.stash(approvalToken, {
+                    const confirmationId = mintApprovalToken();
+                    await approvalStore.stash(confirmationId, {
                         toolName,
                         args,
                         userKey,
@@ -190,7 +187,7 @@ export async function executeToolHandler(
                     //       approval JSON as if it were tool results.
                     // The real tool output (after `confirm_action` → `runOriginal`) still
                     // flows through `convertResponse` normally.
-                    return buildApprovalResponse(approvalToken, summaryFn(args));
+                    return buildApprovalResponse(confirmationId, summaryFn(args));
                 }
             }
 

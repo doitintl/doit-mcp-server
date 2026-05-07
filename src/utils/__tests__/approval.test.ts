@@ -91,14 +91,17 @@ describe("mintApprovalToken", () => {
 });
 
 describe("buildApprovalResponse", () => {
-    it("serializes an approval_required envelope carrying the token and summary", () => {
+    it("serializes an approval_required envelope with a confirmation id and user-facing message", () => {
         const res = buildApprovalResponse("tok-xyz", 'Create support ticket: "demo".');
         expect(res.isError).toBeFalsy();
         const text = res.content[0].text;
         const parsed = JSON.parse(text);
         expect(parsed.status).toBe("approval_required");
-        expect(parsed.approvalToken).toBe("tok-xyz");
+        expect(parsed.confirmationId).toBe("tok-xyz");
         expect(parsed.summary).toBe('Create support ticket: "demo".');
+        expect(parsed.message).toContain("Please confirm the following action");
+        expect(parsed.message).toContain('Create support ticket: "demo".');
         expect(parsed.next).toContain("tok-xyz");
+        expect(parsed.next).toContain("confirmation_id");
     });
 });

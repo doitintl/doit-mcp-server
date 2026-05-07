@@ -34,18 +34,18 @@ export async function createTestClient() {
 
         const text = getTextContent(first);
         if (!text) return first;
-        let parsed: { status?: string; approvalToken?: string } | undefined;
+        let parsed: { status?: string; confirmationId?: string } | undefined;
         try {
             parsed = JSON.parse(text);
         } catch {
             return first;
         }
-        if (parsed?.status !== "approval_required" || !parsed?.approvalToken) {
+        if (parsed?.status !== "approval_required" || !parsed?.confirmationId) {
             return first;
         }
         return (await originalCallTool({
             name: "confirm_action",
-            arguments: { token: parsed.approvalToken },
+            arguments: { confirmation_id: parsed.confirmationId },
         })) as ToolResult;
     };
 

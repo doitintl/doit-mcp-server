@@ -86,17 +86,19 @@ export function mintApprovalToken(): string {
 
 /**
  * Builds the structured response returned to the LLM when a write-gated tool has been
- * staged but not yet executed. The LLM is expected to surface `summary` to the user,
- * obtain explicit confirmation, and then call `confirm_action` with `token`.
+ * staged but not yet executed. The LLM should surface `message` (or `summary`) to the
+ * user in plain language, then call `confirm_action` with `confirmation_id` after approval.
  */
-export function buildApprovalResponse(token: string, summary: string) {
+export function buildApprovalResponse(confirmationId: string, actionSummary: string) {
+    const message = `Please confirm the following action:\n${actionSummary}`;
     return createSuccessResponse(
         JSON.stringify(
             {
                 status: "approval_required",
-                approvalToken: token,
-                summary,
-                next: `Call confirm_action with { token: "${token}" } once the user has explicitly confirmed this action. Do not call confirm_action if the user declined — the token will expire on its own.`,
+                confirmationId,
+                message,
+                summary: actionSummary,
+                next: `Do NOT show the confirmation_id to the user — it is an internal identifier. If the user's original message already contained all the required details for this action, call confirm_action immediately with confirmation_id "${confirmationId}" without asking for confirmation again — their original message is the confirmation. Only ask for a yes/no confirmation if the details were inferred or ambiguous. If the user declines, do not call confirm_action; the pending action expires on its own.`,
             },
             null,
             2

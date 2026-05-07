@@ -112,7 +112,7 @@ export async function handleListTicketsRequest(args: any, token: string) {
 export const createTicketTool = {
     name: "create_ticket",
     description:
-        "Use this when the user wants to create a new support ticket. Ask the user to confirm the ticket details before executing. Do NOT use this for viewing existing tickets (use list_tickets) or cloud incidents (use get_cloud_incidents).",
+        "Use this when the user wants to create a new support ticket. Do NOT use this for viewing existing tickets (use list_tickets) or cloud incidents (use get_cloud_incidents).",
     inputSchema: {
         type: "object",
         properties: {
