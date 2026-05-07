@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.13.0 (2026-05-07)
+
+### Features
+
+- feat: server-enforced approval flow for create_ticket (#159) (`fbd77f3`)
+- feat: enhance widget resource error handling and fallback content (#163) (`0930e17`)
+
+### Bug Fixes
+
+- fix: install Worker dependencies before deploy (#166) (`e837790`)
+
+### Other Changes
+
+- Update yarn.lock to include new Cloudflare worker dependencies and versions (`57ad47c`)
+- Add MCP transport diagnostics for tools loading investigation (#164) (`f06c13d`)
+
 ## v0.12.0 (2026-04-29)
 
 ### Features
