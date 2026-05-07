@@ -2,8 +2,6 @@
 
 ## v0.13.0 (2026-05-07)
 
-**Full diff:** [`v0.12.0...v0.13.0`](../../compare/v0.12.0...v0.13.0)
-
 ### Features
 
 - feat: server-enforced approval flow for create_ticket (#159) (`fbd77f3`)
