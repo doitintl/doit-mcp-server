@@ -272,4 +272,10 @@ app.post("/approve", handleApprove);
 // Note: /.well-known/oauth-authorization-server and /.well-known/oauth-protected-resource
 // are handled in handleRequest() in index.ts to support all path prefixes (e.g. /sse/.well-known/...).
 
+// RFC 9728 — protected-resource metadata. Modern MCP clients discover the real
+// auth server (auth.doit.com) here and bypass the legacy /authorize flow above.
+import { protectedResourceMetadata } from "./oauth/protectedResourceMetadata";
+app.get("/.well-known/oauth-protected-resource", protectedResourceMetadata);
+app.get("/.well-known/oauth-protected-resource/mcp", protectedResourceMetadata);
+
 export default app;
