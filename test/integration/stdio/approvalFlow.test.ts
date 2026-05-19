@@ -54,9 +54,7 @@ describe("Write-gated tool approval flow (stdio)", () => {
         expect(body.summary).toContain("More details below:");
         expect(body.summary).toContain("Body    : Need help with billing.");
         // Question references "the above details" rather than restating the header.
-        expect(body.userPrompt).toBe(
-            "Are you sure you want to create the support ticket with the above details?"
-        );
+        expect(body.userPrompt).toBe("Are you sure you want to create the support ticket with the above details?");
         expect(body.next).toContain("confirm_action");
         // The whole point of the userKey-keyed design: no UUID surfaces to the LLM
         // (and therefore to MCP client permission dialogs that render raw args).

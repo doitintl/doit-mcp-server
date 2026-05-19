@@ -143,7 +143,6 @@ describe("buildApprovalResponse", () => {
         const res = buildApprovalResponse(summary);
         const parsed = JSON.parse(res.content[0].text);
 
-        // Question is short — only the first line is folded into it.
         expect(parsed.userPrompt).toBe(
             'Are you sure you want to create support ticket with severity high on platform aws with subject "demo"?'
         );

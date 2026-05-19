@@ -71,9 +71,7 @@ export async function handleConfirmActionRequest(
         return await runOriginal(pending.toolName, pending.args, apiToken);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return createErrorResponse(
-                "confirm_action takes no arguments. Call it with an empty arguments object."
-            );
+            return createErrorResponse("confirm_action takes no arguments. Call it with an empty arguments object.");
         }
         return handleGeneralError(error, "handling confirm_action request");
     }

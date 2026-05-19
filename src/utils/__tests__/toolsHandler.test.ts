@@ -51,9 +51,7 @@ describe("executeToolHandler approval gate", () => {
         expect(parsed.summary).toContain("Create support ticket");
         // New per-tool userPrompt contract: the question references "the above details"
         // rather than restating the multi-line summary. See createTicketTool.summary.
-        expect(parsed.userPrompt).toBe(
-            "Are you sure you want to create the support ticket with the above details?"
-        );
+        expect(parsed.userPrompt).toBe("Are you sure you want to create the support ticket with the above details?");
         // The envelope must not leak any token to the LLM — that's the whole point of
         // routing confirm_action via `userKey` lookups instead of a token argument.
         expect(parsed.approvalToken).toBeUndefined();
@@ -92,7 +90,6 @@ describe("executeToolHandler approval gate", () => {
             apiToken,
             { userKey, approvalStore }
         );
-        // Second staging overwrites.
         await executeToolHandler(
             "create_ticket",
             { ticket: { ...validTicketArgs.ticket, subject: "second" } },

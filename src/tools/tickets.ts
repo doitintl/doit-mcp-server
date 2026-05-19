@@ -254,8 +254,7 @@ function formatCreatedTicket(response: Partial<Ticket>): string {
     const url = response.urlUI;
     const id = response.id;
     const subject = response.subject ?? "(no subject)";
-    const headerLine =
-        id !== undefined ? `Ticket #${id} created: ${subject}` : `Ticket created: ${subject}`;
+    const headerLine = id !== undefined ? `Ticket #${id} created: ${subject}` : `Ticket created: ${subject}`;
     const linkLine = url ? `\nView ticket: ${url}` : "";
     return `${headerLine}${linkLine}\n\n${JSON.stringify(response)}`;
 }
