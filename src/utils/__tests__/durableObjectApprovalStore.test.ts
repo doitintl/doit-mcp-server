@@ -51,52 +51,67 @@ describe("DurableObjectApprovalStore", () => {
         const storage = new FakeDurableObjectStorage();
         const store = new DurableObjectApprovalStore(storage as any);
         const pending = makePending();
-        await store.stash("tok-1", pending);
+        await store.stash(pending);
 
-        const first = await store.consume("tok-1", "api-key-alice");
+        const first = await store.consume("api-key-alice");
         expect(first).toEqual(pending);
 
-        const second = await store.consume("tok-1", "api-key-alice");
+        const second = await store.consume("api-key-alice");
         expect(second).toBeNull();
     });
 
-    it("namespaces keys under 'pending:' so it cannot collide with other DO storage", async () => {
+    it("namespaces keys under 'pending:<userKey>' so it cannot collide with other DO storage", async () => {
         const storage = new FakeDurableObjectStorage();
         const store = new DurableObjectApprovalStore(storage as any);
-        await store.stash("tok-ns", makePending());
+        await store.stash(makePending({ userKey: "api-key-alice" }));
 
-        expect(storage.map.has("pending:tok-ns")).toBe(true);
-        expect(storage.map.has("tok-ns")).toBe(false);
+        expect(storage.map.has("pending:api-key-alice")).toBe(true);
+        expect(storage.map.has("api-key-alice")).toBe(false);
     });
 
-    it("returns null and burns the row when userKey mismatches", async () => {
+    it("isolates pending actions per userKey — alice's confirm does not see mallory's", async () => {
         const storage = new FakeDurableObjectStorage();
         const store = new DurableObjectApprovalStore(storage as any);
-        await store.stash("tok-mismatch", makePending({ userKey: "api-key-alice" }));
+        await store.stash(makePending({ userKey: "api-key-alice" }));
 
-        const r1 = await store.consume("tok-mismatch", "api-key-mallory");
+        const r1 = await store.consume("api-key-mallory");
         expect(r1).toBeNull();
 
-        const r2 = await store.consume("tok-mismatch", "api-key-alice");
-        expect(r2).toBeNull();
+        // Alice can still consume — unlike the old token-keyed model, a probe by
+        // another user does not burn alice's row.
+        const r2 = await store.consume("api-key-alice");
+        expect(r2).not.toBeNull();
     });
 
     it("returns null after TTL expiry and evicts the row", async () => {
         const storage = new FakeDurableObjectStorage();
         const store = new DurableObjectApprovalStore(storage as any);
-        await store.stash("tok-stale", makePending());
+        await store.stash(makePending());
 
         vi.advanceTimersByTime(APPROVAL_TTL_MS + 1);
 
-        const r = await store.consume("tok-stale", "api-key-alice");
+        const r = await store.consume("api-key-alice");
         expect(r).toBeNull();
         expect(storage.map.size).toBe(0);
     });
 
-    it("returns null for an unknown token without touching anything", async () => {
+    it("returns null for a user with no pending action without touching anything", async () => {
         const storage = new FakeDurableObjectStorage();
         const store = new DurableObjectApprovalStore(storage as any);
-        const r = await store.consume("missing", "api-key-alice");
+        const r = await store.consume("api-key-nobody");
         expect(r).toBeNull();
+        expect(storage.map.size).toBe(0);
+    });
+
+    it("staging twice for the same user overwrites — confirm_action only sees the latest", async () => {
+        const storage = new FakeDurableObjectStorage();
+        const store = new DurableObjectApprovalStore(storage as any);
+
+        await store.stash(makePending({ args: { ticket: { subject: "first" } } }));
+        await store.stash(makePending({ args: { ticket: { subject: "second" } } }));
+
+        const consumed = await store.consume("api-key-alice");
+        expect(consumed?.args).toEqual({ ticket: { subject: "second" } });
+        expect(storage.map.size).toBe(0);
     });
 });

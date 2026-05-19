@@ -7,32 +7,34 @@ import type { ApprovalStore, PendingAction } from "../../src/utils/approval.js";
  * `DurableObjectStorage`, which is only available inside Worker runtime. The stdio
  * build uses `MemoryApprovalStore` from `src/utils/approval.ts`.
  *
- * Pending actions are persisted under keys of the form `pending:${token}` so the DO
- * isolate can be evicted between the destructive tool call and the matching
- * `confirm_action` without losing the staged action. TTL is enforced at `consume`
- * time — we do not schedule alarms.
+ * Pending actions are persisted under keys of the form `pending:${userKey}` (one per
+ * user) so the DO isolate can be evicted between the destructive tool call and the
+ * matching `confirm_action` without losing the staged action. TTL is enforced at
+ * `consume` time — we do not schedule alarms.
  */
 export class DurableObjectApprovalStore implements ApprovalStore {
     private static readonly KEY_PREFIX = "pending:";
 
     constructor(private readonly storage: DurableObjectStorage) {}
 
-    async stash(token: string, pending: PendingAction): Promise<void> {
-        await this.storage.put(this.key(token), pending);
+    async stash(pending: PendingAction): Promise<void> {
+        // One pending action per userKey: `put` naturally overwrites any prior staged
+        // action for the same user, matching MemoryApprovalStore semantics.
+        await this.storage.put(this.key(pending.userKey), pending);
     }
 
-    async consume(token: string, userKey: string): Promise<PendingAction | null> {
-        const k = this.key(token);
+    async consume(userKey: string): Promise<PendingAction | null> {
+        const k = this.key(userKey);
         const p = await this.storage.get<PendingAction>(k);
         if (!p) return null;
-        // Single-use: evict on every successful lookup regardless of match/expiry so a
-        // leaked token cannot be retried and an expired token does not linger.
+        // Single-use: evict on every lookup regardless of expiry so an expired
+        // entry does not linger across isolate restarts.
         await this.storage.delete(k);
-        if (p.userKey !== userKey || p.expiresAt < Date.now()) return null;
+        if (p.expiresAt < Date.now()) return null;
         return p;
     }
 
-    private key(token: string): string {
-        return `${DurableObjectApprovalStore.KEY_PREFIX}${token}`;
+    private key(userKey: string): string {
+        return `${DurableObjectApprovalStore.KEY_PREFIX}${userKey}`;
     }
 }

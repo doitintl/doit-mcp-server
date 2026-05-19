@@ -828,7 +828,9 @@ describe("CallToolRequestSchema handler", () => {
         if (WRITE_GATED_TOOL_NAMES.has(toolName)) {
             const envelope = JSON.parse(first.content[0].text);
             expect(envelope.status).toBe("approval_required");
-            await getCallToolHandler()(mockRequest("confirm_action", { token: envelope.approvalToken }));
+            // confirm_action takes no arguments — the server resolves the pending
+            // action from the caller's userKey. See src/utils/approval.ts.
+            await getCallToolHandler()(mockRequest("confirm_action", {}));
         }
         expect(handler).toHaveBeenCalledWith(args, "fake-token");
     });

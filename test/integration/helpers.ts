@@ -10,9 +10,10 @@ type ToolResult = { content: Array<{ type: string; text?: string }>; isError?: b
  * The returned `client.callTool` is wrapped so that write-gated tools which go
  * through the server's approval flow (confirm_action two-phase commit) appear
  * to behave as before from the test's perspective: the wrapper detects an
- * `approval_required` envelope, issues the follow-up `confirm_action` with the
- * minted token, and returns the final response. This keeps existing assertions
- * that inspect handler output (ids, names, validator errors) working unchanged.
+ * `approval_required` envelope and issues the follow-up `confirm_action` (no
+ * args — the server resolves the pending action by the caller's `userKey`).
+ * This keeps existing assertions that inspect handler output (ids, names,
+ * validator errors) working unchanged.
  *
  * The two-phase shape itself is asserted explicitly in
  * test/integration/stdio/approvalFlow.test.ts using `rawClient`.
@@ -34,18 +35,18 @@ export async function createTestClient() {
 
         const text = getTextContent(first);
         if (!text) return first;
-        let parsed: { status?: string; approvalToken?: string } | undefined;
+        let parsed: { status?: string } | undefined;
         try {
             parsed = JSON.parse(text);
         } catch {
             return first;
         }
-        if (parsed?.status !== "approval_required" || !parsed?.approvalToken) {
+        if (parsed?.status !== "approval_required") {
             return first;
         }
         return (await originalCallTool({
             name: "confirm_action",
-            arguments: { token: parsed.approvalToken },
+            arguments: {},
         })) as ToolResult;
     };
 

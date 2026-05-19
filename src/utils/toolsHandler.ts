@@ -79,7 +79,7 @@ import {
 } from "../tools/tickets.js";
 import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
-import { APPROVAL_TTL_MS, type ApprovalStore, buildApprovalResponse, mintApprovalToken } from "./approval.js";
+import { APPROVAL_TTL_MS, type ApprovalStore, buildApprovalResponse } from "./approval.js";
 import {
     createErrorResponse,
     formatZodError,
@@ -102,7 +102,19 @@ import {
  * definition and (b) adding an entry below. Removing approval enforcement is the inverse.
  * No tool handler code needs to change.
  */
-const WRITE_GATED_SUMMARIES: Record<string, (args: any) => string> = {
+/**
+ * A gated tool's `summary` function may return either:
+ *   - a plain string (the legacy contract — `buildApprovalResponse` derives a yes/no
+ *     question from the first line), or
+ *   - `{ summary, userPrompt }` so the tool can phrase its own natural-sounding question
+ *     ("…with the above details?") instead of restating a multi-line header.
+ *
+ * New gated tools should prefer the object form. The string form is supported only so
+ * we don't have to change every existing entry the day a new tool joins the gate set.
+ */
+type GatedSummaryFn = (args: any) => string | { summary: string; userPrompt: string };
+
+const WRITE_GATED_SUMMARIES: Record<string, GatedSummaryFn> = {
     [createTicketTool.name]: createTicketTool.summary,
 };
 
@@ -173,8 +185,11 @@ export async function executeToolHandler(
 
                 const summaryFn = WRITE_GATED_SUMMARIES[toolName];
                 if (summaryFn) {
-                    const approvalToken = mintApprovalToken();
-                    await approvalStore.stash(approvalToken, {
+                    // Stash a single pending action per `userKey`. No client-visible
+                    // token is minted — `confirm_action` resolves the pending action
+                    // by `userKey` server-side. See the rationale on
+                    // `buildApprovalResponse` in `src/utils/approval.ts`.
+                    await approvalStore.stash({
                         toolName,
                         args,
                         userKey,
@@ -190,7 +205,11 @@ export async function executeToolHandler(
                     //       approval JSON as if it were tool results.
                     // The real tool output (after `confirm_action` → `runOriginal`) still
                     // flows through `convertResponse` normally.
-                    return buildApprovalResponse(approvalToken, summaryFn(args));
+                    const summaryResult = summaryFn(args);
+                    if (typeof summaryResult === "string") {
+                        return buildApprovalResponse(summaryResult);
+                    }
+                    return buildApprovalResponse(summaryResult.summary, summaryResult.userPrompt);
                 }
             }
 

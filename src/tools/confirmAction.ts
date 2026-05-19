@@ -1,16 +1,14 @@
 import { z } from "zod";
 import type { ApprovalStore } from "../utils/approval.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
-import { createErrorResponse, formatZodError, handleGeneralError } from "../utils/util.js";
+import { createErrorResponse, handleGeneralError } from "../utils/util.js";
 
-export const ConfirmActionArgumentsSchema = z.object({
-    token: z
-        .string()
-        .min(1, "token is required and cannot be empty.")
-        .describe(
-            "The approval token returned by a previous write/mutating tool call. Exactly as received, no quoting changes."
-        ),
-});
+/**
+ * `confirm_action` takes no arguments — the server resolves the pending action from
+ * the caller's `userKey`. We still parse with Zod so additional/unexpected fields
+ * are surfaced loudly rather than silently ignored (`.strict()`).
+ */
+export const ConfirmActionArgumentsSchema = z.object({}).strict();
 
 /**
  * The "gate" tool. This itself is annotated `destructiveHint: false` because, per the MCP
@@ -22,16 +20,19 @@ export const ConfirmActionArgumentsSchema = z.object({
  * annotation-honoring clients to prompt a second time on top of that summary, which is a
  * confusing UX.
  *
- * This tool should never be called without a prior write-action staging call.
+ * This tool should never be called without a prior write-action staging call. It takes
+ * no arguments: the server looks up the pending action by the caller's identity so the
+ * client never has to surface an internal approval id to the end user (the previous
+ * design exposed a UUID in MCP client permission dialogs).
  */
 export const confirmActionTool = {
     name: "confirm_action",
     description:
-        "Finalizes a pending write action (e.g. creating, updating, or deleting a resource) " +
-        "that was previously staged by another tool. Only call this after the user has " +
-        "explicitly confirmed the action summary returned by the previous tool call. If the " +
-        "user declined, do not call this tool — the token will expire automatically. Pass the " +
-        "token exactly as it was returned.",
+        "Finalizes the pending write action (e.g. creating, updating, or deleting a resource) " +
+        "previously staged for the current user by another tool. Only call this AFTER the user " +
+        "has explicitly confirmed the action summary returned by the previous tool call. If the " +
+        "user declined, do not call this tool — the pending action will expire automatically. " +
+        "Takes no arguments: the server resolves the pending action from the caller's session.",
     inputSchema: zodToMcpInputSchema(ConfirmActionArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -46,7 +47,7 @@ export const confirmActionTool = {
 };
 
 /**
- * Runs a previously-staged write-gated tool, identified by `token`. The caller supplies
+ * Runs the previously-staged write-gated tool for `userKey`. The caller supplies
  * `runOriginal` so this module does not have to depend on the full dispatch switch in
  * `toolsHandler.ts` — this keeps the wiring direction one-way and avoids a cycle.
  */
@@ -58,16 +59,22 @@ export async function handleConfirmActionRequest(
     runOriginal: (toolName: string, args: any, apiToken: string) => Promise<any>
 ): Promise<any> {
     try {
-        const { token } = ConfirmActionArgumentsSchema.parse(args);
-        const pending = await store.consume(token, userKey);
+        // Validate args even though we don't use them — surfaces a clear error if the
+        // LLM passes a stray field instead of silently ignoring it.
+        ConfirmActionArgumentsSchema.parse(args ?? {});
+        const pending = await store.consume(userKey);
         if (!pending) {
             return createErrorResponse(
-                "Approval token unknown or expired. Re-issue the original tool call to get a fresh token."
+                "No pending action to confirm (or it expired). Re-issue the original tool call to stage a new one."
             );
         }
         return await runOriginal(pending.toolName, pending.args, apiToken);
     } catch (error) {
-        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        if (error instanceof z.ZodError) {
+            return createErrorResponse(
+                "confirm_action takes no arguments. Call it with an empty arguments object."
+            );
+        }
         return handleGeneralError(error, "handling confirm_action request");
     }
 }

@@ -1,11 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-    APPROVAL_TTL_MS,
-    buildApprovalResponse,
-    MemoryApprovalStore,
-    mintApprovalToken,
-    type PendingAction,
-} from "../approval.js";
+import { APPROVAL_TTL_MS, buildApprovalResponse, MemoryApprovalStore, type PendingAction } from "../approval.js";
 
 beforeEach(() => {
     vi.useFakeTimers();
@@ -30,75 +24,152 @@ describe("MemoryApprovalStore", () => {
     it("stash + consume returns the pending action exactly once", async () => {
         const store = new MemoryApprovalStore();
         const pending = makePending();
-        await store.stash("tok-1", pending);
+        await store.stash(pending);
 
-        const first = await store.consume("tok-1", "stdio-local");
+        const first = await store.consume("stdio-local");
         expect(first).toEqual(pending);
 
-        const second = await store.consume("tok-1", "stdio-local");
+        const second = await store.consume("stdio-local");
         expect(second).toBeNull();
     });
 
-    it("returns null when the userKey does not match (and evicts the row)", async () => {
+    it("isolates pending actions per userKey — one user cannot consume another's", async () => {
         const store = new MemoryApprovalStore();
-        await store.stash("tok-2", makePending({ userKey: "alice" }));
+        await store.stash(makePending({ userKey: "alice" }));
 
-        const result = await store.consume("tok-2", "mallory");
-        expect(result).toBeNull();
+        const wrongUser = await store.consume("mallory");
+        expect(wrongUser).toBeNull();
 
-        // Even the legitimate owner cannot now consume — a token seen by a wrong
-        // user is considered burned to prevent retry-after-probe attacks.
-        const retry = await store.consume("tok-2", "alice");
-        expect(retry).toBeNull();
+        // Alice can still consume her own — unlike the previous token-keyed design,
+        // a probe by another user does not burn the row.
+        const alice = await store.consume("alice");
+        expect(alice).not.toBeNull();
+        expect(alice?.userKey).toBe("alice");
     });
 
     it("returns null after TTL expiry", async () => {
         const store = new MemoryApprovalStore();
-        await store.stash("tok-3", makePending());
+        await store.stash(makePending());
 
         vi.advanceTimersByTime(APPROVAL_TTL_MS + 1);
 
-        const result = await store.consume("tok-3", "stdio-local");
+        const result = await store.consume("stdio-local");
         expect(result).toBeNull();
     });
 
-    it("returns null for an unknown token", async () => {
+    it("returns null for a user with no pending action", async () => {
         const store = new MemoryApprovalStore();
-        const result = await store.consume("does-not-exist", "stdio-local");
+        const result = await store.consume("nobody-staged-anything");
         expect(result).toBeNull();
+    });
+
+    it("staging a second action for the same user evicts the first", async () => {
+        const store = new MemoryApprovalStore();
+        await store.stash(
+            makePending({
+                args: { ticket: { subject: "first" } },
+            })
+        );
+        await store.stash(
+            makePending({
+                args: { ticket: { subject: "second" } },
+            })
+        );
+
+        const consumed = await store.consume("stdio-local");
+        // The first staged action is dropped; the second is what `confirm_action` sees.
+        expect(consumed?.args).toEqual({ ticket: { subject: "second" } });
+        expect(store.size()).toBe(0);
     });
 
     it("sweeps expired entries opportunistically on subsequent operations", async () => {
         const store = new MemoryApprovalStore();
-        await store.stash("tok-a", makePending());
-        await store.stash("tok-b", makePending());
+        await store.stash(makePending({ userKey: "u-a" }));
+        await store.stash(makePending({ userKey: "u-b" }));
         expect(store.size()).toBe(2);
 
         vi.advanceTimersByTime(APPROVAL_TTL_MS + 1);
 
-        await store.stash("tok-c", makePending());
+        await store.stash(makePending({ userKey: "u-c" }));
         expect(store.size()).toBe(1);
     });
 });
 
-describe("mintApprovalToken", () => {
-    it("returns RFC 4122 UUIDs that are unique across calls", () => {
-        const t1 = mintApprovalToken();
-        const t2 = mintApprovalToken();
-        expect(t1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-        expect(t2).not.toBe(t1);
-    });
-});
-
 describe("buildApprovalResponse", () => {
-    it("serializes an approval_required envelope carrying the token and summary", () => {
-        const res = buildApprovalResponse("tok-xyz", 'Create support ticket: "demo".');
+    it("serializes an approval_required envelope WITHOUT exposing any token to the LLM", () => {
+        const res = buildApprovalResponse('Create support ticket: "demo".');
         expect(res.isError).toBeFalsy();
-        const text = res.content[0].text;
-        const parsed = JSON.parse(text);
+        const parsed = JSON.parse(res.content[0].text);
         expect(parsed.status).toBe("approval_required");
-        expect(parsed.approvalToken).toBe("tok-xyz");
         expect(parsed.summary).toBe('Create support ticket: "demo".');
-        expect(parsed.next).toContain("tok-xyz");
+        // No approvalToken field anywhere — the prior design surfaced this in MCP
+        // client permission dialogs as a raw UUID.
+        expect(parsed.approvalToken).toBeUndefined();
+        expect(JSON.stringify(parsed)).not.toMatch(/token/i);
+    });
+
+    it("derives a yes/no userPrompt from the summary and tells the LLM to call confirm_action with no args", () => {
+        const res = buildApprovalResponse('Create support ticket: "demo".');
+        const parsed = JSON.parse(res.content[0].text);
+        expect(parsed.userPrompt).toBe('Are you sure you want to create support ticket: "demo"?');
+        expect(parsed.next).toMatch(/userPrompt/);
+        expect(parsed.next).toMatch(/no arguments/);
+    });
+
+    it("uses the caller-supplied userPrompt verbatim when one is provided", () => {
+        // This is the preferred path for new gated tools: the tool's `summary` function
+        // returns `{ summary, userPrompt }` so the question can be phrased naturally
+        // (e.g. "…with the above details?") instead of restating the multi-line header.
+        const summary =
+            'Create support ticket with severity "high" on platform "aws" with subject "demo". More details below:\n' +
+            "  Platform: aws\n  Body: please help";
+        const explicit = "Are you sure you want to create the support ticket with the above details?";
+        const res = buildApprovalResponse(summary, explicit);
+        const parsed = JSON.parse(res.content[0].text);
+        expect(parsed.userPrompt).toBe(explicit);
+        expect(parsed.summary).toBe(summary);
+    });
+
+    it("derives userPrompt from JUST the first line when summary is a multi-line details block", () => {
+        // Tools like create_ticket return a header + indented key/value details so the
+        // user can verify every populated field before confirming.
+        const summary =
+            'Create support ticket with severity high on platform aws with subject "demo".\n' +
+            "  Platform: aws\n" +
+            "  Product:  Compute Engine\n" +
+            "  Severity: high\n" +
+            "  Subject:  demo\n" +
+            "  Body:     please help";
+        const res = buildApprovalResponse(summary);
+        const parsed = JSON.parse(res.content[0].text);
+
+        // Question is short — only the first line is folded into it.
+        expect(parsed.userPrompt).toBe(
+            'Are you sure you want to create support ticket with severity high on platform aws with subject "demo"?'
+        );
+        // Full summary survives in the envelope verbatim (including the indented details
+        // the user needs to see), and the LLM is told to render it before asking.
+        expect(parsed.summary).toBe(summary);
+        expect(parsed.next).toMatch(/verbatim/i);
+        expect(parsed.next).toMatch(/preserv\w* line breaks/i);
+    });
+
+    it("instructs the LLM to surface a 'declined' message on chat-no AND on permission-deny", () => {
+        const res = buildApprovalResponse('Create support ticket: "demo".');
+        const parsed = JSON.parse(res.content[0].text);
+        // Without this, a `Deny` click in Claude Code's confirm_action permission prompt
+        // leaves the LLM silently stopped, which feels like a hang.
+        expect(parsed.next).toMatch(/rejected by the MCP client|permission prompt|Deny/i);
+        // Must forbid retrying confirm_action so the LLM doesn't loop.
+        expect(parsed.next).toMatch(/do NOT call confirm_action/i);
+        // Must forbid silence — the original "hang" bug was the LLM doing nothing
+        // after the user typed "no" or pressed Deny.
+        expect(parsed.next).toMatch(/do NOT stay silent/i);
+        // Must require an immediate, explicit "declined" acknowledgement so the user
+        // sees that their decline registered.
+        expect(parsed.next).toMatch(/immediately reply|acknowledge.*decline/i);
+        // Must list common chat-decline phrasings so the LLM recognizes them
+        // (the previous wording said only "declines in chat" without examples).
+        expect(parsed.next).toMatch(/no|cancel|stop/i);
     });
 });

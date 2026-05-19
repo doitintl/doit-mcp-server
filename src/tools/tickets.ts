@@ -156,11 +156,51 @@ export const createTicketTool = {
         destructiveHint: true,
         openWorldHint: true,
     },
-    summary: (args: any) => {
+    /**
+     * Approval payload for the `create_ticket` write gate. Returns both:
+     *   - `summary`: a multi-line block (one-sentence header + "More details below:"
+     *     transition + an indented Platform/Product/Severity/Subject/Body table). The
+     *     LLM is instructed to render this verbatim so the user can verify every field.
+     *   - `userPrompt`: the short yes/no question the LLM asks AFTER showing summary.
+     *     Tool-specific so we can phrase it naturally ("with the above details") rather
+     *     than restating the entire header.
+     *
+     * Values in the header are double-quoted so they're visually distinct from the
+     * surrounding prose (`with severity "high" on platform "aws"`).
+     */
+    summary: (args: any): { summary: string; userPrompt: string } => {
         const ticket = args?.ticket ?? {};
-        const severity = ticket.severity ? ` [${ticket.severity}]` : "";
-        const platform = ticket.platform ? ` on ${ticket.platform}` : "";
-        return `Create support ticket${severity}${platform}: "${ticket.subject ?? "<no subject>"}".`;
+        const parts: string[] = ["Create support ticket"];
+        if (ticket.severity) parts.push(`with severity "${ticket.severity}"`);
+        if (ticket.platform) parts.push(`on platform "${ticket.platform}"`);
+        if (ticket.subject) parts.push(`with subject "${ticket.subject}"`);
+        const header = `${parts.join(" ")}.`;
+
+        const rows: Array<[string, string | undefined]> = [
+            ["Platform", ticket.platform],
+            ["Product", ticket.product],
+            ["Severity", ticket.severity],
+            ["Subject", ticket.subject],
+            ["Body", ticket.body],
+        ];
+        const details = rows
+            .filter(([, v]) => typeof v === "string" && v.length > 0)
+            .map(([k, v]) => `  ${k.padEnd(8)}: ${v}`)
+            .join("\n");
+
+        if (!details) {
+            // No fields to enumerate (defensive): fall back to a derived yes/no off the
+            // header alone, so the LLM still has a sensible question to ask.
+            const body = header.replace(/[.!?]+\s*$/, "");
+            return {
+                summary: header,
+                userPrompt: `Are you sure you want to ${body.charAt(0).toLowerCase()}${body.slice(1)}?`,
+            };
+        }
+        return {
+            summary: `${header} More details below:\n${details}`,
+            userPrompt: "Are you sure you want to create the support ticket with the above details?",
+        };
     },
     _meta: {
         "openai/toolInvocation/invoking": "Creating support ticket...",
@@ -187,7 +227,7 @@ export async function handleCreateTicketRequest(args: any, token: string) {
         const parsed = CreateTicketArgumentsSchema.parse(args);
         const { customerContext } = args;
         const url = TICKETS_BASE_URL;
-        const response = await makeDoitRequest(url, token, {
+        const response = await makeDoitRequest<Partial<Ticket>>(url, token, {
             method: "POST",
             body: { ticket: parsed.ticket },
             customerContext,
@@ -195,10 +235,29 @@ export async function handleCreateTicketRequest(args: any, token: string) {
         if (!response) {
             return createErrorResponse("Failed to create ticket: No data returned");
         }
-        return createSuccessResponse(JSON.stringify(response));
+        return createSuccessResponse(formatCreatedTicket(response));
     } catch (error) {
         return handleGeneralError(error, "creating ticket");
     }
+}
+
+/**
+ * Renders the create-ticket API response as a markdown block that surfaces the ticket
+ * URL prominently, alongside the full JSON payload. We include both because:
+ *   - The markdown header is what shows in chat clients (Claude Desktop / ChatGPT) —
+ *     a clickable link is the action the user actually wants right now.
+ *   - The JSON tail keeps the structured fields available so the LLM can still answer
+ *     follow-up questions ("what's the ticket id?", "what severity did it get?")
+ *     without another API round-trip.
+ */
+function formatCreatedTicket(response: Partial<Ticket>): string {
+    const url = response.urlUI;
+    const id = response.id;
+    const subject = response.subject ?? "(no subject)";
+    const headerLine =
+        id !== undefined ? `Ticket #${id} created: ${subject}` : `Ticket created: ${subject}`;
+    const linkLine = url ? `\nView ticket: ${url}` : "";
+    return `${headerLine}${linkLine}\n\n${JSON.stringify(response)}`;
 }
 
 // Arguments schema for getting a single ticket

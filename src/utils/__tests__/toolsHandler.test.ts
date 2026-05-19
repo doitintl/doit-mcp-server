@@ -48,23 +48,29 @@ describe("executeToolHandler approval gate", () => {
         expect(response.isError).toBeFalsy();
         const parsed = JSON.parse(response.content[0].text);
         expect(parsed.status).toBe("approval_required");
-        expect(parsed.approvalToken).toMatch(/^[0-9a-f-]{36}$/);
         expect(parsed.summary).toContain("Create support ticket");
+        // New per-tool userPrompt contract: the question references "the above details"
+        // rather than restating the multi-line summary. See createTicketTool.summary.
+        expect(parsed.userPrompt).toBe(
+            "Are you sure you want to create the support ticket with the above details?"
+        );
+        // The envelope must not leak any token to the LLM — that's the whole point of
+        // routing confirm_action via `userKey` lookups instead of a token argument.
+        expect(parsed.approvalToken).toBeUndefined();
     });
 
-    it("confirm_action with a valid token runs the write-gated tool", async () => {
+    it("confirm_action (no args) runs the write-gated tool staged for this user", async () => {
         const { makeDoitRequest } = await import("../util.js");
         (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
         (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ticket-new-1" });
 
         const approvalStore = new MemoryApprovalStore();
-        const first = await executeToolHandler("create_ticket", validTicketArgs, apiToken, {
+        await executeToolHandler("create_ticket", validTicketArgs, apiToken, {
             userKey,
             approvalStore,
         });
-        const { approvalToken } = JSON.parse(first.content[0].text);
 
-        await executeToolHandler("confirm_action", { token: approvalToken }, apiToken, {
+        await executeToolHandler("confirm_action", {}, apiToken, {
             userKey,
             approvalStore,
         });
@@ -76,15 +82,36 @@ describe("executeToolHandler approval gate", () => {
         expect(opts.method).toBe("POST");
     });
 
-    it("two un-confirmed write-gated calls mint two distinct tokens", async () => {
+    it("a second un-confirmed write-gated call for the same user evicts the first", async () => {
         const approvalStore = new MemoryApprovalStore();
 
-        const r1 = await executeToolHandler("create_ticket", validTicketArgs, apiToken, { userKey, approvalStore });
-        const r2 = await executeToolHandler("create_ticket", validTicketArgs, apiToken, { userKey, approvalStore });
+        // First staging — different subject so we can tell which one wins.
+        await executeToolHandler(
+            "create_ticket",
+            { ticket: { ...validTicketArgs.ticket, subject: "first" } },
+            apiToken,
+            { userKey, approvalStore }
+        );
+        // Second staging overwrites.
+        await executeToolHandler(
+            "create_ticket",
+            { ticket: { ...validTicketArgs.ticket, subject: "second" } },
+            apiToken,
+            { userKey, approvalStore }
+        );
 
-        const t1 = JSON.parse(r1.content[0].text).approvalToken;
-        const t2 = JSON.parse(r2.content[0].text).approvalToken;
-        expect(t1).not.toBe(t2);
+        const { makeDoitRequest } = await import("../util.js");
+        (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
+        (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ticket-new-1" });
+
+        await executeToolHandler("confirm_action", {}, apiToken, { userKey, approvalStore });
+
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+        const [, , opts] = (makeDoitRequest as any).mock.calls[0];
+        // The handler passes `body` to makeDoitRequest as an object — the JSON
+        // stringification happens inside makeDoitRequest (which is mocked here),
+        // so the captured value is still the structured payload.
+        expect(opts.body.ticket.subject).toBe("second");
     });
 
     it("without userKey/approvalStore the gate is bypassed (opt-in enforcement)", async () => {

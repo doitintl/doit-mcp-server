@@ -130,7 +130,14 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.tickets);
     }),
     http.post(`${API_BASE}/support/v1/tickets`, () => {
-        return HttpResponse.json({ id: 99999, status: "created" });
+        // Match the real API shape: include `urlUI` and `subject` so the create-ticket
+        // handler's markdown rendering (header line + clickable link) is exercised.
+        return HttpResponse.json({
+            id: 99999,
+            status: "created",
+            subject: "Gated Ticket",
+            urlUI: "https://console.doit.com/customers/fake/support/tickets/99999",
+        });
     }),
 
     // Invoices (hardcoded URL in source)
