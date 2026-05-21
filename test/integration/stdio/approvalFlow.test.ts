@@ -52,9 +52,12 @@ describe("Write-gated tool approval flow (stdio)", () => {
         expect(body.summary).toContain('with severity "high"');
         expect(body.summary).toContain('on platform "amazon_web_services"');
         expect(body.summary).toContain("More details below:");
-        expect(body.summary).toContain("Body    : Need help with billing.");
-        // Question references "the above details" rather than restating the header.
-        expect(body.userPrompt).toBe("Are you sure you want to create the support ticket with the above details?");
+        // Detail rows are markdown bullets with bold labels — see the rationale in
+        // createTicketTool.summary about chat clients flattening plain whitespace.
+        expect(body.summary).toContain("- **Body:** Need help with billing.");
+        expect(body.summary).toContain("- **Platform:** amazon_web_services");
+        // Question references "these details" rather than restating the header.
+        expect(body.userPrompt).toBe("Are you sure you want to create the support ticket with these details?");
         expect(body.next).toContain("confirm_action");
         // The whole point of the userKey-keyed design: no UUID surfaces to the LLM
         // (and therefore to MCP client permission dialogs that render raw args).

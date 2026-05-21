@@ -48,13 +48,40 @@ describe("executeToolHandler approval gate", () => {
         expect(response.isError).toBeFalsy();
         const parsed = JSON.parse(response.content[0].text);
         expect(parsed.status).toBe("approval_required");
-        expect(parsed.summary).toContain("Create support ticket");
-        // New per-tool userPrompt contract: the question references "the above details"
+        expect(parsed.summary).toContain("Create a support ticket");
+        // New per-tool userPrompt contract: the question references "these details"
         // rather than restating the multi-line summary. See createTicketTool.summary.
-        expect(parsed.userPrompt).toBe("Are you sure you want to create the support ticket with the above details?");
+        expect(parsed.userPrompt).toBe("Are you sure you want to create the support ticket with these details?");
         // The envelope must not leak any token to the LLM — that's the whole point of
         // routing confirm_action via `userKey` lookups instead of a token argument.
         expect(parsed.approvalToken).toBeUndefined();
+    });
+
+    it("create_ticket summary header does not double-punctuate when the subject ends in a period", async () => {
+        // Real-world regression: users naturally type "Question about GCP discounts."
+        // (full sentence with period) as a subject. The previous header wrapped that as
+        // `with subject "Question about GCP discounts."` and then appended its own
+        // sentence-ending `.`, producing the visible artifact `discounts.".`. Strip
+        // trailing sentence punctuation from the embedded subject so the header reads
+        // cleanly. The raw value (with its original period) still appears in the bullet
+        // list so the user can verify exactly what gets POSTed.
+        const approvalStore = new MemoryApprovalStore();
+        const response = await executeToolHandler(
+            "create_ticket",
+            {
+                ticket: {
+                    ...validTicketArgs.ticket,
+                    subject: "Question about GCP commitment discounts.",
+                },
+            },
+            apiToken,
+            { userKey, approvalStore }
+        );
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.summary).not.toMatch(/\."\./); // no `."` immediately followed by `.`
+        expect(parsed.summary).toContain('with subject "Question about GCP commitment discounts".');
+        // Bullet still carries the original punctuation so what-you-confirm == what-you-send.
+        expect(parsed.summary).toContain("**Subject:** Question about GCP commitment discounts.");
     });
 
     it("confirm_action (no args) runs the write-gated tool staged for this user", async () => {

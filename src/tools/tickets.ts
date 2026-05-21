@@ -112,7 +112,24 @@ export async function handleListTicketsRequest(args: any, token: string) {
 export const createTicketTool = {
     name: "create_ticket",
     description:
-        "Use this when the user wants to create a new support ticket. Ask the user to confirm the ticket details before executing. Do NOT use this for viewing existing tickets (use list_tickets) or cloud incidents (use get_cloud_incidents).",
+        // Two-phase approval: calling this tool only STAGES the request — it does NOT " +
+        // actually create the ticket. The real creation happens on a follow-up
+        // confirm_action call (the user must confirm in chat first). Because the gate is
+        // enforced server-side, the agent must NOT add its own pre-flight "are you sure?"
+        // step in chat — that produces a redundant double prompt that PR reviewers and
+        // users have repeatedly flagged. The previous version of this description ended
+        // with "Ask the user to confirm the ticket details before executing" and is the
+        // exact behaviour we are now countermanding.
+        "Create a new support ticket. " +
+        "CALL THIS TOOL IMMEDIATELY with whatever ticket fields the user has provided — " +
+        "do NOT ask the user to confirm the ticket details in chat before calling. " +
+        "This is safe: nothing is created on this call. The server stages the request and " +
+        "returns an `approval_required` envelope containing the exact question to ask the user. " +
+        "The ticket is only created after the user confirms and you make a follow-up `confirm_action` call. " +
+        "Adding your own chat-level confirmation before calling this tool produces a duplicate prompt " +
+        "and is incorrect. " +
+        "Use this ONLY for creating a new ticket. To view existing tickets use `list_tickets`; " +
+        "for cloud incidents use `get_cloud_incidents`.",
     inputSchema: {
         type: "object",
         properties: {
@@ -162,7 +179,7 @@ export const createTicketTool = {
      *     transition + an indented Platform/Product/Severity/Subject/Body table). The
      *     LLM is instructed to render this verbatim so the user can verify every field.
      *   - `userPrompt`: the short yes/no question the LLM asks AFTER showing summary.
-     *     Tool-specific so we can phrase it naturally ("with the above details") rather
+     *     Tool-specific so we can phrase it naturally ("with these details") rather
      *     than restating the entire header.
      *
      * Values in the header are double-quoted so they're visually distinct from the
@@ -170,10 +187,16 @@ export const createTicketTool = {
      */
     summary: (args: any): { summary: string; userPrompt: string } => {
         const ticket = args?.ticket ?? {};
-        const parts: string[] = ["Create support ticket"];
+        const parts: string[] = ["Create a support ticket"];
         if (ticket.severity) parts.push(`with severity "${ticket.severity}"`);
         if (ticket.platform) parts.push(`on platform "${ticket.platform}"`);
-        if (ticket.subject) parts.push(`with subject "${ticket.subject}"`);
+        // Strip trailing sentence punctuation from the subject before quoting it inside
+        // the header — otherwise a user-supplied subject like "Question about discounts."
+        // produces `...with subject "Question about discounts.".` (double period). The
+        // raw subject (with its original punctuation) still appears in the bullet list
+        // below, so nothing is hidden from the user.
+        const headerSubject = typeof ticket.subject === "string" ? ticket.subject.replace(/[.!?]+\s*$/, "") : "";
+        if (headerSubject) parts.push(`with subject "${headerSubject}"`);
         const header = `${parts.join(" ")}.`;
 
         const rows: Array<[string, string | undefined]> = [
@@ -183,9 +206,14 @@ export const createTicketTool = {
             ["Subject", ticket.subject],
             ["Body", ticket.body],
         ];
+        // Markdown bullet list with bold labels. Single-newline-separated indented text
+        // (the previous format) was being flattened to a single line by some chat
+        // clients (notably Cursor) because plain whitespace newlines are interpreted as
+        // soft wraps. Markdown bullets force each field to its own rendered line and
+        // bold labels make the structure scannable at a glance.
         const details = rows
             .filter(([, v]) => typeof v === "string" && v.length > 0)
-            .map(([k, v]) => `  ${k.padEnd(8)}: ${v}`)
+            .map(([k, v]) => `- **${k}:** ${v}`)
             .join("\n");
 
         if (!details) {
@@ -197,9 +225,12 @@ export const createTicketTool = {
                 userPrompt: `Are you sure you want to ${body.charAt(0).toLowerCase()}${body.slice(1)}?`,
             };
         }
+        // Blank line between header and the bullet list — markdown parsers require it
+        // before a list block starts after a regular paragraph, otherwise some
+        // renderers fold the first bullet into the paragraph above.
         return {
-            summary: `${header} More details below:\n${details}`,
-            userPrompt: "Are you sure you want to create the support ticket with the above details?",
+            summary: `${header} More details below:\n\n${details}`,
+            userPrompt: "Are you sure you want to create the support ticket with these details?",
         };
     },
     _meta: {

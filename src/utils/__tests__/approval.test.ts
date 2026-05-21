@@ -119,11 +119,11 @@ describe("buildApprovalResponse", () => {
     it("uses the caller-supplied userPrompt verbatim when one is provided", () => {
         // This is the preferred path for new gated tools: the tool's `summary` function
         // returns `{ summary, userPrompt }` so the question can be phrased naturally
-        // (e.g. "…with the above details?") instead of restating the multi-line header.
+        // (e.g. "…with these details?") instead of restating the multi-line header.
         const summary =
             'Create support ticket with severity "high" on platform "aws" with subject "demo". More details below:\n' +
             "  Platform: aws\n  Body: please help";
-        const explicit = "Are you sure you want to create the support ticket with the above details?";
+        const explicit = "Are you sure you want to create the support ticket with these details?";
         const res = buildApprovalResponse(summary, explicit);
         const parsed = JSON.parse(res.content[0].text);
         expect(parsed.userPrompt).toBe(explicit);
@@ -150,7 +150,9 @@ describe("buildApprovalResponse", () => {
         // the user needs to see), and the LLM is told to render it before asking.
         expect(parsed.summary).toBe(summary);
         expect(parsed.next).toMatch(/verbatim/i);
-        expect(parsed.next).toMatch(/preserv\w* line breaks/i);
+        // Summary is markdown — instruction must tell the LLM not to flatten the bullets.
+        expect(parsed.next).toMatch(/markdown/i);
+        expect(parsed.next).toMatch(/keep each bullet on its own line/i);
     });
 
     it("instructs the LLM to surface a 'declined' message on chat-no AND on permission-deny", () => {

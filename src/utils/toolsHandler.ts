@@ -107,7 +107,7 @@ import {
  *   - a plain string (the legacy contract — `buildApprovalResponse` derives a yes/no
  *     question from the first line), or
  *   - `{ summary, userPrompt }` so the tool can phrase its own natural-sounding question
- *     ("…with the above details?") instead of restating a multi-line header.
+ *     ("…with these details?") instead of restating a multi-line header.
  *
  * New gated tools should prefer the object form. The string form is supported only so
  * we don't have to change every existing entry the day a new tool joins the gate set.

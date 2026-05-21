@@ -114,8 +114,8 @@ function deriveUserPromptFromSummary(summary: string): string {
 
 export function buildApprovalResponse(summary: string, userPrompt?: string) {
     // Each tool can supply its own `userPrompt` so the yes/no question reads naturally
-    // (e.g. "Are you sure you want to create the support ticket with the above
-    // details?" rather than restating the multi-line header). If the tool only returns
+    // (e.g. "Are you sure you want to create the support ticket with these details?"
+    // rather than restating the multi-line header). If the tool only returns
     // a string summary (back-compat), we fall back to deriving the question from the
     // first non-empty line — single-line summaries produce a sensible question this way.
     const resolvedUserPrompt = userPrompt ?? deriveUserPromptFromSummary(summary);
@@ -125,7 +125,7 @@ export function buildApprovalResponse(summary: string, userPrompt?: string) {
                 status: "approval_required",
                 summary,
                 userPrompt: resolvedUserPrompt,
-                next: "FIRST: display 'summary' to the user verbatim, preserving line breaks. The indented lines under the header are the structured details (e.g. body, product) the user MUST see before confirming — do not paraphrase or omit them. THEN: ask the user the exact question in 'userPrompt' and wait for an explicit yes/no answer. If the user confirms (yes/confirm/go ahead/etc.), call confirm_action with no arguments (the server resolves the pending action from the user's session). If the user declines in chat (any negative response — 'no', 'nope', 'cancel', 'don't', 'stop', 'nevermind', etc.), OR if confirm_action returns an error / is rejected by the MCP client (e.g. the user pressed Deny on a permission prompt), you MUST immediately reply to the user with a short explicit acknowledgement that the action was declined and will not be performed (e.g. 'Got it — no ticket was created. The pending request will expire on its own.'). Do NOT call confirm_action. Do NOT call any other tool. Do NOT investigate or ask follow-up questions. Do NOT stay silent. Just acknowledge the decline and stop.",
+                next: "FIRST: display 'summary' to the user verbatim. It is already formatted as markdown — a headline paragraph followed by a bullet list of structured details. Preserve the markdown EXACTLY: keep each bullet on its own line, do not collapse the list onto one line, do not rewrite the bullets as prose, and do not omit any bullet. Every bullet is a field the user MUST see before confirming, even ones that look obvious or repetitive. THEN: ask the user the exact question in 'userPrompt' and wait for an explicit yes/no answer. If the user confirms (yes/confirm/go ahead/etc.), call confirm_action with no arguments (the server resolves the pending action from the user's session). If the user declines in chat (any negative response — 'no', 'nope', 'cancel', 'don't', 'stop', 'nevermind', etc.), OR if confirm_action returns an error / is rejected by the MCP client (e.g. the user pressed Deny on a permission prompt), you MUST immediately reply to the user with a short explicit acknowledgement that the action was declined and will not be performed (e.g. 'Got it — no ticket was created. The pending request will expire on its own.'). Do NOT call confirm_action. Do NOT call any other tool. Do NOT investigate or ask follow-up questions. Do NOT stay silent. Just acknowledge the decline and stop.",
             },
             null,
             2

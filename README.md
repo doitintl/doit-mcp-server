@@ -194,6 +194,50 @@ This MCP server provides many tools including the following:
 - [`assign_objects_to_label`](https://developer.doit.com/reference/assignobjectstolabel): Assigns or unassigns objects to a label
 
 
+## Confirmation prompts for write-gated tools
+
+A small set of state-changing tools (currently `create_ticket`) goes through a two-phase
+approval flow: the first call stages the request and returns a human-readable summary
+("Are you sure you want to create the support ticket with the above details?") which the
+assistant displays in chat. The actual write only happens after you confirm and the
+assistant calls `confirm_action`.
+
+On top of that in-chat confirmation, your MCP client may show its own permission dialog
+before each tool call. This is **purely client-side gating**.
+If you want the in-chat summary to be the only confirmation step, allowlist the two
+tools below in your client:
+
+### Claude Code
+
+Add to `~/.claude/settings.json` (or your project's `.claude/settings.json`):
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__doit_mcp_server__create_ticket",
+      "mcp__doit_mcp_server__confirm_action"
+    ]
+  }
+}
+```
+
+Both entries are needed — without `confirm_action`, Claude Code will still prompt at the
+commit step.
+
+### Cursor
+
+When Cursor shows the "Run *create_ticket*" prompt, open the **Ask Every Time** dropdown
+and switch it to **Auto-run**. Cursor remembers the choice per tool. Do the same for
+`confirm_action` the first time it's invoked.
+
+### Claude Desktop App
+
+When the in-app permission dialog appears, tick **Always allow** for `create_ticket` and
+`confirm_action`. There is no JSON file to edit — Claude Desktop stores the choice
+internally.
+
+
 ## Usage Examples
 
 Here are some common queries you can ask using the DoiT MCP server:
