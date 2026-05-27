@@ -8,7 +8,7 @@ import { DurableObject } from "cloudflare:workers";
 const DEFAULT_MCP_RESOURCE_URL = "https://mcp.doit.com";
 
 import { SERVER_NAME_WEB, SERVER_VERSION } from "../../src/utils/consts.js";
-import { configureDoiTApiBase, createErrorResponse } from "../../src/utils/util.js";
+import { configureDoiTApiBase, createErrorResponse, zodSchemaToMcpTool } from "../../src/utils/util.js";
 
 import {
   CloudIncidentsArgumentsSchema,
@@ -549,7 +549,7 @@ export class DoitMCPAgent extends McpAgent {
       tool.name,
       {
         description: tool.description,
-        inputSchema: schema,
+        inputSchema: zodSchemaToMcpTool(schema),
         annotations: tool.annotations,
         _meta: {
           ...tool._meta,
@@ -858,7 +858,7 @@ export class DoitMCPAgent extends McpAgent {
         changeCustomerTool.name,
         {
           description: changeCustomerTool.description,
-          inputSchema: ChangeCustomerArgumentsSchema,
+          inputSchema: zodSchemaToMcpTool(ChangeCustomerArgumentsSchema),
           annotations: changeCustomerTool.annotations,
           _meta: {
             ...changeCustomerTool._meta,
@@ -1168,10 +1168,16 @@ async function handleRequest(
         })();
 
       if (url.pathname.endsWith("/.well-known/oauth-protected-resource")) {
+        const authServerUrl =
+          (env as { AUTH_SERVER_URL?: string }).AUTH_SERVER_URL ?? "https://auth.doit.com";
+        const resource =
+          (env as { MCP_RESOURCE_URL?: string }).MCP_RESOURCE_URL ?? "https://mcp.doit.com";
         const response = Response.json({
-          resource: base,
-          authorization_servers: [base],
-          scopes_supported: ["read_profile", "read_data", "write_data"],
+          resource,
+          authorization_servers: [authServerUrl],
+          scopes_supported: ["mcp:tools", "mcp:resources"],
+          bearer_methods_supported: ["header"],
+          resource_documentation: "https://help.doit.com/docs/mcp",
         });
         logMcpRequestComplete(traceId, response, startedAt);
         return response;
@@ -1183,7 +1189,7 @@ async function handleRequest(
         token_endpoint: `${base}/token`,
         registration_endpoint: `${base}/register`,
         revocation_endpoint: `${base}/token`,
-        scopes_supported: ["read_profile", "read_data", "write_data"],
+        scopes_supported: ["mcp:tools", "mcp:resources"],
         response_types_supported: ["code"],
         response_modes_supported: ["query"],
         grant_types_supported: ["authorization_code", "refresh_token"],
