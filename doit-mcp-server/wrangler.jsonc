@@ -51,10 +51,6 @@
       "enabled": false
     }
   },
-  "vars": {
-    "AUTH_SERVER_URL": "https://auth.doit.com",
-    "GIT_SHA": "dev"
-  },
   "assets": {
     "directory": "./static/",
     "binding": "ASSETS"
