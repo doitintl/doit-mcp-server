@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
+import { resolveMcpResourceUrl } from "../runtimeEnv";
 
 const DEFAULT_AUTH_SERVER_URL = "https://auth.doit.com";
-const DEFAULT_MCP_AUDIENCE = "https://mcp.doit.com";
 const REQUIRED_SCOPE = "mcp:tools";
 const ACCESS_TOKEN_KID = "mcp-access";
 
@@ -20,14 +20,13 @@ export type OAuthBearerClaims = {
   flowId: string;
   jti: string;
   exp: number;
+  // True when the auth.doit.com token marks the principal as a DoiT employee.
+  // Gates the change_customer tool (see index.ts). Sourced from the `doit_employee`
+  // claim — confirm the exact claim/scope name with the auth.doit.com team.
+  isDoitEmployee: boolean;
 };
 
-export type LegacyBearerResult = {
-  authMethod: "legacy";
-  apiKey: string;
-};
-
-export type BearerResult = OAuthBearerClaims | LegacyBearerResult;
+export type BearerResult = OAuthBearerClaims;
 
 let jwksRef: ReturnType<typeof createRemoteJWKSet> | null = null;
 let jwksUrl: string | null = null;
@@ -70,7 +69,7 @@ const verifyOAuthToken = async (
   try {
     const { payload } = await jwtVerify(token, getJwks(authServerUrl), {
       issuer: authServerUrl,
-      audience: env.MCP_RESOURCE_URL ?? DEFAULT_MCP_AUDIENCE,
+      audience: resolveMcpResourceUrl(env),
       algorithms: ["ES256"],
     });
     return { ok: true, payload };
@@ -120,6 +119,7 @@ const claimsFromPayload = (payload: JWTPayload): OAuthBearerClaims | null => {
   const flowId = typeof payload.flow_id === "string" ? payload.flow_id : null;
   const jti = typeof payload.jti === "string" ? payload.jti : null;
   const exp = typeof payload.exp === "number" ? payload.exp : null;
+  const isDoitEmployee = payload.doit_employee === true;
 
   if (
     !sub ||
@@ -144,6 +144,7 @@ const claimsFromPayload = (payload: JWTPayload): OAuthBearerClaims | null => {
     flowId,
     jti,
     exp,
+    isDoitEmployee,
   };
 };
 
@@ -158,20 +159,16 @@ export const verifyBearer = async (
     if (cached) return cached;
   }
 
+  // Only auth.doit.com-issued tokens are accepted. Anything else — wrong/missing
+  // kid, bad signature, or missing claims — is rejected. Legacy opaque API keys
+  // are no longer honored.
   const verified = await verifyOAuthToken(token, env);
-  if (verified.ok) {
-    const claims = claimsFromPayload(verified.payload);
-    if (!claims) return null;
-    if (options.mode === "handshake") cachePut(oauthCacheKey, claims);
-    return claims;
-  }
-  if (verified.reason === "invalid") {
-    // Token shaped like an OAuth one (correct kid) but bad signature/claims — reject outright.
-    return null;
-  }
+  if (!verified.ok) return null;
 
-  // No matching kid → treat as legacy API-key Bearer (no aud claim, opaque to us).
-  return { authMethod: "legacy", apiKey: token };
+  const claims = claimsFromPayload(verified.payload);
+  if (!claims) return null;
+  if (options.mode === "handshake") cachePut(oauthCacheKey, claims);
+  return claims;
 };
 
 export const wwwAuthenticateHeaderForResource = (resourceUrl: string): string => {

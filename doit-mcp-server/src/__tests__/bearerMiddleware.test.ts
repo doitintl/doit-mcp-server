@@ -68,6 +68,7 @@ const mintToken = async (
     customer_context: string;
     cid: string;
     flow_id: string;
+    doit_employee: boolean;
     expSecondsFromNow: number;
   }> = {},
 ): Promise<string> => {
@@ -78,6 +79,7 @@ const mintToken = async (
     customer_context: overrides.customer_context ?? "customer-1",
     cid: overrides.cid ?? "client-jti-1",
     flow_id: overrides.flow_id ?? "flow-1",
+    doit_employee: overrides.doit_employee ?? false,
   })
     .setProtectedHeader({
       alg: "ES256",
@@ -180,25 +182,52 @@ describe("verifyBearer (OAuth path)", () => {
   });
 });
 
-describe("verifyBearer (legacy fall-through)", () => {
-  it("treats a token without the mcp-access kid as a legacy API key (returns it opaquely)", async () => {
+describe("verifyBearer (non-OAuth tokens are rejected)", () => {
+  it("returns null for a token without the mcp-access kid", async () => {
     const token = await mintToken(privateKey, { kid: "some-other-kid" });
     const result = await verifyBearer(
       token,
       { AUTH_SERVER_URL: issuer },
       { mode: "request" },
     );
-    expect(result?.authMethod).toBe("legacy");
-    if (result?.authMethod === "legacy") expect(result.apiKey).toBe(token);
+    expect(result).toBeNull();
   });
 
-  it("treats a non-JWT token as a legacy API key", async () => {
+  it("returns null for a non-JWT (legacy opaque API key) token", async () => {
     const result = await verifyBearer(
       "doit-api-key-abc123",
       { AUTH_SERVER_URL: issuer },
       { mode: "request" },
     );
-    expect(result?.authMethod).toBe("legacy");
+    expect(result).toBeNull();
+  });
+});
+
+describe("verifyBearer (DoiT employee claim)", () => {
+  it("defaults isDoitEmployee to false when the claim is absent", async () => {
+    const token = await mintToken(privateKey);
+    const result = await verifyBearer(
+      token,
+      { AUTH_SERVER_URL: issuer },
+      { mode: "request" },
+    );
+    expect(result?.authMethod).toBe("oauth");
+    if (result?.authMethod === "oauth") {
+      expect(result.isDoitEmployee).toBe(false);
+    }
+  });
+
+  it("sets isDoitEmployee when the doit_employee claim is true", async () => {
+    const token = await mintToken(privateKey, { doit_employee: true });
+    const result = await verifyBearer(
+      token,
+      { AUTH_SERVER_URL: issuer },
+      { mode: "request" },
+    );
+    expect(result?.authMethod).toBe("oauth");
+    if (result?.authMethod === "oauth") {
+      expect(result.isDoitEmployee).toBe(true);
+    }
   });
 });
 

@@ -3,12 +3,10 @@ import { type BearerEnv, verifyBearer, wwwAuthenticateHeaderForResource } from "
 import { exchangeMcpTokenForUpstreamToken, type TokenExchangeEnv } from "./oauth/tokenExchange";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { DurableObject } from "cloudflare:workers";
-
-const DEFAULT_MCP_RESOURCE_URL = "https://mcp.doit.com";
 
 import { SERVER_NAME_WEB, SERVER_VERSION } from "../../src/utils/consts.js";
-import { configureDoiTApiBase, createErrorResponse, zodSchemaToMcpTool } from "../../src/utils/util.js";
+import { configureDoiTApiBase, zodSchemaToMcpTool } from "../../src/utils/util.js";
+import { DEMO_TOKEN } from "../../src/utils/demoData.js";
 
 import {
   CloudIncidentsArgumentsSchema,
@@ -203,7 +201,6 @@ import {
   sendDatahubEventsTool,
 } from "../../src/tools/datahubEvents.js";
 
-import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import type { ApprovalStore } from "../../src/utils/approval.js";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
 import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
@@ -223,7 +220,7 @@ import {
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
-import type { DoitWorkerEnv, UiDomainProvider } from "./runtimeEnv.js";
+import { resolveMcpResourceUrl, type DoitWorkerEnv, type UiDomainProvider } from "./runtimeEnv.js";
 import {
   buildFallbackWidgetResourceContent,
   buildWidgetResourceContent,
@@ -250,25 +247,7 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
 function isMcpDiscoveryPath(pathname: string): boolean {
-  return (
-    pathname.endsWith("/.well-known/oauth-protected-resource") ||
-    pathname.endsWith("/.well-known/oauth-authorization-server")
-  );
-}
-
-function logMcpInitStorageError(
-  message: string,
-  error: unknown,
-  props: Record<string, unknown>
-) {
-  console.error(
-    message,
-    {
-      reason: getErrorMessage(error),
-      hasApiKey: Boolean(props.apiKey),
-    },
-    error
-  );
+  return pathname.endsWith("/.well-known/oauth-protected-resource");
 }
 
 function logWidgetResourceError(
@@ -292,33 +271,6 @@ function logWidgetResourceError(
     },
     error
   );
-}
-
-// Context Storage Durable Object
-export class ContextStorage extends DurableObject {
-  constructor(ctx: DurableObjectState, env: Env) {
-    super(ctx, env);
-  }
-
-  async saveContext(customerContext: string): Promise<void> {
-    console.log(
-      "Saving customer context:",
-      customerContext,
-      this.ctx.id.toString().slice(-6)
-    );
-
-    await this.ctx.storage.put("customerContext", customerContext);
-  }
-
-  async loadContext(): Promise<string | null> {
-    const context = await this.ctx.storage.get<string>("customerContext");
-    console.log(
-      "Loaded customer context:",
-      context,
-      this.ctx.id.toString().slice(-6)
-    );
-    return context || null;
-  }
 }
 
 export class DoitMCPAgent extends McpAgent {
@@ -372,7 +324,9 @@ export class DoitMCPAgent extends McpAgent {
   // DoiT APIs, per the MCP authorization spec.
   private async getToken(): Promise<string> {
     const token = this.props.apiKey as string;
-    if (this.props.authMethod !== "oauth") {
+    // Demo sessions use the sentinel token directly; the upstream demo path in
+    // util.ts keys off DEMO_TOKEN and must not go through token exchange.
+    if (token === DEMO_TOKEN) {
       return token;
     }
 
@@ -396,35 +350,6 @@ export class DoitMCPAgent extends McpAgent {
     };
 
     return exchanged.accessToken;
-  }
-
-  // Persist props to Context Storage Durable Object
-  private async saveProps(): Promise<void> {
-    const env = this.env as DoitWorkerEnv;
-    const apiKey = this.props.apiKey as string;
-    const customerContext = this.props.customerContext as string;
-    if (apiKey && env?.CONTEXT_STORAGE) {
-      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
-      const contextStorage = env.CONTEXT_STORAGE.get(id);
-      await contextStorage.saveContext(customerContext);
-    }
-  }
-
-  // Load props from Context Storage Durable Object
-  private async loadPersistedProps(): Promise<string | null> {
-    const env = this.env as DoitWorkerEnv;
-    const apiKey = this.props.apiKey as string;
-    if (apiKey && env?.CONTEXT_STORAGE) {
-      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
-      const contextStorage = env.CONTEXT_STORAGE.get(id);
-      const persistedProps = await contextStorage.loadContext();
-      if (persistedProps) {
-        // Update props with persisted values
-        this.props.customerContext = persistedProps;
-        return persistedProps;
-      }
-    }
-    return (this.props.customerContext as string) || null;
   }
 
   private async persistSessionUiDomainProvider(
@@ -467,23 +392,7 @@ export class DoitMCPAgent extends McpAgent {
   private createToolCallback(toolName: string) {
     return async (args: any) => {
       const token = await this.getToken();
-      let persistedCustomerContext: string | null = null;
-      if (this.props.authMethod !== "oauth") {
-        try {
-          persistedCustomerContext = await this.loadPersistedProps();
-        } catch (error) {
-          console.error(
-            "[mcp] loadPersistedProps failed during tool call",
-            {
-              reason: getErrorMessage(error),
-              toolName,
-            },
-            error
-          );
-        }
-      }
-      const customerContext =
-        persistedCustomerContext || (this.props.customerContext as string);
+      const customerContext = this.props.customerContext as string;
 
       const argsWithCustomerContext = {
         ...args,
@@ -510,23 +419,16 @@ export class DoitMCPAgent extends McpAgent {
   // Special callback for changeCustomer tool
   private createChangeCustomerCallback() {
     return async (args: any) => {
-      if (this.props.authMethod === "oauth") {
-        return createErrorResponse(
-          "changeCustomer is not available for OAuth connections. Reconnect and choose the target customer during consent."
-        );
-      }
-
       const token = await this.getToken();
       const { handleChangeCustomerRequest } = await import(
         "../../src/tools/changeCustomer.js"
       );
 
-      // Create update function to modify the customer context
+      // Update the customer context for the duration of this session. Under OAuth
+      // there is no durable persistence — a reconnect reverts to the customer
+      // context sealed in the JWT.
       const updateCustomerContext = async (newContext: string) => {
         this.props.customerContext = newContext;
-
-        // Persist the updated props
-        await this.saveProps();
       };
 
       // change_customer bypasses executeToolHandler, so wrap manually with tracking context.
@@ -687,36 +589,6 @@ export class DoitMCPAgent extends McpAgent {
         sessionProvider: this._sessionUiDomainProvider,
       });
     };
-
-    // Swallow transient DO storage errors here so init never aborts.
-    // Customer context predates widget support and is needed by tool callbacks.
-    try {
-      await this.loadPersistedProps();
-    } catch (error) {
-      logMcpInitStorageError(
-        "[mcp] failed to load persisted customer context",
-        error,
-        this.props
-      );
-    }
-
-    console.log(getMcpDiagnosticsMessage("persisted props loaded"), {
-      hasCustomerContext: Boolean(this.props.customerContext),
-      sessionProvider: this._sessionUiDomainProvider,
-    });
-
-    // Save current props if they exist (for initial OAuth setup)
-    if (this.props.apiKey && this.props.customerContext) {
-      try {
-        await this.saveProps();
-      } catch (error) {
-        logMcpInitStorageError(
-          "[mcp] failed to save persisted customer context",
-          error,
-          this.props
-        );
-      }
-    }
 
     // Register prompts
     promptsIncludingLegacyNames.forEach((prompt) => {
@@ -1089,6 +961,18 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
 }
 
 
+// Workers types `ExecutionContext.props` as readonly, but McpAgent receives the
+// per-connection auth context via ctx.props. Assign through a writable view and
+// merge with any existing props. (This typing was previously provided by the
+// @cloudflare/workers-oauth-provider package; we now own it.)
+function assignCtxProps(
+  ctx: ExecutionContext,
+  props: Record<string, unknown>
+): void {
+  const mutable = ctx as unknown as { props?: Record<string, unknown> };
+  mutable.props = { ...(mutable.props ?? {}), ...props };
+}
+
 // Helper function to extract token from Authorization header.
 // Supports both "Bearer <token>" and bare "<token>" formats.
 function extractTokenFromAuthHeader(authHeader: string): string | null {
@@ -1100,34 +984,6 @@ function extractTokenFromAuthHeader(authHeader: string): string | null {
   return authHeader;
 }
 
-// Create the OAuth provider instance
-const oauthProvider = new OAuthProvider({
-  apiHandler: { fetch: handleMcpRequest as any },
-  apiRoute: ["/sse", "/mcp"],
-  // @ts-expect-error
-  defaultHandler: app,
-  authorizeEndpoint: "/authorize",
-  tokenEndpoint: "/token",
-  clientRegistrationEndpoint: "/register",
-  accessTokenTTL: 60 * 60 * 24 * 30, // 30 days in seconds (OAuthProvider uses seconds, not ms)
-  tokenExchangeCallback: async ({ grantType, props }) => {
-    const logProps = props as
-      | Partial<Record<"apiKey" | "customerContext" | "isDoitUser", unknown>>
-      | undefined;
-    console.log(getMcpDiagnosticsMessage("token exchange callback"), {
-      grantType,
-      hasApiKey: Boolean(logProps?.apiKey),
-      hasCustomerContext: Boolean(logProps?.customerContext),
-      isDoitUser: logProps?.isDoitUser,
-    });
-    if (grantType === "refresh_token" || grantType === "authorization_code") {
-      return {
-        newProps: { ...props },
-      };
-    }
-  },
-});
-
 // Main request handler that checks for Authorization header
 async function handleRequest(
   req: Request,
@@ -1135,70 +991,31 @@ async function handleRequest(
   ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(req.url);
-  const runtimeEnv = env as DoitWorkerEnv;
   const startedAt = Date.now();
   const traceId = isMcpDiagnosticsPath(url.pathname)
     ? getMcpTraceId(req)
     : undefined;
   const authHeader = req.headers.get("Authorization");
-  const mcpResourceUrl =
-    (env as { MCP_RESOURCE_URL?: string }).MCP_RESOURCE_URL ?? DEFAULT_MCP_RESOURCE_URL;
+  const mcpResourceUrl = resolveMcpResourceUrl(env as { MCP_RESOURCE_URL?: string });
   const isMcpPath =
     url.pathname === "/sse" || url.pathname === "/sse/message" || url.pathname === "/mcp";
 
   try {
-    // Serve OAuth discovery endpoints unauthenticated at ANY path prefix.
-    // Per RFC 9728/8414, ChatGPT appends these well-known paths to the MCP server URL
-    // (e.g. /sse/.well-known/oauth-protected-resource), but the OAuthProvider
-    // intercepts /sse/* and demands auth. We handle them here before the provider sees it.
-    //
-    // Use the Host request header (not url.origin) because wrangler dev rewrites request.url
-    // to use the route pattern host (mcp.doit.com) regardless of the actual incoming host.
-    // The Host header correctly reflects the public URL (ngrok, cloudflare tunnel, or prod).
+    // Serve the RFC 9728 protected-resource metadata unauthenticated at ANY path
+    // prefix. MCP clients (e.g. ChatGPT) append the well-known path to the MCP
+    // server URL (e.g. /sse/.well-known/oauth-protected-resource), so we answer it
+    // here before the MCP auth check runs. The metadata points clients to the real
+    // authorization server (auth.doit.com).
     if (isMcpDiscoveryPath(url.pathname)) {
-      // PUBLIC_URL overrides everything — required for local dev via tunnel because
-      // wrangler dev rewrites request.url and Host to the route pattern (mcp.doit.com).
-      const base =
-        runtimeEnv.PUBLIC_URL ||
-        (() => {
-          const host = req.headers.get("host") || url.host;
-          const isLocal =
-            host.startsWith("localhost") || host.startsWith("127.0.0.1");
-          return `${isLocal ? "http" : "https"}://${host}`;
-        })();
-
-      if (url.pathname.endsWith("/.well-known/oauth-protected-resource")) {
-        const authServerUrl =
-          (env as { AUTH_SERVER_URL?: string }).AUTH_SERVER_URL ?? "https://auth.doit.com";
-        const resource =
-          (env as { MCP_RESOURCE_URL?: string }).MCP_RESOURCE_URL ?? "https://mcp.doit.com";
-        const response = Response.json({
-          resource,
-          authorization_servers: [authServerUrl],
-          scopes_supported: ["mcp:tools", "mcp:resources"],
-          bearer_methods_supported: ["header"],
-          resource_documentation: "https://help.doit.com/docs/mcp",
-        });
-        logMcpRequestComplete(traceId, response, startedAt);
-        return response;
-      }
-
+      const authServerUrl =
+        (env as { AUTH_SERVER_URL?: string }).AUTH_SERVER_URL ?? "https://auth.doit.com";
+      const resource = resolveMcpResourceUrl(env as { MCP_RESOURCE_URL?: string });
       const response = Response.json({
-        issuer: base,
-        authorization_endpoint: `${base}/authorize`,
-        token_endpoint: `${base}/token`,
-        registration_endpoint: `${base}/register`,
-        revocation_endpoint: `${base}/token`,
+        resource,
+        authorization_servers: [authServerUrl],
         scopes_supported: ["mcp:tools", "mcp:resources"],
-        response_types_supported: ["code"],
-        response_modes_supported: ["query"],
-        grant_types_supported: ["authorization_code", "refresh_token"],
-        token_endpoint_auth_methods_supported: [
-          "client_secret_basic",
-          "client_secret_post",
-          "none",
-        ],
-        code_challenge_methods_supported: ["S256"],
+        bearer_methods_supported: ["header"],
+        resource_documentation: "https://help.doit.com/docs/mcp",
       });
       logMcpRequestComplete(traceId, response, startedAt);
       return response;
@@ -1206,8 +1023,7 @@ async function handleRequest(
 
     // RFC 9728 §5.3: protected resources MUST emit a discoverable WWW-Authenticate
     // on 401 so MCP clients can locate the authorization server. We send it for any
-    // unauthenticated request to an MCP endpoint instead of falling through to the
-    // legacy `@cloudflare/workers-oauth-provider` 401, which uses a non-spec shape.
+    // unauthenticated request to an MCP endpoint.
     if (isMcpPath && !authHeader) {
       const response = new Response("Unauthorized", {
         status: 401,
@@ -1222,6 +1038,26 @@ async function handleRequest(
     if (isMcpPath && authHeader) {
       const token = extractTokenFromAuthHeader(authHeader);
       if (token) {
+        // Demo login: the sentinel token bypasses JWT verification and yields a
+        // synthetic demo session. Gated behind DEMO_MODE_ENABLED.
+        if (
+          token === DEMO_TOKEN &&
+          (env as { DEMO_MODE_ENABLED?: string }).DEMO_MODE_ENABLED === "true"
+        ) {
+          assignCtxProps(ctx, {
+            apiKey: DEMO_TOKEN,
+            customerContext: "demo",
+            authMethod: "oauth",
+            userId: "demo",
+            isDoitUser: "false",
+          });
+          const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
+          if (response.status >= 400) {
+            logMcpRequestComplete(traceId, response, startedAt);
+          }
+          return response;
+        }
+
         const mode = url.pathname === "/sse" ? "handshake" : "request";
         const result = await verifyBearer(token, env as BearerEnv, { mode });
 
@@ -1236,34 +1072,18 @@ async function handleRequest(
           return response;
         }
 
-        if (result.authMethod === "oauth") {
-          // OAuth-issued token: customer context is sealed in the JWT claim.
-          // Ignore any customerContext query param to close the override loophole.
-          ctx.props = {
-            ...ctx.props,
-            apiKey: token,
-            customerContext: result.customerContext,
-            authMethod: "oauth",
-            userId: result.userId,
-            cid: result.cid,
-            flowId: result.flowId,
-          };
-        } else {
-          // Legacy API-key Bearer: customerContext stays in query (back-compat with
-          // existing customers) and we forward the raw token to the DoiT API as today.
-          const customerContext = url.searchParams.get("customerContext") || "";
-          if (!customerContext) {
-            const response = new Response("Unauthorized: missing customerContext", { status: 401 });
-            logMcpRequestComplete(traceId, response, startedAt);
-            return response;
-          }
-          ctx.props = {
-            ...ctx.props,
-            apiKey: token,
-            customerContext,
-            authMethod: "legacy",
-          };
-        }
+        // OAuth-issued token: customer context is sealed in the JWT claim.
+        // Ignore any customerContext query param to close the override loophole.
+        // change_customer is gated on isDoitUser — only DoiT employees may switch context.
+        assignCtxProps(ctx, {
+          apiKey: token,
+          customerContext: result.customerContext,
+          authMethod: "oauth",
+          userId: result.userId,
+          cid: result.cid,
+          flowId: result.flowId,
+          isDoitUser: result.isDoitEmployee ? "true" : "false",
+        });
 
         // Dispatch through main's handleMcpRequest so we get its routing,
         // diagnostics, and SSE keep-alive wrapping.
@@ -1275,8 +1095,9 @@ async function handleRequest(
       }
     }
 
-    // If no Authorization header or not an API route, use the OAuth provider
-    const response = await oauthProvider.fetch(
+    // Non-MCP, non-discovery requests (home page, widget, well-known metadata)
+    // are served by the Hono app.
+    const response = await app.fetch(
       withMcpTraceId(req, traceId),
       env,
       ctx

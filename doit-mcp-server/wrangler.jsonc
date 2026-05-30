@@ -22,6 +22,10 @@
     {
       "new_sqlite_classes": ["ContextStorage"],
       "tag": "v2"
+    },
+    {
+      "deleted_classes": ["ContextStorage"],
+      "tag": "v3"
     }
   ],
   "durable_objects": {
@@ -29,19 +33,9 @@
       {
         "class_name": "DoitMCPAgent",
         "name": "MCP_OBJECT"
-      },
-      {
-        "class_name": "ContextStorage",
-        "name": "CONTEXT_STORAGE"
       }
     ]
   },
-  "kv_namespaces": [
-    {
-      "binding": "OAUTH_KV",
-      "id": "8e750e0c6acd4129b2b069f648fc3d0b"
-    }
-  ],
   "observability": {
     "logs": {
       "enabled": true,
