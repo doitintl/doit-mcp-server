@@ -1,7 +1,6 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
-import { resolveMcpResourceUrl } from "../runtimeEnv";
+import { resolveAuthServerUrl, resolveMcpResourceUrl } from "../runtimeEnv";
 
-const DEFAULT_AUTH_SERVER_URL = "https://auth.doit.com";
 const REQUIRED_SCOPE = "mcp:tools";
 const ACCESS_TOKEN_KID = "mcp-access";
 
@@ -65,7 +64,7 @@ const verifyOAuthToken = async (
   if (kid !== ACCESS_TOKEN_KID) {
     return { ok: false, reason: "wrong_kid" };
   }
-  const authServerUrl = env.AUTH_SERVER_URL ?? DEFAULT_AUTH_SERVER_URL;
+  const authServerUrl = resolveAuthServerUrl(env);
   try {
     const { payload } = await jwtVerify(token, getJwks(authServerUrl), {
       issuer: authServerUrl,

@@ -1,9 +1,16 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { z } from "zod";
 import { SERVER_VERSION } from "./consts.js";
 import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
+
+// TEMP DEBUG — remove after verification
+console.log(
+  "[module-load] process.env.DOIT_API_BASE =",
+  process.env.DOIT_API_BASE,
+  "| resolved DOIT_API_BASE const =",
+  DOIT_API_BASE,
+);
 
 let runtimeDoiTApiBase = DOIT_API_BASE;
 
@@ -106,15 +113,6 @@ export function debugLog(message: unknown, level: DebugLevel = DebugLevel.INFO, 
     } else {
         console.error(`[doit-mcp debug:${levelName}]`, text);
     }
-}
-
-/**
- * Generic function to convert a zod schema to MCP server tool format
- * @param schema The zod schema object (e.g., z.object({ ... }))
- * @returns Object with zod schema properties ready for MCP server tool
- */
-export function zodSchemaToMcpTool<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
-    return schema.shape;
 }
 
 /**
@@ -249,6 +247,13 @@ export async function makeDoitRequest<T>(
         parseResponse = true,
         timeoutMs,
     } = options;
+
+    // TEMP DEMO — fires for every tool call that reaches the API layer (demo or real).
+    console.log(
+        "[demo] makeDoitRequest url(in) =", url,
+        "| resolved (actual) =", applyRuntimeDoiTApiBase(url),
+        "| isDemoToken =", token === DEMO_TOKEN,
+    );
 
     // Demo mode: return canned data without hitting the real API.
     // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.

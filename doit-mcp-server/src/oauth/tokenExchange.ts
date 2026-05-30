@@ -1,9 +1,13 @@
-const DEFAULT_AUTH_SERVER_URL = "https://auth.doit.com";
+import { resolveAuthServerUrl } from "../runtimeEnv";
+
 const TOKEN_EXCHANGE_GRANT_TYPE =
   "urn:ietf:params:oauth:grant-type:token-exchange";
 const ACCESS_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:access_token";
 const LEGACY_CMP_UPSTREAM_AUDIENCE = "cmp";
 const TOKEN_EXCHANGE_CLIENT_ID = "mcp.doit.com";
+// Generic, client-safe message. Detailed causes (config, upstream status/body)
+// are logged server-side only and never surfaced to the caller.
+const UPSTREAM_AUTH_ERROR = "Failed to authenticate with the DoiT API";
 
 export type TokenExchangeEnv = {
   AUTH_SERVER_URL?: string;
@@ -24,10 +28,13 @@ export const exchangeMcpTokenForUpstreamToken = async ({
 }): Promise<UpstreamTokenExchangeResult> => {
   const secret = env.MCP_TOKEN_EXCHANGE_SECRET;
   if (!secret) {
-    throw new Error("MCP_TOKEN_EXCHANGE_SECRET is not configured");
+    console.error(
+      "[mcp] token exchange misconfigured: MCP_TOKEN_EXCHANGE_SECRET is not set",
+    );
+    throw new Error(UPSTREAM_AUTH_ERROR);
   }
 
-  const authServerUrl = env.AUTH_SERVER_URL ?? DEFAULT_AUTH_SERVER_URL;
+  const authServerUrl = resolveAuthServerUrl(env);
   const body = new URLSearchParams({
     grant_type: TOKEN_EXCHANGE_GRANT_TYPE,
     subject_token: mcpToken,
@@ -48,9 +55,11 @@ export const exchangeMcpTokenForUpstreamToken = async ({
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `MCP upstream token exchange failed: ${response.status} ${errorText}`,
-    );
+    console.error("[mcp] upstream token exchange failed", {
+      status: response.status,
+      errorText,
+    });
+    throw new Error(UPSTREAM_AUTH_ERROR);
   }
 
   const payload = (await response.json()) as {
@@ -59,9 +68,10 @@ export const exchangeMcpTokenForUpstreamToken = async ({
   };
 
   if (typeof payload.access_token !== "string") {
-    throw new Error(
-      "MCP upstream token exchange response did not include access_token",
+    console.error(
+      "[mcp] upstream token exchange response did not include access_token",
     );
+    throw new Error(UPSTREAM_AUTH_ERROR);
   }
 
   return {

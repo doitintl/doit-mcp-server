@@ -1,13 +1,11 @@
 import type { Context } from "hono";
-import { resolveMcpResourceUrl } from "../runtimeEnv";
-
-const DEFAULT_AUTH_SERVER_URL = "https://auth.doit.com";
+import { resolveAuthServerUrl, resolveMcpResourceUrl } from "../runtimeEnv";
 
 export const protectedResourceMetadata = (c: Context) => {
   const env = c.env as
     | { AUTH_SERVER_URL?: string; MCP_RESOURCE_URL?: string }
     | undefined;
-  const authServerUrl = env?.AUTH_SERVER_URL ?? DEFAULT_AUTH_SERVER_URL;
+  const authServerUrl = resolveAuthServerUrl(env);
   const resource = resolveMcpResourceUrl(env);
 
   c.header("Cache-Control", "public, max-age=300");

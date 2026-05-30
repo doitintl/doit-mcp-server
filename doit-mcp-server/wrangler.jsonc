@@ -11,43 +11,43 @@
   "routes": [
     {
       "pattern": "mcp.doit.com/*",
-      "zone_name": "doit.com"
-    }
+      "zone_name": "doit.com",
+    },
   ],
   "migrations": [
     {
       "new_sqlite_classes": ["DoitMCPAgent"],
-      "tag": "v1"
+      "tag": "v1",
     },
     {
       "new_sqlite_classes": ["ContextStorage"],
-      "tag": "v2"
+      "tag": "v2",
     },
     {
       "deleted_classes": ["ContextStorage"],
-      "tag": "v3"
-    }
+      "tag": "v3",
+    },
   ],
   "durable_objects": {
     "bindings": [
       {
         "class_name": "DoitMCPAgent",
-        "name": "MCP_OBJECT"
-      }
-    ]
+        "name": "MCP_OBJECT",
+      },
+    ],
   },
   "observability": {
     "logs": {
       "enabled": true,
-      "invocation_logs": true
+      "invocation_logs": true,
     },
     "traces": {
-      "enabled": false
-    }
+      "enabled": false,
+    },
   },
   "assets": {
     "directory": "./static/",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   /**
    * Smart Placement
@@ -69,7 +69,6 @@
   "vars": {
     "WORKER_URL": "https://mcp.doit.com",
     "PUBLIC_MCP_URL": "https://mcp.doit.com/sse",
-    "DEMO_MODE_ENABLED": "true"
   },
   /**
    * Note: Use secrets to store sensitive data.
@@ -88,4 +87,3 @@
    */
   // "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
 }
-

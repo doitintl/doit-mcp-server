@@ -4,7 +4,6 @@ import {
   exportJWK,
   generateKeyPair,
   type JWK,
-  type KeyLike,
   SignJWT,
 } from "jose";
 
@@ -18,8 +17,8 @@ const AUDIENCE = "https://mcp.doit.com";
 let server: Server;
 let issuer: string;
 let publicJwk: JWK;
-let privateKey: KeyLike;
-let rogueKey: KeyLike;
+let privateKey: CryptoKey;
+let rogueKey: CryptoKey;
 
 beforeAll(async () => {
   const access = await generateKeyPair("ES256", { extractable: true });
@@ -58,7 +57,7 @@ afterAll(async () => {
 });
 
 const mintToken = async (
-  signer: KeyLike,
+  signer: CryptoKey,
   overrides: Partial<{
     aud: string;
     iss: string;

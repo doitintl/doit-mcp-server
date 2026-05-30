@@ -53,6 +53,6 @@ describe("exchangeMcpTokenForUpstreamToken", () => {
         mcpToken: "mcp-token",
         env: { AUTH_SERVER_URL: "http://auth.local" },
       }),
-    ).rejects.toThrow("MCP_TOKEN_EXCHANGE_SECRET is not configured");
+    ).rejects.toThrow("Failed to authenticate with the DoiT API");
   });
 });

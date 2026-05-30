@@ -5,7 +5,7 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { SERVER_NAME_WEB, SERVER_VERSION } from "../../src/utils/consts.js";
-import { configureDoiTApiBase, zodSchemaToMcpTool } from "../../src/utils/util.js";
+import { configureDoiTApiBase } from "../../src/utils/util.js";
 import { DEMO_TOKEN } from "../../src/utils/demoData.js";
 
 import {
@@ -220,7 +220,7 @@ import {
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
 import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
-import { resolveMcpResourceUrl, type DoitWorkerEnv, type UiDomainProvider } from "./runtimeEnv.js";
+import { resolveAuthServerUrl, resolveMcpResourceUrl, type DoitWorkerEnv, type UiDomainProvider } from "./runtimeEnv.js";
 import {
   buildFallbackWidgetResourceContent,
   buildWidgetResourceContent,
@@ -451,7 +451,7 @@ export class DoitMCPAgent extends McpAgent {
       tool.name,
       {
         description: tool.description,
-        inputSchema: zodSchemaToMcpTool(schema),
+        inputSchema: schema.shape,
         annotations: tool.annotations,
         _meta: {
           ...tool._meta,
@@ -730,7 +730,7 @@ export class DoitMCPAgent extends McpAgent {
         changeCustomerTool.name,
         {
           description: changeCustomerTool.description,
-          inputSchema: zodSchemaToMcpTool(ChangeCustomerArgumentsSchema),
+          inputSchema: ChangeCustomerArgumentsSchema.shape,
           annotations: changeCustomerTool.annotations,
           _meta: {
             ...changeCustomerTool._meta,
@@ -991,6 +991,13 @@ async function handleRequest(
   ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(req.url);
+  // TEMP DEBUG — remove after verification
+  console.log(
+    "[request-time] process.env.DOIT_API_BASE =",
+    process.env.DOIT_API_BASE,
+    "| env.DOIT_API_BASE =",
+    (env as { DOIT_API_BASE?: string }).DOIT_API_BASE,
+  );
   const startedAt = Date.now();
   const traceId = isMcpDiagnosticsPath(url.pathname)
     ? getMcpTraceId(req)
@@ -1007,8 +1014,7 @@ async function handleRequest(
     // here before the MCP auth check runs. The metadata points clients to the real
     // authorization server (auth.doit.com).
     if (isMcpDiscoveryPath(url.pathname)) {
-      const authServerUrl =
-        (env as { AUTH_SERVER_URL?: string }).AUTH_SERVER_URL ?? "https://auth.doit.com";
+      const authServerUrl = resolveAuthServerUrl(env as { AUTH_SERVER_URL?: string });
       const resource = resolveMcpResourceUrl(env as { MCP_RESOURCE_URL?: string });
       const response = Response.json({
         resource,
