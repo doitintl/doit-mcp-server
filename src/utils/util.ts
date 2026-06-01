@@ -4,14 +4,6 @@ import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
 
-// TEMP DEBUG — remove after verification
-console.log(
-  "[module-load] process.env.DOIT_API_BASE =",
-  process.env.DOIT_API_BASE,
-  "| resolved DOIT_API_BASE const =",
-  DOIT_API_BASE,
-);
-
 let runtimeDoiTApiBase = DOIT_API_BASE;
 
 export function configureDoiTApiBase(apiBase?: string): void {

@@ -72,7 +72,18 @@ const verifyOAuthToken = async (
       algorithms: ["ES256"],
     });
     return { ok: true, payload };
-  } catch {
+  } catch (err) {
+    // TEMP DEBUG — remove after verification
+    let actualAud: unknown;
+    try {
+      const seg = token.split(".")[1];
+      actualAud = JSON.parse(atob(seg.replace(/-/g, "+").replace(/_/g, "/"))).aud;
+    } catch {}
+    console.error("[mcp][debug] jwtVerify failed", {
+      message: (err as Error)?.message,
+      audienceExpected: resolveMcpResourceUrl(env),
+      actualAud,
+    });
     return { ok: false, reason: "invalid" };
   }
 };

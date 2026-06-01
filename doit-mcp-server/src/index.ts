@@ -992,12 +992,6 @@ async function handleRequest(
 ): Promise<Response> {
   const url = new URL(req.url);
   // TEMP DEBUG — remove after verification
-  console.log(
-    "[request-time] process.env.DOIT_API_BASE =",
-    process.env.DOIT_API_BASE,
-    "| env.DOIT_API_BASE =",
-    (env as { DOIT_API_BASE?: string }).DOIT_API_BASE,
-  );
   const startedAt = Date.now();
   const traceId = isMcpDiagnosticsPath(url.pathname)
     ? getMcpTraceId(req)

@@ -71,6 +71,56 @@
     "PUBLIC_MCP_URL": "https://mcp.doit.com/sse",
   },
   /**
+   * Environments
+   * Deploy with: wrangler deploy --env dev
+   * https://developers.cloudflare.com/workers/wrangler/environments/
+   */
+  "env": {
+    "dev": {
+      "name": "doit-mcp-server-dev",
+      "routes": [],
+      "vars": {
+        "WORKER_URL": "https://doit-mcp-server-dev.doitintl.workers.dev",
+        "PUBLIC_MCP_URL": "https://doit-mcp-server-dev.doitintl.workers.dev/sse",
+        // OAuth audience for this worker. Clients connect here, so the JWT `aud`
+        // must match this URL (not the prod default https://mcp.doit.com).
+        // Trailing slash is REQUIRED: the local auth server normalizes the
+        // resource indicator and stamps `aud` with a trailing slash, and jose
+        // does an exact-string audience match.
+        "MCP_RESOURCE_URL": "https://doit-mcp-server-dev.doitintl.workers.dev/",
+        // Points the deployed dev worker at the local auth service exposed via
+        // ngrok. NOTE: this is a personal/ephemeral tunnel committed to a shared
+        // config — update it when the ngrok URL changes.
+        "AUTH_SERVER_URL": "https://parsnip-paralegal-employer.ngrok-free.dev",
+        // MCP_TOKEN_EXCHANGE_SECRET is a SECRET -> set via:
+        //   wrangler secret put MCP_TOKEN_EXCHANGE_SECRET --env dev
+        "MCP_TOKEN_EXCHANGE_SECRET": "local-mcp-token-exchange-secret",
+      },
+      "migrations": [
+        {
+          "new_sqlite_classes": ["DoitMCPAgent"],
+          "tag": "v1",
+        },
+        {
+          "new_sqlite_classes": ["ContextStorage"],
+          "tag": "v2",
+        },
+        {
+          "deleted_classes": ["ContextStorage"],
+          "tag": "v3",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "class_name": "DoitMCPAgent",
+            "name": "MCP_OBJECT",
+          },
+        ],
+      },
+    },
+  },
+  /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/
    */
