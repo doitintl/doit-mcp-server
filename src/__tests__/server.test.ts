@@ -824,7 +824,9 @@ describe("CallToolRequestSchema handler", () => {
     // Approval gating for create_ticket is currently disabled — we rely on the tool's
     // `destructiveHint: true` annotation instead. Re-add "create_ticket" here when the
     // WRITE_GATED_SUMMARIES entry is uncommented.
-    const WRITE_GATED_TOOL_NAMES = new Set<string>([/* "create_ticket" */]);
+    const WRITE_GATED_TOOL_NAMES = new Set<string>([
+        /* "create_ticket" */
+    ]);
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
         const first = await getCallToolHandler()(mockRequest(toolName, args));
