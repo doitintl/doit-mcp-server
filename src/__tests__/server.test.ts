@@ -231,7 +231,7 @@ import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
-import { confirmActionTool } from "../tools/confirmAction.js";
+// import { confirmActionTool } from "../tools/confirmAction.js"; // disabled with the approval gate
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -393,7 +393,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listCommitmentsTool,
                 getCommitmentTool,
                 askAvaSyncTool,
-                confirmActionTool,
+                // confirmActionTool, // disabled with the approval gate
             ],
         });
     });

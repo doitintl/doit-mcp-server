@@ -33,7 +33,7 @@ describe("MCP Tools Integration", () => {
                     "ask_ava_sync",
                     "assign_objects_to_label",
                     "compare_spend",
-                    "confirm_action",
+                    // "confirm_action", // disabled with the approval gate
                     "cost_breakdown",
                     "cost_trend",
                     "create_alert",
@@ -114,10 +114,16 @@ describe("MCP Tools Integration", () => {
     });
 
     describe("STDIO ↔ SSE tool registration sync", () => {
+        // Tools whose source-level references (import + commented-out registration)
+        // are intentionally retained for an easy re-enable, but which are NOT actually
+        // exposed to clients. Filter them from the regex-extracted lists so the parity
+        // check matches the live MCP tool surface.
+        const DISABLED_TOOL_VARS = new Set(["confirmActionTool"]);
+
         function extractToolVarNames(source: string, pattern: RegExp): string[] {
             const names: string[] = [];
             for (const m of source.matchAll(pattern)) {
-                names.push(m[1]);
+                if (!DISABLED_TOOL_VARS.has(m[1])) names.push(m[1]);
             }
             return names;
         }

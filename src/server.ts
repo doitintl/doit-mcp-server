@@ -67,7 +67,9 @@ import {
     handleListCommitmentsRequest,
     listCommitmentsTool,
 } from "./tools/commitmentManager.js";
-import { confirmActionTool } from "./tools/confirmAction.js";
+// Re-enable alongside the WRITE_GATED_SUMMARIES entry in utils/toolsHandler.ts
+// and the registration on the tool list below.
+// import { confirmActionTool } from "./tools/confirmAction.js";
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -243,7 +245,10 @@ export function createServer() {
                 listCommitmentsTool,
                 getCommitmentTool,
                 askAvaSyncTool,
-                confirmActionTool,
+                // confirm_action is no longer exposed while the approval gate is
+                // disabled — without any write-gated tool minting tokens there is
+                // nothing for clients to confirm. Re-add when the gate returns.
+                // confirmActionTool,
             ],
         };
     });
