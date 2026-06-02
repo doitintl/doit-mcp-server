@@ -1,8 +1,10 @@
 import app from "./app";
-import { type BearerEnv, verifyBearer, wwwAuthenticateHeaderForResource } from "./oauth/bearerMiddleware";
+import { type BearerEnv, hasMcpAccessKid, verifyBearer, wwwAuthenticateHeaderForResource } from "./oauth/bearerMiddleware";
 import { exchangeMcpTokenForUpstreamToken, type TokenExchangeEnv } from "./oauth/tokenExchange";
+import { validateLegacyApiKey } from "./oauth/legacyApiKey";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { DurableObject } from "cloudflare:workers";
 
 import { SERVER_NAME_WEB, SERVER_VERSION } from "../../src/utils/consts.js";
 import { configureDoiTApiBase } from "../../src/utils/util.js";
@@ -273,6 +275,24 @@ function logWidgetResourceError(
   );
 }
 
+// Per-apiKey customer-context persistence for legacy (API-key) sessions, keyed by
+// `idFromName(apiKey)`. Mirrors main: a Do'er's change_customer selection survives
+// reconnects. OAuth sessions do NOT use this (their context is sealed in the JWT).
+export class ContextStorage extends DurableObject {
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+  }
+
+  async saveContext(customerContext: string): Promise<void> {
+    await this.ctx.storage.put("customerContext", customerContext);
+  }
+
+  async loadContext(): Promise<string | null> {
+    const context = await this.ctx.storage.get<string>("customerContext");
+    return context || null;
+  }
+}
+
 export class DoitMCPAgent extends McpAgent {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -330,6 +350,12 @@ export class DoitMCPAgent extends McpAgent {
       return token;
     }
 
+    // Legacy API-key sessions: the key IS the upstream DoiT API credential, so use
+    // it directly — no MCP→upstream token exchange (that's only for OAuth tokens).
+    if (this.props.authMethod === "apikey") {
+      return token;
+    }
+
     const now = Math.floor(Date.now() / 1000);
     if (
       this.upstreamTokenCache?.mcpAccessToken === token &&
@@ -350,6 +376,38 @@ export class DoitMCPAgent extends McpAgent {
     };
 
     return exchanged.accessToken;
+  }
+
+  // Persist the legacy session's customerContext to the ContextStorage DO,
+  // keyed by apiKey, so a change_customer selection survives reconnects (mirrors
+  // main). No-op when CONTEXT_STORAGE is unbound (e.g. test harnesses).
+  private async saveProps(): Promise<void> {
+    const env = this.env as DoitWorkerEnv;
+    const apiKey = this.props.apiKey as string;
+    const customerContext = this.props.customerContext as string;
+    if (apiKey && env?.CONTEXT_STORAGE) {
+      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
+      const contextStorage = env.CONTEXT_STORAGE.get(id);
+      await contextStorage.saveContext(customerContext);
+    }
+  }
+
+  // Load the persisted customerContext for this apiKey from the ContextStorage DO.
+  // Returns the persisted value (and updates this.props) when present, else the
+  // current in-memory context. Used only on legacy (API-key) sessions.
+  private async loadPersistedProps(): Promise<string | null> {
+    const env = this.env as DoitWorkerEnv;
+    const apiKey = this.props.apiKey as string;
+    if (apiKey && env?.CONTEXT_STORAGE) {
+      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
+      const contextStorage = env.CONTEXT_STORAGE.get(id);
+      const persisted = await contextStorage.loadContext();
+      if (persisted) {
+        this.props.customerContext = persisted;
+        return persisted;
+      }
+    }
+    return (this.props.customerContext as string) || null;
   }
 
   private async persistSessionUiDomainProvider(
@@ -392,7 +450,23 @@ export class DoitMCPAgent extends McpAgent {
   private createToolCallback(toolName: string) {
     return async (args: any) => {
       const token = await this.getToken();
-      const customerContext = this.props.customerContext as string;
+      let customerContext = this.props.customerContext as string;
+
+      // Legacy DoiT-employee sessions persist customerContext per-key in
+      // ContextStorage (mirrors main); load it so a prior change_customer selection
+      // is applied. Regular customer keys are pinned to their own domain (no
+      // change_customer), and OAuth sessions keep the JWT-sealed context in memory.
+      if (this.props.authMethod === "apikey" && this.props.isDoitUser === "true") {
+        try {
+          customerContext = (await this.loadPersistedProps()) || customerContext;
+        } catch (error) {
+          console.error(
+            "[mcp] loadPersistedProps failed during tool call",
+            { reason: getErrorMessage(error), toolName },
+            error
+          );
+        }
+      }
 
       const argsWithCustomerContext = {
         ...args,
@@ -424,11 +498,15 @@ export class DoitMCPAgent extends McpAgent {
         "../../src/tools/changeCustomer.js"
       );
 
-      // Update the customer context for the duration of this session. Under OAuth
-      // there is no durable persistence — a reconnect reverts to the customer
-      // context sealed in the JWT.
+      // Update the customer context. Legacy API-key sessions persist the switch
+      // per-apiKey in ContextStorage (mirrors main), so it survives reconnects.
+      // Under OAuth there is no durable persistence — a reconnect reverts to the
+      // customer context sealed in the JWT.
       const updateCustomerContext = async (newContext: string) => {
         this.props.customerContext = newContext;
+        if (this.props.authMethod === "apikey") {
+          await this.saveProps();
+        }
       };
 
       // change_customer bypasses executeToolHandler, so wrap manually with tracking context.
@@ -724,7 +802,10 @@ export class DoitMCPAgent extends McpAgent {
     // were previously staged by other tools. See src/tools/confirmAction.ts.
     this.registerTool(confirmActionTool, ConfirmActionArgumentsSchema);
 
-    // Change Customer tool (requires special handling)
+    // Change Customer tool (requires special handling). Registered only for DoiT
+    // employees — both OAuth (doit_employee JWT claim) and legacy API-key sessions
+    // (DoitEmployee claim, resolved in validateLegacyApiKey). Matches main: regular
+    // customer keys never see this employee-only tool.
     if (this.props.isDoitUser === "true") {
       (this.server as any).registerTool(
         changeCustomerTool.name,
@@ -1062,6 +1143,35 @@ async function handleRequest(
         const result = await verifyBearer(token, env as BearerEnv, { mode });
 
         if (!result) {
+          // Legacy fallback: a bearer that is NOT an mcp-access OAuth JWT (i.e. an
+          // opaque DoiT API key) is validated against /auth/v1/validate. A valid key
+          // authenticates directly — no OAuth flow — with identity/customer sourced
+          // from the validate response. customerContext then persists per-apiKey via
+          // ContextStorage + change_customer (see the agent). Invalid → fall through
+          // to the standard 401 + OAuth challenge.
+          if (!hasMcpAccessKid(token)) {
+            const legacy = await validateLegacyApiKey(token);
+            if (legacy) {
+              console.log(getMcpDiagnosticsMessage("legacy api key session"), {
+                userId: legacy.email,
+                isDoitUser: legacy.isDoitEmployee,
+                hasCustomerContext: Boolean(legacy.customerContext),
+              });
+              assignCtxProps(ctx, {
+                apiKey: token,
+                customerContext: legacy.customerContext,
+                authMethod: "apikey",
+                userId: legacy.email,
+                isDoitUser: legacy.isDoitEmployee ? "true" : "false",
+              });
+              const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
+              if (response.status >= 400) {
+                logMcpRequestComplete(traceId, response, startedAt);
+              }
+              return response;
+            }
+          }
+
           const response = new Response("Unauthorized", {
             status: 401,
             headers: {

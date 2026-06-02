@@ -52,6 +52,13 @@ const decodeKid = (token: string): string | null => {
   }
 };
 
+// True only when the token is a JWT carrying the mcp-access kid (an auth.doit.com
+// access token). The worker uses this to decide whether a bearer that failed OAuth
+// verification should be retried as a legacy (opaque) DoiT API key — opaque keys
+// are not JWTs, so this returns false for them.
+export const hasMcpAccessKid = (token: string): boolean =>
+  decodeKid(token) === ACCESS_TOKEN_KID;
+
 type Verified =
   | { ok: true; payload: JWTPayload }
   | { ok: false; reason: "invalid" | "wrong_kid" };

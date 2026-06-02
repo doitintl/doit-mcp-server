@@ -27,12 +27,21 @@
       "deleted_classes": ["ContextStorage"],
       "tag": "v3",
     },
+    {
+      // Re-create ContextStorage for legacy (API-key) per-customer persistence.
+      "new_sqlite_classes": ["ContextStorage"],
+      "tag": "v4",
+    },
   ],
   "durable_objects": {
     "bindings": [
       {
         "class_name": "DoitMCPAgent",
         "name": "MCP_OBJECT",
+      },
+      {
+        "class_name": "ContextStorage",
+        "name": "CONTEXT_STORAGE",
       },
     ],
   },
@@ -109,12 +118,21 @@
           "deleted_classes": ["ContextStorage"],
           "tag": "v3",
         },
+        {
+          // Re-create ContextStorage for legacy (API-key) per-customer persistence.
+          "new_sqlite_classes": ["ContextStorage"],
+          "tag": "v4",
+        },
       ],
       "durable_objects": {
         "bindings": [
           {
             "class_name": "DoitMCPAgent",
             "name": "MCP_OBJECT",
+          },
+          {
+            "class_name": "ContextStorage",
+            "name": "CONTEXT_STORAGE",
           },
         ],
       },

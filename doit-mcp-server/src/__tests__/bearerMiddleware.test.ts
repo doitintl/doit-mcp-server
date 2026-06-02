@@ -8,6 +8,7 @@ import {
 } from "jose";
 
 import {
+  hasMcpAccessKid,
   verifyBearer,
   wwwAuthenticateHeaderForResource,
 } from "../oauth/bearerMiddleware";
@@ -249,5 +250,25 @@ describe("wwwAuthenticateHeaderForResource", () => {
     expect(wwwAuthenticateHeaderForResource("https://mcp.doit.com")).toBe(
       'Bearer resource_metadata="https://mcp.doit.com/.well-known/oauth-protected-resource", error="invalid_token"',
     );
+  });
+});
+
+describe("hasMcpAccessKid", () => {
+  it("returns true for a JWT carrying the mcp-access kid", async () => {
+    const jwt = await new SignJWT({})
+      .setProtectedHeader({ alg: "ES256", kid: "mcp-access" })
+      .sign(privateKey);
+    expect(hasMcpAccessKid(jwt)).toBe(true);
+  });
+
+  it("returns false for a JWT with a different kid (so it is retried as a legacy key)", async () => {
+    const jwt = await new SignJWT({})
+      .setProtectedHeader({ alg: "ES256", kid: "some-other-kid" })
+      .sign(privateKey);
+    expect(hasMcpAccessKid(jwt)).toBe(false);
+  });
+
+  it("returns false for an opaque (non-JWT) DoiT API key", () => {
+    expect(hasMcpAccessKid("doit-opaque-api-key-abc123")).toBe(false);
   });
 });
