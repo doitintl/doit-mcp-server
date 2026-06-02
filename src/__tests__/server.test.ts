@@ -231,7 +231,7 @@ import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
-import { confirmActionTool } from "../tools/confirmAction.js";
+// import { confirmActionTool } from "../tools/confirmAction.js"; // disabled with the approval gate
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -393,7 +393,7 @@ describe("ListToolsRequestSchema handler", () => {
                 listCommitmentsTool,
                 getCommitmentTool,
                 askAvaSyncTool,
-                confirmActionTool,
+                // confirmActionTool, // disabled with the approval gate
             ],
         });
     });
@@ -821,7 +821,12 @@ describe("CallToolRequestSchema handler", () => {
 
     // Tools gated by the server-side approval flow (confirm_action two-phase commit).
     // POC scope keeps the gated set minimal; see WRITE_GATED_SUMMARIES in toolsHandler.ts.
-    const WRITE_GATED_TOOL_NAMES = new Set(["create_ticket"]);
+    // Approval gating for create_ticket is currently disabled — we rely on the tool's
+    // `destructiveHint: true` annotation instead. Re-add "create_ticket" here when the
+    // WRITE_GATED_SUMMARIES entry is uncommented.
+    const WRITE_GATED_TOOL_NAMES = new Set<string>([
+        /* "create_ticket" */
+    ]);
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
         const first = await getCallToolHandler()(mockRequest(toolName, args));

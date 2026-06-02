@@ -70,7 +70,7 @@ import {
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
 import {
-    createTicketTool,
+    // createTicketTool, // Re-enable alongside the WRITE_GATED_SUMMARIES entry below.
     handleCreateTicketCommentRequest,
     handleCreateTicketRequest,
     handleGetTicketRequest,
@@ -103,7 +103,10 @@ import {
  * No tool handler code needs to change.
  */
 const WRITE_GATED_SUMMARIES: Record<string, (args: any) => string> = {
-    [createTicketTool.name]: createTicketTool.summary,
+    // Approval-token gating for create_ticket is disabled — we rely on the
+    // tool's `destructiveHint: true` annotation to surface a client-side
+    // confirmation dialog instead. Re-enable by uncommenting the line below.
+    // [createTicketTool.name]: createTicketTool.summary,
 };
 
 export interface ToolHandlerOptions {

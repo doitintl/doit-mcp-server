@@ -4,7 +4,12 @@ import { createTestClient, getTextContent } from "../helpers.js";
 // This suite intentionally uses `rawClient` to bypass the test helper's
 // auto-confirm wrapper, so we can observe the two-phase approval envelope
 // emitted by the server directly.
-describe("Write-gated tool approval flow (stdio)", () => {
+//
+// Skipped: server-enforced approval gating for `create_ticket` is currently
+// disabled (see WRITE_GATED_SUMMARIES in src/utils/toolsHandler.ts). All five
+// tests below assert behavior of that gate. Remove `.skip` once the registry
+// entry is uncommented.
+describe.skip("Write-gated tool approval flow (stdio)", () => {
     let rawClient: { callTool: (p: { name: string; arguments: Record<string, unknown> }) => Promise<any> };
     let cleanup: () => Promise<void>;
 

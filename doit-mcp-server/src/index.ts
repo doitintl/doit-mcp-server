@@ -111,10 +111,12 @@ import {
   TriggerCloudFlowArgumentsSchema,
   triggerCloudFlowTool,
 } from "../../src/tools/cloudflow.js";
-import {
-  ConfirmActionArgumentsSchema,
-  confirmActionTool,
-} from "../../src/tools/confirmAction.js";
+// Re-enable alongside the WRITE_GATED_SUMMARIES entry in utils/toolsHandler.ts
+// and the registerTool() call further down.
+// import {
+//   ConfirmActionArgumentsSchema,
+//   confirmActionTool,
+// } from "../../src/tools/confirmAction.js";
 import {
   ListOrganizationsArgumentsSchema,
   listOrganizationsTool,
@@ -799,7 +801,9 @@ export class DoitMCPAgent extends McpAgent {
 
     // Approval flow — exposed so the LLM can finalize destructive actions that
     // were previously staged by other tools. See src/tools/confirmAction.ts.
-    this.registerTool(confirmActionTool, ConfirmActionArgumentsSchema);
+    // Currently disabled along with the WRITE_GATED_SUMMARIES gate; no tool
+    // mints approval tokens, so there's nothing for clients to confirm.
+    // this.registerTool(confirmActionTool, ConfirmActionArgumentsSchema);
 
     // Change Customer tool (requires special handling)
     if (this.props.isDoitUser === "true") {
