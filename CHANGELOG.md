@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- chore: disable server-enforced approval flow for `create_ticket`; confirmation UX is now delegated to the MCP client via the tool's `destructiveHint: true` annotation.
+
 ## v0.13.0 (2026-05-07)
 
 ### Features

@@ -153,6 +153,9 @@ export const createTicketTool = {
     },
     annotations: {
         readOnlyHint: false,
+        // `destructiveHint` is advisory per the MCP spec — clients are expected (but not
+        // required) to surface a confirmation dialog. For a *server-enforced* confirmation
+        // step, re-enable the WRITE_GATED_SUMMARIES entry in src/utils/toolsHandler.ts.
         destructiveHint: true,
         openWorldHint: true,
     },

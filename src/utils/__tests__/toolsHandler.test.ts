@@ -102,6 +102,29 @@ describe("executeToolHandler approval gate", () => {
         expect(makeDoitRequest).toHaveBeenCalledTimes(1);
     });
 
+    it("create_ticket runs directly when its WRITE_GATED_SUMMARIES entry is disabled (current default)", async () => {
+        // Locks in the disabled-approval behavior: even with both userKey and approvalStore
+        // supplied (i.e. the gate would fire if `create_ticket` were registered), we expect
+        // the handler to call the DoiT API directly and return the API response — not an
+        // `approval_required` envelope. Re-enabling the WRITE_GATED_SUMMARIES entry in
+        // `src/utils/toolsHandler.ts` should make this test fail; that's intentional.
+        const { makeDoitRequest } = await import("../util.js");
+        (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
+        (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ticket-new-1" });
+
+        const approvalStore = new MemoryApprovalStore();
+        const response = await executeToolHandler("create_ticket", validTicketArgs, apiToken, {
+            userKey,
+            approvalStore,
+        });
+
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.status).not.toBe("approval_required");
+        expect(parsed.approvalToken).toBeUndefined();
+        expect(approvalStore.size()).toBe(0);
+    });
+
     it("non-gated tools pass through even with the gate enabled", async () => {
         const { makeDoitRequest } = await import("../util.js");
         (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
