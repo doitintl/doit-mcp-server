@@ -102,6 +102,27 @@ describe("executeToolHandler approval gate", () => {
         expect(makeDoitRequest).toHaveBeenCalledTimes(1);
     });
 
+    it("confirm_action called by a stale client returns a clean error (no throw)", async () => {
+        // `confirm_action` is no longer advertised in the tool list (see src/server.ts
+        // and doit-mcp-server/src/index.ts), but a misbehaving client with cached
+        // metadata could still send the call. Verify it returns the canonical
+        // "Approval token unknown or expired" error instead of throwing, and never
+        // reaches the DoiT API.
+        const { makeDoitRequest } = await import("../util.js");
+        (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+        const approvalStore = new MemoryApprovalStore();
+        const response = await executeToolHandler(
+            "confirm_action",
+            { token: "00000000-0000-0000-0000-000000000000" },
+            apiToken,
+            { userKey, approvalStore }
+        );
+
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+        expect(response.content[0].text).toContain("Approval token unknown or expired");
+    });
+
     it("create_ticket runs directly when its WRITE_GATED_SUMMARIES entry is disabled (current default)", async () => {
         // Locks in the disabled-approval behavior: even with both userKey and approvalStore
         // supplied (i.e. the gate would fire if `create_ticket` were registered), we expect

@@ -116,8 +116,12 @@ describe("MCP Tools Integration", () => {
     describe("STDIO ↔ SSE tool registration sync", () => {
         // Tools whose source-level references (import + commented-out registration)
         // are intentionally retained for an easy re-enable, but which are NOT actually
-        // exposed to clients. Filter them from the regex-extracted lists so the parity
-        // check matches the live MCP tool surface.
+        // exposed to clients. The regex extractor matches on raw text, so commented-out
+        // identifiers like `// confirmActionTool,` in src/server.ts and
+        // `// this.registerTool(confirmActionTool, ...)` in doit-mcp-server/src/index.ts
+        // would otherwise be counted as live. Filter them here so the parity check
+        // reflects the actual MCP tool surface; re-enabling a tool means uncommenting
+        // its source references AND removing its name from this set.
         const DISABLED_TOOL_VARS = new Set(["confirmActionTool"]);
 
         function extractToolVarNames(source: string, pattern: RegExp): string[] {
