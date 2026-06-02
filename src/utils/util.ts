@@ -242,9 +242,12 @@ export async function makeDoitRequest<T>(
 
     // TEMP DEMO — fires for every tool call that reaches the API layer (demo or real).
     console.log(
-        "[demo] makeDoitRequest url(in) =", url,
-        "| resolved (actual) =", applyRuntimeDoiTApiBase(url),
-        "| isDemoToken =", token === DEMO_TOKEN,
+        "[demo] makeDoitRequest url(in) =",
+        url,
+        "| resolved (actual) =",
+        applyRuntimeDoiTApiBase(url),
+        "| isDemoToken =",
+        token === DEMO_TOKEN
     );
 
     // Demo mode: return canned data without hitting the real API.
