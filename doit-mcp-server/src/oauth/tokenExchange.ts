@@ -1,3 +1,5 @@
+import { SignJWT } from "jose";
+
 import { resolveAuthServerUrl } from "../runtimeEnv";
 
 const TOKEN_EXCHANGE_GRANT_TYPE =
@@ -5,6 +7,27 @@ const TOKEN_EXCHANGE_GRANT_TYPE =
 const ACCESS_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:access_token";
 const LEGACY_CMP_UPSTREAM_AUDIENCE = "cmp";
 const TOKEN_EXCHANGE_CLIENT_ID = "mcp.doit.com";
+const CLIENT_ASSERTION_TYPE =
+  "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+const CLIENT_ASSERTION_TTL_SECONDS = 60;
+
+// Prove possession of the shared secret by signing a short-lived JWT (client_secret_jwt,
+// RFC 7521/7523) instead of transmitting the secret on every request. The auth service
+// verifies the signature with the same secret; `aud` is the token endpoint URL.
+const buildClientAssertion = (
+  secret: string,
+  tokenEndpoint: string,
+): Promise<string> =>
+  new SignJWT({})
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuer(TOKEN_EXCHANGE_CLIENT_ID)
+    .setSubject(TOKEN_EXCHANGE_CLIENT_ID)
+    .setAudience(tokenEndpoint)
+    .setIssuedAt()
+    .setExpirationTime(`${CLIENT_ASSERTION_TTL_SECONDS}s`)
+    .setJti(crypto.randomUUID())
+    .sign(new TextEncoder().encode(secret));
+
 // Generic, client-safe message. Detailed causes (config, upstream status/body)
 // are logged server-side only and never surfaced to the caller.
 const UPSTREAM_AUTH_ERROR = "Failed to authenticate with the DoiT API";
@@ -35,6 +58,8 @@ export const exchangeMcpTokenForUpstreamToken = async ({
   }
 
   const authServerUrl = resolveAuthServerUrl(env);
+  const tokenEndpoint = `${authServerUrl}/api/auth/token`;
+  const clientAssertion = await buildClientAssertion(secret, tokenEndpoint);
   const body = new URLSearchParams({
     grant_type: TOKEN_EXCHANGE_GRANT_TYPE,
     subject_token: mcpToken,
@@ -42,10 +67,11 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     requested_token_type: ACCESS_TOKEN_TYPE,
     audience: LEGACY_CMP_UPSTREAM_AUDIENCE,
     client_id: TOKEN_EXCHANGE_CLIENT_ID,
-    client_secret: secret,
+    client_assertion_type: CLIENT_ASSERTION_TYPE,
+    client_assertion: clientAssertion,
   });
 
-  const response = await fetch(`${authServerUrl}/api/auth/token`, {
+  const response = await fetch(tokenEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
