@@ -1,6 +1,14 @@
 import app from "./app";
-import { type BearerEnv, hasMcpAccessKid, verifyBearer, wwwAuthenticateHeaderForResource } from "./oauth/bearerMiddleware";
-import { exchangeMcpTokenForUpstreamToken, type TokenExchangeEnv } from "./oauth/tokenExchange";
+import {
+  type BearerEnv,
+  hasMcpAccessKid,
+  verifyBearer,
+  wwwAuthenticateHeaderForResource,
+} from "./oauth/bearerMiddleware";
+import {
+  exchangeMcpTokenForUpstreamToken,
+  type TokenExchangeEnv,
+} from "./oauth/tokenExchange";
 import { validateLegacyApiKey } from "./oauth/legacyApiKey";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -16,14 +24,20 @@ import {
   cloudIncidentTool,
   cloudIncidentsTool,
 } from "../../src/tools/cloudIncidents.js";
-import { cloudOverviewTool, CloudOverviewArgumentsSchema } from "../../src/tools/overview.js";
+import {
+  cloudOverviewTool,
+  CloudOverviewArgumentsSchema,
+} from "../../src/tools/overview.js";
 import {
   AnomaliesArgumentsSchema,
   AnomalyArgumentsSchema,
   anomaliesTool,
   anomalyTool,
 } from "../../src/tools/anomalies.js";
-import { AskAvaSyncArgumentsSchema, askAvaSyncTool } from "../../src/tools/ava.js";
+import {
+  AskAvaSyncArgumentsSchema,
+  askAvaSyncTool,
+} from "../../src/tools/ava.js";
 import {
   CreateReportArgumentsSchema,
   GetReportConfigArgumentsSchema,
@@ -221,8 +235,16 @@ import {
 } from "./mcpDiagnostics.js";
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
-import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
-import { resolveAuthServerUrl, resolveMcpResourceUrl, type DoitWorkerEnv, type UiDomainProvider } from "./runtimeEnv.js";
+import {
+  promptsIncludingLegacyNames,
+  resolvePromptMessages,
+} from "../../src/prompts/index.js";
+import {
+  resolveAuthServerUrl,
+  resolveMcpResourceUrl,
+  type DoitWorkerEnv,
+  type UiDomainProvider,
+} from "./runtimeEnv.js";
 import {
   buildFallbackWidgetResourceContent,
   buildWidgetResourceContent,
@@ -244,7 +266,7 @@ const MCP_NOTIFICATIONS_PING = {
 
 // SSE message to send the MCP ping notification and keep the connection alive.
 const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
-  `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
+  `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`,
 );
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 
@@ -263,7 +285,7 @@ function logWidgetResourceError(
     hasPublicMcpUrl: boolean;
     hasClaudeUiDomain: boolean;
     hasOpenAiUiDomain: boolean;
-  }
+  },
 ) {
   console.error(
     message,
@@ -271,7 +293,7 @@ function logWidgetResourceError(
       reason: getErrorMessage(error),
       ...context,
     },
-    error
+    error,
   );
 }
 
@@ -308,7 +330,7 @@ export class DoitMCPAgent extends McpAgent {
       capabilities: {
         resources: {},
       },
-    }
+    },
   );
 
   // Per-instance MCP client info — stored on the DO instance, not a module global,
@@ -411,7 +433,7 @@ export class DoitMCPAgent extends McpAgent {
   }
 
   private async persistSessionUiDomainProvider(
-    provider: UiDomainProvider
+    provider: UiDomainProvider,
   ): Promise<void> {
     if (provider === "omit") {
       return;
@@ -426,7 +448,7 @@ export class DoitMCPAgent extends McpAgent {
   > {
     try {
       const provider = await this.ctx.storage.get<UiDomainProvider>(
-        SESSION_UI_DOMAIN_PROVIDER_KEY
+        SESSION_UI_DOMAIN_PROVIDER_KEY,
       );
 
       if (provider === "claude" || provider === "openai") {
@@ -439,7 +461,7 @@ export class DoitMCPAgent extends McpAgent {
         {
           reason: getErrorMessage(error),
         },
-        error
+        error,
       );
     }
 
@@ -456,14 +478,18 @@ export class DoitMCPAgent extends McpAgent {
       // ContextStorage (mirrors main); load it so a prior change_customer selection
       // is applied. Regular customer keys are pinned to their own domain (no
       // change_customer), and OAuth sessions keep the JWT-sealed context in memory.
-      if (this.props.authMethod === "apikey" && this.props.isDoitUser === "true") {
+      if (
+        this.props.authMethod === "apikey" &&
+        this.props.isDoitUser === "true"
+      ) {
         try {
-          customerContext = (await this.loadPersistedProps()) || customerContext;
+          customerContext =
+            (await this.loadPersistedProps()) || customerContext;
         } catch (error) {
           console.error(
             "[mcp] loadPersistedProps failed during tool call",
             { reason: getErrorMessage(error), toolName },
-            error
+            error,
           );
         }
       }
@@ -478,13 +504,14 @@ export class DoitMCPAgent extends McpAgent {
         token,
         {
           trackingContext: this._mcpClientInfo,
-          convertResponse: (rawResult) => adaptToolResponse(toolName, rawResult),
+          convertResponse: (rawResult) =>
+            adaptToolResponse(toolName, rawResult),
           // The identity the approval flow is bound to. `props.apiKey` is the
           // OAuth-derived DoiT API key and is per-user, so staged actions cannot
           // be consumed across users even if a token somehow leaked.
           userKey: token,
           approvalStore: this.getApprovalStore(),
-        }
+        },
       );
       return result;
     };
@@ -494,9 +521,8 @@ export class DoitMCPAgent extends McpAgent {
   private createChangeCustomerCallback() {
     return async (args: any) => {
       const token = await this.getToken();
-      const { handleChangeCustomerRequest } = await import(
-        "../../src/tools/changeCustomer.js"
-      );
+      const { handleChangeCustomerRequest } =
+        await import("../../src/tools/changeCustomer.js");
 
       // Update the customer context. Legacy API-key sessions persist the switch
       // per-apiKey in ContextStorage (mirrors main), so it survives reconnects.
@@ -510,14 +536,17 @@ export class DoitMCPAgent extends McpAgent {
       };
 
       // change_customer bypasses executeToolHandler, so wrap manually with tracking context.
-      return runWithTracking({ ...this._mcpClientInfo, mcpTool: "change_customer" }, async () => {
-        const response = await handleChangeCustomerRequest(
-          args,
-          token,
-          updateCustomerContext
-        );
-        return adaptToolResponse("change_customer", response);
-      });
+      return runWithTracking(
+        { ...this._mcpClientInfo, mcpTool: "change_customer" },
+        async () => {
+          const response = await handleChangeCustomerRequest(
+            args,
+            token,
+            updateCustomerContext,
+          );
+          return adaptToolResponse("change_customer", response);
+        },
+      );
     };
   }
 
@@ -538,7 +567,7 @@ export class DoitMCPAgent extends McpAgent {
           ui: { ...(tool._meta?.ui ?? {}), resourceUri: WIDGET_URI },
         },
       },
-      this.createToolCallback(tool.name)
+      this.createToolCallback(tool.name),
     );
     this._registeredToolCount += 1;
   }
@@ -550,10 +579,7 @@ export class DoitMCPAgent extends McpAgent {
       WIDGET_URI,
       { mimeType: WIDGET_RESOURCE_MIME_TYPE },
       async () => {
-        if (
-          !this._mcpClientInfo.mcpClient &&
-          !this._sessionUiDomainProvider
-        ) {
+        if (!this._mcpClientInfo.mcpClient && !this._sessionUiDomainProvider) {
           await this.loadPersistedSessionUiDomainProvider();
         }
         const logContext = {
@@ -574,7 +600,7 @@ export class DoitMCPAgent extends McpAgent {
           logWidgetResourceError(
             "[widget] config resolution failed",
             error,
-            logContext
+            logContext,
           );
           return {
             contents: [buildFallbackWidgetResourceContent(WIDGET_URI)],
@@ -602,14 +628,14 @@ export class DoitMCPAgent extends McpAgent {
           logWidgetResourceError(
             "[widget] resource content build failed",
             error,
-            logContext
+            logContext,
           );
           resourceContent = buildFallbackWidgetResourceContent(WIDGET_URI);
         }
         return {
           contents: [resourceContent],
         };
-      }
+      },
     );
     this._registeredResourceCount += 1;
   }
@@ -658,7 +684,7 @@ export class DoitMCPAgent extends McpAgent {
         void this.persistSessionUiDomainProvider(provider).catch((error) => {
           console.error(
             "[mcp] failed to persist session UI domain provider",
-            error
+            error,
           );
         });
       }
@@ -699,8 +725,14 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(costBreakdownTool, CostBreakdownArgumentsSchema);
     this.registerTool(costTrendTool, CostTrendArgumentsSchema);
     this.registerTool(compareSpendTool, CompareSpendArgumentsSchema);
-    this.registerTool(listOptimizationRecommendationsTool, ListInsightsArgumentsSchema);
-    this.registerTool(getInsightResourcesTool, GetInsightResourcesArgumentsSchema);
+    this.registerTool(
+      listOptimizationRecommendationsTool,
+      ListInsightsArgumentsSchema,
+    );
+    this.registerTool(
+      getInsightResourcesTool,
+      GetInsightResourcesArgumentsSchema,
+    );
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);
     this.registerTool(createReportTool, CreateReportArgumentsSchema);
@@ -716,8 +748,14 @@ export class DoitMCPAgent extends McpAgent {
     // Tickets tools
     this.registerTool(listTicketsTool, ListTicketsArgumentsSchema);
     this.registerTool(getTicketTool, GetTicketArgumentsSchema);
-    this.registerTool(listTicketCommentsTool, ListTicketCommentsArgumentsSchema);
-    this.registerTool(createTicketCommentTool, CreateTicketCommentArgumentsSchema);
+    this.registerTool(
+      listTicketCommentsTool,
+      ListTicketCommentsArgumentsSchema,
+    );
+    this.registerTool(
+      createTicketCommentTool,
+      CreateTicketCommentArgumentsSchema,
+    );
     this.registerTool(createTicketTool, CreateTicketArgumentsSchema);
 
     // Invoices tools
@@ -743,7 +781,6 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(createAlertTool, CreateAlertArgumentsSchema);
     this.registerTool(updateAlertTool, UpdateAlertArgumentsSchema);
 
-
     // Organizations tools
     this.registerTool(listOrganizationsTool, ListOrganizationsArgumentsSchema);
 
@@ -766,14 +803,29 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getLabelTool, GetLabelArgumentsSchema);
     this.registerTool(createLabelTool, CreateLabelArgumentsSchema);
     this.registerTool(updateLabelTool, UpdateLabelArgumentsSchema);
-    this.registerTool(getLabelAssignmentsTool, GetLabelAssignmentsArgumentsSchema);
-    this.registerTool(assignObjectsToLabelTool, AssignObjectsToLabelArgumentsSchema);
+    this.registerTool(
+      getLabelAssignmentsTool,
+      GetLabelAssignmentsArgumentsSchema,
+    );
+    this.registerTool(
+      assignObjectsToLabelTool,
+      AssignObjectsToLabelArgumentsSchema,
+    );
 
     // DataHub Datasets tools
-    this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
+    this.registerTool(
+      listDatahubDatasetsTool,
+      ListDatahubDatasetsArgumentsSchema,
+    );
     this.registerTool(getDatahubDatasetTool, GetDatahubDatasetArgumentsSchema);
-    this.registerTool(createDatahubDatasetTool, CreateDatahubDatasetArgumentsSchema);
-    this.registerTool(updateDatahubDatasetTool, UpdateDatahubDatasetArgumentsSchema);
+    this.registerTool(
+      createDatahubDatasetTool,
+      CreateDatahubDatasetArgumentsSchema,
+    );
+    this.registerTool(
+      updateDatahubDatasetTool,
+      UpdateDatahubDatasetArgumentsSchema,
+    );
     this.registerTool(sendDatahubEventsTool, SendDatahubEventsArgumentsSchema);
 
     // Cloud Diagrams tools
@@ -817,10 +869,13 @@ export class DoitMCPAgent extends McpAgent {
             ...changeCustomerTool._meta,
             "ui/resourceUri": WIDGET_URI,
             "openai/outputTemplate": WIDGET_URI,
-            ui: { ...((changeCustomerTool._meta as any)?.ui ?? {}), resourceUri: WIDGET_URI },
+            ui: {
+              ...((changeCustomerTool._meta as any)?.ui ?? {}),
+              resourceUri: WIDGET_URI,
+            },
           },
         },
-        this.createChangeCustomerCallback()
+        this.createChangeCustomerCallback(),
       );
       this._registeredToolCount += 1;
     }
@@ -833,7 +888,7 @@ export class DoitMCPAgent extends McpAgent {
         {
           reason: getErrorMessage(error),
         },
-        error
+        error,
       );
     }
     this.installMcpMethodDiagnostics();
@@ -869,18 +924,15 @@ export class DoitMCPAgent extends McpAgent {
 function wrapSSEResponseWithKeepAlive(
   response: Response,
   traceId: string,
-  keepAliveIntervalMs: number = KEEP_ALIVE_INTERVAL_MS
+  keepAliveIntervalMs: number = KEEP_ALIVE_INTERVAL_MS,
 ): Response {
   const originalBody = response.body;
 
   if (!originalBody) {
-    console.log(
-      getMcpDiagnosticsMessage("sse stream missing body", traceId),
-      {
-        ...getMcpTraceContext(traceId),
-        status: response.status,
-      }
-    );
+    console.log(getMcpDiagnosticsMessage("sse stream missing body", traceId), {
+      ...getMcpTraceContext(traceId),
+      status: response.status,
+    });
     return response;
   }
 
@@ -917,7 +969,7 @@ function wrapSSEResponseWithKeepAlive(
                 ...getMcpTraceContext(traceId),
                 reason: getErrorMessage(error),
               },
-              error
+              error,
             );
             isStreamActive = false;
           }
@@ -947,7 +999,7 @@ function wrapSSEResponseWithKeepAlive(
             ...getMcpTraceContext(traceId),
             reason: getErrorMessage(error),
           },
-          error
+          error,
         );
         streamErrored = true;
         controller.error(error);
@@ -976,7 +1028,7 @@ function wrapSSEResponseWithKeepAlive(
         keepAliveTimer = null;
       }
       return originalReader.cancel();
-    }
+    },
   });
 
   // Return a new Response with the transformed stream and original headers
@@ -999,13 +1051,13 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
       "sse-open",
       req,
       () => DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx),
-      { wrapsKeepAlive: true }
+      { wrapsKeepAlive: true },
     );
     return wrapSSEResponseWithKeepAlive(response, traceId);
   }
   if (pathname === "/sse/message") {
     return logMcpRoute(traceId, "sse-message", req, () =>
-      DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx)
+      DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx),
     );
   }
 
@@ -1018,7 +1070,7 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
       pathname === "/sse"
         ? new Request(
             Object.assign(new URL(req.url), { pathname: "/mcp" }).toString(),
-            req
+            req,
           )
         : req;
     return logMcpRoute(
@@ -1032,15 +1084,17 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
         rewrittenUrlPathname: new URL(mcpReq.url).pathname,
         rewrittenHasAuthorization: Boolean(mcpReq.headers.get("authorization")),
         rewrittenHasMcpSessionId: Boolean(mcpReq.headers.get("mcp-session-id")),
-      }
+      },
     );
   }
 
-  return logMcpRoute(traceId, "not-found", req, async () =>
-    new Response("Not found", { status: 404 })
+  return logMcpRoute(
+    traceId,
+    "not-found",
+    req,
+    async () => new Response("Not found", { status: 404 }),
   );
 }
-
 
 // Workers types `ExecutionContext.props` as readonly, but McpAgent receives the
 // per-connection auth context via ctx.props. Assign through a writable view and
@@ -1048,7 +1102,7 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
 // @cloudflare/workers-oauth-provider package; we now own it.)
 function assignCtxProps(
   ctx: ExecutionContext,
-  props: Record<string, unknown>
+  props: Record<string, unknown>,
 ): void {
   const mutable = ctx as unknown as { props?: Record<string, unknown> };
   mutable.props = { ...(mutable.props ?? {}), ...props };
@@ -1069,7 +1123,7 @@ function extractTokenFromAuthHeader(authHeader: string): string | null {
 async function handleRequest(
   req: Request,
   env: Env,
-  ctx: ExecutionContext
+  ctx: ExecutionContext,
 ): Promise<Response> {
   const url = new URL(req.url);
   // TEMP DEBUG — remove after verification
@@ -1078,9 +1132,13 @@ async function handleRequest(
     ? getMcpTraceId(req)
     : undefined;
   const authHeader = req.headers.get("Authorization");
-  const mcpResourceUrl = resolveMcpResourceUrl(env as { MCP_RESOURCE_URL?: string });
+  const mcpResourceUrl = resolveMcpResourceUrl(
+    env as { MCP_RESOURCE_URL?: string },
+  );
   const isMcpPath =
-    url.pathname === "/sse" || url.pathname === "/sse/message" || url.pathname === "/mcp";
+    url.pathname === "/sse" ||
+    url.pathname === "/sse/message" ||
+    url.pathname === "/mcp";
 
   try {
     // Serve the RFC 9728 protected-resource metadata unauthenticated at ANY path
@@ -1089,10 +1147,11 @@ async function handleRequest(
     // here before the MCP auth check runs. The metadata points clients to the real
     // authorization server (auth.doit.com).
     if (isMcpDiscoveryPath(url.pathname)) {
-      const authServerUrl = resolveAuthServerUrl(env as { AUTH_SERVER_URL?: string });
-      const resource = resolveMcpResourceUrl(env as { MCP_RESOURCE_URL?: string });
+      const authServerUrl = resolveAuthServerUrl(
+        env as { AUTH_SERVER_URL?: string },
+      );
       const response = Response.json({
-        resource,
+        resource: mcpResourceUrl,
         authorization_servers: [authServerUrl],
         scopes_supported: ["mcp:tools", "mcp:resources"],
         bearer_methods_supported: ["header"],
@@ -1132,7 +1191,11 @@ async function handleRequest(
             userId: "demo",
             isDoitUser: "false",
           });
-          const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
+          const response = await handleMcpRequest(
+            withMcpTraceId(req, traceId),
+            env,
+            ctx,
+          );
           if (response.status >= 400) {
             logMcpRequestComplete(traceId, response, startedAt);
           }
@@ -1164,7 +1227,11 @@ async function handleRequest(
                 userId: legacy.email,
                 isDoitUser: legacy.isDoitEmployee ? "true" : "false",
               });
-              const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
+              const response = await handleMcpRequest(
+                withMcpTraceId(req, traceId),
+                env,
+                ctx,
+              );
               if (response.status >= 400) {
                 logMcpRequestComplete(traceId, response, startedAt);
               }
@@ -1175,7 +1242,8 @@ async function handleRequest(
           const response = new Response("Unauthorized", {
             status: 401,
             headers: {
-              "WWW-Authenticate": wwwAuthenticateHeaderForResource(mcpResourceUrl),
+              "WWW-Authenticate":
+                wwwAuthenticateHeaderForResource(mcpResourceUrl),
             },
           });
           logMcpRequestComplete(traceId, response, startedAt);
@@ -1197,7 +1265,11 @@ async function handleRequest(
 
         // Dispatch through main's handleMcpRequest so we get its routing,
         // diagnostics, and SSE keep-alive wrapping.
-        const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
+        const response = await handleMcpRequest(
+          withMcpTraceId(req, traceId),
+          env,
+          ctx,
+        );
         if (response.status >= 400) {
           logMcpRequestComplete(traceId, response, startedAt);
         }
@@ -1207,11 +1279,7 @@ async function handleRequest(
 
     // Non-MCP, non-discovery requests (home page, widget, well-known metadata)
     // are served by the Hono app.
-    const response = await app.fetch(
-      withMcpTraceId(req, traceId),
-      env,
-      ctx
-    );
+    const response = await app.fetch(withMcpTraceId(req, traceId), env, ctx);
     if (response.status >= 400) {
       logMcpRequestComplete(traceId, response, startedAt);
     }
