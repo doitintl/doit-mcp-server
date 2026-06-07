@@ -104,6 +104,7 @@
         // MCP_TOKEN_EXCHANGE_SECRET is a SECRET -> set via:
         //   wrangler secret put MCP_TOKEN_EXCHANGE_SECRET --env dev
         "MCP_TOKEN_EXCHANGE_SECRET": "zg9HuUETXT62uxWn68prAO31FLodfUYlzH1jbXjt1RBguRlr",
+        "DOIT_API_BASE": "https://api-dev.doit.com",
       },
       "migrations": [
         {
