@@ -261,7 +261,7 @@ describe("hasMcpAccessKid", () => {
     expect(hasMcpAccessKid(jwt)).toBe(true);
   });
 
-  it("returns false for a JWT with a different kid (so it is retried as a legacy key)", async () => {
+  it("returns false for a JWT with a different kid", async () => {
     const jwt = await new SignJWT({})
       .setProtectedHeader({ alg: "ES256", kid: "some-other-kid" })
       .sign(privateKey);

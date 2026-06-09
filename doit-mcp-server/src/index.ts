@@ -1,7 +1,6 @@
 import app from "./app";
-import { type BearerEnv, hasMcpAccessKid, verifyBearer, wwwAuthenticateHeaderForResource } from "./oauth/bearerMiddleware";
+import { type BearerEnv, verifyBearer, wwwAuthenticateHeaderForResource } from "./oauth/bearerMiddleware";
 import { exchangeMcpTokenForUpstreamToken, type TokenExchangeEnv } from "./oauth/tokenExchange";
-import { validateLegacyApiKey } from "./oauth/legacyApiKey";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { DurableObject } from "cloudflare:workers";
@@ -803,9 +802,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(confirmActionTool, ConfirmActionArgumentsSchema);
 
     // Change Customer tool (requires special handling). Registered only for DoiT
-    // employees — both OAuth (doit_employee JWT claim) and legacy API-key sessions
-    // (DoitEmployee claim, resolved in validateLegacyApiKey). Matches main: regular
-    // customer keys never see this employee-only tool.
+    // employees through OAuth's doit_employee JWT claim. Regular customers never
+    // see this employee-only tool.
     if (this.props.isDoitUser === "true") {
       (this.server as any).registerTool(
         changeCustomerTool.name,
@@ -1143,12 +1141,10 @@ async function handleRequest(
         const result = await verifyBearer(token, env as BearerEnv, { mode });
 
         if (!result) {
-          // Legacy fallback: a bearer that is NOT an mcp-access OAuth JWT (i.e. an
-          // opaque DoiT API key) is validated against /auth/v1/validate. A valid key
-          // authenticates directly — no OAuth flow — with identity/customer sourced
-          // from the validate response. customerContext then persists per-apiKey via
-          // ContextStorage + change_customer (see the agent). Invalid → fall through
-          // to the standard 401 + OAuth challenge.
+          // Legacy API-key fallback is disabled by requirement. Keep the code path
+          // here so it can be re-enabled deliberately later by restoring the
+          // validateLegacyApiKey import and hasMcpAccessKid import.
+          /*
           if (!hasMcpAccessKid(token)) {
             const legacy = await validateLegacyApiKey(token);
             if (legacy) {
@@ -1171,6 +1167,7 @@ async function handleRequest(
               return response;
             }
           }
+          */
 
           const response = new Response("Unauthorized", {
             status: 401,
