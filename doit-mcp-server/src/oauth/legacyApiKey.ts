@@ -44,7 +44,10 @@ export async function validateLegacyApiKey(
     );
 
     if (validated.email.toLowerCase() !== sub.toLowerCase()) {
-      console.error("[mcp] legacy api key email/sub mismatch");
+      console.error("[mcp] legacy api key email/sub mismatch", {
+        validatedEmail: validated.email,
+        jwtSub: sub,
+      });
       return null;
     }
 

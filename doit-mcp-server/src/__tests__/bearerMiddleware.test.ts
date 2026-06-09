@@ -103,14 +103,14 @@ describe("verifyBearer (OAuth path)", () => {
       { AUTH_SERVER_URL: issuer },
       { mode: "request" },
     );
-    expect(result).not.toBeNull();
-    expect(result?.authMethod).toBe("oauth");
-    if (result?.authMethod === "oauth") {
-      expect(result.userId).toBe("user-1");
-      expect(result.customerContext).toBe("customer-1");
-      expect(result.cid).toBe("client-jti-1");
-      expect(result.flowId).toBe("flow-1");
-      expect(result.scope).toBe("mcp:tools");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.claims.authMethod).toBe("oauth");
+      expect(result.claims.userId).toBe("user-1");
+      expect(result.claims.customerContext).toBe("customer-1");
+      expect(result.claims.cid).toBe("client-jti-1");
+      expect(result.claims.flowId).toBe("flow-1");
+      expect(result.claims.scope).toBe("mcp:tools");
     }
   });
 
@@ -122,7 +122,7 @@ describe("verifyBearer (OAuth path)", () => {
         { AUTH_SERVER_URL: issuer },
         { mode: "request" },
       ),
-    ).toBeNull();
+    ).toMatchObject({ ok: false, reason: "invalid_token" });
   });
 
   it("rejects a token with the wrong audience", async () => {
@@ -133,7 +133,7 @@ describe("verifyBearer (OAuth path)", () => {
         { AUTH_SERVER_URL: issuer },
         { mode: "request" },
       ),
-    ).toBeNull();
+    ).toMatchObject({ ok: false, reason: "invalid_token" });
   });
 
   it("accepts the configured MCP_RESOURCE_URL as the OAuth audience", async () => {
@@ -145,7 +145,10 @@ describe("verifyBearer (OAuth path)", () => {
       { mode: "request" },
     );
 
-    expect(result?.authMethod).toBe("oauth");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.claims.authMethod).toBe("oauth");
+    }
   });
 
   it("rejects a token with the wrong issuer", async () => {
@@ -156,7 +159,23 @@ describe("verifyBearer (OAuth path)", () => {
         { AUTH_SERVER_URL: issuer },
         { mode: "request" },
       ),
-    ).toBeNull();
+    ).toMatchObject({ ok: false, reason: "invalid_token" });
+  });
+
+  it("returns verification_unavailable when the JWKS endpoint is unavailable", async () => {
+    const unavailableIssuer = `${issuer}/unavailable`;
+    const token = await mintToken(privateKey, { iss: unavailableIssuer });
+
+    const result = await verifyBearer(
+      token,
+      { AUTH_SERVER_URL: unavailableIssuer },
+      { mode: "request" },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "verification_unavailable",
+    });
   });
 
   it("rejects an expired token", async () => {
@@ -167,7 +186,7 @@ describe("verifyBearer (OAuth path)", () => {
         { AUTH_SERVER_URL: issuer },
         { mode: "request" },
       ),
-    ).toBeNull();
+    ).toMatchObject({ ok: false, reason: "invalid_token" });
   });
 
   it("rejects a token without mcp:tools scope", async () => {
@@ -178,28 +197,28 @@ describe("verifyBearer (OAuth path)", () => {
         { AUTH_SERVER_URL: issuer },
         { mode: "request" },
       ),
-    ).toBeNull();
+    ).toMatchObject({ ok: false, reason: "invalid_claims" });
   });
 });
 
 describe("verifyBearer (non-OAuth tokens are rejected)", () => {
-  it("returns null for a token without the mcp-access kid", async () => {
+  it("rejects a token without the mcp-access kid", async () => {
     const token = await mintToken(privateKey, { kid: "some-other-kid" });
     const result = await verifyBearer(
       token,
       { AUTH_SERVER_URL: issuer },
       { mode: "request" },
     );
-    expect(result).toBeNull();
+    expect(result).toMatchObject({ ok: false, reason: "wrong_kid" });
   });
 
-  it("returns null for a non-JWT (legacy opaque API key) token", async () => {
+  it("rejects a non-JWT (legacy opaque API key) token", async () => {
     const result = await verifyBearer(
       "doit-api-key-abc123",
       { AUTH_SERVER_URL: issuer },
       { mode: "request" },
     );
-    expect(result).toBeNull();
+    expect(result).toMatchObject({ ok: false, reason: "wrong_kid" });
   });
 });
 
@@ -211,9 +230,10 @@ describe("verifyBearer (DoiT employee claim)", () => {
       { AUTH_SERVER_URL: issuer },
       { mode: "request" },
     );
-    expect(result?.authMethod).toBe("oauth");
-    if (result?.authMethod === "oauth") {
-      expect(result.isDoitEmployee).toBe(false);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.claims.authMethod).toBe("oauth");
+      expect(result.claims.isDoitEmployee).toBe(false);
     }
   });
 
@@ -224,9 +244,10 @@ describe("verifyBearer (DoiT employee claim)", () => {
       { AUTH_SERVER_URL: issuer },
       { mode: "request" },
     );
-    expect(result?.authMethod).toBe("oauth");
-    if (result?.authMethod === "oauth") {
-      expect(result.isDoitEmployee).toBe(true);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.claims.authMethod).toBe("oauth");
+      expect(result.claims.isDoitEmployee).toBe(true);
     }
   });
 });
@@ -237,10 +258,10 @@ describe("verifyBearer (handshake-mode caching)", () => {
     const env = { AUTH_SERVER_URL: issuer, GIT_SHA: "test-sha" };
     const first = await verifyBearer(token, env, { mode: "handshake" });
     const second = await verifyBearer(token, env, { mode: "handshake" });
-    expect(first?.authMethod).toBe("oauth");
-    expect(second?.authMethod).toBe("oauth");
-    if (first?.authMethod === "oauth" && second?.authMethod === "oauth") {
-      expect(second.jti).toBe(first.jti);
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (first.ok && second.ok) {
+      expect(second.claims.jti).toBe(first.claims.jti);
     }
   });
 });

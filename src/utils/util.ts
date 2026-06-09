@@ -240,15 +240,12 @@ export async function makeDoitRequest<T>(
         timeoutMs,
     } = options;
 
-    // TEMP DEMO — fires for every tool call that reaches the API layer (demo or real).
-    console.log(
-        "[demo] makeDoitRequest url(in) =",
-        url,
-        "| resolved (actual) =",
-        applyRuntimeDoiTApiBase(url),
-        "| isDemoToken =",
-        token === DEMO_TOKEN
-    );
+    const resolvedUrl = applyRuntimeDoiTApiBase(url);
+    debugLog("Resolved DoiT API URL:", DebugLevel.TRACE, {
+        inputUrl: url,
+        resolvedUrl,
+        isDemoToken: token === DEMO_TOKEN,
+    });
 
     // Demo mode: return canned data without hitting the real API.
     // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
@@ -267,7 +264,6 @@ export async function makeDoitRequest<T>(
         Accept: "application/json",
     };
 
-    const resolvedUrl = applyRuntimeDoiTApiBase(url);
     let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;
 
     try {

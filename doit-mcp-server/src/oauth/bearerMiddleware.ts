@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
+import { createRemoteJWKSet, errors, jwtVerify, type JWTPayload } from "jose";
 import { resolveAuthServerUrl, resolveMcpResourceUrl } from "../runtimeEnv";
 
 const REQUIRED_SCOPE = "mcp:tools";
@@ -25,7 +25,15 @@ export type OAuthBearerClaims = {
   isDoitEmployee: boolean;
 };
 
-export type BearerResult = OAuthBearerClaims;
+export type BearerFailureReason =
+  | "invalid_claims"
+  | "invalid_token"
+  | "verification_unavailable"
+  | "wrong_kid";
+
+export type BearerResult =
+  | { ok: true; claims: OAuthBearerClaims }
+  | { ok: false; reason: BearerFailureReason };
 
 let jwksRef: ReturnType<typeof createRemoteJWKSet> | null = null;
 let jwksUrl: string | null = null;
@@ -61,7 +69,37 @@ export const hasMcpAccessKid = (token: string): boolean =>
 
 type Verified =
   | { ok: true; payload: JWTPayload }
-  | { ok: false; reason: "invalid" | "wrong_kid" };
+  | { ok: false; reason: Exclude<BearerFailureReason, "invalid_claims"> };
+
+const isTokenVerificationError = (error: unknown): boolean =>
+  error instanceof errors.JWTClaimValidationFailed ||
+  error instanceof errors.JWTExpired ||
+  error instanceof errors.JWTInvalid ||
+  error instanceof errors.JWSInvalid ||
+  error instanceof errors.JWSSignatureVerificationFailed ||
+  error instanceof errors.JOSEAlgNotAllowed ||
+  error instanceof errors.JOSENotSupported ||
+  error instanceof errors.JWKSNoMatchingKey;
+
+const classifyJwtVerifyFailure = (
+  error: unknown,
+): "invalid_token" | "verification_unavailable" => {
+  if (isTokenVerificationError(error)) {
+    return "invalid_token";
+  }
+  return "verification_unavailable";
+};
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const getErrorCode = (error: unknown): string | undefined => {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return undefined;
+  }
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" ? code : undefined;
+};
 
 const verifyOAuthToken = async (
   token: string,
@@ -80,18 +118,20 @@ const verifyOAuthToken = async (
     });
     return { ok: true, payload };
   } catch (err) {
-    // TEMP DEBUG — remove after verification
+    const reason = classifyJwtVerifyFailure(err);
     let actualAud: unknown;
     try {
       const seg = token.split(".")[1];
       actualAud = JSON.parse(atob(seg.replace(/-/g, "+").replace(/_/g, "/"))).aud;
     } catch {}
-    console.error("[mcp][debug] jwtVerify failed", {
-      message: (err as Error)?.message,
+    console.error("[mcp] jwtVerify failed", {
+      reason,
+      errorCode: getErrorCode(err),
+      message: getErrorMessage(err),
       audienceExpected: resolveMcpResourceUrl(env),
       actualAud,
     });
-    return { ok: false, reason: "invalid" };
+    return { ok: false, reason };
   }
 };
 
@@ -101,9 +141,18 @@ const handshakeCache = new Map<
 >();
 const HANDSHAKE_CACHE_MAX = 1024;
 
-const cacheKey = (token: string, env: BearerEnv): string => {
+const sha256Hex = async (value: string): Promise<string> => {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+};
+
+const cacheKey = async (token: string, env: BearerEnv): Promise<string> => {
   const sha = env.GIT_SHA ?? "dev";
-  return `${sha}:${token}`;
+  const tokenHash = await sha256Hex(token);
+  return `${sha}:${tokenHash}`;
 };
 
 const cacheGet = (key: string): OAuthBearerClaims | null => {
@@ -169,23 +218,23 @@ export const verifyBearer = async (
   token: string,
   env: BearerEnv,
   options: { mode: "handshake" | "request" },
-): Promise<BearerResult | null> => {
-  const oauthCacheKey = cacheKey(token, env);
+): Promise<BearerResult> => {
+  const oauthCacheKey = await cacheKey(token, env);
   if (options.mode === "handshake") {
     const cached = cacheGet(oauthCacheKey);
-    if (cached) return cached;
+    if (cached) return { ok: true, claims: cached };
   }
 
   // Only auth.doit.com-issued tokens are accepted. Anything else — wrong/missing
   // kid, bad signature, or missing claims — is rejected. Legacy opaque API keys
   // are no longer honored.
   const verified = await verifyOAuthToken(token, env);
-  if (!verified.ok) return null;
+  if (!verified.ok) return verified;
 
   const claims = claimsFromPayload(verified.payload);
-  if (!claims) return null;
+  if (!claims) return { ok: false, reason: "invalid_claims" };
   if (options.mode === "handshake") cachePut(oauthCacheKey, claims);
-  return claims;
+  return { ok: true, claims };
 };
 
 export const wwwAuthenticateHeaderForResource = (resourceUrl: string): string => {

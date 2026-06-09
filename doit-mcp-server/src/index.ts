@@ -1070,7 +1070,6 @@ async function handleRequest(
   ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(req.url);
-  // TEMP DEBUG — remove after verification
   const startedAt = Date.now();
   const traceId = isMcpDiagnosticsPath(url.pathname)
     ? getMcpTraceId(req)
@@ -1140,7 +1139,18 @@ async function handleRequest(
         const mode = url.pathname === "/sse" ? "handshake" : "request";
         const result = await verifyBearer(token, env as BearerEnv, { mode });
 
-        if (!result) {
+        if (!result.ok) {
+          if (result.reason === "verification_unavailable") {
+            const response = new Response("Authentication service unavailable", {
+              status: 503,
+              headers: {
+                "Retry-After": "30",
+              },
+            });
+            logMcpRequestComplete(traceId, response, startedAt);
+            return response;
+          }
+
           // Legacy API-key fallback is disabled by requirement. Keep the code path
           // here so it can be re-enabled deliberately later by restoring the
           // validateLegacyApiKey import and hasMcpAccessKid import.
@@ -1184,12 +1194,12 @@ async function handleRequest(
         // change_customer is gated on isDoitUser — only DoiT employees may switch context.
         assignCtxProps(ctx, {
           apiKey: token,
-          customerContext: result.customerContext,
+          customerContext: result.claims.customerContext,
           authMethod: "oauth",
-          userId: result.userId,
-          cid: result.cid,
-          flowId: result.flowId,
-          isDoitUser: result.isDoitEmployee ? "true" : "false",
+          userId: result.claims.userId,
+          cid: result.claims.cid,
+          flowId: result.claims.flowId,
+          isDoitUser: result.claims.isDoitEmployee ? "true" : "false",
         });
 
         // Dispatch through main's handleMcpRequest so we get its routing,
