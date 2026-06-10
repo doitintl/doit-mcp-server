@@ -23,15 +23,6 @@
       "new_sqlite_classes": ["ContextStorage"],
       "tag": "v2",
     },
-    {
-      "deleted_classes": ["ContextStorage"],
-      "tag": "v3",
-    },
-    {
-      // Re-create ContextStorage for legacy (API-key) per-customer persistence.
-      "new_sqlite_classes": ["ContextStorage"],
-      "tag": "v4",
-    },
   ],
   "durable_objects": {
     "bindings": [
@@ -78,6 +69,8 @@
   "vars": {
     "WORKER_URL": "https://mcp.doit.com",
     "PUBLIC_MCP_URL": "https://mcp.doit.com/sse",
+    "MCP_RESOURCE_URL": "https://mcp.doit.com/",
+    "AUTH_SERVER_URL": "https://console.doit.com",
   },
   /**
    * Environments
