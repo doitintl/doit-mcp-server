@@ -59,6 +59,18 @@ export const exchangeMcpTokenForUpstreamToken = async ({
 
   const authServerUrl = resolveAuthServerUrl(env);
   const tokenEndpoint = `${authServerUrl}/api/auth/token`;
+  console.info("[mcp] upstream token exchange request", {
+    authServerUrl,
+    authServerUrlHasTrailingSlash: authServerUrl.endsWith("/"),
+    tokenEndpoint,
+    clientId: TOKEN_EXCHANGE_CLIENT_ID,
+    clientAssertionAudience: tokenEndpoint,
+    grantType: TOKEN_EXCHANGE_GRANT_TYPE,
+    requestedTokenType: ACCESS_TOKEN_TYPE,
+    upstreamAudience: LEGACY_CMP_UPSTREAM_AUDIENCE,
+    hasExchangeSecret: true,
+    exchangeSecretLength: secret.length,
+  });
   const clientAssertion = await buildClientAssertion(secret, tokenEndpoint);
   const body = new URLSearchParams({
     grant_type: TOKEN_EXCHANGE_GRANT_TYPE,
@@ -84,6 +96,9 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     console.error("[mcp] upstream token exchange failed", {
       status: response.status,
       errorText,
+      tokenEndpoint,
+      clientId: TOKEN_EXCHANGE_CLIENT_ID,
+      upstreamAudience: LEGACY_CMP_UPSTREAM_AUDIENCE,
     });
     throw new Error(UPSTREAM_AUTH_ERROR);
   }
@@ -99,6 +114,11 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     );
     throw new Error(UPSTREAM_AUTH_ERROR);
   }
+
+  console.info("[mcp] upstream token exchange succeeded", {
+    tokenEndpoint,
+    expiresIn: typeof payload.expires_in === "number" ? payload.expires_in : undefined,
+  });
 
   return {
     accessToken: payload.access_token,
