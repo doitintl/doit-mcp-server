@@ -345,15 +345,23 @@ export class DoitMCPAgent extends McpAgent {
   // DoiT APIs, per the MCP authorization spec.
   private async getToken(): Promise<string> {
     const token = this.props.apiKey as string;
+    const authMethod = this.props.authMethod as string | undefined;
+    console.info("[mcp] resolving upstream DoiT API token", {
+      authMethod,
+      hasToken: Boolean(token),
+      hasCachedUpstreamToken: Boolean(this.upstreamTokenCache),
+    });
     // Demo sessions use the sentinel token directly; the upstream demo path in
     // util.ts keys off DEMO_TOKEN and must not go through token exchange.
     if (token === DEMO_TOKEN) {
+      console.info("[mcp] using demo token for upstream DoiT API calls");
       return token;
     }
 
     // Legacy API-key sessions: the key IS the upstream DoiT API credential, so use
     // it directly — no MCP→upstream token exchange (that's only for OAuth tokens).
-    if (this.props.authMethod === "apikey") {
+    if (authMethod === "apikey") {
+      console.info("[mcp] using legacy API key for upstream DoiT API calls");
       return token;
     }
 
@@ -362,9 +370,20 @@ export class DoitMCPAgent extends McpAgent {
       this.upstreamTokenCache?.mcpAccessToken === token &&
       this.upstreamTokenCache.expiresAtSeconds > now + 30
     ) {
+      console.info("[mcp] using cached upstream DoiT API token", {
+        expiresAtSeconds: this.upstreamTokenCache.expiresAtSeconds,
+        now,
+      });
       return this.upstreamTokenCache.upstreamAccessToken;
     }
 
+    console.info("[mcp] exchanging OAuth MCP token for upstream DoiT API token", {
+      authMethod,
+      cachePresentForDifferentToken: Boolean(
+        this.upstreamTokenCache &&
+          this.upstreamTokenCache.mcpAccessToken !== token,
+      ),
+    });
     const exchanged = await exchangeMcpTokenForUpstreamToken({
       mcpToken: token,
       env: this.env as TokenExchangeEnv,
