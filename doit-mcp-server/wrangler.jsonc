@@ -11,49 +11,52 @@
   "routes": [
     {
       "pattern": "mcp.doit.com/*",
-      "zone_name": "doit.com"
-    }
+      "zone_name": "doit.com",
+    },
   ],
   "migrations": [
     {
       "new_sqlite_classes": ["DoitMCPAgent"],
-      "tag": "v1"
+      "tag": "v1",
     },
     {
       "new_sqlite_classes": ["ContextStorage"],
-      "tag": "v2"
-    }
+      "tag": "v2",
+    },
+    {
+      "deleted_classes": ["ContextStorage"],
+      "tag": "v3",
+    },
+    {
+      // Re-create ContextStorage for legacy (API-key) per-customer persistence.
+      "new_sqlite_classes": ["ContextStorage"],
+      "tag": "v4",
+    },
   ],
   "durable_objects": {
     "bindings": [
       {
         "class_name": "DoitMCPAgent",
-        "name": "MCP_OBJECT"
+        "name": "MCP_OBJECT",
       },
       {
         "class_name": "ContextStorage",
-        "name": "CONTEXT_STORAGE"
-      }
-    ]
+        "name": "CONTEXT_STORAGE",
+      },
+    ],
   },
-  "kv_namespaces": [
-    {
-      "binding": "OAUTH_KV",
-      "id": "8e750e0c6acd4129b2b069f648fc3d0b"
-    }
-  ],
   "observability": {
     "logs": {
       "enabled": true,
-      "invocation_logs": true
+      "invocation_logs": true,
     },
     "traces": {
-      "enabled": false
-    }
+      "enabled": false,
+    },
   },
   "assets": {
     "directory": "./static/",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   /**
    * Smart Placement
@@ -75,7 +78,66 @@
   "vars": {
     "WORKER_URL": "https://mcp.doit.com",
     "PUBLIC_MCP_URL": "https://mcp.doit.com/sse",
-    "DEMO_MODE_ENABLED": "true"
+  },
+  /**
+   * Environments
+   * Deploy with: wrangler deploy --env dev
+   * https://developers.cloudflare.com/workers/wrangler/environments/
+   */
+  "env": {
+    "dev": {
+      "name": "doit-mcp-server-dev",
+      "routes": [],
+      "vars": {
+        "WORKER_URL": "https://doit-mcp-server-dev.doitintl.workers.dev",
+        "PUBLIC_MCP_URL": "https://doit-mcp-server-dev.doitintl.workers.dev/sse",
+        // OAuth audience for this worker. Clients connect here, so the JWT `aud`
+        // must match this URL (not the prod default https://mcp.doit.com).
+        // Trailing slash is REQUIRED: the local auth server normalizes the
+        // resource indicator and stamps `aud` with a trailing slash, and jose
+        // does an exact-string audience match.
+        "MCP_RESOURCE_URL": "https://doit-mcp-server-dev.doitintl.workers.dev/",
+        // Points the deployed dev worker at the local auth service exposed via
+        // ngrok. NOTE: this is a personal/ephemeral tunnel committed to a shared
+        // config — update it when the ngrok URL changes.
+        "AUTH_SERVER_URL": "https://dev-app.doit.com",
+        // MCP_TOKEN_EXCHANGE_SECRET is a SECRET -> set via:
+        //   wrangler secret put MCP_TOKEN_EXCHANGE_SECRET --env dev
+        "MCP_TOKEN_EXCHANGE_SECRET": "secret",
+        "DOIT_API_BASE": "https://api-dev.doit.com",
+      },
+      "migrations": [
+        {
+          "new_sqlite_classes": ["DoitMCPAgent"],
+          "tag": "v1",
+        },
+        {
+          "new_sqlite_classes": ["ContextStorage"],
+          "tag": "v2",
+        },
+        {
+          "deleted_classes": ["ContextStorage"],
+          "tag": "v3",
+        },
+        {
+          // Re-create ContextStorage for legacy (API-key) per-customer persistence.
+          "new_sqlite_classes": ["ContextStorage"],
+          "tag": "v4",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "class_name": "DoitMCPAgent",
+            "name": "MCP_OBJECT",
+          },
+          {
+            "class_name": "ContextStorage",
+            "name": "CONTEXT_STORAGE",
+          },
+        ],
+      },
+    },
   },
   /**
    * Note: Use secrets to store sensitive data.
@@ -94,4 +156,3 @@
    */
   // "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
 }
-

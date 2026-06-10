@@ -1,9 +1,30 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { z } from "zod";
 import { SERVER_VERSION } from "./consts.js";
 import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
+
+let runtimeDoiTApiBase = DOIT_API_BASE;
+
+export function configureDoiTApiBase(apiBase?: string): void {
+    if (!apiBase) return;
+
+    runtimeDoiTApiBase = apiBase.replace(/\/$/, "");
+}
+
+function applyRuntimeDoiTApiBase(url: string): string {
+    if (runtimeDoiTApiBase === DOIT_API_BASE) {
+        return url;
+    }
+
+    const parsedUrl = new URL(url);
+    const parsedRuntimeBase = new URL(runtimeDoiTApiBase);
+
+    parsedUrl.protocol = parsedRuntimeBase.protocol;
+    parsedUrl.host = parsedRuntimeBase.host;
+
+    return parsedUrl.toString();
+}
 
 // --- MCP tracking context ---
 // Uses AsyncLocalStorage for request-scoped tracking. Module-level globals are unsafe in the
@@ -84,15 +105,6 @@ export function debugLog(message: unknown, level: DebugLevel = DebugLevel.INFO, 
     } else {
         console.error(`[doit-mcp debug:${levelName}]`, text);
     }
-}
-
-/**
- * Generic function to convert a zod schema to MCP server tool format
- * @param schema The zod schema object (e.g., z.object({ ... }))
- * @returns Object with zod schema properties ready for MCP server tool
- */
-export function zodSchemaToMcpTool<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
-    return schema.shape;
 }
 
 /**
@@ -228,6 +240,13 @@ export async function makeDoitRequest<T>(
         timeoutMs,
     } = options;
 
+    const resolvedUrl = applyRuntimeDoiTApiBase(url);
+    debugLog("Resolved DoiT API URL:", DebugLevel.TRACE, {
+        inputUrl: url,
+        resolvedUrl,
+        isDemoToken: token === DEMO_TOKEN,
+    });
+
     // Demo mode: return canned data without hitting the real API.
     // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
     // If the token is DEMO_TOKEN here, the user already passed that gate.
@@ -245,7 +264,7 @@ export async function makeDoitRequest<T>(
         Accept: "application/json",
     };
 
-    let requestUrl = appendParams ? appendUrlParameters(url, customerContext) : url;
+    let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;
 
     try {
         const requestOptions: RequestInit = {
@@ -313,7 +332,7 @@ export async function makeDoitRequest<T>(
             console.error(`DoiT API ${method} request timed out after ${timeoutMs}ms`);
             throw error;
         }
-        console.error(`Error making DoiT API ${method} request:`, error);
+        console.error(`Error making DoiT API ${method} request to ${requestUrl}:`, error);
         return null;
     }
 }
