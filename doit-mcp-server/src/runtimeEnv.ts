@@ -21,7 +21,7 @@ export function resolveMcpResourceUrl(
   return env?.MCP_RESOURCE_URL ?? DEFAULT_MCP_RESOURCE_URL;
 }
 
-export const DEFAULT_AUTH_SERVER_URL = "https://auth.doit.com";
+export const DEFAULT_AUTH_SERVER_URL = "https://console.doit.com";
 
 export function resolveAuthServerUrl(
   env: { AUTH_SERVER_URL?: string } | undefined,
