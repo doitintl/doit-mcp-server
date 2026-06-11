@@ -1,4 +1,10 @@
-import { createRemoteJWKSet, errors, jwtVerify, type JWTPayload } from "jose";
+import {
+  createRemoteJWKSet,
+  customFetch,
+  errors,
+  jwtVerify,
+  type JWTPayload,
+} from "jose";
 import { resolveAuthServerUrl, resolveMcpResourceUrl } from "../runtimeEnv";
 
 const REQUIRED_SCOPE = "mcp:tools";
@@ -8,6 +14,14 @@ export type BearerEnv = {
   AUTH_SERVER_URL?: string;
   MCP_RESOURCE_URL?: string;
   GIT_SHA?: string;
+  // Service binding to the console-worker proxy (prod only). The worker shares
+  // the `doit.com` zone with the issuer (console.doit.com), and Cloudflare skips
+  // Workers on same-zone subrequests, so a plain fetch of the JWKS bypasses the
+  // console-worker route and lands on the console SPA (HTML, not JSON). Invoking
+  // the console-worker through a service binding executes it regardless of zone,
+  // and it forwards the request to the auth backend by pathname. Unset in dev,
+  // where the worker runs on *.workers.dev (cross-zone) and plain fetch works.
+  CONSOLE_PROXY?: { fetch: typeof fetch };
 };
 
 export type OAuthBearerClaims = {
@@ -36,13 +50,22 @@ export type BearerResult =
   | { ok: false; reason: BearerFailureReason };
 
 let jwksRef: ReturnType<typeof createRemoteJWKSet> | null = null;
-let jwksUrl: string | null = null;
+let jwksCacheKey: string | null = null;
 
-const getJwks = (authServerUrl: string) => {
+// Fetches the JWKS through the CONSOLE_PROXY service binding when bound (prod —
+// see the note on BearerEnv) and directly otherwise (dev). createRemoteJWKSet
+// caches keys and handles rotation in both cases; the resolver is memoised per
+// isolate (env bindings are stable across requests within an isolate).
+const getJwks = (env: BearerEnv, authServerUrl: string) => {
   const url = `${authServerUrl}/.well-known/jwks.json`;
-  if (!jwksRef || jwksUrl !== url) {
-    jwksRef = createRemoteJWKSet(new URL(url));
-    jwksUrl = url;
+  const proxy = env.CONSOLE_PROXY;
+  const key = `${proxy ? "proxy" : "direct"}:${url}`;
+  if (!jwksRef || jwksCacheKey !== key) {
+    jwksRef = createRemoteJWKSet(
+      new URL(url),
+      proxy ? { [customFetch]: proxy.fetch.bind(proxy) } : undefined,
+    );
+    jwksCacheKey = key;
   }
   return jwksRef;
 };
@@ -111,7 +134,7 @@ const verifyOAuthToken = async (
   }
   const authServerUrl = resolveAuthServerUrl(env);
   try {
-    const { payload } = await jwtVerify(token, getJwks(authServerUrl), {
+    const { payload } = await jwtVerify(token, getJwks(env, authServerUrl), {
       issuer: authServerUrl,
       audience: resolveMcpResourceUrl(env),
       algorithms: ["ES256"],

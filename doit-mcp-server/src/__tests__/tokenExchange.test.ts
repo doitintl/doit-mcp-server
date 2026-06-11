@@ -92,6 +92,53 @@ describe("exchangeMcpTokenForUpstreamToken", () => {
     ).rejects.toThrow();
   });
 
+  it("routes the exchange through the CONSOLE_PROXY binding when bound", async () => {
+    const globalFetchMock = vi.fn().mockRejectedValue(
+      new Error("plain fetch must not be used when CONSOLE_PROXY is bound"),
+    );
+    vi.stubGlobal("fetch", globalFetchMock);
+
+    const proxyFetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ access_token: "upstream-token", expires_in: 900 }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await exchangeMcpTokenForUpstreamToken({
+      mcpToken: "mcp-token",
+      env: {
+        AUTH_SERVER_URL: "https://console.doit.com",
+        MCP_TOKEN_EXCHANGE_SECRET: "exchange-secret",
+        CONSOLE_PROXY: { fetch: proxyFetchMock as unknown as typeof fetch },
+      },
+    });
+
+    expect(result).toEqual({ accessToken: "upstream-token", expiresIn: 900 });
+    expect(proxyFetchMock).toHaveBeenCalledOnce();
+    expect(globalFetchMock).not.toHaveBeenCalled();
+
+    const [url, init] = proxyFetchMock.mock.calls[0];
+    expect(url).toBe("https://console.doit.com/api/auth/token");
+    expect(init.method).toBe("POST");
+
+    // The client assertion audience stays on the issuer host — the auth-service
+    // expects it regardless of which transport carried the request.
+    const body = init.body as URLSearchParams;
+    const assertion = body.get("client_assertion") as string;
+    const { payload } = await jwtVerify(
+      assertion,
+      new TextEncoder().encode("exchange-secret"),
+      {
+        algorithms: ["HS256"],
+        issuer: "mcp.doit.com",
+        subject: "mcp.doit.com",
+        audience: "https://console.doit.com/api/auth/token",
+      },
+    );
+    expect(typeof payload.jti).toBe("string");
+  });
+
   it("fails closed when the worker secret is missing", async () => {
     await expect(
       exchangeMcpTokenForUpstreamToken({

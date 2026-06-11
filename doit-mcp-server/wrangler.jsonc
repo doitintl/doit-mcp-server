@@ -75,6 +75,15 @@
   "secrets": {
     "required": ["MCP_TOKEN_EXCHANGE_SECRET"],
   },
+  // Prod-only service binding to the console-worker proxy. The MCP worker shares
+  // the doit.com zone with console.doit.com, and Cloudflare skips Workers on
+  // same-zone subrequests, so plain fetches of the JWKS / token endpoint would
+  // bypass the console-worker route and land on the console SPA. The binding
+  // executes the proxy directly, which forwards to the auth backend by pathname.
+  // Dev (on *.workers.dev, cross-zone) needs no binding and uses plain fetch.
+  "services": [
+    { "binding": "CONSOLE_PROXY", "service": "console-worker-console" },
+  ],
   /**
    * Environments
    * Deploy with: wrangler deploy --env dev

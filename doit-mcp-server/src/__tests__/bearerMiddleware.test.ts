@@ -1,5 +1,5 @@
 import { createServer, type Server } from "node:http";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   exportJWK,
   generateKeyPair,
@@ -198,6 +198,56 @@ describe("verifyBearer (OAuth path)", () => {
         { mode: "request" },
       ),
     ).toMatchObject({ ok: false, reason: "invalid_claims" });
+  });
+});
+
+describe("verifyBearer (JWKS via CONSOLE_PROXY service binding)", () => {
+  // A deliberately unreachable auth server: if verification fell back to a plain
+  // fetch it would fail, so success here proves the proxy binding carried the JWKS.
+  const offlineIssuer = "https://auth.invalid";
+
+  const makeProxy = () => {
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === `${offlineIssuer}/.well-known/jwks.json`) {
+        return new Response(JSON.stringify({ keys: [publicJwk] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    return { proxy: { fetch: fetchSpy as unknown as typeof fetch }, fetchSpy };
+  };
+
+  it("fetches the JWKS through the binding when CONSOLE_PROXY is set", async () => {
+    const { proxy, fetchSpy } = makeProxy();
+    const token = await mintToken(privateKey, { iss: offlineIssuer });
+    const result = await verifyBearer(
+      token,
+      { AUTH_SERVER_URL: offlineIssuer, CONSOLE_PROXY: proxy },
+      { mode: "request" },
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.claims.authMethod).toBe("oauth");
+      expect(result.claims.userId).toBe("user-1");
+    }
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `${offlineIssuer}/.well-known/jwks.json`,
+      expect.anything(),
+    );
+  });
+
+  it("rejects a token whose key is absent from the proxied JWKS", async () => {
+    const { proxy } = makeProxy();
+    const token = await mintToken(rogueKey, { iss: offlineIssuer });
+    const result = await verifyBearer(
+      token,
+      { AUTH_SERVER_URL: offlineIssuer, CONSOLE_PROXY: proxy },
+      { mode: "request" },
+    );
+    expect(result).toMatchObject({ ok: false, reason: "invalid_token" });
   });
 });
 
