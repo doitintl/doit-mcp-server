@@ -69,7 +69,7 @@
   "vars": {
     "WORKER_URL": "https://mcp.doit.com",
     "PUBLIC_MCP_URL": "https://mcp.doit.com/sse",
-    "MCP_RESOURCE_URL": "https://mcp.doit.com/",
+    "MCP_RESOURCE_URL": "https://mcp.doit.com",
     "AUTH_SERVER_URL": "https://console.doit.com",
   },
   "secrets": {
