@@ -23,15 +23,6 @@
       "new_sqlite_classes": ["ContextStorage"],
       "tag": "v2",
     },
-    {
-      "deleted_classes": ["ContextStorage"],
-      "tag": "v3",
-    },
-    {
-      // Re-create ContextStorage for legacy (API-key) per-customer persistence.
-      "new_sqlite_classes": ["ContextStorage"],
-      "tag": "v4",
-    },
   ],
   "durable_objects": {
     "bindings": [
@@ -78,10 +69,7 @@
   "vars": {
     "WORKER_URL": "https://mcp.doit.com",
     "PUBLIC_MCP_URL": "https://mcp.doit.com/sse",
-    // No trailing slash: the prod auth server (oauthEnv MCP_AUDIENCE) stamps the
-    // token `aud` as "https://mcp.doit.com" and jose does an exact-string audience
-    // match. A trailing slash here makes bearer verification fail with aud mismatch.
-    "MCP_RESOURCE_URL": "https://mcp.doit.com",
+    "MCP_RESOURCE_URL": "https://mcp.doit.com/",
     "AUTH_SERVER_URL": "https://console.doit.com",
   },
   "secrets": {
@@ -93,7 +81,9 @@
   // bypass the console-worker route and land on the console SPA. The binding
   // executes the proxy directly, which forwards to the auth backend by pathname.
   // Dev (on *.workers.dev, cross-zone) needs no binding and uses plain fetch.
-  "services": [{ "binding": "CONSOLE_PROXY", "service": "console-worker-console" }],
+  "services": [
+    { "binding": "CONSOLE_PROXY", "service": "console-worker-console" },
+  ],
   /**
    * Environments
    * Deploy with: wrangler deploy --env dev
@@ -118,8 +108,10 @@
         "AUTH_SERVER_URL": "https://dev-app.doit.com",
         // MCP_TOKEN_EXCHANGE_SECRET is a SECRET -> set via:
         //   wrangler secret put MCP_TOKEN_EXCHANGE_SECRET --env dev
-        "MCP_TOKEN_EXCHANGE_SECRET": "secret",
         "DOIT_API_BASE": "https://api-dev.doit.com",
+      },
+      "secrets": {
+        "required": ["MCP_TOKEN_EXCHANGE_SECRET"],
       },
       "migrations": [
         {

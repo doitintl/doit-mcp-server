@@ -75,6 +75,7 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     upstreamAudience: LEGACY_CMP_UPSTREAM_AUDIENCE,
     hasExchangeSecret: true,
     viaConsoleProxy: Boolean(env.CONSOLE_PROXY),
+    exchangeSecretLength: secret.length,
   });
   const clientAssertion = await buildClientAssertion(secret, tokenEndpoint);
   const body = new URLSearchParams({
@@ -103,6 +104,9 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     console.error("[mcp] upstream token exchange failed", {
       status: response.status,
       errorText,
+      tokenEndpoint,
+      clientId: TOKEN_EXCHANGE_CLIENT_ID,
+      upstreamAudience: LEGACY_CMP_UPSTREAM_AUDIENCE,
     });
     throw new Error(UPSTREAM_AUTH_ERROR);
   }
@@ -118,6 +122,11 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     );
     throw new Error(UPSTREAM_AUTH_ERROR);
   }
+
+  console.info("[mcp] upstream token exchange succeeded", {
+    tokenEndpoint,
+    expiresIn: typeof payload.expires_in === "number" ? payload.expires_in : undefined,
+  });
 
   return {
     accessToken: payload.access_token,
