@@ -35,6 +35,11 @@ const UPSTREAM_AUTH_ERROR = "Failed to authenticate with the DoiT API";
 export type TokenExchangeEnv = {
   AUTH_SERVER_URL?: string;
   MCP_TOKEN_EXCHANGE_SECRET?: string;
+  // Service binding to the console-worker proxy (prod only). Same-zone subrequests
+  // skip Workers, so a plain fetch of console.doit.com/api/auth/token would bypass
+  // the console-worker route and land on the SPA; the binding executes the proxy
+  // directly, which forwards to the auth backend. See BearerEnv.CONSOLE_PROXY.
+  CONSOLE_PROXY?: { fetch: typeof fetch };
 };
 
 export type UpstreamTokenExchangeResult = {
@@ -59,6 +64,18 @@ export const exchangeMcpTokenForUpstreamToken = async ({
 
   const authServerUrl = resolveAuthServerUrl(env);
   const tokenEndpoint = `${authServerUrl}/api/auth/token`;
+  console.info("[mcp] upstream token exchange request", {
+    authServerUrl,
+    authServerUrlHasTrailingSlash: authServerUrl.endsWith("/"),
+    tokenEndpoint,
+    clientId: TOKEN_EXCHANGE_CLIENT_ID,
+    clientAssertionAudience: tokenEndpoint,
+    grantType: TOKEN_EXCHANGE_GRANT_TYPE,
+    requestedTokenType: ACCESS_TOKEN_TYPE,
+    upstreamAudience: LEGACY_CMP_UPSTREAM_AUDIENCE,
+    hasExchangeSecret: true,
+    viaConsoleProxy: Boolean(env.CONSOLE_PROXY),
+  });
   const clientAssertion = await buildClientAssertion(secret, tokenEndpoint);
   const body = new URLSearchParams({
     grant_type: TOKEN_EXCHANGE_GRANT_TYPE,
@@ -71,7 +88,9 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     client_assertion: clientAssertion,
   });
 
-  const response = await fetch(tokenEndpoint, {
+  const proxy = env.CONSOLE_PROXY;
+  const fetchImpl = proxy ? proxy.fetch.bind(proxy) : fetch;
+  const response = await fetchImpl(tokenEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
