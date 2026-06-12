@@ -148,12 +148,18 @@ const verifyOAuthToken = async (
     return { ok: true, payload };
   } catch (err) {
     const reason = classifyJwtVerifyFailure(err);
+    const log =
+      err instanceof errors.JWTExpired
+        ? console.info
+        : reason === "verification_unavailable"
+          ? console.error
+          : console.warn;
     let actualAud: unknown;
     try {
       const seg = token.split(".")[1];
       actualAud = JSON.parse(atob(seg.replace(/-/g, "+").replace(/_/g, "/"))).aud;
     } catch {}
-    console.error("[mcp] jwtVerify failed", {
+    log("[mcp] jwtVerify failed", {
       reason,
       errorCode: getErrorCode(err),
       message: getErrorMessage(err),

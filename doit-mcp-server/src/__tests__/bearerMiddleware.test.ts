@@ -180,13 +180,34 @@ describe("verifyBearer (OAuth path)", () => {
 
   it("rejects an expired token", async () => {
     const token = await mintToken(privateKey, { expSecondsFromNow: -60 });
-    expect(
-      await verifyBearer(
-        token,
-        { AUTH_SERVER_URL: issuer },
-        { mode: "request" },
-      ),
-    ).toMatchObject({ ok: false, reason: "invalid_token" });
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      expect(
+        await verifyBearer(
+          token,
+          { AUTH_SERVER_URL: issuer },
+          { mode: "request" },
+        ),
+      ).toMatchObject({ ok: false, reason: "invalid_token" });
+
+      expect(infoSpy).toHaveBeenCalledWith(
+        "[mcp] jwtVerify failed",
+        expect.objectContaining({
+          reason: "invalid_token",
+          errorCode: "ERR_JWT_EXPIRED",
+          message: expect.stringContaining("exp"),
+        }),
+      );
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+    } finally {
+      infoSpy.mockRestore();
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
   });
 
   it("rejects a token without mcp:tools scope", async () => {
