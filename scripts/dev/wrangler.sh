@@ -11,7 +11,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WORKER_DIR="$REPO_ROOT/doit-mcp-server"
 PID_FILE="/tmp/doit-wrangler.pid"
 LOG_FILE="/tmp/doit-wrangler.log"
-PORT=8788
+PORT=8787
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ do_start() {
 
   echo "Starting wrangler dev on port $PORT …"
   cd "$WORKER_DIR"
-  nohup npx wrangler dev --port "$PORT" > "$LOG_FILE" 2>&1 &
+  nohup npx wrangler dev --env local --port "$PORT" > "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   echo "Started (PID $!, log → $LOG_FILE)"
 }
