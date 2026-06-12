@@ -145,6 +145,38 @@
         ],
       },
     },
+    "local": {
+      "name": "doit-mcp-server-local",
+      "routes": [],
+      "vars": {
+        "WORKER_URL": "http://localhost:8787",
+        "PUBLIC_MCP_URL": "http://localhost:8787/sse",
+        "MCP_RESOURCE_URL": "http://localhost:8787/",
+        "AUTH_SERVER_URL": "http://localhost:8080",
+      },
+      "migrations": [
+        {
+          "new_sqlite_classes": ["DoitMCPAgent"],
+          "tag": "v1",
+        },
+        {
+          "new_sqlite_classes": ["ContextStorage"],
+          "tag": "v2",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "class_name": "DoitMCPAgent",
+            "name": "MCP_OBJECT",
+          },
+          {
+            "class_name": "ContextStorage",
+            "name": "CONTEXT_STORAGE",
+          },
+        ],
+      },
+    },
   },
   /**
    * Note: Use secrets to store sensitive data.

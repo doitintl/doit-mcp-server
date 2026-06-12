@@ -5,7 +5,11 @@ import {
   jwtVerify,
   type JWTPayload,
 } from "jose";
-import { resolveAuthServerUrl, resolveMcpResourceUrl } from "../runtimeEnv";
+import {
+  resolveAuthServerUrl,
+  resolveMcpResourceUrl,
+  shouldUseConsoleProxy,
+} from "../runtimeEnv";
 
 const REQUIRED_SCOPE = "mcp:tools";
 const ACCESS_TOKEN_KID = "mcp-access";
@@ -58,7 +62,9 @@ let jwksCacheKey: string | null = null;
 // isolate (env bindings are stable across requests within an isolate).
 const getJwks = (env: BearerEnv, authServerUrl: string) => {
   const url = `${authServerUrl}/.well-known/jwks.json`;
-  const proxy = env.CONSOLE_PROXY;
+  const proxy = shouldUseConsoleProxy(env, authServerUrl)
+    ? env.CONSOLE_PROXY
+    : undefined;
   const key = `${proxy ? "proxy" : "direct"}:${url}`;
   if (!jwksRef || jwksCacheKey !== key) {
     jwksRef = createRemoteJWKSet(

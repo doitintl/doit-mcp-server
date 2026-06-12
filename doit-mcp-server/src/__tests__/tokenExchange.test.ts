@@ -139,6 +139,33 @@ describe("exchangeMcpTokenForUpstreamToken", () => {
     expect(typeof payload.jti).toBe("string");
   });
 
+  it("ignores CONSOLE_PROXY for non-production auth servers", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ access_token: "upstream-token", expires_in: 900 }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const proxyFetchMock = vi.fn().mockRejectedValue(
+      new Error("proxy must not be used outside production"),
+    );
+
+    const result = await exchangeMcpTokenForUpstreamToken({
+      mcpToken: "mcp-token",
+      env: {
+        AUTH_SERVER_URL: "http://localhost:8080",
+        MCP_TOKEN_EXCHANGE_SECRET: "exchange-secret",
+        CONSOLE_PROXY: { fetch: proxyFetchMock as unknown as typeof fetch },
+      },
+    });
+
+    expect(result).toEqual({ accessToken: "upstream-token", expiresIn: 900 });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(proxyFetchMock).not.toHaveBeenCalled();
+  });
+
   it("fails closed when the worker secret is missing", async () => {
     await expect(
       exchangeMcpTokenForUpstreamToken({

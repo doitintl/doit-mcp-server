@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "deploy": "yarn install --frozen-lockfile && wrangler deploy",
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --env local --port 8787",
     "format": "biome format --write",
     "lint:fix": "biome lint --fix",
-    "start": "wrangler dev",
+    "start": "wrangler dev --env local --port 8787",
     "cf-typegen": "wrangler types",
     "type-check": "tsc --noEmit",
     "compile": "tsc",

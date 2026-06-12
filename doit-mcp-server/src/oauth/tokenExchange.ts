@@ -1,6 +1,6 @@
 import { SignJWT } from "jose";
 
-import { resolveAuthServerUrl } from "../runtimeEnv";
+import { resolveAuthServerUrl, shouldUseConsoleProxy } from "../runtimeEnv";
 
 const TOKEN_EXCHANGE_GRANT_TYPE =
   "urn:ietf:params:oauth:grant-type:token-exchange";
@@ -64,6 +64,9 @@ export const exchangeMcpTokenForUpstreamToken = async ({
 
   const authServerUrl = resolveAuthServerUrl(env);
   const tokenEndpoint = `${authServerUrl}/api/auth/token`;
+  const proxy = shouldUseConsoleProxy(env, authServerUrl)
+    ? env.CONSOLE_PROXY
+    : undefined;
   console.info("[mcp] upstream token exchange request", {
     authServerUrl,
     authServerUrlHasTrailingSlash: authServerUrl.endsWith("/"),
@@ -74,7 +77,7 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     requestedTokenType: ACCESS_TOKEN_TYPE,
     upstreamAudience: LEGACY_CMP_UPSTREAM_AUDIENCE,
     hasExchangeSecret: true,
-    viaConsoleProxy: Boolean(env.CONSOLE_PROXY),
+    viaConsoleProxy: Boolean(proxy),
     exchangeSecretLength: secret.length,
   });
   const clientAssertion = await buildClientAssertion(secret, tokenEndpoint);
@@ -89,7 +92,6 @@ export const exchangeMcpTokenForUpstreamToken = async ({
     client_assertion: clientAssertion,
   });
 
-  const proxy = env.CONSOLE_PROXY;
   const fetchImpl = proxy ? proxy.fetch.bind(proxy) : fetch;
   const response = await fetchImpl(tokenEndpoint, {
     method: "POST",

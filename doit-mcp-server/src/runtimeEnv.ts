@@ -1,4 +1,5 @@
 export type UiDomainProvider = "claude" | "openai" | "omit";
+export type ConsoleProxyBinding = { fetch: typeof fetch };
 
 export interface RuntimeEnvVars {
   WORKER_URL?: string;
@@ -27,4 +28,16 @@ export function resolveAuthServerUrl(
   env: { AUTH_SERVER_URL?: string } | undefined,
 ): string {
   return env?.AUTH_SERVER_URL ?? DEFAULT_AUTH_SERVER_URL;
+}
+
+export function shouldUseConsoleProxy(
+  env: { CONSOLE_PROXY?: ConsoleProxyBinding } | undefined,
+  authServerUrl: string,
+): boolean {
+  if (!env?.CONSOLE_PROXY) return false;
+  try {
+    return new URL(authServerUrl).origin === DEFAULT_AUTH_SERVER_URL;
+  } catch {
+    return false;
+  }
 }
