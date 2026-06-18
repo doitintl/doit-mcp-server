@@ -218,6 +218,7 @@ import {
   logMcpRequestComplete,
   logMcpRequestError,
   logMcpRoute,
+  MCP_TRACE_ID_HEADER,
   withMcpTraceId,
 } from "./mcpDiagnostics.js";
 import { adaptToolResponse } from "./responseAdapter.js";
@@ -248,9 +249,58 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
+const MCP_CORS_ALLOW_HEADERS = [
+  "authorization",
+  "content-type",
+  "accept",
+  "cache-control",
+  "mcp-session-id",
+  "mcp-protocol-version",
+  "last-event-id",
+  MCP_TRACE_ID_HEADER,
+].join(", ");
+const MCP_CORS_EXPOSE_HEADERS = [
+  "WWW-Authenticate",
+  "mcp-session-id",
+  MCP_TRACE_ID_HEADER,
+].join(", ");
+const MCP_CORS_VARY_HEADERS =
+  "Origin, Access-Control-Request-Headers, Access-Control-Request-Method";
 
 function isMcpDiscoveryPath(pathname: string): boolean {
   return pathname.endsWith("/.well-known/oauth-protected-resource");
+}
+
+function withMcpCorsHeaders(init?: HeadersInit): Headers {
+  const headers = new Headers(init);
+  const existingVary = headers.get("Vary");
+
+  headers.set("Access-Control-Allow-Origin", "*");
+  headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
+  headers.set("Access-Control-Allow-Headers", MCP_CORS_ALLOW_HEADERS);
+  headers.set("Access-Control-Expose-Headers", MCP_CORS_EXPOSE_HEADERS);
+  headers.set("Access-Control-Max-Age", "86400");
+  headers.set(
+    "Vary",
+    existingVary ? `${existingVary}, ${MCP_CORS_VARY_HEADERS}` : MCP_CORS_VARY_HEADERS
+  );
+
+  return headers;
+}
+
+function mcpCorsPreflightResponse(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: withMcpCorsHeaders(),
+  });
+}
+
+function withMcpCors(response: Response): Response {
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: withMcpCorsHeaders(response.headers),
+  });
 }
 
 function logWidgetResourceError(
@@ -1114,7 +1164,7 @@ async function handleRequest(
       const response = Response.json({
         resource,
         authorization_servers: [authServerUrl],
-        scopes_supported: ["mcp:tools", "mcp:resources"],
+        scopes_supported: ["mcp:tools", "mcp:resources", "offline_access"],
         bearer_methods_supported: ["header"],
         resource_documentation: "https://help.doit.com/docs/mcp",
       });
@@ -1252,7 +1302,15 @@ async function handleRequest(
   }
 }
 
-// Export the main handler as the default
+// Export the main handler as the default, wrapped with CORS handling so
+// browser-based MCP clients (e.g. the Claude.ai web connector) can talk to the
+// worker cross-origin: answer the preflight, and expose WWW-Authenticate on the
+// 401 challenge so the client can discover the authorization server.
 export default {
-  fetch: handleRequest,
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    if (req.method === "OPTIONS") {
+      return mcpCorsPreflightResponse();
+    }
+    return withMcpCors(await handleRequest(req, env, ctx));
+  },
 };
