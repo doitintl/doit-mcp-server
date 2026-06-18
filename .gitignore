@@ -62,3 +62,6 @@ _local
 widget-gallery.html
 .yarn/
 package-lock.json
+
+# Local API-coverage loop config (not part of the published server)
+.doit-api-coverage/
