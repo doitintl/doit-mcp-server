@@ -12,7 +12,7 @@ export const protectedResourceMetadata = (c: Context) => {
   return c.json({
     resource,
     authorization_servers: [authServerUrl],
-    scopes_supported: ["mcp:tools", "mcp:resources"],
+    scopes_supported: ["mcp:tools", "mcp:resources", "offline_access"],
     bearer_methods_supported: ["header"],
     resource_documentation: "https://help.doit.com/docs/mcp",
   });
