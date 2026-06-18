@@ -125,6 +125,7 @@ import {
     updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
+import { getThemeTool, handleGetThemeRequest, handleListThemesRequest, listThemesTool } from "./tools/themes.js";
 import {
     createTicketCommentTool,
     createTicketTool,
@@ -231,6 +232,8 @@ export function createServer() {
                 assignObjectsToLabelTool,
                 listFoldersTool,
                 getFolderTool,
+                listThemesTool,
+                getThemeTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,
@@ -375,6 +378,7 @@ export {
     handleGetLabelRequest,
     handleGetReportConfigRequest,
     handleGetReportResultsRequest,
+    handleGetThemeRequest,
     handleGetTicketRequest,
     handleInviteUserRequest,
     handleListAlertsRequest,
@@ -391,6 +395,7 @@ export {
     handleListPlatformsRequest,
     handleListProductsRequest,
     handleListRolesRequest,
+    handleListThemesRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
     handleListUsersRequest,
