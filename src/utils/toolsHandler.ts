@@ -41,6 +41,7 @@ import {
 import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
+import { handleGetFolderRequest, handleListFoldersRequest } from "../tools/folders.js";
 import { handleGetInsightResourcesRequest, handleListInsightsRequest } from "../tools/insights.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
 import {
@@ -367,6 +368,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "assign_objects_to_label":
             result = await handleAssignObjectsToLabelRequest(args, token);
+            break;
+        case "list_folders":
+            result = await handleListFoldersRequest(args, token);
+            break;
+        case "get_folder":
+            result = await handleGetFolderRequest(args, token);
             break;
         case "list_datahub_datasets":
             result = await handleListDatahubDatasetsRequest(args, token);

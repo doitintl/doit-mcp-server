@@ -83,6 +83,7 @@ import {
 import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "./tools/datahubEvents.js";
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
+import { getFolderTool, handleGetFolderRequest, handleListFoldersRequest, listFoldersTool } from "./tools/folders.js";
 import { getInsightResourcesTool, listOptimizationRecommendationsTool } from "./tools/insights.js";
 import {
     getInvoiceTool,
@@ -228,6 +229,8 @@ export function createServer() {
                 updateLabelTool,
                 getLabelAssignmentsTool,
                 assignObjectsToLabelTool,
+                listFoldersTool,
+                getFolderTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,
@@ -366,6 +369,7 @@ export {
     handleGetBudgetRequest,
     handleGetCommitmentRequest,
     handleGetDatahubDatasetRequest,
+    handleGetFolderRequest,
     handleGetInvoiceRequest,
     handleGetLabelAssignmentsRequest,
     handleGetLabelRequest,
@@ -380,6 +384,7 @@ export {
     handleListBudgetsRequest,
     handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
+    handleListFoldersRequest,
     handleListInvoicesRequest,
     handleListLabelsRequest,
     handleListOrganizationsRequest,
