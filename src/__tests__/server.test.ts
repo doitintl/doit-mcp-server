@@ -89,6 +89,7 @@ vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
 vi.mock(import("../tools/cloudflow.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleTriggerCloudFlowRequest: vi.fn(),
+    handleRefineCloudflowRequest: vi.fn(),
 }));
 vi.mock(import("../tools/organizations.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -237,7 +238,7 @@ import {
     listCloudDiagramNodeActivitiesTool,
     searchCloudDiagramsTool,
 } from "../tools/cloudDiagrams.js";
-import { getCloudFlowConnectionTool, listCloudFlowConnectionsTool, triggerCloudFlowTool } from "../tools/cloudflow.js";
+import { getCloudFlowConnectionTool, listCloudFlowConnectionsTool, refineCloudflowTool, triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
 // import { confirmActionTool } from "../tools/confirmAction.js"; // disabled with the approval gate
@@ -378,6 +379,7 @@ describe("ListToolsRequestSchema handler", () => {
                 triggerCloudFlowTool,
                 listCloudFlowConnectionsTool,
                 getCloudFlowConnectionTool,
+                refineCloudflowTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,

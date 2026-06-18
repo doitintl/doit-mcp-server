@@ -40,6 +40,7 @@ import {
 import {
     handleGetCloudFlowConnectionRequest,
     handleListCloudFlowConnectionsRequest,
+    handleRefineCloudflowRequest,
     handleTriggerCloudFlowRequest,
 } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
@@ -149,6 +150,8 @@ export interface ToolHandlerOptions {
      * (HTTP/SSE) implementations. Omit only in tests that call non-gated tools.
      */
     approvalStore?: ApprovalStore;
+    /** Called for each SSE progress event from streaming tools (e.g. refine_cloudflow). */
+    onProgress?: (message: string) => Promise<void>;
 }
 
 /**
@@ -165,14 +168,14 @@ export async function executeToolHandler(
     token: string,
     options: ToolHandlerOptions = {}
 ): Promise<any> {
-    const { trackingContext, convertResponse, userKey, approvalStore } = options;
+    const { trackingContext, convertResponse, userKey, approvalStore, onProgress } = options;
     return runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
         try {
             // Dispatches an already-confirmed (or non-gated) tool call. The approval
             // gate below never calls this directly for a write-gated tool without first
             // going through `confirm_action` + `ApprovalStore.consume`.
             const runOriginal = async (innerToolName: string, innerArgs: any, innerToken: string): Promise<any> => {
-                const result = await runOriginalDispatch(innerToolName, innerArgs, innerToken);
+                const result = await runOriginalDispatch(innerToolName, innerArgs, innerToken, { onProgress });
                 return convertResponse ? convertResponse(result) : result;
             };
 
@@ -234,7 +237,12 @@ export async function executeToolHandler(
  * Used both for non-gated tools and as the "run original" callback after a
  * write-gated tool has passed through `confirm_action`.
  */
-async function runOriginalDispatch(toolName: string, args: any, token: string): Promise<any> {
+async function runOriginalDispatch(
+    toolName: string,
+    args: any,
+    token: string,
+    options?: ToolHandlerOptions
+): Promise<any> {
     let result: any;
     switch (toolName) {
         case "get_cloud_incidents":
@@ -344,6 +352,9 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "get_cloudflow_connection":
             result = await handleGetCloudFlowConnectionRequest(args, token);
+            break;
+        case "refine_cloudflow":
+            result = await handleRefineCloudflowRequest(args, token, options?.onProgress);
             break;
         case "list_alerts":
             result = await handleListAlertsRequest(args, token);
