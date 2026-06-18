@@ -156,6 +156,12 @@ import {
   updateLabelTool,
 } from "../../src/tools/labels.js";
 import {
+  GetFolderArgumentsSchema,
+  getFolderTool,
+  ListFoldersArgumentsSchema,
+  listFoldersTool,
+} from "../../src/tools/folders.js";
+import {
   ListProductsArgumentsSchema,
   listProductsTool,
 } from "../../src/tools/products.js";
@@ -788,6 +794,10 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(updateLabelTool, UpdateLabelArgumentsSchema);
     this.registerTool(getLabelAssignmentsTool, GetLabelAssignmentsArgumentsSchema);
     this.registerTool(assignObjectsToLabelTool, AssignObjectsToLabelArgumentsSchema);
+
+    // Folders tools
+    this.registerTool(listFoldersTool, ListFoldersArgumentsSchema);
+    this.registerTool(getFolderTool, GetFolderArgumentsSchema);
 
     // DataHub Datasets tools
     this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);

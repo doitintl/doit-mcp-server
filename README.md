@@ -192,6 +192,8 @@ This MCP server provides many tools including the following:
 - [`update_label`](https://developer.doit.com/reference/updatelabel): Updates an existing label's name or color
 - [`get_label_assignments`](https://developer.doit.com/reference/getlabelassignments): Returns the list of objects assigned to a specific label
 - [`assign_objects_to_label`](https://developer.doit.com/reference/assignobjectstolabel): Assigns or unassigns objects to a label
+- [`list_folders`](https://developer.doit.com/reference/listfolders): Returns the Cloud Analytics folders the user has access to
+- [`get_folder`](https://developer.doit.com/reference/getfolder): Returns details of a specific Cloud Analytics folder by ID or name
 
 
 ## Usage Examples
