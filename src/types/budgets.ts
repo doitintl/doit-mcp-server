@@ -18,6 +18,7 @@ export const SCOPE_TYPE_VALUES = [
     "allocation_rule",
     "gke",
     "gke_label",
+    "organization_tag",
 ] as const;
 export const CURRENCY_VALUES = [
     "USD",

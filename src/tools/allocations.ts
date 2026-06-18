@@ -24,6 +24,7 @@ const ALLOCATION_COMPONENT_TYPES = [
     "attribution_group",
     "gke",
     "gke_label",
+    "organization_tag",
 ] as const;
 
 const ALLOCATION_COMPONENT_MODES = ["is", "contains", "starts_with", "ends_with"] as const;

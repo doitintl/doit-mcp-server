@@ -231,6 +231,7 @@ describe("zodToMcpInputSchema", () => {
             "attribution_group",
             "gke",
             "gke_label",
+            "organization_tag",
         ] as const;
 
         const zodSchema = z.object({
