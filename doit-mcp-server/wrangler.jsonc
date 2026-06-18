@@ -153,6 +153,7 @@
         "PUBLIC_MCP_URL": "http://localhost:8787/sse",
         "MCP_RESOURCE_URL": "http://localhost:8787/",
         "AUTH_SERVER_URL": "http://localhost:8080",
+        "DOIT_API_BASE": "http://localhost:8082",
       },
       "migrations": [
         {
