@@ -70,6 +70,7 @@ import {
     handleUpdateReportRequest,
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
+import { handleGetThemeRequest, handleListThemesRequest } from "../tools/themes.js";
 import {
     // createTicketTool, // Re-enable alongside the WRITE_GATED_SUMMARIES entry below.
     handleCreateTicketCommentRequest,
@@ -374,6 +375,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "get_folder":
             result = await handleGetFolderRequest(args, token);
+            break;
+        case "list_themes":
+            result = await handleListThemesRequest(args, token);
+            break;
+        case "get_theme":
+            result = await handleGetThemeRequest(args, token);
             break;
         case "list_datahub_datasets":
             result = await handleListDatahubDatasetsRequest(args, token);

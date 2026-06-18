@@ -266,6 +266,7 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
+import { getThemeTool, listThemesTool } from "../tools/themes.js";
 import {
     createTicketCommentTool,
     createTicketTool,
@@ -379,6 +380,8 @@ describe("ListToolsRequestSchema handler", () => {
                 assignObjectsToLabelTool,
                 listFoldersTool,
                 getFolderTool,
+                listThemesTool,
+                getThemeTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,

@@ -162,6 +162,12 @@ import {
   listFoldersTool,
 } from "../../src/tools/folders.js";
 import {
+  GetThemeArgumentsSchema,
+  getThemeTool,
+  ListThemesArgumentsSchema,
+  listThemesTool,
+} from "../../src/tools/themes.js";
+import {
   ListProductsArgumentsSchema,
   listProductsTool,
 } from "../../src/tools/products.js";
@@ -798,6 +804,10 @@ export class DoitMCPAgent extends McpAgent {
     // Folders tools
     this.registerTool(listFoldersTool, ListFoldersArgumentsSchema);
     this.registerTool(getFolderTool, GetFolderArgumentsSchema);
+
+    // Themes tools
+    this.registerTool(listThemesTool, ListThemesArgumentsSchema);
+    this.registerTool(getThemeTool, GetThemeArgumentsSchema);
 
     // DataHub Datasets tools
     this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
