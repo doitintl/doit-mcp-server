@@ -867,10 +867,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // AWS Account Management tools
     this.registerTool(getAwsAccountTool, GetAwsAccountArgumentsSchema);
-    this.registerTool(
-      getCloudConnectSupportedFeaturesTool,
-      GetCloudConnectSupportedFeaturesArgumentsSchema
-    );
+    this.registerTool(getCloudConnectSupportedFeaturesTool, GetCloudConnectSupportedFeaturesArgumentsSchema);
 
     // DataHub Datasets tools
     this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
