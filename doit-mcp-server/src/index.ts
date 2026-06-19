@@ -406,7 +406,7 @@ export class DoitMCPAgent extends McpAgent {
   // exchange the MCP-scoped token for a separate upstream token before calling
   // DoiT APIs, per the MCP authorization spec.
   private async getToken(): Promise<string> {
-    const token = this.props.apiKey as string;
+    const token = this.props.credential as string;
     const authMethod = this.props.authMethod as string | undefined;
     console.info("[mcp] resolving upstream DoiT API token", {
       authMethod,
@@ -441,15 +441,30 @@ export class DoitMCPAgent extends McpAgent {
 
     console.info("[mcp] exchanging OAuth MCP token for upstream DoiT API token", {
       authMethod,
+      ...describeTokenForLog(token),
       cachePresentForDifferentToken: Boolean(
         this.upstreamTokenCache &&
           this.upstreamTokenCache.mcpAccessToken !== token,
       ),
     });
-    const exchanged = await exchangeMcpTokenForUpstreamToken({
-      mcpToken: token,
-      env: this.env as TokenExchangeEnv,
-    });
+    let exchanged: Awaited<
+      ReturnType<typeof exchangeMcpTokenForUpstreamToken>
+    >;
+    try {
+      exchanged = await exchangeMcpTokenForUpstreamToken({
+        mcpToken: token,
+        env: this.env as TokenExchangeEnv,
+      });
+    } catch (err) {
+      // Most often the MCP token expired and was not refreshed onto this session
+      // (see onSSEMcpMessage / refreshStreamableHttpCredential). The token descriptor
+      // tells an expired token apart from a genuine auth-service rejection.
+      console.error(getMcpDiagnosticsMessage("upstream token exchange failed"), {
+        ...describeTokenForLog(token),
+        message: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
 
     this.upstreamTokenCache = {
       mcpAccessToken: token,
@@ -460,28 +475,96 @@ export class DoitMCPAgent extends McpAgent {
     return exchanged.accessToken;
   }
 
+  // The McpAgent SDK delivers `props` (including the OAuth access token) to the DO
+  // once, at session establishment via _init(props): on the GET /sse handshake for
+  // the SSE transport, and on the `initialize` request for streamable-HTTP. It is
+  // NOT refreshed when the client rotates its token mid-session, and the per-message
+  // Authorization header is not propagated to the DO. So on a long-lived connection
+  // the connect-time token expires (~15 min), after which every upstream token
+  // exchange fails with invalid_token even though the client is sending a freshly-
+  // refreshed token on each message. The Worker entry re-verifies that per-message
+  // bearer before dispatch, so we adopt the live token here:
+  //   - SSE: onSSEMcpMessage receives the message Request (with Authorization).
+  //   - streamable-HTTP: the Worker entry calls refreshCredential() over RPC, since
+  //     that transport never forwards the header to the DO (see handleMcpRequest →
+  //     refreshStreamableHttpCredential).
+  // getToken() keys upstreamTokenCache by the token value, so swapping it in
+  // transparently forces a re-exchange with the live token.
+  override async onSSEMcpMessage(
+    sessionId: string,
+    request: Request
+  ): Promise<Error | null> {
+    const authHeader = request.headers.get("Authorization");
+    this.adoptCredential(
+      authHeader ? extractTokenFromAuthHeader(authHeader) : null,
+      "sse"
+    );
+    return super.onSSEMcpMessage(sessionId, request);
+  }
+
+  // RPC entry used by the Worker for the streamable-HTTP transport (see
+  // refreshStreamableHttpCredential). Public so it is reachable on the DO stub.
+  // Returns whether this DO is a live OAuth session: `false` tells the Worker the
+  // addressed session is gone (evicted, or the SDK's DO addressing drifted) so it can
+  // challenge the client to re-authenticate instead of letting tool calls keep failing
+  // the upstream exchange with a stale connect-time token.
+  async refreshCredential(token: string): Promise<boolean> {
+    if (this.props?.authMethod !== "oauth") {
+      console.warn(getMcpDiagnosticsMessage("refreshCredential: session not live"), {
+        authMethod: this.props?.authMethod ?? null,
+      });
+      return false;
+    }
+    this.adoptCredential(token, "streamable-http");
+    return true;
+  }
+
+  // Adopt the (Worker-verified) live bearer as the session credential. OAuth sessions
+  // only: demo and legacy API-key sessions use stable, non-rotating credentials and
+  // must not be overwritten. getToken() keys upstreamTokenCache by the token value, so
+  // a change transparently forces a re-exchange with the live token.
+  private adoptCredential(
+    token: string | null,
+    source: "sse" | "streamable-http"
+  ): void {
+    if (this.props?.authMethod !== "oauth") {
+      return;
+    }
+    if (!token || token === DEMO_TOKEN) {
+      return;
+    }
+    if (token !== this.props.credential) {
+      console.info(getMcpDiagnosticsMessage("rotating session credential"), {
+        source,
+        previous: describeTokenForLog(this.props.credential as string | undefined),
+        next: describeTokenForLog(token),
+      });
+      this.props.credential = token;
+    }
+  }
+
   // Persist the legacy session's customerContext to the ContextStorage DO,
-  // keyed by apiKey, so a change_customer selection survives reconnects (mirrors
-  // main). No-op when CONTEXT_STORAGE is unbound (e.g. test harnesses).
+  // keyed by the session credential, so a change_customer selection survives
+  // reconnects (mirrors main). No-op when CONTEXT_STORAGE is unbound (e.g. test harnesses).
   private async saveProps(): Promise<void> {
     const env = this.env as DoitWorkerEnv;
-    const apiKey = this.props.apiKey as string;
+    const credential = this.props.credential as string;
     const customerContext = this.props.customerContext as string;
-    if (apiKey && env?.CONTEXT_STORAGE) {
-      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
+    if (credential && env?.CONTEXT_STORAGE) {
+      const id = env.CONTEXT_STORAGE.idFromName(credential);
       const contextStorage = env.CONTEXT_STORAGE.get(id);
       await contextStorage.saveContext(customerContext);
     }
   }
 
-  // Load the persisted customerContext for this apiKey from the ContextStorage DO.
+  // Load the persisted customerContext for this credential from the ContextStorage DO.
   // Returns the persisted value (and updates this.props) when present, else the
   // current in-memory context. Used only on legacy (API-key) sessions.
   private async loadPersistedProps(): Promise<string | null> {
     const env = this.env as DoitWorkerEnv;
-    const apiKey = this.props.apiKey as string;
-    if (apiKey && env?.CONTEXT_STORAGE) {
-      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
+    const credential = this.props.credential as string;
+    if (credential && env?.CONTEXT_STORAGE) {
+      const id = env.CONTEXT_STORAGE.idFromName(credential);
       const contextStorage = env.CONTEXT_STORAGE.get(id);
       const persisted = await contextStorage.loadContext();
       if (persisted) {
@@ -561,7 +644,7 @@ export class DoitMCPAgent extends McpAgent {
         {
           trackingContext: this._mcpClientInfo,
           convertResponse: (rawResult) => adaptToolResponse(toolName, rawResult),
-          // The identity the approval flow is bound to. `props.apiKey` is the
+          // The identity the approval flow is bound to. `props.credential` is the
           // OAuth-derived DoiT API key and is per-user, so staged actions cannot
           // be consumed across users even if a token somehow leaked.
           userKey: token,
@@ -713,7 +796,7 @@ export class DoitMCPAgent extends McpAgent {
     console.log(getMcpDiagnosticsMessage("init start"), {
       serverName: SERVER_NAME_WEB,
       serverVersion: SERVER_VERSION,
-      hasApiKey: Boolean(this.props.apiKey),
+      hasCredential: Boolean(this.props.credential),
       hasCustomerContext: Boolean(this.props.customerContext),
       isDoitUser: this.props.isDoitUser,
     });
@@ -934,13 +1017,13 @@ export class DoitMCPAgent extends McpAgent {
       promptCount: this._registeredPromptCount,
       resourceCount: this._registeredResourceCount,
       hasChangeCustomerTool: this.props.isDoitUser === "true",
-      hasApiKey: Boolean(this.props.apiKey),
+      hasCredential: Boolean(this.props.credential),
       hasCustomerContext: Boolean(this.props.customerContext),
       isDoitUser: this.props.isDoitUser,
     });
 
     console.log(getMcpDiagnosticsMessage("init complete"), {
-      hasApiKey: Boolean(this.props.apiKey),
+      hasCredential: Boolean(this.props.credential),
       hasCustomerContext: Boolean(this.props.customerContext),
       isDoitUser: this.props.isDoitUser,
       sessionProvider: this._sessionUiDomainProvider,
@@ -1112,6 +1195,21 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
             req
           )
         : req;
+    // Adopt the live (already-verified) bearer onto the existing streamable-HTTP
+    // session DO before dispatch; the SDK pins the connect-time token otherwise. If the
+    // session DO is gone (evicted / addressing drift), challenge re-auth so the client
+    // reconnects rather than failing every tool call on a stale token.
+    const { challenge } = await refreshStreamableHttpCredential(mcpReq, env);
+    if (challenge) {
+      return new Response("Unauthorized", {
+        status: 401,
+        headers: {
+          "WWW-Authenticate": wwwAuthenticateHeaderForResource(
+            resolveMcpResourceUrl(env as { MCP_RESOURCE_URL?: string })
+          ),
+        },
+      });
+    }
     return logMcpRoute(
       traceId,
       "streamable-http",
@@ -1154,6 +1252,75 @@ function extractTokenFromAuthHeader(authHeader: string): string | null {
     return bearerMatch[1];
   }
   return authHeader;
+}
+
+// Decode (without verifying) a JWT's non-secret diagnostic claims for logging, to tell
+// an expired session token apart from other auth failures when triaging. Never logs the
+// token itself — only its jti/exp/typ and derived age.
+function describeTokenForLog(
+  token: string | null | undefined
+): Record<string, unknown> {
+  if (!token) return { present: false };
+  try {
+    const segment = token.split(".")[1];
+    const claims = JSON.parse(
+      atob(segment.replace(/-/g, "+").replace(/_/g, "/"))
+    ) as { exp?: unknown; jti?: unknown; typ?: unknown };
+    const now = Math.floor(Date.now() / 1000);
+    const exp = typeof claims.exp === "number" ? claims.exp : undefined;
+    return {
+      present: true,
+      jti: typeof claims.jti === "string" ? claims.jti : undefined,
+      exp,
+      expiresInSeconds: exp !== undefined ? exp - now : undefined,
+      expired: exp !== undefined ? exp <= now : undefined,
+      typ: typeof claims.typ === "string" ? claims.typ : undefined,
+    };
+  } catch {
+    return { present: true, decodable: false };
+  }
+}
+
+// Streamable-HTTP (DoitMCPAgent.serve) delivers props to the session DO only on the
+// `initialize` request and never forwards later Authorization headers to the DO, so a
+// long-lived session keeps exchanging the connect-time token until it expires (~15 min).
+// The bearer on each message POST is already verified at the Worker entry; push it to the
+// existing session's DO so getToken() re-exchanges with the live token. Mirrors the SDK's
+// streamable-http DO addressing (agents@^0.0.95: binding MCP_OBJECT, id
+// `streamable-http:${sessionId}`). Returns { challenge: true } only when the addressed DO
+// reports it is not a live OAuth session (evicted, or the addressing drifted) so the
+// caller can answer 401 and let the client reconnect; transient errors never challenge.
+// The SSE transport refreshes itself in DoitMCPAgent.onSSEMcpMessage.
+async function refreshStreamableHttpCredential(
+  req: Request,
+  env: Env
+): Promise<{ challenge: boolean }> {
+  // No session id => the `initialize` request; _init(props) already delivers the live token.
+  const sessionId = req.headers.get("mcp-session-id");
+  if (!sessionId) return { challenge: false };
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader ? extractTokenFromAuthHeader(authHeader) : null;
+  if (!token || token === DEMO_TOKEN) return { challenge: false };
+  try {
+    const namespace = env.MCP_OBJECT;
+    const stub = namespace.get(
+      namespace.idFromName(`streamable-http:${sessionId}`)
+    );
+    const live = await stub.refreshCredential(token);
+    if (!live) {
+      console.warn("[mcp] streamable-http session not live; challenging re-auth", {
+        sessionId,
+        ...describeTokenForLog(token),
+      });
+    }
+    return { challenge: !live };
+  } catch (err) {
+    // Never challenge on a transient error — that would break a working session.
+    console.warn("[mcp] streamable-http credential refresh skipped (transient)", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return { challenge: false };
+  }
 }
 
 // Main request handler that checks for Authorization header
@@ -1216,7 +1383,7 @@ async function handleRequest(
           (env as { DEMO_MODE_ENABLED?: string }).DEMO_MODE_ENABLED === "true"
         ) {
           assignCtxProps(ctx, {
-            apiKey: DEMO_TOKEN,
+            credential: DEMO_TOKEN,
             customerContext: "demo",
             authMethod: "oauth",
             userId: "demo",
@@ -1257,7 +1424,7 @@ async function handleRequest(
                 hasCustomerContext: Boolean(legacy.customerContext),
               });
               assignCtxProps(ctx, {
-                apiKey: token,
+                credential: token,
                 customerContext: legacy.customerContext,
                 authMethod: "apikey",
                 userId: legacy.email,
@@ -1286,7 +1453,7 @@ async function handleRequest(
         // Ignore any customerContext query param to close the override loophole.
         // change_customer is gated on isDoitUser — only DoiT employees may switch context.
         assignCtxProps(ctx, {
-          apiKey: token,
+          credential: token,
           customerContext: result.claims.customerContext,
           authMethod: "oauth",
           userId: result.claims.userId,
