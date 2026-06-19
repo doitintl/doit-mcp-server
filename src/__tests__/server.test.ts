@@ -226,6 +226,7 @@ import {
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { getAssetTool, listAssetsTool } from "../tools/assets.js";
 import { askAvaSyncTool } from "../tools/ava.js";
+import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
@@ -382,6 +383,8 @@ describe("ListToolsRequestSchema handler", () => {
                 getFolderTool,
                 listThemesTool,
                 getThemeTool,
+                getAwsAccountTool,
+                getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,

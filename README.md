@@ -196,6 +196,8 @@ This MCP server provides many tools including the following:
 - [`get_folder`](https://developer.doit.com/reference/getfolder): Returns details of a specific Cloud Analytics folder by ID or name
 - [`list_themes`](https://developer.doit.com/reference/listcustomthemes): Returns the custom color themes defined for your account
 - [`get_theme`](https://developer.doit.com/reference/getcustomtheme): Returns details of a specific custom color theme by ID or name
+- [`get_aws_account`](https://developer.doit.com/reference/getawsaccount): Returns the CloudConnect details of a connected AWS account (role ARN, billing S3 bucket, enabled and supported features) by AWS account ID
+- [`get_cloud_connect_supported_features`](https://developer.doit.com/reference/getcloudconnectsupportedfeatures): Returns the DoiT CloudConnect features supported for a connected cloud account (AWS account ID or Azure tenant ID) and whether the required permissions are present
 
 
 ## Usage Examples

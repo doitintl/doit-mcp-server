@@ -44,6 +44,12 @@ import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyReques
 import { getAssetTool, handleGetAssetRequest, handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
 import { askAvaSyncTool, handleAskAvaSyncRequest } from "./tools/ava.js";
 import {
+    getAwsAccountTool,
+    getCloudConnectSupportedFeaturesTool,
+    handleGetAwsAccountRequest,
+    handleGetCloudConnectSupportedFeaturesRequest,
+} from "./tools/awsAccounts.js";
+import {
     createBudgetTool,
     getBudgetTool,
     handleCreateBudgetRequest,
@@ -234,6 +240,8 @@ export function createServer() {
                 getFolderTool,
                 listThemesTool,
                 getThemeTool,
+                getAwsAccountTool,
+                getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,
@@ -369,7 +377,9 @@ export {
     handleGetAllocationRequest,
     handleGetAnnotationRequest,
     handleGetAssetRequest,
+    handleGetAwsAccountRequest,
     handleGetBudgetRequest,
+    handleGetCloudConnectSupportedFeaturesRequest,
     handleGetCommitmentRequest,
     handleGetDatahubDatasetRequest,
     handleGetFolderRequest,
