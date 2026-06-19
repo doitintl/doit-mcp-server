@@ -1,11 +1,16 @@
 # Changelog
 
-## Unreleased
+## v0.14.0 (2026-06-19)
 
-### Changes
+### Features
 
-- chore: disable server-enforced approval flow for `create_ticket`; confirmation UX is now delegated to the MCP client via the tool's `destructiveHint: true` annotation.
-- chore: remove `confirm_action` from the advertised tool surface on both transports (stdio and HTTP/SSE Worker). With no tool minting approval tokens there is nothing to confirm, so the gate-handler tool is no longer listed. Clients enumerating tools will see one fewer entry.
+- feat(cors): support browser-origin MCP clients and sync discovery fallback (`0021c9c`)
+- feat: add list_themes and get_theme tools (Cloud Analytics custom themes API) (`eb294c2`)
+- feat: add list_folders and get_folder tools (Cloud Analytics Folders API) (`8c286c7`)
+
+### Bug Fixes
+
+- fix oauth flow after main merge (`1691265`)
 
 ## v0.13.0 (2026-05-07)
 
