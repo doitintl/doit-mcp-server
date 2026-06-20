@@ -11,7 +11,8 @@ import {
     resolveWidgetFetchOrigin,
 } from "../../../doit-mcp-server/src/widgetResource.js";
 
-const EXPECTED_CLAUDE_DOMAIN = "2f32404e366572ee7f7f5f0eb625e6c4.claudemcpcontent.com";
+const EXPECTED_CLAUDE_SSE_DOMAIN = "2f32404e366572ee7f7f5f0eb625e6c4.claudemcpcontent.com";
+const EXPECTED_CLAUDE_MCP_DOMAIN = "24c90658977e162ec42ed3ee7de9be22.claudemcpcontent.com";
 
 describe("widget URL resolution", () => {
     it("falls back to the default widget fetch origin when WORKER_URL is unset", () => {
@@ -37,7 +38,11 @@ describe("widget URL resolution", () => {
 
 describe("computeClaudeDomain", () => {
     it("returns the Claude sandbox hostname for the public MCP URL", async () => {
-        await expect(computeClaudeDomain("https://mcp.doit.com/sse")).resolves.toBe(EXPECTED_CLAUDE_DOMAIN);
+        await expect(computeClaudeDomain("https://mcp.doit.com/sse")).resolves.toBe(EXPECTED_CLAUDE_SSE_DOMAIN);
+    });
+
+    it("uses a different Claude sandbox hostname for the streamable HTTP endpoint", async () => {
+        await expect(computeClaudeDomain("https://mcp.doit.com/mcp")).resolves.toBe(EXPECTED_CLAUDE_MCP_DOMAIN);
     });
 });
 
@@ -58,7 +63,21 @@ describe("resolveUiDomain", () => {
             })
         ).resolves.toEqual({
             provider: "claude",
-            uiDomain: EXPECTED_CLAUDE_DOMAIN,
+            uiDomain: EXPECTED_CLAUDE_SSE_DOMAIN,
+        });
+    });
+
+    it("computes the Claude sandbox domain from the session endpoint URL", async () => {
+        await expect(
+            resolveUiDomain({
+                mcpClient: "Claude Cowork",
+                widgetFetchOrigin: "https://mcp.doit.com",
+                publicMcpUrl: "https://mcp.doit.com/mcp",
+                env: {},
+            })
+        ).resolves.toEqual({
+            provider: "claude",
+            uiDomain: EXPECTED_CLAUDE_MCP_DOMAIN,
         });
     });
 
@@ -98,7 +117,7 @@ describe("resolveUiDomain", () => {
             })
         ).resolves.toEqual({
             provider: "claude",
-            uiDomain: EXPECTED_CLAUDE_DOMAIN,
+            uiDomain: EXPECTED_CLAUDE_SSE_DOMAIN,
         });
     });
 

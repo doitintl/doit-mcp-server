@@ -261,6 +261,7 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
 );
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
+const SESSION_PUBLIC_MCP_URL_KEY = "sessionPublicMcpUrl";
 const MCP_CORS_ALLOW_HEADERS = [
   "authorization",
   "content-type",
@@ -383,6 +384,7 @@ export class DoitMCPAgent extends McpAgent {
   // so there is no cross-session bleed between DO instances sharing the same isolate.
   private _mcpClientInfo: TrackingContext = {};
   private _sessionUiDomainProvider?: UiDomainProvider;
+  private _sessionPublicMcpUrl?: string;
   private _registeredPromptCount = 0;
   private _registeredResourceCount = 0;
   private _registeredToolCount = 0;
@@ -575,6 +577,28 @@ export class DoitMCPAgent extends McpAgent {
     return undefined;
   }
 
+  private getSessionPublicMcpUrl(): string | undefined {
+    if (this._sessionPublicMcpUrl) {
+      return this._sessionPublicMcpUrl;
+    }
+
+    const publicMcpUrl = this.props?.[SESSION_PUBLIC_MCP_URL_KEY];
+    if (typeof publicMcpUrl !== "string" || !publicMcpUrl) {
+      return undefined;
+    }
+
+    try {
+      new URL(publicMcpUrl);
+      this._sessionPublicMcpUrl = publicMcpUrl;
+      return publicMcpUrl;
+    } catch {
+      console.warn("[widget] ignoring invalid session public MCP URL", {
+        publicMcpUrl,
+      });
+      return undefined;
+    }
+  }
+
   // Generic callback factory for tools
   private createToolCallback(toolName: string) {
     return async (args: any) => {
@@ -689,6 +713,7 @@ export class DoitMCPAgent extends McpAgent {
           mcpClient: this._mcpClientInfo.mcpClient,
           mcpClientVersion: this._mcpClientInfo.mcpClientVersion,
           sessionProvider: this._sessionUiDomainProvider,
+          hasSessionPublicMcpUrl: Boolean(this.getSessionPublicMcpUrl()),
           hasWorkerUrl: Boolean(env.WORKER_URL),
           hasPublicMcpUrl: Boolean(env.PUBLIC_MCP_URL),
           hasClaudeUiDomain: Boolean(env.CLAUDE_UI_DOMAIN),
@@ -698,7 +723,9 @@ export class DoitMCPAgent extends McpAgent {
         let publicMcpUrl: string;
         try {
           widgetFetchOrigin = resolveWidgetFetchOrigin(env);
-          publicMcpUrl = resolvePublicMcpUrl(env, widgetFetchOrigin);
+          publicMcpUrl =
+            this.getSessionPublicMcpUrl() ??
+            resolvePublicMcpUrl(env, widgetFetchOrigin);
         } catch (error) {
           logWidgetResourceError(
             "[widget] config resolution failed",
@@ -1198,6 +1225,33 @@ function assignCtxProps(
   mutable.props = { ...(mutable.props ?? {}), ...props };
 }
 
+function getSessionPublicMcpUrlFromRequest(req: Request): string | undefined {
+  const url = new URL(req.url);
+  if (url.pathname !== "/sse" && url.pathname !== "/mcp") {
+    return undefined;
+  }
+
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+function withSessionPublicMcpUrl(
+  req: Request,
+  props: Record<string, unknown>
+): Record<string, unknown> {
+  const sessionPublicMcpUrl = getSessionPublicMcpUrlFromRequest(req);
+
+  if (!sessionPublicMcpUrl) {
+    return props;
+  }
+
+  return {
+    ...props,
+    [SESSION_PUBLIC_MCP_URL_KEY]: sessionPublicMcpUrl,
+  };
+}
+
 // Helper function to extract token from Authorization header.
 // Supports both "Bearer <token>" and bare "<token>" formats.
 function extractTokenFromAuthHeader(authHeader: string): string | null {
@@ -1328,13 +1382,16 @@ async function handleRequest(
           token === DEMO_TOKEN &&
           (env as { DEMO_MODE_ENABLED?: string }).DEMO_MODE_ENABLED === "true"
         ) {
-          assignCtxProps(ctx, {
-            credential: DEMO_TOKEN,
-            customerContext: "demo",
-            authMethod: "oauth",
-            userId: "demo",
-            isDoitUser: "false",
-          });
+          assignCtxProps(
+            ctx,
+            withSessionPublicMcpUrl(req, {
+              credential: DEMO_TOKEN,
+              customerContext: "demo",
+              authMethod: "oauth",
+              userId: "demo",
+              isDoitUser: "false",
+            })
+          );
           const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
           if (response.status >= 400) {
             logMcpRequestComplete(traceId, response, startedAt);
@@ -1398,15 +1455,18 @@ async function handleRequest(
         // OAuth-issued token: customer context is sealed in the JWT claim.
         // Ignore any customerContext query param to close the override loophole.
         // change_customer is gated on isDoitUser — only DoiT employees may switch context.
-        assignCtxProps(ctx, {
-          credential: token,
-          customerContext: result.claims.customerContext,
-          authMethod: "oauth",
-          userId: result.claims.userId,
-          cid: result.claims.cid,
-          flowId: result.claims.flowId,
-          isDoitUser: result.claims.isDoitEmployee ? "true" : "false",
-        });
+        assignCtxProps(
+          ctx,
+          withSessionPublicMcpUrl(req, {
+            credential: token,
+            customerContext: result.claims.customerContext,
+            authMethod: "oauth",
+            userId: result.claims.userId,
+            cid: result.claims.cid,
+            flowId: result.claims.flowId,
+            isDoitUser: result.claims.isDoitEmployee ? "true" : "false",
+          })
+        );
 
         // Dispatch through main's handleMcpRequest so we get its routing,
         // diagnostics, and SSE keep-alive wrapping.
