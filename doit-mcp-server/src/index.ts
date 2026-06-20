@@ -356,11 +356,9 @@ export class ContextStorage extends DurableObject {
   }
 }
 
-// DO-storage key for the live session credential pushed by the Worker entry on each
-// message (see applyOAuthSession). Persisted (durable, shared across DO instances) so that
-// a DO evicted between the entry's push and the SDK's message dispatch — which re-wakes a
-// new instance whose SDK _init restores the STALE connect-time props — still exchanges with
-// the live token. getToken() reads this in preference to the SDK-restored props.credential.
+// Durable key for the latest verified access token. The SDK pins the connect-time token in
+// the DO and an evicted DO re-wakes with that stale token, so we persist the live token here
+// and getToken() reads it in preference to props.credential. See applyOAuthSession.
 const LIVE_CREDENTIAL_STORAGE_KEY = "mcp:liveCredential";
 
 export class DoitMCPAgent extends McpAgent {
@@ -413,9 +411,8 @@ export class DoitMCPAgent extends McpAgent {
   // exchange the MCP-scoped token for a separate upstream token before calling
   // DoiT APIs, per the MCP authorization spec.
   private async getToken(): Promise<string> {
-    // Prefer the durably-persisted live credential (see applyOAuthSession) over the
-    // SDK-restored props.credential, which can be the stale connect-time token after the DO
-    // is evicted and re-woken mid-session.
+    // Prefer the persisted live token over props.credential, which can be the stale
+    // connect-time token after the DO is evicted and re-woken (see applyOAuthSession).
     const persisted = await this.ctx.storage.get<string>(
       LIVE_CREDENTIAL_STORAGE_KEY
     );
@@ -457,30 +454,15 @@ export class DoitMCPAgent extends McpAgent {
 
     console.info("[mcp] exchanging OAuth MCP token for upstream DoiT API token", {
       authMethod,
-      ...describeTokenForLog(token),
       cachePresentForDifferentToken: Boolean(
         this.upstreamTokenCache &&
           this.upstreamTokenCache.mcpAccessToken !== token,
       ),
     });
-    let exchanged: Awaited<
-      ReturnType<typeof exchangeMcpTokenForUpstreamToken>
-    >;
-    try {
-      exchanged = await exchangeMcpTokenForUpstreamToken({
-        mcpToken: token,
-        env: this.env as TokenExchangeEnv,
-      });
-    } catch (err) {
-      // Most often the MCP token expired and was not refreshed onto this session
-      // (see applyOAuthSessionFromRequest / applyOAuthSession). The token descriptor
-      // tells an expired token apart from a genuine auth-service rejection.
-      console.error(getMcpDiagnosticsMessage("upstream token exchange failed"), {
-        ...describeTokenForLog(token),
-        message: err instanceof Error ? err.message : String(err),
-      });
-      throw err;
-    }
+    const exchanged = await exchangeMcpTokenForUpstreamToken({
+      mcpToken: token,
+      env: this.env as TokenExchangeEnv,
+    });
 
     this.upstreamTokenCache = {
       mcpAccessToken: token,
@@ -491,21 +473,13 @@ export class DoitMCPAgent extends McpAgent {
     return exchanged.accessToken;
   }
 
-  // The McpAgent SDK delivers `props` to the DO only at session establishment via
-  // _init(props): the GET /sse handshake for SSE, and the `initialize` request for
-  // streamable-HTTP. For subsequent messages it does NOT re-deliver props, and the
-  // per-message Authorization header is not reliably available inside the DO (the SDK's
-  // onSSEMcpMessage only reads the body). So the connect-time token goes stale after it
-  // expires (~15 min); worse, when the DO is evicted it re-wakes with empty props
-  // (authMethod null) until the next handshake. Either way the upstream exchange then
-  // fails even though the client sends a fresh token on every message.
-  //
-  // Fix: the Worker entry re-verifies the bearer on every message and pushes it here via
-  // RPC (see applyOAuthSessionFromRequest — same for both transports). We rebuild the FULL
-  // OAuth session from the token's own (already-verified) claims, so an evicted/re-woken
-  // DO is fully restored, not just its credential. customerContext is preserved when
-  // already set in-memory so a mid-session change_customer switch isn't reverted; it falls
-  // back to the token's sealed context only when props were lost.
+  // Re-deliver the live, Worker-verified OAuth session to the DO. The SDK delivers props
+  // only at connect/initialize and never refreshes them on later messages, so the
+  // connect-time token goes stale (~15 min) and an evicted DO re-wakes with the stale token.
+  // We rebuild the session from the token's own (already-verified) claims and persist the
+  // token durably so getToken() uses it even on a re-woken instance. customerContext is kept
+  // when already set so a mid-session change_customer switch isn't reverted. Called per
+  // message via applyOAuthSessionFromRequest.
   async applyOAuthSession(token: string): Promise<void> {
     if (!token || token === DEMO_TOKEN) {
       return;
@@ -514,8 +488,7 @@ export class DoitMCPAgent extends McpAgent {
     if (!claims) {
       return;
     }
-    const previousCredential = this.props?.credential as string | undefined;
-    const credentialChanged = token !== previousCredential;
+    const credentialChanged = token !== (this.props?.credential as string | undefined);
     this.props = {
       ...(this.props ?? {}),
       credential: token,
@@ -527,16 +500,10 @@ export class DoitMCPAgent extends McpAgent {
       flowId: claims.flowId,
       isDoitUser: claims.isDoitUser,
     };
-    // Persist durably so getToken() uses the live token even if the message dispatch lands
-    // on a re-woken DO instance whose SDK _init restored the stale connect-time credential.
     await this.ctx.storage.put(LIVE_CREDENTIAL_STORAGE_KEY, token);
     if (credentialChanged) {
       // Drop the cached upstream token so getToken() re-exchanges with the live one.
       this.upstreamTokenCache = undefined;
-      console.info(getMcpDiagnosticsMessage("session credential refreshed"), {
-        previous: describeTokenForLog(previousCredential),
-        next: describeTokenForLog(token),
-      });
     }
   }
 
@@ -1242,33 +1209,6 @@ function extractTokenFromAuthHeader(authHeader: string): string | null {
   return authHeader;
 }
 
-// Decode (without verifying) a JWT's non-secret diagnostic claims for logging, to tell
-// an expired session token apart from other auth failures when triaging. Never logs the
-// token itself — only its jti/exp/typ and derived age.
-function describeTokenForLog(
-  token: string | null | undefined
-): Record<string, unknown> {
-  if (!token) return { present: false };
-  try {
-    const segment = token.split(".")[1];
-    const claims = JSON.parse(
-      atob(segment.replace(/-/g, "+").replace(/_/g, "/"))
-    ) as { exp?: unknown; jti?: unknown; typ?: unknown };
-    const now = Math.floor(Date.now() / 1000);
-    const exp = typeof claims.exp === "number" ? claims.exp : undefined;
-    return {
-      present: true,
-      jti: typeof claims.jti === "string" ? claims.jti : undefined,
-      exp,
-      expiresInSeconds: exp !== undefined ? exp - now : undefined,
-      expired: exp !== undefined ? exp <= now : undefined,
-      typ: typeof claims.typ === "string" ? claims.typ : undefined,
-    };
-  } catch {
-    return { present: true, decodable: false };
-  }
-}
-
 // Decode (without verifying) the session claims a DoiT MCP access token carries, to rebuild
 // the DO's OAuth props on every message. The token was already verified at the Worker entry.
 function decodeSessionClaims(token: string): {
@@ -1299,15 +1239,10 @@ function decodeSessionClaims(token: string): {
 
 type McpSessionKind = "sse" | "streamable-http";
 
-// Re-deliver the full OAuth session to the existing session's DO before the SDK dispatches
-// the message. The McpAgent SDK delivers props to the DO only at connect/initialize, not on
-// later messages, and the per-message Authorization header is not reliably available inside
-// the DO — so a long-lived session keeps exchanging the stale connect-time token after it
-// expires (~15 min), and an evicted DO re-wakes with empty props. The bearer on each message
-// is already verified at the Worker entry; push it so the DO rebuilds its session (see
-// DoitMCPAgent.applyOAuthSession). Mirrors the SDK's DO addressing (agents@^0.0.95, binding
-// MCP_OBJECT): `sse:${sessionId}` (sessionId from the ?sessionId= query param) and
-// `streamable-http:${sessionId}` (mcp-session-id header) — the kind value IS the id prefix.
+// Push the live, Worker-verified token to the session DO before the SDK dispatches the
+// message; the SDK doesn't re-deliver it (see DoitMCPAgent.applyOAuthSession). The DO id
+// mirrors the SDK's addressing (agents@^0.0.95, binding MCP_OBJECT): `${kind}:${sessionId}`,
+// sessionId from the ?sessionId= query (SSE) or the mcp-session-id header (streamable-HTTP).
 async function applyOAuthSessionFromRequest(
   req: Request,
   env: Env,
