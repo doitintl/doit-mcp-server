@@ -196,6 +196,47 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("list_account_team", () => {
+        it("returns account managers from mock API", async () => {
+            const result = await client.callTool({ name: "list_account_team", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.accountManagers).toHaveLength(2);
+            expect(parsed.accountManagers[0].id).toBe("mgr-123");
+            expect(parsed.accountManagers[0].email).toBe("manager@doit.com");
+            expect(parsed.accountManagers[0].name).toBe("John Manager");
+            expect(parsed.accountManagers[0].role).toBe("Account Manager");
+            expect(parsed.accountManagers[0].calendlyLink).toBe("https://calendly.com/john-manager");
+            expect(parsed.accountManagers[1].id).toBe("fsr-456");
+        });
+    });
+
+    describe("get_resource_permissions", () => {
+        it("returns sharing settings for a budget resource", async () => {
+            const result = await client.callTool({
+                name: "get_resource_permissions",
+                arguments: { resourceType: "budgets", resourceId: "budget-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-1");
+            expect(parsed.name).toBe("Q4 Cloud Spend");
+            expect(parsed.permissions).toHaveLength(2);
+            expect(parsed.permissions[0].user).toBe("owner@example.com");
+            expect(parsed.permissions[0].role).toBe("owner");
+            expect(parsed.permissions[1].role).toBe("viewer");
+            expect(parsed.public).toBe("viewer");
+        });
+
+        it("returns a validation error for an invalid resourceType", async () => {
+            const result = await client.callTool({
+                name: "get_resource_permissions",
+                arguments: { resourceType: "widgets", resourceId: "budget-1" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
     describe("list_users", () => {
         it("returns users from mock API", async () => {
             const result = await client.callTool({ name: "list_users", arguments: {} });

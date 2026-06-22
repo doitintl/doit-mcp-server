@@ -45,8 +45,10 @@ import {
     updateDatahubDatasetFixture,
 } from "./datahub.js";
 import {
+    accountTeamFixture,
     inviteUserFixture,
     organizationsFixture,
+    resourcePermissionsFixture,
     rolesFixture,
     updateUserFixture,
     usersFixture,
@@ -70,6 +72,8 @@ export const fixtures = {
     products: productsFixture,
     validateUser: validateUserFixture,
     inviteUser: inviteUserFixture,
+    accountTeam: accountTeamFixture,
+    resourcePermissions: resourcePermissionsFixture,
 
     cloudIncidents: cloudIncidentsFixture,
     cloudIncident: cloudIncidentFixture,
