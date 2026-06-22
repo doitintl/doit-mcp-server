@@ -413,15 +413,19 @@ export class DoitMCPAgent extends McpAgent {
   // exchange the MCP-scoped token for a separate upstream token before calling
   // DoiT APIs, per the MCP authorization spec.
   private async getToken(): Promise<string> {
-    // Prefer the persisted live token over props.credential, which can be the stale
-    // connect-time token after the DO is evicted and re-woken (see applyOAuthSession).
-    const persisted = await this.ctx.storage.get<string>(
-      LIVE_CREDENTIAL_STORAGE_KEY
-    );
-    const token =
-      typeof persisted === "string" && persisted
-        ? persisted
-        : (this.props.credential as string);
+    // applyOAuthSession is called before every message dispatch and keeps
+    // this.props.credential current in memory, so read from there on the hot path.
+    // Fall back to durable storage only when props were lost (DO evicted before
+    // applyOAuthSession ran — abnormal, but guards against a stale connect-time token).
+    let token = this.props.credential as string;
+    if (!token) {
+      const persisted = await this.ctx.storage.get<string>(
+        LIVE_CREDENTIAL_STORAGE_KEY
+      );
+      if (typeof persisted === "string" && persisted) {
+        token = persisted;
+      }
+    }
     const authMethod = this.props.authMethod as string | undefined;
     console.info("[mcp] resolving upstream DoiT API token", {
       authMethod,
@@ -478,8 +482,9 @@ export class DoitMCPAgent extends McpAgent {
   // Re-deliver the live, Worker-verified OAuth session to the DO. The SDK delivers props
   // only at connect/initialize and never refreshes them on later messages, so the
   // connect-time token goes stale (~15 min) and an evicted DO re-wakes with the stale token.
-  // We rebuild the session from the token's own (already-verified) claims and persist the
-  // token durably so getToken() uses it even on a re-woken instance. customerContext is kept
+  // We rebuild the session from the token's own (already-verified) claims. The token is
+  // persisted to durable storage only when it changes, so getToken() can recover it after
+  // DO eviction without incurring a storage write on every message. customerContext is kept
   // when already set so a mid-session change_customer switch isn't reverted. Called per
   // message via applyOAuthSessionFromRequest.
   async applyOAuthSession(token: string): Promise<void> {
@@ -502,8 +507,9 @@ export class DoitMCPAgent extends McpAgent {
       flowId: claims.flowId,
       isDoitUser: claims.isDoitUser,
     };
-    await this.ctx.storage.put(LIVE_CREDENTIAL_STORAGE_KEY, token);
     if (credentialChanged) {
+      // Persist the new token so getToken() can recover it after DO eviction.
+      await this.ctx.storage.put(LIVE_CREDENTIAL_STORAGE_KEY, token);
       // Drop the cached upstream token so getToken() re-exchanges with the live one.
       this.upstreamTokenCache = undefined;
     }
