@@ -142,6 +142,14 @@ import {
   listRolesTool,
 } from "../../src/tools/roles.js";
 import {
+  ListAccountTeamArgumentsSchema,
+  listAccountTeamTool,
+} from "../../src/tools/accountTeam.js";
+import {
+  GetResourcePermissionsArgumentsSchema,
+  getResourcePermissionsTool,
+} from "../../src/tools/permissions.js";
+import {
   AssignObjectsToLabelArgumentsSchema,
   assignObjectsToLabelTool,
   CreateLabelArgumentsSchema,
@@ -925,6 +933,12 @@ export class DoitMCPAgent extends McpAgent {
 
     // Roles tools
     this.registerTool(listRolesTool, ListRolesArgumentsSchema);
+
+    // Account Team tools
+    this.registerTool(listAccountTeamTool, ListAccountTeamArgumentsSchema);
+
+    // Permissions tools
+    this.registerTool(getResourcePermissionsTool, GetResourcePermissionsArgumentsSchema);
 
     // Products tools
     this.registerTool(listProductsTool, ListProductsArgumentsSchema);

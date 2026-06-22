@@ -14,6 +14,21 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.roles);
     }),
 
+    // Account Team
+    http.get(`${API_BASE}/customers/v1/accountTeam`, () => {
+        return HttpResponse.json(fixtures.accountTeam);
+    }),
+
+    // Resource Permissions (sharing)
+    http.get(`${API_BASE}/sharing/v1/:resourceType/:resourceId`, ({ params }) => {
+        const { resourceType, resourceId } = params;
+        const allowed = ["alerts", "budgets", "reports", "allocations"];
+        if (allowed.includes(resourceType as string) && resourceId === "budget-1") {
+            return HttpResponse.json(fixtures.resourcePermissions);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+
     // Users
     http.post(`${API_BASE}/iam/v1/users/invite`, () => {
         return HttpResponse.json(fixtures.inviteUser, { status: 201 });

@@ -1,11 +1,11 @@
 import { z } from "zod";
+import { handleListAccountTeamRequest } from "../tools/accountTeam.js";
 import {
     handleCreateAlertRequest,
     handleGetAlertRequest,
     handleListAlertsRequest,
     handleUpdateAlertRequest,
 } from "../tools/alerts.js";
-
 import {
     handleCreateAllocationRequest,
     handleGetAllocationRequest,
@@ -55,6 +55,7 @@ import {
 } from "../tools/labels.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleCloudOverviewRequest } from "../tools/overview.js";
+import { handleGetResourcePermissionsRequest } from "../tools/permissions.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
 import {
@@ -439,6 +440,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "ask_ava_sync":
             result = await handleAskAvaSyncRequest(args, token);
+            break;
+        case "list_account_team":
+            result = await handleListAccountTeamRequest(args, token);
+            break;
+        case "get_resource_permissions":
+            result = await handleGetResourcePermissionsRequest(args, token);
             break;
         default:
             return createErrorResponse(`Unknown tool: ${toolName}`);

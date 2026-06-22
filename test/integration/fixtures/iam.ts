@@ -91,3 +91,35 @@ export const inviteUserFixture = {
         status: "invited",
     },
 };
+
+export const accountTeamFixture = {
+    accountManagers: [
+        {
+            email: "manager@doit.com",
+            id: "mgr-123",
+            name: "John Manager",
+            role: "Account Manager",
+            calendlyLink: "https://calendly.com/john-manager",
+        },
+        {
+            email: "fsr@doit.com",
+            id: "fsr-456",
+            name: "Jane Strategist",
+            role: "Field Sales Representative",
+            calendlyLink: "https://calendly.com/jane-strategist",
+        },
+    ],
+};
+
+export const resourcePermissionsFixture = {
+    id: "budget-1",
+    name: "Q4 Cloud Spend",
+    description: "Budget tracking for Q4",
+    createTime: 1700000000000,
+    updateTime: 1700100000000,
+    permissions: [
+        { user: "owner@example.com", role: "owner" },
+        { user: "viewer@example.com", role: "viewer" },
+    ],
+    public: "viewer",
+};
