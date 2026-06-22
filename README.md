@@ -196,6 +196,8 @@ This MCP server provides many tools including the following:
 - [`get_folder`](https://developer.doit.com/reference/getfolder): Returns details of a specific Cloud Analytics folder by ID or name
 - [`list_themes`](https://developer.doit.com/reference/listcustomthemes): Returns the custom color themes defined for your account
 - [`get_theme`](https://developer.doit.com/reference/getcustomtheme): Returns details of a specific custom color theme by ID or name
+- [`list_account_team`](https://developer.doit.com/reference/listaccountteam): Returns the DoiT account managers assigned to the customer, including name, email, role, and Calendly link
+- [`get_resource_permissions`](https://developer.doit.com/reference/getresourcepermission-2): Returns the sharing settings (per-user roles and public visibility) for a specific alert, budget, report, or allocation
 
 
 ## Usage Examples

@@ -10,6 +10,7 @@ import {
     McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
+import { handleListAccountTeamRequest, listAccountTeamTool } from "./tools/accountTeam.js";
 import {
     createAlertTool,
     getAlertTool,
@@ -107,6 +108,7 @@ import {
 } from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import { cloudOverviewTool } from "./tools/overview.js";
+import { getResourcePermissionsTool, handleGetResourcePermissionsRequest } from "./tools/permissions.js";
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
 import { compareSpendTool, costBreakdownTool, costTrendTool } from "./tools/queryHelpers.js";
@@ -250,6 +252,8 @@ export function createServer() {
                 updateAnnotationTool,
                 listCommitmentsTool,
                 getCommitmentTool,
+                listAccountTeamTool,
+                getResourcePermissionsTool,
                 askAvaSyncTool,
                 // confirm_action is no longer exposed while the approval gate is
                 // disabled — without any write-gated tool minting tokens there is
@@ -378,9 +382,11 @@ export {
     handleGetLabelRequest,
     handleGetReportConfigRequest,
     handleGetReportResultsRequest,
+    handleGetResourcePermissionsRequest,
     handleGetThemeRequest,
     handleGetTicketRequest,
     handleInviteUserRequest,
+    handleListAccountTeamRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAnnotationsRequest,

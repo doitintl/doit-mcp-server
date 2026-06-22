@@ -209,8 +209,8 @@ import {
     handleUpdateReportRequest,
     handleValidateUserRequest,
 } from "../server.js";
+import { listAccountTeamTool } from "../tools/accountTeam.js";
 import { createAlertTool, getAlertTool, listAlertsTool, updateAlertTool } from "../tools/alerts.js";
-
 import {
     createAllocationTool,
     getAllocationTool,
@@ -254,6 +254,7 @@ import {
 } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { cloudOverviewTool } from "../tools/overview.js";
+import { getResourcePermissionsTool } from "../tools/permissions.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import { compareSpendTool, costBreakdownTool, costTrendTool } from "../tools/queryHelpers.js";
@@ -398,6 +399,8 @@ describe("ListToolsRequestSchema handler", () => {
                 updateAnnotationTool,
                 listCommitmentsTool,
                 getCommitmentTool,
+                listAccountTeamTool,
+                getResourcePermissionsTool,
                 askAvaSyncTool,
                 // confirmActionTool, // disabled with the approval gate
             ],
