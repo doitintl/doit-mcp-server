@@ -21,6 +21,7 @@ import {
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
 import { handleAskAvaSyncRequest } from "../tools/ava.js";
+import { handleGetAwsAccountRequest, handleGetCloudConnectSupportedFeaturesRequest } from "../tools/awsAccounts.js";
 import {
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
@@ -376,6 +377,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "get_folder":
             result = await handleGetFolderRequest(args, token);
+            break;
+        case "get_aws_account":
+            result = await handleGetAwsAccountRequest(args, token);
+            break;
+        case "get_cloud_connect_supported_features":
+            result = await handleGetCloudConnectSupportedFeaturesRequest(args, token);
             break;
         case "list_themes":
             result = await handleListThemesRequest(args, token);

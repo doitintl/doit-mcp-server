@@ -198,6 +198,8 @@ This MCP server provides many tools including the following:
 - [`get_theme`](https://developer.doit.com/reference/getcustomtheme): Returns details of a specific custom color theme by ID or name
 - [`list_account_team`](https://developer.doit.com/reference/listaccountteam): Returns the DoiT account managers assigned to the customer, including name, email, role, and Calendly link
 - [`get_resource_permissions`](https://developer.doit.com/reference/getresourcepermission-2): Returns the sharing settings (per-user roles and public visibility) for a specific alert, budget, report, or allocation
+- [`get_aws_account`](https://developer.doit.com/reference/getawsaccount): Returns the CloudConnect details of a connected AWS account (role ARN, billing S3 bucket, enabled and supported features) by AWS account ID
+- [`get_cloud_connect_supported_features`](https://developer.doit.com/reference/getcloudconnectsupportedfeatures): Returns the DoiT CloudConnect features supported for a connected cloud account (AWS account ID or Azure tenant ID) and whether the required permissions are present
 
 
 ## Usage Examples

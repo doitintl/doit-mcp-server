@@ -170,6 +170,12 @@ import {
   listFoldersTool,
 } from "../../src/tools/folders.js";
 import {
+  GetAwsAccountArgumentsSchema,
+  getAwsAccountTool,
+  GetCloudConnectSupportedFeaturesArgumentsSchema,
+  getCloudConnectSupportedFeaturesTool,
+} from "../../src/tools/awsAccounts.js";
+import {
   GetThemeArgumentsSchema,
   getThemeTool,
   ListThemesArgumentsSchema,
@@ -946,6 +952,10 @@ export class DoitMCPAgent extends McpAgent {
     // Themes tools
     this.registerTool(listThemesTool, ListThemesArgumentsSchema);
     this.registerTool(getThemeTool, GetThemeArgumentsSchema);
+
+    // AWS Account Management tools
+    this.registerTool(getAwsAccountTool, GetAwsAccountArgumentsSchema);
+    this.registerTool(getCloudConnectSupportedFeaturesTool, GetCloudConnectSupportedFeaturesArgumentsSchema);
 
     // DataHub Datasets tools
     this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
