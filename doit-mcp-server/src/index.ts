@@ -384,6 +384,10 @@ export class DoitMCPAgent extends McpAgent {
   // so there is no cross-session bleed between DO instances sharing the same isolate.
   private _mcpClientInfo: TrackingContext = {};
   private _sessionUiDomainProvider?: UiDomainProvider;
+  // Set to true after the first getToken() call on this DO instance lifetime.
+  // Ensures we check durable storage exactly once (for eviction recovery) rather than
+  // on every tool call.
+  private _credentialResolved = false;
   private _sessionPublicMcpUrl?: string;
   private _registeredPromptCount = 0;
   private _registeredResourceCount = 0;
@@ -413,17 +417,21 @@ export class DoitMCPAgent extends McpAgent {
   // exchange the MCP-scoped token for a separate upstream token before calling
   // DoiT APIs, per the MCP authorization spec.
   private async getToken(): Promise<string> {
-    // applyOAuthSession is called before every message dispatch and keeps
-    // this.props.credential current in memory, so read from there on the hot path.
-    // Fall back to durable storage only when props were lost (DO evicted before
-    // applyOAuthSession ran — abnormal, but guards against a stale connect-time token).
+    // On the first call per DO instance lifetime, check durable storage for a credential
+    // written by a previous applyOAuthSession call. This recovers the live token after DO
+    // eviction + re-wake (e.g. via WebSocket hibernation), where onStart() restores the
+    // stale connect-time token from the SDK's props storage. On all subsequent calls the
+    // in-memory credential is current (kept fresh by applyOAuthSession per message), so we
+    // skip the storage read entirely.
     let token = this.props.credential as string;
-    if (!token) {
+    if (!this._credentialResolved) {
+      this._credentialResolved = true;
       const persisted = await this.ctx.storage.get<string>(
         LIVE_CREDENTIAL_STORAGE_KEY
       );
       if (typeof persisted === "string" && persisted) {
         token = persisted;
+        this.props.credential = token;
       }
     }
     const authMethod = this.props.authMethod as string | undefined;
@@ -507,6 +515,9 @@ export class DoitMCPAgent extends McpAgent {
       flowId: claims.flowId,
       isDoitUser: claims.isDoitUser,
     };
+    // Mark resolved so getToken() skips the once-per-instance storage read — the
+    // in-memory credential is already current after this call.
+    this._credentialResolved = true;
     if (credentialChanged) {
       // Persist the new token so getToken() can recover it after DO eviction.
       await this.ctx.storage.put(LIVE_CREDENTIAL_STORAGE_KEY, token);
