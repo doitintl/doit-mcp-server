@@ -91,7 +91,7 @@ import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "./tools/d
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
 import { getFolderTool, handleGetFolderRequest, handleListFoldersRequest, listFoldersTool } from "./tools/folders.js";
-import { getInsightResourcesTool, listOptimizationRecommendationsTool } from "./tools/insights.js";
+import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "./tools/insights.js";
 import {
     getInvoiceTool,
     handleGetInvoiceRequest,
@@ -133,7 +133,14 @@ import {
     updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
-import { getThemeTool, handleGetThemeRequest, handleListThemesRequest, listThemesTool } from "./tools/themes.js";
+import {
+    getActiveThemeTool,
+    getThemeTool,
+    handleGetActiveThemeRequest,
+    handleGetThemeRequest,
+    handleListThemesRequest,
+    listThemesTool,
+} from "./tools/themes.js";
 import {
     createTicketCommentTool,
     createTicketTool,
@@ -199,6 +206,7 @@ export function createServer() {
                 compareSpendTool,
                 listOptimizationRecommendationsTool,
                 getInsightResourcesTool,
+                getInsightTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,
@@ -242,6 +250,7 @@ export function createServer() {
                 getFolderTool,
                 listThemesTool,
                 getThemeTool,
+                getActiveThemeTool,
                 getAwsAccountTool,
                 getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,
@@ -377,6 +386,7 @@ export {
     handleDimensionsRequest,
     handleFindCloudDiagramsRequest,
     handleGeneralError,
+    handleGetActiveThemeRequest,
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetAnnotationRequest,

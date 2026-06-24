@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CustomTheme, ThemesResponse } from "../types/themes.js";
+import type { ActiveTheme, CustomTheme, ThemesResponse } from "../types/themes.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
@@ -12,6 +12,7 @@ import {
 } from "../utils/util.js";
 
 export const THEMES_BASE_URL = `${DOIT_API_BASE}/analytics/v1/settings/themes`;
+export const ACTIVE_THEME_URL = `${DOIT_API_BASE}/analytics/v1/settings/active-theme`;
 
 // Schema and metadata for list themes
 export const ListThemesArgumentsSchema = z.object({});
@@ -122,5 +123,46 @@ export async function handleGetThemeRequest(args: any, token: string) {
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling get theme request");
+    }
+}
+
+// Schema and metadata for get active theme
+export const GetActiveThemeArgumentsSchema = z.object({});
+
+export const getActiveThemeTool = {
+    name: "get_active_theme",
+    description:
+        'Use this when the user wants to know which color theme is currently active for their account (the theme applied to Cloud Analytics reports). Returns the active theme id; the reserved sentinel "default" means no custom or preset theme is selected and the built-in default is in use. Do NOT use this to list all themes (use list_themes) or to fetch a specific theme by id (use get_theme).',
+    inputSchema: zodToMcpInputSchema(GetActiveThemeArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading active theme...",
+        "openai/toolInvocation/invoked": "Active theme loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleGetActiveThemeRequest(args: any, token: string) {
+    try {
+        GetActiveThemeArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const data = await makeDoitRequest<ActiveTheme>(ACTIVE_THEME_URL, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve active theme");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get active theme request");
     }
 }

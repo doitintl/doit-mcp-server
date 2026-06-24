@@ -1,4 +1,5 @@
 import {
+    activeThemeFixture,
     alertFixture,
     alertsFixture,
     allocationFixture,
@@ -17,6 +18,7 @@ import {
     createReportFixture,
     dimensionFixture,
     dimensionsFixture,
+    insightFixture,
     labelAssignmentsFixture,
     labelFixture,
     labelsFixture,
@@ -138,6 +140,9 @@ export const fixtures = {
 
     commitment: commitmentFixture,
     commitments: commitmentsFixture,
+
+    activeTheme: activeThemeFixture,
+    insight: insightFixture,
 
     avaAskSync: avaAskSyncFixture,
     avaAskSyncWithConversation: avaAskSyncWithConversationFixture,
