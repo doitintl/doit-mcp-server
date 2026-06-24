@@ -499,3 +499,28 @@ export const commitmentFixture = {
     createTime: 1735689600000,
     updateTime: 1750032000000,
 };
+
+export const activeThemeFixture = {
+    themeId: "theme-1",
+};
+
+export const insightFixture = {
+    key: "delete-ebs-volumes",
+    source: "aws-cost-optimization-hub",
+    title: "Delete unattached EBS volumes",
+    shortDescription: "Remove idle EBS volumes to reduce cost.",
+    detailedDescriptionMdx: "Unattached EBS volumes continue to incur storage charges.",
+    displayStatus: "actionable",
+    cloudProvider: "aws",
+    categories: ["FinOps"],
+    summary: {
+        operationalRisks: 0,
+        performanceRisks: 0,
+        potentialDailySavings: 12.5,
+        reliabilityRisks: 0,
+        securityRisks: 0,
+        sustainabilityRisks: 0,
+    },
+    lastUpdated: "2026-06-01T00:00:00.000Z",
+    tags: [],
+};

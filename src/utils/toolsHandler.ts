@@ -43,7 +43,11 @@ import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetFolderRequest, handleListFoldersRequest } from "../tools/folders.js";
-import { handleGetInsightResourcesRequest, handleListInsightsRequest } from "../tools/insights.js";
+import {
+    handleGetInsightRequest,
+    handleGetInsightResourcesRequest,
+    handleListInsightsRequest,
+} from "../tools/insights.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
 import {
     handleAssignObjectsToLabelRequest,
@@ -72,7 +76,7 @@ import {
     handleUpdateReportRequest,
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
-import { handleGetThemeRequest, handleListThemesRequest } from "../tools/themes.js";
+import { handleGetActiveThemeRequest, handleGetThemeRequest, handleListThemesRequest } from "../tools/themes.js";
 import {
     // createTicketTool, // Re-enable alongside the WRITE_GATED_SUMMARIES entry below.
     handleCreateTicketCommentRequest,
@@ -254,6 +258,9 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
         case "get_insight_resources":
             result = await handleGetInsightResourcesRequest(args, token);
             break;
+        case "get_insight":
+            result = await handleGetInsightRequest(args, token);
+            break;
         case "get_report_results":
             result = await handleGetReportResultsRequest(args, token);
             break;
@@ -389,6 +396,9 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "get_theme":
             result = await handleGetThemeRequest(args, token);
+            break;
+        case "get_active_theme":
+            result = await handleGetActiveThemeRequest(args, token);
             break;
         case "list_datahub_datasets":
             result = await handleListDatahubDatasetsRequest(args, token);

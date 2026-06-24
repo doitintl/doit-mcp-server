@@ -243,7 +243,7 @@ import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getFolderTool, listFoldersTool } from "../tools/folders.js";
-import { getInsightResourcesTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
+import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import {
     assignObjectsToLabelTool,
@@ -268,7 +268,7 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { getThemeTool, listThemesTool } from "../tools/themes.js";
+import { getActiveThemeTool, getThemeTool, listThemesTool } from "../tools/themes.js";
 import {
     createTicketCommentTool,
     createTicketTool,
@@ -341,6 +341,7 @@ describe("ListToolsRequestSchema handler", () => {
                 compareSpendTool,
                 listOptimizationRecommendationsTool,
                 getInsightResourcesTool,
+                getInsightTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,
@@ -384,6 +385,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getFolderTool,
                 listThemesTool,
                 getThemeTool,
+                getActiveThemeTool,
                 getAwsAccountTool,
                 getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,

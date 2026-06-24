@@ -116,6 +116,19 @@ export const GetInsightResourcesArgumentsSchema = z.object({
         ),
 });
 
+export const GetInsightArgumentsSchema = z.object({
+    source: z
+        .string()
+        .describe(
+            "The source of the insight (e.g. 'aws-cost-optimization-hub', 'aws-trusted-advisor'). Use the 'source' field from list_optimization_recommendations."
+        ),
+    key: z
+        .string()
+        .describe(
+            "The key of the insight (e.g. 'delete-ebs-volumes'). Use the 'key' field from list_optimization_recommendations."
+        ),
+});
+
 // ── Tool metadata ───────────────────────────────────────────────────────────
 
 export const listOptimizationRecommendationsTool = {
@@ -155,6 +168,27 @@ export const getInsightResourcesTool = {
     _meta: {
         "openai/toolInvocation/invoking": "Loading insight resources...",
         "openai/toolInvocation/invoked": "Insight resources ready",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export const getInsightTool = {
+    name: "get_insight",
+    description:
+        "Use this when the user wants the details and aggregate summary (savings, risk counts, status, " +
+        "description) of a single optimization insight identified by its source and key. Returns the " +
+        "insight metadata only — it does NOT include the individual affected resources (use " +
+        "get_insight_resources for those) and is not for listing all insights (use " +
+        "list_optimization_recommendations).",
+    inputSchema: zodToMcpInputSchema(GetInsightArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading insight...",
+        "openai/toolInvocation/invoked": "Insight ready",
     },
     securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
@@ -276,5 +310,34 @@ export async function handleGetInsightResourcesRequest(args: any, token: string)
             return createErrorResponse(formatZodError(error));
         }
         return handleGeneralError(error, "handling get_insight_resources request");
+    }
+}
+
+export async function handleGetInsightRequest(args: any, token: string) {
+    try {
+        const { source, key } = GetInsightArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const insightUrl = `${INSIGHTS_BASE_URL}/results/source/${encodeURIComponent(source)}/insight/${encodeURIComponent(key)}`;
+
+        try {
+            const data = await makeDoitRequest<InsightResult>(insightUrl, token, {
+                method: "GET",
+                customerContext,
+            });
+
+            if (!data) {
+                return createErrorResponse(`Failed to retrieve insight ${key} (source: ${source})`);
+            }
+
+            return createSuccessResponse(JSON.stringify(data, null, 2));
+        } catch (error) {
+            return handleGeneralError(error, "making DoiT Insights API request");
+        }
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return createErrorResponse(formatZodError(error));
+        }
+        return handleGeneralError(error, "handling get_insight request");
     }
 }

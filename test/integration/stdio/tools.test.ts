@@ -59,9 +59,11 @@ describe("MCP Tools Integration", () => {
                     "get_cloud_incidents",
                     "get_cloud_overview",
                     "get_commitment",
+                    "get_active_theme",
                     "get_datahub_dataset",
                     "get_dimension",
                     "get_folder",
+                    "get_insight",
                     "get_insight_resources",
                     "get_invoice",
                     "get_label",
@@ -234,6 +236,38 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "get_resource_permissions",
                 arguments: { resourceType: "widgets", resourceId: "budget-1" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_active_theme", () => {
+        it("returns the active theme id from the mock API", async () => {
+            const result = await client.callTool({ name: "get_active_theme", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.themeId).toBe("theme-1");
+        });
+    });
+
+    describe("get_insight", () => {
+        it("returns a single insight by source and key", async () => {
+            const result = await client.callTool({
+                name: "get_insight",
+                arguments: { source: "aws-cost-optimization-hub", key: "delete-ebs-volumes" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.key).toBe("delete-ebs-volumes");
+            expect(parsed.source).toBe("aws-cost-optimization-hub");
+            expect(parsed.title).toBe("Delete unattached EBS volumes");
+            expect(parsed.summary.potentialDailySavings).toBe(12.5);
+        });
+
+        it("returns a validation error when key is missing", async () => {
+            const result = await client.callTool({
+                name: "get_insight",
+                arguments: { source: "aws-cost-optimization-hub" },
             });
             expect(result.isError).toBe(true);
         });

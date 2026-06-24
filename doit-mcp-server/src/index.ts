@@ -48,8 +48,10 @@ import {
 import {
   ListInsightsArgumentsSchema,
   GetInsightResourcesArgumentsSchema,
+  GetInsightArgumentsSchema,
   listOptimizationRecommendationsTool,
   getInsightResourcesTool,
+  getInsightTool,
 } from "../../src/tools/insights.js";
 import {
   ValidateUserArgumentsSchema,
@@ -178,6 +180,8 @@ import {
 import {
   GetThemeArgumentsSchema,
   getThemeTool,
+  GetActiveThemeArgumentsSchema,
+  getActiveThemeTool,
   ListThemesArgumentsSchema,
   listThemesTool,
 } from "../../src/tools/themes.js";
@@ -877,6 +881,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(compareSpendTool, CompareSpendArgumentsSchema);
     this.registerTool(listOptimizationRecommendationsTool, ListInsightsArgumentsSchema);
     this.registerTool(getInsightResourcesTool, GetInsightResourcesArgumentsSchema);
+    this.registerTool(getInsightTool, GetInsightArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);
     this.registerTool(createReportTool, CreateReportArgumentsSchema);
@@ -958,6 +963,7 @@ export class DoitMCPAgent extends McpAgent {
     // Themes tools
     this.registerTool(listThemesTool, ListThemesArgumentsSchema);
     this.registerTool(getThemeTool, GetThemeArgumentsSchema);
+    this.registerTool(getActiveThemeTool, GetActiveThemeArgumentsSchema);
 
     // AWS Account Management tools
     this.registerTool(getAwsAccountTool, GetAwsAccountArgumentsSchema);

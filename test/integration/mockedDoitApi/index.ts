@@ -316,6 +316,19 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.commitments);
     }),
 
+    // Themes (active)
+    http.get(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
+        return HttpResponse.json(fixtures.activeTheme);
+    }),
+
+    // Insights (retrieve a single insight by source + key)
+    http.get(`${API_BASE}/insights/v1/results/source/:source/insight/:key`, ({ params }) => {
+        if (params.source === "aws-cost-optimization-hub" && params.key === "delete-ebs-volumes") {
+            return HttpResponse.json(fixtures.insight);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+
     // AVA
     http.post(`${API_BASE}/ava/v1/askSync`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;

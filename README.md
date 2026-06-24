@@ -196,10 +196,12 @@ This MCP server provides many tools including the following:
 - [`get_folder`](https://developer.doit.com/reference/getfolder): Returns details of a specific Cloud Analytics folder by ID or name
 - [`list_themes`](https://developer.doit.com/reference/listcustomthemes): Returns the custom color themes defined for your account
 - [`get_theme`](https://developer.doit.com/reference/getcustomtheme): Returns details of a specific custom color theme by ID or name
+- [`get_active_theme`](https://developer.doit.com/reference/getactivetheme): Returns the color theme currently active for the authenticated user (the sentinel `"default"` means the built-in default is in use)
 - [`list_account_team`](https://developer.doit.com/reference/listaccountteam): Returns the DoiT account managers assigned to the customer, including name, email, role, and Calendly link
 - [`get_resource_permissions`](https://developer.doit.com/reference/getresourcepermission-2): Returns the sharing settings (per-user roles and public visibility) for a specific alert, budget, report, or allocation
 - [`get_aws_account`](https://developer.doit.com/reference/getawsaccount): Returns the CloudConnect details of a connected AWS account (role ARN, billing S3 bucket, enabled and supported features) by AWS account ID
 - [`get_cloud_connect_supported_features`](https://developer.doit.com/reference/getcloudconnectsupportedfeatures): Returns the DoiT CloudConnect features supported for a connected cloud account (AWS account ID or Azure tenant ID) and whether the required permissions are present
+- [`get_insight`](https://developer.doit.com/reference/getinsightresult): Returns the metadata and aggregate summary (savings, risk counts, status) of a single optimization insight identified by its source and key
 
 
 ## Usage Examples
