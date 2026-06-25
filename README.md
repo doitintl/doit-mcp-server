@@ -140,6 +140,8 @@ This MCP server provides many tools including the following:
 - [`get_asset`](https://developer.doit.com/reference/getasset): Returns details of a specific customer asset by ID, including properties such as customer domain, subscription, and reseller information
 - [`trigger_cloud_flow`](https://developer.doit.com/reference/triggercloudflow): Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body
 - [`find_cloud_diagrams`](https://developer.doit.com/reference/findclouddiagrams): Returns diagram URLs matching the provided resource IDs from the DoiT Cloud Diagrams API
+- [`get_cloud_diagrams_stats`](https://developer.doit.com/reference/getclouddiagramsstats): Returns activity statistics for your cloud diagrams over a time period (`start`/`end` RFC3339 date-times) — node create/update/delete change counts grouped by cloud service, plus each diagram's import/sync state
+- [`search_cloud_diagrams`](https://developer.doit.com/reference/searchclouddiagrams): Searches your cloud diagrams and components by name or property, returning matching layers (`scheme`), components, and property-matched components (`prop`); optionally scope to a layer with `ss_id` and page with `from`/`size`
 - [`list_reports`](https://developer.doit.com/reference/listreports): Lists Cloud Analytics reports that your account has access to
 - [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
 - [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID
