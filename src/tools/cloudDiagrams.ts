@@ -80,7 +80,7 @@ export const GetCloudDiagramsStatsArgumentsSchema = z.object({
 export const getCloudDiagramsStatsTool = {
     name: "get_cloud_diagrams_stats",
     description:
-        "Use this when the user wants activity statistics for their cloud infrastructure diagrams over a time period — node create/update/delete change counts grouped by cloud service, plus each diagram's import/sync state. Useful for change auditing and drift detection. Requires a start and end RFC3339 date-time. Do NOT use this for cost analysis (use run_query).",
+        "Use this when the user wants activity statistics for their cloud infrastructure diagrams over a time period — node create/update/delete change counts grouped by cloud service, plus each diagram's import/sync state. Useful for change auditing and drift detection. Requires a start and end RFC3339 date-time.",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramsStatsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
