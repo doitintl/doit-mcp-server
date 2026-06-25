@@ -47,6 +47,7 @@ describe("MCP Tools Integration", () => {
                     "create_ticket_comment",
                     "find_cloud_diagrams",
                     "get_alert",
+                    "get_cloud_diagrams_stats",
                     "get_allocation",
                     "get_annotation",
                     "get_anomalies",
@@ -97,6 +98,7 @@ describe("MCP Tools Integration", () => {
                     "list_tickets",
                     "list_users",
                     "run_query",
+                    "search_cloud_diagrams",
                     "send_datahub_events",
                     "trigger_cloud_flow",
                     "update_alert",
@@ -1305,6 +1307,55 @@ describe("MCP Tools Integration", () => {
             expect(parsed[0].imageUrl).toContain("scheme-1");
             expect(parsed[1].diagramUrl).toContain("scheme-2");
             expect(parsed[1].imageUrl).toContain("scheme-2");
+        });
+    });
+
+    describe("get_cloud_diagrams_stats", () => {
+        it("returns diagram activity stats for a time period", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagrams_stats",
+                arguments: { start: "2026-04-01T00:00:00Z", end: "2026-04-28T00:00:00Z" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(1);
+            expect(parsed[0]._id).toBe("scheme-1");
+            expect(parsed[0].ss_id).toBe("sheet-1");
+            expect(parsed[0].changes[0].type).toBe("NODE_CREATE");
+            expect(parsed[0].import.status).toBe("success");
+        });
+
+        it("returns a validation error for an invalid date-time", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagrams_stats",
+                arguments: { start: "2026-04-01", end: "also-bad" },
+            });
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("RFC3339");
+        });
+    });
+
+    describe("search_cloud_diagrams", () => {
+        it("returns matching diagram layers and components", async () => {
+            const result = await client.callTool({
+                name: "search_cloud_diagrams",
+                arguments: { query: "production" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.scheme).toHaveLength(1);
+            expect(parsed.scheme[0].ss_id).toBe("sheet-1");
+            expect(parsed.component).toHaveLength(1);
+            expect(parsed.component[0].name).toBe("web-server");
+            expect(parsed.component[0].props.service_type).toBe("AWS::EC2::Instance");
+        });
+
+        it("returns a validation error when query is missing", async () => {
+            const result = await client.callTool({
+                name: "search_cloud_diagrams",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
         });
     });
 

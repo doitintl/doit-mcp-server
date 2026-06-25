@@ -28,7 +28,11 @@ import {
     handleListBudgetsRequest,
     handleUpdateBudgetRequest,
 } from "../tools/budgets.js";
-import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
+import {
+    handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramsStatsRequest,
+    handleSearchCloudDiagramsRequest,
+} from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
 import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "../tools/commitmentManager.js";
@@ -417,6 +421,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "find_cloud_diagrams":
             result = await handleFindCloudDiagramsRequest(args, token);
+            break;
+        case "get_cloud_diagrams_stats":
+            result = await handleGetCloudDiagramsStatsRequest(args, token);
+            break;
+        case "search_cloud_diagrams":
+            result = await handleSearchCloudDiagramsRequest(args, token);
             break;
         case "list_budgets":
             result = await handleListBudgetsRequest(args, token);
