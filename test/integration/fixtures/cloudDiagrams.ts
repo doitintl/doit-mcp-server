@@ -32,6 +32,28 @@ export const cloudDiagramsStatsFixture = [
     },
 ];
 
+export const cloudDiagramLayerSnapshotsFixture = [
+    {
+        _id: "snap-2",
+        name: "After EC2 add",
+        created_at: "2026-04-28T10:00:00Z",
+        prev_state: "snap-1",
+    },
+    {
+        _id: "snap-1",
+        name: "Initial",
+        created_at: "2026-04-27T10:00:00Z",
+        prev_state: "",
+    },
+];
+
+export const cloudDiagramLayerSnapshotFixture = {
+    _id: "snap-1",
+    name: "Initial",
+    created_at: "2026-04-27T10:00:00Z",
+    prev_state: "",
+};
+
 export const cloudDiagramsSearchFixture = {
     scheme: [
         {

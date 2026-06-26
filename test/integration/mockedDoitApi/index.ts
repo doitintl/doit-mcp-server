@@ -285,6 +285,13 @@ export const mockedDoitApiHandlers = [
     http.post(`${API_BASE}/clouddiagrams/v1/scheme/search`, () => {
         return HttpResponse.json(fixtures.cloudDiagramsSearch);
     }),
+    // Register the single-snapshot path before the list path so the more specific route wins.
+    http.get(`${API_BASE}/clouddiagrams/v1/layers/:id/snapshots/:snapshotId`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramLayerSnapshot);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/layers/:id/snapshots`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramLayerSnapshots);
+    }),
 
     // CloudFlow trigger
     http.post(`${API_BASE}/cloudflow/v1/trigger/:flowId`, () => {

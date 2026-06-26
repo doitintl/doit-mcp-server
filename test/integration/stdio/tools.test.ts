@@ -47,7 +47,9 @@ describe("MCP Tools Integration", () => {
                     "create_ticket_comment",
                     "find_cloud_diagrams",
                     "get_alert",
+                    "get_cloud_diagram_layer_snapshot",
                     "get_cloud_diagrams_stats",
+                    "list_cloud_diagram_layer_snapshots",
                     "get_allocation",
                     "get_annotation",
                     "get_anomalies",
@@ -1354,6 +1356,50 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "search_cloud_diagrams",
                 arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("list_cloud_diagram_layer_snapshots", () => {
+        it("returns saved snapshots for a layer", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_layer_snapshots",
+                arguments: { id: "layer-1", limit: 10, sort: "-createdAt" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("snap-2");
+            expect(parsed[0].prev_state).toBe("snap-1");
+            expect(parsed[1]._id).toBe("snap-1");
+        });
+
+        it("returns a validation error when the layer id is missing", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_layer_snapshots",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_cloud_diagram_layer_snapshot", () => {
+        it("returns a single snapshot by id", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_layer_snapshot",
+                arguments: { id: "layer-1", snapshot_id: "snap-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed._id).toBe("snap-1");
+            expect(parsed.name).toBe("Initial");
+        });
+
+        it("returns a validation error when the snapshot id is missing", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_layer_snapshot",
+                arguments: { id: "layer-1" },
             });
             expect(result.isError).toBe(true);
         });

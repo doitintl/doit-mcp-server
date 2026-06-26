@@ -62,10 +62,14 @@ import {
 } from "./tools/budgets.js";
 import {
     findCloudDiagramsTool,
+    getCloudDiagramLayerSnapshotTool,
     getCloudDiagramsStatsTool,
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramLayerSnapshotRequest,
     handleGetCloudDiagramsStatsRequest,
+    handleListCloudDiagramLayerSnapshotsRequest,
     handleSearchCloudDiagramsRequest,
+    listCloudDiagramLayerSnapshotsTool,
     searchCloudDiagramsTool,
 } from "./tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest, triggerCloudFlowTool } from "./tools/cloudflow.js";
@@ -268,6 +272,8 @@ export function createServer() {
                 findCloudDiagramsTool,
                 getCloudDiagramsStatsTool,
                 searchCloudDiagramsTool,
+                listCloudDiagramLayerSnapshotsTool,
+                getCloudDiagramLayerSnapshotTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
@@ -403,6 +409,7 @@ export {
     handleGetAwsAccountRequest,
     handleGetBudgetRequest,
     handleGetCloudConnectSupportedFeaturesRequest,
+    handleGetCloudDiagramLayerSnapshotRequest,
     handleGetCloudDiagramsStatsRequest,
     handleGetCommitmentRequest,
     handleGetDatahubDatasetRequest,
@@ -422,6 +429,7 @@ export {
     handleListAnnotationsRequest,
     handleListAssetsRequest,
     handleListBudgetsRequest,
+    handleListCloudDiagramLayerSnapshotsRequest,
     handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
     handleListFoldersRequest,

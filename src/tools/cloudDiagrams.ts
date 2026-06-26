@@ -1,7 +1,9 @@
 import { z } from "zod";
 import type {
     FindCloudDiagramsResponse,
+    GetCloudDiagramLayerSnapshotResponse,
     GetCloudDiagramsStatsResponse,
+    ListCloudDiagramLayerSnapshotsResponse,
     SearchCloudDiagramsResponse,
 } from "../types/cloudDiagrams.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
@@ -17,6 +19,7 @@ import {
 export const CLOUD_DIAGRAMS_BASE_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/find`;
 export const CLOUD_DIAGRAMS_STATS_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/stats`;
 export const CLOUD_DIAGRAMS_SEARCH_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/search`;
+export const CLOUD_DIAGRAMS_LAYERS_URL = `${DOIT_API_BASE}/clouddiagrams/v1/layers`;
 
 export const FindCloudDiagramsArgumentsSchema = z.object({
     resources: z
@@ -169,5 +172,107 @@ export async function handleSearchCloudDiagramsRequest(args: any, token: string)
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling search cloud diagrams request");
+    }
+}
+
+export const ListCloudDiagramLayerSnapshotsArgumentsSchema = z.object({
+    id: z.string().min(1, "A layer ID is required.").describe("Layer ID to list snapshots for."),
+    offset: z.number().int().min(0).optional().describe("Number of snapshots to skip (default 0)."),
+    limit: z.number().int().min(1).optional().describe("Maximum number of snapshots to return (default 10)."),
+    sort: z.string().optional().describe('Sort expression, e.g. "-createdAt" for descending.'),
+});
+
+export const listCloudDiagramLayerSnapshotsTool = {
+    name: "list_cloud_diagram_layer_snapshots",
+    description:
+        "Use this when the user wants the saved snapshots (version history) of a specific cloud diagram layer. Returns each snapshot's id, name, creation time, and the previous snapshot in the chain. Requires the layer ID; optionally page with offset/limit and order with sort.",
+    inputSchema: zodToMcpInputSchema(ListCloudDiagramLayerSnapshotsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Listing layer snapshots...",
+        "openai/toolInvocation/invoked": "Layer snapshots retrieved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleListCloudDiagramLayerSnapshotsRequest(args: any, token: string) {
+    try {
+        const { id, offset, limit, sort } = ListCloudDiagramLayerSnapshotsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        if (offset !== undefined) params.append("offset", offset.toString());
+        if (limit !== undefined) params.append("limit", limit.toString());
+        if (sort !== undefined) params.append("sort", sort);
+
+        const queryString = params.toString();
+        const url = `${CLOUD_DIAGRAMS_LAYERS_URL}/${encodeURIComponent(id)}/snapshots${
+            queryString ? `?${queryString}` : ""
+        }`;
+
+        const data = await makeDoitRequest<ListCloudDiagramLayerSnapshotsResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve cloud diagram layer snapshots");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling list cloud diagram layer snapshots request");
+    }
+}
+
+export const GetCloudDiagramLayerSnapshotArgumentsSchema = z.object({
+    id: z.string().min(1, "A layer ID is required.").describe("Layer ID the snapshot belongs to."),
+    snapshot_id: z.string().min(1, "A snapshot ID is required.").describe("Snapshot ID to retrieve."),
+});
+
+export const getCloudDiagramLayerSnapshotTool = {
+    name: "get_cloud_diagram_layer_snapshot",
+    description:
+        "Use this when the user wants a single saved snapshot of a cloud diagram layer by its snapshot ID. Returns the snapshot's id, name, creation time, and previous snapshot in the chain. Requires both the layer ID and the snapshot ID.",
+    inputSchema: zodToMcpInputSchema(GetCloudDiagramLayerSnapshotArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Fetching layer snapshot...",
+        "openai/toolInvocation/invoked": "Layer snapshot retrieved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleGetCloudDiagramLayerSnapshotRequest(args: any, token: string) {
+    try {
+        const { id, snapshot_id } = GetCloudDiagramLayerSnapshotArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const url = `${CLOUD_DIAGRAMS_LAYERS_URL}/${encodeURIComponent(id)}/snapshots/${encodeURIComponent(
+            snapshot_id
+        )}`;
+
+        const data = await makeDoitRequest<GetCloudDiagramLayerSnapshotResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve cloud diagram layer snapshot");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get cloud diagram layer snapshot request");
     }
 }

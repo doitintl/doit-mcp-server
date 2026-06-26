@@ -69,3 +69,17 @@ export type SearchCloudDiagramsResponse = {
     component?: CloudDiagramComponentSearchItem[];
     prop?: CloudDiagramComponentSearchItem[];
 };
+
+// Cloud diagram layer snapshots
+// List — GET /clouddiagrams/v1/layers/{id}/snapshots
+// Get  — GET /clouddiagrams/v1/layers/{id}/snapshots/{snapshot_id}
+export type CloudDiagramLayerSnapshot = {
+    _id: string;
+    created_at?: string;
+    name?: string;
+    prev_state?: string;
+};
+
+export type ListCloudDiagramLayerSnapshotsResponse = CloudDiagramLayerSnapshot[];
+
+export type GetCloudDiagramLayerSnapshotResponse = CloudDiagramLayerSnapshot;
