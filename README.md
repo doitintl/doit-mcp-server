@@ -142,6 +142,8 @@ This MCP server provides many tools including the following:
 - [`find_cloud_diagrams`](https://developer.doit.com/reference/findclouddiagrams): Returns diagram URLs matching the provided resource IDs from the DoiT Cloud Diagrams API
 - [`get_cloud_diagrams_stats`](https://developer.doit.com/reference/getclouddiagramsstats): Returns activity statistics for your cloud diagrams over a time period (`start`/`end` RFC3339 date-times) — node create/update/delete change counts grouped by cloud service, plus each diagram's import/sync state
 - [`search_cloud_diagrams`](https://developer.doit.com/reference/searchclouddiagrams): Searches your cloud diagrams and components by name or property, returning matching layers (`scheme`), components, and property-matched components (`prop`); optionally scope to a layer with `ss_id` and page with `from`/`size`
+- [`list_cloud_diagram_layer_snapshots`](https://developer.doit.com/reference/listclouddiagramlayersnapshots): Lists the saved snapshots (version history) of a cloud diagram layer (`id`), returning each snapshot's `_id`, `name`, `created_at`, and `prev_state`; optionally page with `offset`/`limit` and order with `sort`
+- [`get_cloud_diagram_layer_snapshot`](https://developer.doit.com/reference/getclouddiagramlayersnapshot): Returns a single cloud diagram layer snapshot by layer `id` and `snapshot_id`
 - [`list_reports`](https://developer.doit.com/reference/listreports): Lists Cloud Analytics reports that your account has access to
 - [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
 - [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID

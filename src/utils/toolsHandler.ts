@@ -30,7 +30,9 @@ import {
 } from "../tools/budgets.js";
 import {
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramLayerSnapshotRequest,
     handleGetCloudDiagramsStatsRequest,
+    handleListCloudDiagramLayerSnapshotsRequest,
     handleSearchCloudDiagramsRequest,
 } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
@@ -427,6 +429,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "search_cloud_diagrams":
             result = await handleSearchCloudDiagramsRequest(args, token);
+            break;
+        case "list_cloud_diagram_layer_snapshots":
+            result = await handleListCloudDiagramLayerSnapshotsRequest(args, token);
+            break;
+        case "get_cloud_diagram_layer_snapshot":
+            result = await handleGetCloudDiagramLayerSnapshotRequest(args, token);
             break;
         case "list_budgets":
             result = await handleListBudgetsRequest(args, token);

@@ -192,8 +192,12 @@ import {
 import {
   FindCloudDiagramsArgumentsSchema,
   findCloudDiagramsTool,
+  GetCloudDiagramLayerSnapshotArgumentsSchema,
+  getCloudDiagramLayerSnapshotTool,
   GetCloudDiagramsStatsArgumentsSchema,
   getCloudDiagramsStatsTool,
+  ListCloudDiagramLayerSnapshotsArgumentsSchema,
+  listCloudDiagramLayerSnapshotsTool,
   SearchCloudDiagramsArgumentsSchema,
   searchCloudDiagramsTool,
 } from "../../src/tools/cloudDiagrams.js";
@@ -984,6 +988,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);
     this.registerTool(getCloudDiagramsStatsTool, GetCloudDiagramsStatsArgumentsSchema);
     this.registerTool(searchCloudDiagramsTool, SearchCloudDiagramsArgumentsSchema);
+    this.registerTool(listCloudDiagramLayerSnapshotsTool, ListCloudDiagramLayerSnapshotsArgumentsSchema);
+    this.registerTool(getCloudDiagramLayerSnapshotTool, GetCloudDiagramLayerSnapshotArgumentsSchema);
 
     // Budgets tools
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);

@@ -2,10 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
     CLOUD_DIAGRAMS_BASE_URL,
+    CLOUD_DIAGRAMS_LAYERS_URL,
     CLOUD_DIAGRAMS_SEARCH_URL,
     CLOUD_DIAGRAMS_STATS_URL,
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramLayerSnapshotRequest,
     handleGetCloudDiagramsStatsRequest,
+    handleListCloudDiagramLayerSnapshotsRequest,
     handleSearchCloudDiagramsRequest,
 } from "../cloudDiagrams.js";
 
@@ -237,5 +240,129 @@ describe("search_cloud_diagrams", () => {
 
         expect(response.isError).toBe(true);
         expect(response.content[0].text).toContain("search query string is required");
+    });
+});
+
+describe("list_cloud_diagram_layer_snapshots", () => {
+    const mockToken = "fake-token";
+
+    const mockSnapshots = [
+        { _id: "snap-2", name: "After EC2 add", created_at: "2026-04-28T10:00:00Z", prev_state: "snap-1" },
+        { _id: "snap-1", name: "Initial", created_at: "2026-04-27T10:00:00Z", prev_state: "" },
+    ];
+
+    it("should call makeDoitRequest with the layer snapshots URL and return snapshots", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSnapshots);
+
+        const response = await handleListCloudDiagramLayerSnapshotsRequest({ id: "layer-1" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUD_DIAGRAMS_LAYERS_URL}/layer-1/snapshots`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed).toHaveLength(2);
+        expect(parsed[0]._id).toBe("snap-2");
+        expect(parsed[1].prev_state).toBe("");
+    });
+
+    it("should include offset, limit and sort query params and pass customerContext", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSnapshots);
+
+        await handleListCloudDiagramLayerSnapshotsRequest(
+            { id: "layer-1", offset: 5, limit: 20, sort: "-createdAt", customerContext: "customer-123" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_LAYERS_URL}/layer-1/snapshots?offset=5&limit=20&sort=-createdAt`,
+            mockToken,
+            { method: "GET", customerContext: "customer-123" }
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleListCloudDiagramLayerSnapshotsRequest({ id: "layer-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("layer snapshots") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when layer id is missing", async () => {
+        const response = await handleListCloudDiagramLayerSnapshotsRequest({ id: "" }, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("layer ID is required");
+    });
+});
+
+describe("get_cloud_diagram_layer_snapshot", () => {
+    const mockToken = "fake-token";
+
+    const mockSnapshot = {
+        _id: "snap-1",
+        name: "Initial",
+        created_at: "2026-04-27T10:00:00Z",
+        prev_state: "",
+    };
+
+    it("should call makeDoitRequest with the single snapshot URL and return the snapshot", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSnapshot);
+
+        const response = await handleGetCloudDiagramLayerSnapshotRequest(
+            { id: "layer-1", snapshot_id: "snap-1" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_LAYERS_URL}/layer-1/snapshots/snap-1`,
+            mockToken,
+            { method: "GET", customerContext: undefined }
+        );
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed._id).toBe("snap-1");
+        expect(parsed.name).toBe("Initial");
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSnapshot);
+
+        await handleGetCloudDiagramLayerSnapshotRequest(
+            { id: "layer-1", snapshot_id: "snap-1", customerContext: "customer-123" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_LAYERS_URL}/layer-1/snapshots/snap-1`,
+            mockToken,
+            { method: "GET", customerContext: "customer-123" }
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleGetCloudDiagramLayerSnapshotRequest(
+            { id: "layer-1", snapshot_id: "snap-1" },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("layer snapshot") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when snapshot id is missing", async () => {
+        const response = await handleGetCloudDiagramLayerSnapshotRequest({ id: "layer-1", snapshot_id: "" }, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("snapshot ID is required");
     });
 });
