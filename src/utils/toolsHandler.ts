@@ -31,6 +31,8 @@ import {
 import {
     handleFindCloudDiagramsRequest,
     handleGetCloudDiagramsStatsRequest,
+    handleListCloudDiagramActivityGroupsRequest,
+    handleListCloudDiagramNodeActivitiesRequest,
     handleSearchCloudDiagramsRequest,
 } from "../tools/cloudDiagrams.js";
 import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
@@ -427,6 +429,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "search_cloud_diagrams":
             result = await handleSearchCloudDiagramsRequest(args, token);
+            break;
+        case "list_cloud_diagram_activity_groups":
+            result = await handleListCloudDiagramActivityGroupsRequest(args, token);
+            break;
+        case "list_cloud_diagram_node_activities":
+            result = await handleListCloudDiagramNodeActivitiesRequest(args, token);
             break;
         case "list_budgets":
             result = await handleListBudgetsRequest(args, token);

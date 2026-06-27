@@ -2,6 +2,8 @@ import { z } from "zod";
 import type {
     FindCloudDiagramsResponse,
     GetCloudDiagramsStatsResponse,
+    ListCloudDiagramActivityGroupsResponse,
+    ListCloudDiagramNodeActivitiesResponse,
     SearchCloudDiagramsResponse,
 } from "../types/cloudDiagrams.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
@@ -17,6 +19,8 @@ import {
 export const CLOUD_DIAGRAMS_BASE_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/find`;
 export const CLOUD_DIAGRAMS_STATS_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/stats`;
 export const CLOUD_DIAGRAMS_SEARCH_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/search`;
+export const CLOUD_DIAGRAMS_ACTIVITY_URL = `${DOIT_API_BASE}/clouddiagrams/v1/activity`;
+export const CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL = `${DOIT_API_BASE}/clouddiagrams/v1/activity/node-activities`;
 
 export const FindCloudDiagramsArgumentsSchema = z.object({
     resources: z
@@ -169,5 +173,113 @@ export async function handleSearchCloudDiagramsRequest(args: any, token: string)
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling search cloud diagrams request");
+    }
+}
+
+export const ListCloudDiagramActivityGroupsArgumentsSchema = z.object({
+    ss_id: z.string().min(1, "A layer ID (ss_id) is required.").describe("Layer ID to list activity groups for."),
+    limit: z.number().int().min(1).optional().describe("Maximum number of groups to return (default 10)."),
+    offset: z.number().int().min(0).optional().describe("Number of groups to skip (default 0)."),
+    tags: z.array(z.string()).optional().describe("Filter activity groups by tags."),
+});
+
+export const listCloudDiagramActivityGroupsTool = {
+    name: "list_cloud_diagram_activity_groups",
+    description:
+        "Use this when the user wants the change history of a cloud diagram layer grouped by snapshot. Returns snapshot activity groups for the given layer (ss_id), ordered by timestamp descending; each group references a snapshot and contains the individual activity records (node/link/group/attachment create/update/delete) that belong to it. Page with offset/limit and filter with tags. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
+    inputSchema: zodToMcpInputSchema(ListCloudDiagramActivityGroupsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Fetching activity groups...",
+        "openai/toolInvocation/invoked": "Activity groups retrieved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleListCloudDiagramActivityGroupsRequest(args: any, token: string) {
+    try {
+        const { ss_id, limit, offset, tags } = ListCloudDiagramActivityGroupsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        params.append("ss_id", ss_id);
+        if (limit !== undefined) params.append("limit", String(limit));
+        if (offset !== undefined) params.append("offset", String(offset));
+        if (tags !== undefined) {
+            for (const tag of tags) params.append("tags", tag);
+        }
+
+        const url = `${CLOUD_DIAGRAMS_ACTIVITY_URL}?${params.toString()}`;
+
+        const data = await makeDoitRequest<ListCloudDiagramActivityGroupsResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve cloud diagram activity groups");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling list cloud diagram activity groups request");
+    }
+}
+
+export const ListCloudDiagramNodeActivitiesArgumentsSchema = z.object({
+    ss_id: z.string().min(1, "A layer ID (ss_id) is required.").describe("Layer ID the node belongs to."),
+    nodeId: z.string().min(1, "A node component ID (nodeId) is required.").describe("Node component ID."),
+    limit: z.number().int().min(1).optional().describe("Maximum number of records to return (default 50)."),
+    offset: z.number().int().min(0).optional().describe("Number of records to skip (default 0)."),
+});
+
+export const listCloudDiagramNodeActivitiesTool = {
+    name: "list_cloud_diagram_node_activities",
+    description:
+        "Use this when the user wants the change history of a single component node in a cloud diagram layer. Returns individual activity records (NODE_CREATE/NODE_UPDATE/NODE_DELETE) for the given node (ss_id + nodeId), ordered by timestamp descending, each including the user who made the change. Page with offset/limit. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
+    inputSchema: zodToMcpInputSchema(ListCloudDiagramNodeActivitiesArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Fetching node activities...",
+        "openai/toolInvocation/invoked": "Node activities retrieved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleListCloudDiagramNodeActivitiesRequest(args: any, token: string) {
+    try {
+        const { ss_id, nodeId, limit, offset } = ListCloudDiagramNodeActivitiesArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        params.append("ss_id", ss_id);
+        params.append("nodeId", nodeId);
+        if (limit !== undefined) params.append("limit", String(limit));
+        if (offset !== undefined) params.append("offset", String(offset));
+
+        const url = `${CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL}?${params.toString()}`;
+
+        const data = await makeDoitRequest<ListCloudDiagramNodeActivitiesResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve cloud diagram node activities");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling list cloud diagram node activities request");
     }
 }
