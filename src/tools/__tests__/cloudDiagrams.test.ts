@@ -4,7 +4,10 @@ import {
     CLOUD_DIAGRAMS_BASE_URL,
     CLOUD_DIAGRAMS_SEARCH_URL,
     CLOUD_DIAGRAMS_STATS_URL,
+    CLOUD_DIAGRAMS_STATUSSHEET_URL,
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramCostSnapshotRequest,
+    handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
     handleSearchCloudDiagramsRequest,
 } from "../cloudDiagrams.js";
@@ -237,5 +240,169 @@ describe("search_cloud_diagrams", () => {
 
         expect(response.isError).toBe(true);
         expect(response.content[0].text).toContain("search query string is required");
+    });
+});
+
+describe("get_cloud_diagram_cost_snapshot", () => {
+    const mockToken = "fake-token";
+
+    const mockSnapshot = {
+        diagramId: "sheet-1",
+        currency: "USD",
+        timeRange: { startDate: "2026-04-01", endDate: "2026-04-30", interval: "day" },
+        total: 1234.56,
+        trendingPct: 12.5,
+        topResources: [{ id: "node-1", name: "web-server", type: "AWS::EC2::Instance", amount: 500 }],
+        byService: [{ service: "EC2", amount: 800 }],
+        trend: [{ bucketStart: "2026-04-01", amount: 40 }],
+    };
+
+    it("should call makeDoitRequest with layer ID in path and date query params", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSnapshot);
+
+        const response = await handleGetCloudDiagramCostSnapshotRequest(
+            { layerId: "sheet-1", startDate: "2026-04-01", endDate: "2026-04-30" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/sheet-1/costs?startDate=2026-04-01&endDate=2026-04-30`,
+            mockToken,
+            { method: "GET", customerContext: undefined }
+        );
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.diagramId).toBe("sheet-1");
+        expect(parsed.total).toBe(1234.56);
+        expect(parsed.byService[0].service).toBe("EC2");
+    });
+
+    it("should include the optional interval and pass customerContext", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSnapshot);
+
+        await handleGetCloudDiagramCostSnapshotRequest(
+            {
+                layerId: "sheet-1",
+                startDate: "2026-04-01",
+                endDate: "2026-04-30",
+                interval: "month",
+                customerContext: "customer-123",
+            },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/sheet-1/costs?startDate=2026-04-01&endDate=2026-04-30&interval=month`,
+            mockToken,
+            { method: "GET", customerContext: "customer-123" }
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleGetCloudDiagramCostSnapshotRequest(
+            { layerId: "sheet-1", startDate: "2026-04-01", endDate: "2026-04-30" },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("cloud diagram cost snapshot") }],
+            isError: true,
+        });
+    });
+
+    it("should return error for an invalid date", async () => {
+        const response = await handleGetCloudDiagramCostSnapshotRequest(
+            { layerId: "sheet-1", startDate: "2026-04-01T00:00:00Z", endDate: "nope" },
+            mockToken
+        );
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("YYYY-MM-DD");
+    });
+});
+
+describe("get_cloud_diagram_resource_relationships", () => {
+    const mockToken = "fake-token";
+
+    const mockRelationships = {
+        anchor: { id: "node-1", type: "node", name: "web-server", serviceType: "AWS::EC2::Instance" },
+        direction: "both",
+        depth: "direct",
+        kind: "edges",
+        relations: [
+            {
+                id: "node-2",
+                type: "node",
+                name: "db",
+                serviceType: "AWS::RDS::DBInstance",
+                relation: "downstream",
+                hops: 1,
+            },
+        ],
+        truncated: false,
+    };
+
+    it("should call makeDoitRequest with layer and resource IDs in path", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockRelationships);
+
+        const response = await handleGetCloudDiagramResourceRelationshipsRequest(
+            { layerId: "sheet-1", resourceId: "node-1" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/sheet-1/resources/node-1/relationships`,
+            mockToken,
+            { method: "GET", customerContext: undefined }
+        );
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.anchor.id).toBe("node-1");
+        expect(parsed.relations[0].relation).toBe("downstream");
+        expect(parsed.relations[0].hops).toBe(1);
+    });
+
+    it("should include optional direction, depth and kind query params", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockRelationships);
+
+        await handleGetCloudDiagramResourceRelationshipsRequest(
+            {
+                layerId: "sheet-1",
+                resourceId: "node-1",
+                direction: "downstream",
+                depth: "transitive",
+                kind: "both",
+                customerContext: "customer-123",
+            },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/sheet-1/resources/node-1/relationships?direction=downstream&depth=transitive&kind=both`,
+            mockToken,
+            { method: "GET", customerContext: "customer-123" }
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleGetCloudDiagramResourceRelationshipsRequest(
+            { layerId: "sheet-1", resourceId: "node-1" },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("cloud diagram resource relationships") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when resourceId is missing", async () => {
+        const response = await handleGetCloudDiagramResourceRelationshipsRequest({ layerId: "sheet-1" }, mockToken);
+
+        expect(response.isError).toBe(true);
     });
 });

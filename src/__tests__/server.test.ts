@@ -228,7 +228,13 @@ import { getAssetTool, listAssetsTool } from "../tools/assets.js";
 import { askAvaSyncTool } from "../tools/ava.js";
 import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
-import { findCloudDiagramsTool, getCloudDiagramsStatsTool, searchCloudDiagramsTool } from "../tools/cloudDiagrams.js";
+import {
+    findCloudDiagramsTool,
+    getCloudDiagramCostSnapshotTool,
+    getCloudDiagramResourceRelationshipsTool,
+    getCloudDiagramsStatsTool,
+    searchCloudDiagramsTool,
+} from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
@@ -396,6 +402,8 @@ describe("ListToolsRequestSchema handler", () => {
                 findCloudDiagramsTool,
                 getCloudDiagramsStatsTool,
                 searchCloudDiagramsTool,
+                getCloudDiagramCostSnapshotTool,
+                getCloudDiagramResourceRelationshipsTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,

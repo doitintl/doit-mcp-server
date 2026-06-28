@@ -69,3 +69,58 @@ export type SearchCloudDiagramsResponse = {
     component?: CloudDiagramComponentSearchItem[];
     prop?: CloudDiagramComponentSearchItem[];
 };
+
+// Get diagram cost snapshot — GET /clouddiagrams/v1/statussheet/{id}/costs
+export type CloudDiagramCostResource = {
+    id: string;
+    name: string;
+    type: string;
+    amount: number;
+};
+
+export type CloudDiagramCostByService = {
+    service: string;
+    amount: number;
+};
+
+export type CloudDiagramCostTrendBucket = {
+    bucketStart: string;
+    amount: number;
+};
+
+export type CloudDiagramCostSnapshot = {
+    diagramId: string;
+    currency: string;
+    timeRange: {
+        startDate: string;
+        endDate: string;
+        interval: string;
+    };
+    total: number;
+    trendingPct: number | null;
+    topResources: CloudDiagramCostResource[];
+    byService: CloudDiagramCostByService[];
+    trend: CloudDiagramCostTrendBucket[];
+};
+
+// Get resource relationships — GET /clouddiagrams/v1/statussheet/{id}/resources/{rid}/relationships
+export type CloudDiagramRelationshipNode = {
+    id: string;
+    type: string;
+    name: string;
+    serviceType?: string;
+};
+
+export type CloudDiagramRelation = CloudDiagramRelationshipNode & {
+    relation: "downstream" | "upstream" | "group_member" | "group_parent";
+    hops: number;
+};
+
+export type CloudDiagramResourceRelationshipsResponse = {
+    anchor: CloudDiagramRelationshipNode;
+    direction: "downstream" | "upstream" | "both";
+    depth: "direct" | "transitive";
+    kind: "edges" | "group_members" | "both";
+    relations: CloudDiagramRelation[];
+    truncated: boolean;
+};
