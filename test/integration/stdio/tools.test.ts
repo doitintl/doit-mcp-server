@@ -100,6 +100,8 @@ describe("MCP Tools Integration", () => {
                     "list_tickets",
                     "list_users",
                     "run_query",
+                    "list_cloud_diagram_activity_groups",
+                    "list_cloud_diagram_node_activities",
                     "search_cloud_diagrams",
                     "send_datahub_events",
                     "trigger_cloud_flow",
@@ -1356,6 +1358,52 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "search_cloud_diagrams",
                 arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("list_cloud_diagram_activity_groups", () => {
+        it("returns activity groups for a layer", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_activity_groups",
+                arguments: { ss_id: "sheet-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(1);
+            expect(parsed[0]._id).toBe("group-1");
+            expect(parsed[0].snapshot).toBe("snap-1");
+            expect(parsed[0].items[0].activity).toBe("NODE_CREATE");
+        });
+
+        it("returns a validation error when ss_id is missing", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_activity_groups",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("list_cloud_diagram_node_activities", () => {
+        it("returns node activities for a node", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_node_activities",
+                arguments: { ss_id: "sheet-1", nodeId: "node-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("act-1");
+            expect(parsed[0].activity).toBe("NODE_UPDATE");
+            expect(parsed[0].user).toBe("alice@example.com");
+        });
+
+        it("returns a validation error when nodeId is missing", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_node_activities",
+                arguments: { ss_id: "sheet-1" },
             });
             expect(result.isError).toBe(true);
         });

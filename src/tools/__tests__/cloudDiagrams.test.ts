@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
+    CLOUD_DIAGRAMS_ACTIVITY_URL,
     CLOUD_DIAGRAMS_BASE_URL,
+    CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL,
     CLOUD_DIAGRAMS_SEARCH_URL,
     CLOUD_DIAGRAMS_STATS_URL,
     CLOUD_DIAGRAMS_STATUSSHEET_URL,
@@ -9,6 +11,8 @@ import {
     handleGetCloudDiagramCostSnapshotRequest,
     handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
+    handleListCloudDiagramActivityGroupsRequest,
+    handleListCloudDiagramNodeActivitiesRequest,
     handleSearchCloudDiagramsRequest,
 } from "../cloudDiagrams.js";
 
@@ -240,6 +244,159 @@ describe("search_cloud_diagrams", () => {
 
         expect(response.isError).toBe(true);
         expect(response.content[0].text).toContain("search query string is required");
+    });
+});
+
+describe("list_cloud_diagram_activity_groups", () => {
+    const mockToken = "fake-token";
+
+    const mockGroups = [
+        {
+            _id: "group-1",
+            statussheet: "sheet-1",
+            timestamp: "2026-04-28T00:00:00Z",
+            tags: ["sync"],
+            snapshot: "snap-1",
+            items: [
+                {
+                    _id: "item-1",
+                    group: "group-1",
+                    activity: "NODE_CREATE",
+                    metadata: { nodeId: "node-1" },
+                    timestamp: "2026-04-28T00:00:00Z",
+                    service_type: "AWS::EC2::Instance",
+                },
+            ],
+        },
+    ];
+
+    it("should call makeDoitRequest with ss_id query param and return groups", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockGroups);
+
+        const response = await handleListCloudDiagramActivityGroupsRequest({ ss_id: "sheet-1" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUD_DIAGRAMS_ACTIVITY_URL}?ss_id=sheet-1`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed).toHaveLength(1);
+        expect(parsed[0]._id).toBe("group-1");
+        expect(parsed[0].items[0].activity).toBe("NODE_CREATE");
+    });
+
+    it("should append limit, offset and repeated tags query params", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockGroups);
+
+        await handleListCloudDiagramActivityGroupsRequest(
+            { ss_id: "sheet-1", limit: 5, offset: 10, tags: ["sync", "import"], customerContext: "customer-123" },
+            mockToken
+        );
+
+        const calledUrl = (makeDoitRequest as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+        expect(calledUrl).toContain("ss_id=sheet-1");
+        expect(calledUrl).toContain("limit=5");
+        expect(calledUrl).toContain("offset=10");
+        expect(calledUrl).toContain("tags=sync");
+        expect(calledUrl).toContain("tags=import");
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleListCloudDiagramActivityGroupsRequest({ ss_id: "sheet-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("activity groups") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when ss_id is missing", async () => {
+        const response = await handleListCloudDiagramActivityGroupsRequest({}, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("ss_id");
+    });
+});
+
+describe("list_cloud_diagram_node_activities", () => {
+    const mockToken = "fake-token";
+
+    const mockActivities = [
+        {
+            _id: "act-1",
+            activity: "NODE_UPDATE",
+            metadata: { field: "name" },
+            timestamp: "2026-04-28T00:00:00Z",
+            user: "user-1",
+            statussheet: "sheet-1",
+        },
+    ];
+
+    it("should call makeDoitRequest with ss_id and nodeId query params and return activities", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockActivities);
+
+        const response = await handleListCloudDiagramNodeActivitiesRequest(
+            { ss_id: "sheet-1", nodeId: "node-1" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL}?ss_id=sheet-1&nodeId=node-1`,
+            mockToken,
+            { method: "GET", customerContext: undefined }
+        );
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed).toHaveLength(1);
+        expect(parsed[0]._id).toBe("act-1");
+        expect(parsed[0].user).toBe("user-1");
+    });
+
+    it("should append limit and offset query params and pass customerContext", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockActivities);
+
+        await handleListCloudDiagramNodeActivitiesRequest(
+            { ss_id: "sheet-1", nodeId: "node-1", limit: 25, offset: 5, customerContext: "customer-123" },
+            mockToken
+        );
+
+        const calledUrl = (makeDoitRequest as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+        expect(calledUrl).toContain("ss_id=sheet-1");
+        expect(calledUrl).toContain("nodeId=node-1");
+        expect(calledUrl).toContain("limit=25");
+        expect(calledUrl).toContain("offset=5");
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleListCloudDiagramNodeActivitiesRequest(
+            { ss_id: "sheet-1", nodeId: "node-1" },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("node activities") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when nodeId is missing", async () => {
+        const response = await handleListCloudDiagramNodeActivitiesRequest({ ss_id: "sheet-1" }, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("nodeId");
     });
 });
 

@@ -291,6 +291,13 @@ export const mockedDoitApiHandlers = [
     http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/costs`, () => {
         return HttpResponse.json(fixtures.cloudDiagramCostSnapshot);
     }),
+    // Node activities must be registered before the catch-all /activity route
+    http.get(`${API_BASE}/clouddiagrams/v1/activity/node-activities`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramNodeActivities);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/activity`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramActivityGroups);
+    }),
 
     // CloudFlow trigger
     http.post(`${API_BASE}/cloudflow/v1/trigger/:flowId`, () => {

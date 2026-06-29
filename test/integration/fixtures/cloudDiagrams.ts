@@ -32,6 +32,52 @@ export const cloudDiagramsStatsFixture = [
     },
 ];
 
+export const cloudDiagramActivityGroupsFixture = [
+    {
+        _id: "group-1",
+        statussheet: "sheet-1",
+        timestamp: "2026-04-28T12:00:00Z",
+        tags: ["sync"],
+        snapshot: "snap-1",
+        items: [
+            {
+                _id: "item-1",
+                group: "group-1",
+                activity: "NODE_CREATE",
+                metadata: { nodeId: "node-1" },
+                timestamp: "2026-04-28T12:00:00Z",
+                service_type: "AWS::EC2::Instance",
+            },
+            {
+                _id: "item-2",
+                group: "group-1",
+                activity: "LINK_CREATE",
+                metadata: { linkId: "link-1" },
+                timestamp: "2026-04-28T12:00:01Z",
+            },
+        ],
+    },
+];
+
+export const cloudDiagramNodeActivitiesFixture = [
+    {
+        _id: "act-1",
+        activity: "NODE_UPDATE",
+        metadata: { field: "name", from: "old", to: "web-server" },
+        timestamp: "2026-04-28T12:05:00Z",
+        user: "alice@example.com",
+        statussheet: "sheet-1",
+    },
+    {
+        _id: "act-2",
+        activity: "NODE_CREATE",
+        metadata: { nodeId: "node-1" },
+        timestamp: "2026-04-28T12:00:00Z",
+        user: "alice@example.com",
+        statussheet: "sheet-1",
+    },
+];
+
 export const cloudDiagramsSearchFixture = {
     scheme: [
         {

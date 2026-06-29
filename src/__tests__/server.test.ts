@@ -233,6 +233,8 @@ import {
     getCloudDiagramCostSnapshotTool,
     getCloudDiagramResourceRelationshipsTool,
     getCloudDiagramsStatsTool,
+    listCloudDiagramActivityGroupsTool,
+    listCloudDiagramNodeActivitiesTool,
     searchCloudDiagramsTool,
 } from "../tools/cloudDiagrams.js";
 import { triggerCloudFlowTool } from "../tools/cloudflow.js";
@@ -404,6 +406,8 @@ describe("ListToolsRequestSchema handler", () => {
                 searchCloudDiagramsTool,
                 getCloudDiagramCostSnapshotTool,
                 getCloudDiagramResourceRelationshipsTool,
+                listCloudDiagramActivityGroupsTool,
+                listCloudDiagramNodeActivitiesTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
