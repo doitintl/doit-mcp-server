@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type {
+    CloudDiagramCostSnapshot,
+    CloudDiagramResourceRelationshipsResponse,
     FindCloudDiagramsResponse,
     GetCloudDiagramsStatsResponse,
     ListCloudDiagramActivityGroupsResponse,
@@ -19,6 +21,7 @@ import {
 export const CLOUD_DIAGRAMS_BASE_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/find`;
 export const CLOUD_DIAGRAMS_STATS_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/stats`;
 export const CLOUD_DIAGRAMS_SEARCH_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/search`;
+export const CLOUD_DIAGRAMS_STATUSSHEET_URL = `${DOIT_API_BASE}/clouddiagrams/v1/statussheet`;
 export const CLOUD_DIAGRAMS_ACTIVITY_URL = `${DOIT_API_BASE}/clouddiagrams/v1/activity`;
 export const CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL = `${DOIT_API_BASE}/clouddiagrams/v1/activity/node-activities`;
 
@@ -173,6 +176,147 @@ export async function handleSearchCloudDiagramsRequest(args: any, token: string)
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling search cloud diagrams request");
+    }
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export const GetCloudDiagramCostSnapshotArgumentsSchema = z.object({
+    layerId: z
+        .string()
+        .min(1, "A diagram layer ID is required.")
+        .describe("The diagram layer (statussheet) ID to get a cost snapshot for."),
+    startDate: z
+        .string()
+        .regex(ISO_DATE, "startDate must be a calendar date in YYYY-MM-DD format, e.g. 2026-04-01")
+        .describe("Start of the period (calendar date, YYYY-MM-DD, e.g. 2026-04-01)."),
+    endDate: z
+        .string()
+        .regex(ISO_DATE, "endDate must be a calendar date in YYYY-MM-DD format, e.g. 2026-04-30")
+        .describe("End of the period (calendar date, YYYY-MM-DD, e.g. 2026-04-30)."),
+    interval: z
+        .enum(["day", "week", "month"])
+        .optional()
+        .describe("Bucket granularity for the cost trend. Possible values: day, week, month (defaults to day)."),
+});
+
+export const getCloudDiagramCostSnapshotTool = {
+    name: "get_cloud_diagram_cost_snapshot",
+    description:
+        "Use this when the user wants a cost snapshot for a specific cloud infrastructure diagram layer over a time period — total spend, period-over-period trend percentage, the top resources and services by cost, and a cost trend over time. Requires the diagram layer ID and a startDate/endDate (YYYY-MM-DD). Do NOT use this for account-wide cost analysis (use run_query) or budgets (use list_budgets).",
+    inputSchema: zodToMcpInputSchema(GetCloudDiagramCostSnapshotArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Fetching diagram cost snapshot...",
+        "openai/toolInvocation/invoked": "Diagram cost snapshot retrieved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleGetCloudDiagramCostSnapshotRequest(args: any, token: string) {
+    try {
+        const { layerId, startDate, endDate, interval } = GetCloudDiagramCostSnapshotArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        params.append("startDate", startDate);
+        params.append("endDate", endDate);
+        if (interval !== undefined) params.append("interval", interval);
+
+        const url = `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/${encodeURIComponent(layerId)}/costs?${params.toString()}`;
+
+        const data = await makeDoitRequest<CloudDiagramCostSnapshot>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve cloud diagram cost snapshot");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get cloud diagram cost snapshot request");
+    }
+}
+
+export const GetCloudDiagramResourceRelationshipsArgumentsSchema = z.object({
+    layerId: z
+        .string()
+        .min(1, "A diagram layer ID is required.")
+        .describe("The diagram layer (statussheet) ID that contains the resource."),
+    resourceId: z
+        .string()
+        .min(1, "A resource ID is required.")
+        .describe("The ID of the resource (node, element, or group) to map relationships for."),
+    direction: z
+        .enum(["downstream", "upstream", "both"])
+        .optional()
+        .describe(
+            "Relationship direction to traverse. Possible values: downstream, upstream, both (defaults to both)."
+        ),
+    depth: z
+        .enum(["direct", "transitive"])
+        .optional()
+        .describe("How far to traverse. Possible values: direct, transitive (defaults to direct)."),
+    kind: z
+        .enum(["edges", "group_members", "both"])
+        .optional()
+        .describe(
+            "Which relationship kinds to include. Possible values: edges, group_members, both (defaults to edges)."
+        ),
+});
+
+export const getCloudDiagramResourceRelationshipsTool = {
+    name: "get_cloud_diagram_resource_relationships",
+    description:
+        "Use this when the user wants to understand how a specific resource in a cloud infrastructure diagram is connected to other resources — its upstream/downstream edges and group membership. Returns the anchor resource plus related resources with their relation type and hop distance. Requires the diagram layer ID and the resource ID. Do NOT use this for cost analysis (use get_cloud_diagram_cost_snapshot or run_query).",
+    inputSchema: zodToMcpInputSchema(GetCloudDiagramResourceRelationshipsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Mapping resource relationships...",
+        "openai/toolInvocation/invoked": "Resource relationships retrieved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleGetCloudDiagramResourceRelationshipsRequest(args: any, token: string) {
+    try {
+        const { layerId, resourceId, direction, depth, kind } =
+            GetCloudDiagramResourceRelationshipsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        if (direction !== undefined) params.append("direction", direction);
+        if (depth !== undefined) params.append("depth", depth);
+        if (kind !== undefined) params.append("kind", kind);
+
+        let url = `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/${encodeURIComponent(layerId)}/resources/${encodeURIComponent(resourceId)}/relationships`;
+        const queryString = params.toString();
+        if (queryString) url += `?${queryString}`;
+
+        const data = await makeDoitRequest<CloudDiagramResourceRelationshipsResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve cloud diagram resource relationships");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get cloud diagram resource relationships request");
     }
 }
 

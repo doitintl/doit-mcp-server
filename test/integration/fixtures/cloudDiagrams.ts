@@ -105,3 +105,49 @@ export const cloudDiagramsSearchFixture = {
     ],
     prop: [],
 };
+
+export const cloudDiagramCostSnapshotFixture = {
+    diagramId: "sheet-1",
+    currency: "USD",
+    timeRange: { startDate: "2026-04-01", endDate: "2026-04-30", interval: "day" },
+    total: 1234.56,
+    trendingPct: 12.5,
+    topResources: [
+        { id: "node-1", name: "web-server", type: "AWS::EC2::Instance", amount: 500.25 },
+        { id: "node-2", name: "db", type: "AWS::RDS::DBInstance", amount: 320.1 },
+    ],
+    byService: [
+        { service: "EC2", amount: 800.35 },
+        { service: "RDS", amount: 320.1 },
+    ],
+    trend: [
+        { bucketStart: "2026-04-01", amount: 40.12 },
+        { bucketStart: "2026-04-02", amount: 41.0 },
+    ],
+};
+
+export const cloudDiagramResourceRelationshipsFixture = {
+    anchor: { id: "node-1", type: "node", name: "web-server", serviceType: "AWS::EC2::Instance" },
+    direction: "both",
+    depth: "direct",
+    kind: "edges",
+    relations: [
+        {
+            id: "node-2",
+            type: "node",
+            name: "db",
+            serviceType: "AWS::RDS::DBInstance",
+            relation: "downstream",
+            hops: 1,
+        },
+        {
+            id: "node-3",
+            type: "node",
+            name: "load-balancer",
+            serviceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            relation: "upstream",
+            hops: 1,
+        },
+    ],
+    truncated: false,
+};

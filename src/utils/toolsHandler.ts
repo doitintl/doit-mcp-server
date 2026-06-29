@@ -30,6 +30,8 @@ import {
 } from "../tools/budgets.js";
 import {
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramCostSnapshotRequest,
+    handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
     handleListCloudDiagramActivityGroupsRequest,
     handleListCloudDiagramNodeActivitiesRequest,
@@ -429,6 +431,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "search_cloud_diagrams":
             result = await handleSearchCloudDiagramsRequest(args, token);
+            break;
+        case "get_cloud_diagram_cost_snapshot":
+            result = await handleGetCloudDiagramCostSnapshotRequest(args, token);
+            break;
+        case "get_cloud_diagram_resource_relationships":
+            result = await handleGetCloudDiagramResourceRelationshipsRequest(args, token);
             break;
         case "list_cloud_diagram_activity_groups":
             result = await handleListCloudDiagramActivityGroupsRequest(args, token);

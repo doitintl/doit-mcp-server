@@ -56,6 +56,8 @@ describe("MCP Tools Integration", () => {
                     "get_aws_account",
                     "get_budget",
                     "get_cloud_connect_supported_features",
+                    "get_cloud_diagram_cost_snapshot",
+                    "get_cloud_diagram_resource_relationships",
                     "get_cloud_incident",
                     "get_cloud_incidents",
                     "get_cloud_overview",
@@ -1402,6 +1404,58 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "list_cloud_diagram_node_activities",
                 arguments: { ss_id: "sheet-1" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_cloud_diagram_cost_snapshot", () => {
+        it("returns a bounded cost snapshot for a diagram layer", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_cost_snapshot",
+                arguments: { layerId: "sheet-1", startDate: "2026-04-01", endDate: "2026-04-30" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.diagramId).toBe("sheet-1");
+            expect(parsed.currency).toBe("USD");
+            expect(parsed.total).toBe(1234.56);
+            expect(parsed.topResources).toHaveLength(2);
+            expect(parsed.topResources[0].name).toBe("web-server");
+            expect(parsed.byService[0].service).toBe("EC2");
+            expect(parsed.trend).toHaveLength(2);
+        });
+
+        it("returns a validation error for an invalid date", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_cost_snapshot",
+                arguments: { layerId: "sheet-1", startDate: "2026-04-01", endDate: "not-a-date" },
+            });
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("YYYY-MM-DD");
+        });
+    });
+
+    describe("get_cloud_diagram_resource_relationships", () => {
+        it("returns the anchor resource and its relations", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_resource_relationships",
+                arguments: { layerId: "sheet-1", resourceId: "node-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.anchor.id).toBe("node-1");
+            expect(parsed.anchor.serviceType).toBe("AWS::EC2::Instance");
+            expect(parsed.relations).toHaveLength(2);
+            expect(parsed.relations[0].relation).toBe("downstream");
+            expect(parsed.relations[0].hops).toBe(1);
+            expect(parsed.truncated).toBe(false);
+        });
+
+        it("returns a validation error when resourceId is missing", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_resource_relationships",
+                arguments: { layerId: "sheet-1" },
             });
             expect(result.isError).toBe(true);
         });

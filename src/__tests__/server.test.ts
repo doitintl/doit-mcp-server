@@ -230,6 +230,8 @@ import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tool
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import {
     findCloudDiagramsTool,
+    getCloudDiagramCostSnapshotTool,
+    getCloudDiagramResourceRelationshipsTool,
     getCloudDiagramsStatsTool,
     listCloudDiagramActivityGroupsTool,
     listCloudDiagramNodeActivitiesTool,
@@ -402,6 +404,8 @@ describe("ListToolsRequestSchema handler", () => {
                 findCloudDiagramsTool,
                 getCloudDiagramsStatsTool,
                 searchCloudDiagramsTool,
+                getCloudDiagramCostSnapshotTool,
+                getCloudDiagramResourceRelationshipsTool,
                 listCloudDiagramActivityGroupsTool,
                 listCloudDiagramNodeActivitiesTool,
                 listBudgetsTool,
