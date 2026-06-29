@@ -105,3 +105,41 @@ export const cloudDiagramsSearchFixture = {
     ],
     prop: [],
 };
+
+export const cloudDiagramExportFixture = {
+    statussheet: {
+        _id: "layer-1",
+        name: "Production",
+    },
+    metadata: {
+        user: "alice@example.com",
+        date: "2026-06-29T00:00:00Z",
+        version: "3",
+    },
+    nodes: [{ _id: "node-1", name: "EC2", cld_type: "AWS" }],
+    elements: [],
+    groups: [{ _id: "group-1", name: "VPC" }],
+    attachments: [],
+    links: [],
+    combiners: [],
+    notes: [],
+};
+
+export const cloudDiagramLayerComponentsFixture = {
+    node: {
+        "node-1": {
+            _id: "node-1",
+            name: "EC2",
+            cld_type: "AWS",
+            cld_account: "123456789012",
+            running: true,
+        },
+    },
+    element: {
+        "element-1": {
+            _id: "element-1",
+            name: "Internet Gateway",
+            cld_type: "AWS",
+        },
+    },
+};

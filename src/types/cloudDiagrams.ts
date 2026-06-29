@@ -118,3 +118,40 @@ export type CloudDiagramNodeActivity = {
 };
 
 export type ListCloudDiagramNodeActivitiesResponse = CloudDiagramNodeActivity[];
+
+/**
+ * Response of GET /clouddiagrams/v1/statussheet/{id}/export-json
+ * (Export diagram as JSON). The statussheet object is free-form; the
+ * component arrays mirror the diagram's nodes, elements, groups, etc.
+ */
+export type ExportCloudDiagramJsonResponse = {
+    statussheet?: Record<string, unknown>;
+    metadata?: {
+        user: string;
+        date: string;
+        version: string;
+        connections?: Record<string, string>;
+    };
+    nodes?: Record<string, unknown>[];
+    elements?: Record<string, unknown>[];
+    groups?: Record<string, unknown>[];
+    attachments?: Record<string, unknown>[];
+    links?: Record<string, unknown>[];
+    combiners?: Record<string, unknown>[];
+    notes?: Record<string, unknown>[];
+};
+
+/**
+ * Response of POST /clouddiagrams/v1/statussheet/{id}/get
+ * (Get layer components). Each component type maps component IDs to their
+ * component document.
+ */
+export type GetCloudDiagramLayerComponentsResponse = {
+    node?: Record<string, Record<string, unknown>>;
+    element?: Record<string, Record<string, unknown>>;
+    group?: Record<string, Record<string, unknown>>;
+    link?: Record<string, Record<string, unknown>>;
+    attachment?: Record<string, Record<string, unknown>>;
+    combiner?: Record<string, Record<string, unknown>>;
+    note?: Record<string, Record<string, unknown>>;
+};

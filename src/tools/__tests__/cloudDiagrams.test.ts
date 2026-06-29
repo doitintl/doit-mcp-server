@@ -6,7 +6,10 @@ import {
     CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL,
     CLOUD_DIAGRAMS_SEARCH_URL,
     CLOUD_DIAGRAMS_STATS_URL,
+    CLOUD_DIAGRAMS_STATUSSHEET_URL,
+    handleExportCloudDiagramJsonRequest,
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramLayerComponentsRequest,
     handleGetCloudDiagramsStatsRequest,
     handleListCloudDiagramActivityGroupsRequest,
     handleListCloudDiagramNodeActivitiesRequest,
@@ -394,5 +397,131 @@ describe("list_cloud_diagram_node_activities", () => {
 
         expect(response.isError).toBe(true);
         expect(response.content[0].text).toContain("nodeId");
+    });
+});
+
+describe("export_cloud_diagram_json", () => {
+    const mockToken = "fake-token";
+
+    const mockExport = {
+        statussheet: { _id: "layer-1" },
+        metadata: { user: "alice@example.com", date: "2026-06-29T00:00:00Z", version: "1" },
+        nodes: [{ _id: "node-1", name: "EC2" }],
+    };
+
+    it("should call makeDoitRequest with the export-json URL and return the export", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockExport);
+
+        const response = await handleExportCloudDiagramJsonRequest({ id: "layer-1" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/layer-1/export-json`,
+            mockToken,
+            {
+                method: "GET",
+                customerContext: undefined,
+            }
+        );
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.statussheet._id).toBe("layer-1");
+        expect(parsed.nodes[0]._id).toBe("node-1");
+    });
+
+    it("should url-encode the layer id and pass customerContext", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockExport);
+
+        await handleExportCloudDiagramJsonRequest({ id: "layer/1", customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/layer%2F1/export-json`,
+            mockToken,
+            { method: "GET", customerContext: "customer-123" }
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleExportCloudDiagramJsonRequest({ id: "layer-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("export cloud diagram") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when id is missing", async () => {
+        const response = await handleExportCloudDiagramJsonRequest({ id: "" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("A layer ID is required") }],
+            isError: true,
+        });
+    });
+});
+
+describe("get_cloud_diagram_layer_components", () => {
+    const mockToken = "fake-token";
+
+    const mockComponents = {
+        node: { "node-1": { _id: "node-1", name: "EC2", cld_type: "AWS" } },
+    };
+
+    it("should POST only the provided component lists and return components", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockComponents);
+
+        const response = await handleGetCloudDiagramLayerComponentsRequest(
+            { id: "layer-1", node: ["node-1"] },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUD_DIAGRAMS_STATUSSHEET_URL}/layer-1/get`, mockToken, {
+            method: "POST",
+            body: { node: ["node-1"] },
+            customerContext: undefined,
+        });
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.node["node-1"].name).toBe("EC2");
+    });
+
+    it("should append the projection query and pass customerContext", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockComponents);
+
+        await handleGetCloudDiagramLayerComponentsRequest(
+            { id: "layer-1", node: ["node-1"], element: ["el-1"], p: "name color", customerContext: "customer-123" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/layer-1/get?p=name%20color`,
+            mockToken,
+            { method: "POST", body: { node: ["node-1"], element: ["el-1"] }, customerContext: "customer-123" }
+        );
+    });
+
+    it("should return error when no component lists are provided", async () => {
+        const response = await handleGetCloudDiagramLayerComponentsRequest({ id: "layer-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("At least one list of component IDs") }],
+            isError: true,
+        });
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleGetCloudDiagramLayerComponentsRequest(
+            { id: "layer-1", node: ["node-1"] },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("cloud diagram layer components") }],
+            isError: true,
+        });
     });
 });

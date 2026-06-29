@@ -127,6 +127,8 @@ vi.mock(import("../tools/datahubEvents.js"), async (importOriginal) => ({
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleFindCloudDiagramsRequest: vi.fn(),
+    handleExportCloudDiagramJsonRequest: vi.fn(),
+    handleGetCloudDiagramLayerComponentsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/budgets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -229,7 +231,9 @@ import { askAvaSyncTool } from "../tools/ava.js";
 import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import {
+    exportCloudDiagramJsonTool,
     findCloudDiagramsTool,
+    getCloudDiagramLayerComponentsTool,
     getCloudDiagramsStatsTool,
     listCloudDiagramActivityGroupsTool,
     listCloudDiagramNodeActivitiesTool,
@@ -404,6 +408,8 @@ describe("ListToolsRequestSchema handler", () => {
                 searchCloudDiagramsTool,
                 listCloudDiagramActivityGroupsTool,
                 listCloudDiagramNodeActivitiesTool,
+                exportCloudDiagramJsonTool,
+                getCloudDiagramLayerComponentsTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,

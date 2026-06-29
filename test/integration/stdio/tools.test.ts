@@ -45,6 +45,7 @@ describe("MCP Tools Integration", () => {
                     "create_report",
                     "create_ticket",
                     "create_ticket_comment",
+                    "export_cloud_diagram_json",
                     "find_cloud_diagrams",
                     "get_alert",
                     "get_cloud_diagrams_stats",
@@ -56,6 +57,7 @@ describe("MCP Tools Integration", () => {
                     "get_aws_account",
                     "get_budget",
                     "get_cloud_connect_supported_features",
+                    "get_cloud_diagram_layer_components",
                     "get_cloud_incident",
                     "get_cloud_incidents",
                     "get_cloud_overview",
@@ -1309,6 +1311,48 @@ describe("MCP Tools Integration", () => {
             expect(parsed[0].imageUrl).toContain("scheme-1");
             expect(parsed[1].diagramUrl).toContain("scheme-2");
             expect(parsed[1].imageUrl).toContain("scheme-2");
+        });
+    });
+
+    describe("export_cloud_diagram_json", () => {
+        it("exports a diagram layer as JSON", async () => {
+            const result = await client.callTool({
+                name: "export_cloud_diagram_json",
+                arguments: { id: "layer-1" },
+            });
+            const parsed = JSON.parse(getTextContent(result));
+            expect(parsed.statussheet._id).toBe("layer-1");
+            expect(parsed.metadata.version).toBe("3");
+            expect(parsed.nodes[0]._id).toBe("node-1");
+        });
+
+        it("returns a validation error when id is missing", async () => {
+            const result = await client.callTool({
+                name: "export_cloud_diagram_json",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_cloud_diagram_layer_components", () => {
+        it("returns requested components for a layer", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_layer_components",
+                arguments: { id: "layer-1", node: ["node-1"] },
+            });
+            const parsed = JSON.parse(getTextContent(result));
+            expect(parsed.node["node-1"].name).toBe("EC2");
+            expect(parsed.element["element-1"].name).toBe("Internet Gateway");
+        });
+
+        it("returns an error when no component lists are provided", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_layer_components",
+                arguments: { id: "layer-1" },
+            });
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("At least one list of component IDs");
         });
     });
 
