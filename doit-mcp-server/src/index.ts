@@ -190,6 +190,8 @@ import {
   listProductsTool,
 } from "../../src/tools/products.js";
 import {
+  ExportCloudDiagramJsonArgumentsSchema,
+  exportCloudDiagramJsonTool,
   FindCloudDiagramsArgumentsSchema,
   findCloudDiagramsTool,
   GetCloudDiagramsStatsArgumentsSchema,
@@ -200,6 +202,8 @@ import {
   listCloudDiagramNodeActivitiesTool,
   SearchCloudDiagramsArgumentsSchema,
   searchCloudDiagramsTool,
+  GetCloudDiagramLayerComponentsArgumentsSchema,
+  getCloudDiagramLayerComponentsTool,
 } from "../../src/tools/cloudDiagrams.js";
 import {
   CreateBudgetArgumentsSchema,
@@ -990,6 +994,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(searchCloudDiagramsTool, SearchCloudDiagramsArgumentsSchema);
     this.registerTool(listCloudDiagramActivityGroupsTool, ListCloudDiagramActivityGroupsArgumentsSchema);
     this.registerTool(listCloudDiagramNodeActivitiesTool, ListCloudDiagramNodeActivitiesArgumentsSchema);
+    this.registerTool(exportCloudDiagramJsonTool, ExportCloudDiagramJsonArgumentsSchema);
+    this.registerTool(getCloudDiagramLayerComponentsTool, GetCloudDiagramLayerComponentsArgumentsSchema);
 
     // Budgets tools
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);

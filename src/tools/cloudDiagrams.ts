@@ -1,6 +1,8 @@
 import { z } from "zod";
 import type {
+    ExportCloudDiagramJsonResponse,
     FindCloudDiagramsResponse,
+    GetCloudDiagramLayerComponentsResponse,
     GetCloudDiagramsStatsResponse,
     ListCloudDiagramActivityGroupsResponse,
     ListCloudDiagramNodeActivitiesResponse,
@@ -21,6 +23,7 @@ export const CLOUD_DIAGRAMS_STATS_URL = `${DOIT_API_BASE}/clouddiagrams/v1/schem
 export const CLOUD_DIAGRAMS_SEARCH_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/search`;
 export const CLOUD_DIAGRAMS_ACTIVITY_URL = `${DOIT_API_BASE}/clouddiagrams/v1/activity`;
 export const CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL = `${DOIT_API_BASE}/clouddiagrams/v1/activity/node-activities`;
+export const CLOUD_DIAGRAMS_STATUSSHEET_URL = `${DOIT_API_BASE}/clouddiagrams/v1/statussheet`;
 
 export const FindCloudDiagramsArgumentsSchema = z.object({
     resources: z
@@ -281,5 +284,120 @@ export async function handleListCloudDiagramNodeActivitiesRequest(args: any, tok
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling list cloud diagram node activities request");
+    }
+}
+
+export const ExportCloudDiagramJsonArgumentsSchema = z.object({
+    id: z.string().min(1, "A layer ID is required.").describe("Layer (statussheet) ID to export."),
+});
+
+export const exportCloudDiagramJsonTool = {
+    name: "export_cloud_diagram_json",
+    description:
+        "Use this when the user wants the full JSON export of a single cloud diagram layer (statussheet) — its raw nodes, elements, groups, links, attachments, combiners and notes plus export metadata (author, date, version). Requires the layer ID. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
+    inputSchema: zodToMcpInputSchema(ExportCloudDiagramJsonArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Exporting diagram...",
+        "openai/toolInvocation/invoked": "Diagram exported",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleExportCloudDiagramJsonRequest(args: any, token: string) {
+    try {
+        const { id } = ExportCloudDiagramJsonArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const url = `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/${encodeURIComponent(id)}/export-json`;
+
+        const data = await makeDoitRequest<ExportCloudDiagramJsonResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to export cloud diagram");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling export cloud diagram json request");
+    }
+}
+
+const componentIdList = z.array(z.string().min(1)).min(1);
+
+export const GetCloudDiagramLayerComponentsArgumentsSchema = z.object({
+    id: z.string().min(1, "A layer ID is required.").describe("Layer (statussheet) ID the components belong to."),
+    node: componentIdList.optional().describe("Node component IDs to retrieve."),
+    element: componentIdList.optional().describe("Element component IDs to retrieve."),
+    link: componentIdList.optional().describe("Link component IDs to retrieve."),
+    group: componentIdList.optional().describe("Group component IDs to retrieve."),
+    attachment: componentIdList.optional().describe("Attachment component IDs to retrieve."),
+    note: componentIdList.optional().describe("Note component IDs to retrieve."),
+    combiner: componentIdList.optional().describe("Combiner component IDs to retrieve."),
+    p: z.string().optional().describe("Space-separated projection fields for the returned component documents."),
+});
+
+const LAYER_COMPONENT_TYPES = ["node", "element", "link", "group", "attachment", "note", "combiner"] as const;
+
+export const getCloudDiagramLayerComponentsTool = {
+    name: "get_cloud_diagram_layer_components",
+    description:
+        'Use this when the user wants the full documents for specific components (nodes, elements, links, groups, attachments, notes or combiners) inside a single cloud diagram layer. Requires the layer ID and at least one list of component IDs (e.g. node: ["node-1"]). Returns each requested component keyed by its ID. Use search_cloud_diagrams first to discover component IDs.',
+    inputSchema: zodToMcpInputSchema(GetCloudDiagramLayerComponentsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Fetching layer components...",
+        "openai/toolInvocation/invoked": "Layer components retrieved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleGetCloudDiagramLayerComponentsRequest(args: any, token: string) {
+    try {
+        const parsed = GetCloudDiagramLayerComponentsArgumentsSchema.parse(args);
+        const { id, p } = parsed;
+        const { customerContext } = args;
+
+        const body: Record<string, string[]> = {};
+        for (const type of LAYER_COMPONENT_TYPES) {
+            const ids = parsed[type];
+            if (ids !== undefined) body[type] = ids;
+        }
+
+        if (Object.keys(body).length === 0) {
+            return createErrorResponse(
+                "At least one list of component IDs is required (node, element, link, group, attachment, note or combiner)."
+            );
+        }
+
+        const query = p ? `?p=${encodeURIComponent(p)}` : "";
+        const url = `${CLOUD_DIAGRAMS_STATUSSHEET_URL}/${encodeURIComponent(id)}/get${query}`;
+
+        const data = await makeDoitRequest<GetCloudDiagramLayerComponentsResponse>(url, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve cloud diagram layer components");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get cloud diagram layer components request");
     }
 }

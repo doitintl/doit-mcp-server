@@ -29,7 +29,9 @@ import {
     handleUpdateBudgetRequest,
 } from "../tools/budgets.js";
 import {
+    handleExportCloudDiagramJsonRequest,
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramLayerComponentsRequest,
     handleGetCloudDiagramsStatsRequest,
     handleListCloudDiagramActivityGroupsRequest,
     handleListCloudDiagramNodeActivitiesRequest,
@@ -435,6 +437,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "list_cloud_diagram_node_activities":
             result = await handleListCloudDiagramNodeActivitiesRequest(args, token);
+            break;
+        case "export_cloud_diagram_json":
+            result = await handleExportCloudDiagramJsonRequest(args, token);
+            break;
+        case "get_cloud_diagram_layer_components":
+            result = await handleGetCloudDiagramLayerComponentsRequest(args, token);
             break;
         case "list_budgets":
             result = await handleListBudgetsRequest(args, token);

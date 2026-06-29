@@ -38,6 +38,8 @@ import { avaAskSyncFixture, avaAskSyncWithConversationFixture } from "./ava.js";
 import { assetDetailedFixture, assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
 import {
     cloudDiagramActivityGroupsFixture,
+    cloudDiagramExportFixture,
+    cloudDiagramLayerComponentsFixture,
     cloudDiagramNodeActivitiesFixture,
     cloudDiagramsFixture,
     cloudDiagramsSearchFixture,
@@ -123,6 +125,8 @@ export const fixtures = {
     cloudDiagramsSearch: cloudDiagramsSearchFixture,
     cloudDiagramActivityGroups: cloudDiagramActivityGroupsFixture,
     cloudDiagramNodeActivities: cloudDiagramNodeActivitiesFixture,
+    cloudDiagramExport: cloudDiagramExportFixture,
+    cloudDiagramLayerComponents: cloudDiagramLayerComponentsFixture,
 
     datahubDatasets: datahubDatasetsFixture,
     datahubDataset: datahubDatasetFixture,

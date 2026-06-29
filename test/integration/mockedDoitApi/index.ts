@@ -292,6 +292,12 @@ export const mockedDoitApiHandlers = [
     http.get(`${API_BASE}/clouddiagrams/v1/activity`, () => {
         return HttpResponse.json(fixtures.cloudDiagramActivityGroups);
     }),
+    http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/export-json`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramExport);
+    }),
+    http.post(`${API_BASE}/clouddiagrams/v1/statussheet/:id/get`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramLayerComponents);
+    }),
 
     // CloudFlow trigger
     http.post(`${API_BASE}/cloudflow/v1/trigger/:flowId`, () => {
