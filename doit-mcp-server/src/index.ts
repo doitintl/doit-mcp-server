@@ -114,6 +114,10 @@ import {
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
 import {
+  GetCloudFlowConnectionArgumentsSchema,
+  getCloudFlowConnectionTool,
+  ListCloudFlowConnectionsArgumentsSchema,
+  listCloudFlowConnectionsTool,
   TriggerCloudFlowArgumentsSchema,
   triggerCloudFlowTool,
 } from "../../src/tools/cloudflow.js";
@@ -929,6 +933,8 @@ export class DoitMCPAgent extends McpAgent {
 
     // CloudFlow tools
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
+    this.registerTool(listCloudFlowConnectionsTool, ListCloudFlowConnectionsArgumentsSchema);
+    this.registerTool(getCloudFlowConnectionTool, GetCloudFlowConnectionArgumentsSchema);
 
     // Alerts tools
     this.registerTool(listAlertsTool, ListAlertsArgumentsSchema);

@@ -105,6 +105,8 @@ describe("MCP Tools Integration", () => {
                     "search_cloud_diagrams",
                     "send_datahub_events",
                     "trigger_cloud_flow",
+                    "list_cloudflow_connections",
+                    "get_cloudflow_connection",
                     "update_alert",
                     "update_allocation",
                     "update_annotation",
@@ -1608,6 +1610,48 @@ describe("MCP Tools Integration", () => {
             expect(parsed.status).toBe("triggered");
             expect(parsed.executionId).toBe("exec-123");
             expect(Object.keys(parsed)).toHaveLength(2);
+        });
+    });
+
+    describe("list_cloudflow_connections", () => {
+        it("returns CloudFlow connections from mock API", async () => {
+            const result = await client.callTool({ name: "list_cloudflow_connections", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connections).toHaveLength(2);
+            expect(parsed.connections[0].connectionId).toBe("conn-1");
+            expect(parsed.connections[0].name).toBe("GCP Org Connection");
+            expect(parsed.nextPageToken).toBe("next-page-token");
+        });
+
+        it("accepts maxResults and pageToken parameters", async () => {
+            const result = await client.callTool({
+                name: "list_cloudflow_connections",
+                arguments: { maxResults: "1", pageToken: "tok" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connections).toHaveLength(2);
+        });
+    });
+
+    describe("get_cloudflow_connection", () => {
+        it("returns a single CloudFlow connection by ID", async () => {
+            const result = await client.callTool({
+                name: "get_cloudflow_connection",
+                arguments: { connectionId: "conn-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connectionId).toBe("conn-1");
+            expect(parsed.name).toBe("GCP Org Connection");
+            expect(parsed.gcpConfig.level).toBe("organization");
+        });
+
+        it("returns a validation error when connectionId is missing", async () => {
+            const result = await client.callTool({ name: "get_cloudflow_connection", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 

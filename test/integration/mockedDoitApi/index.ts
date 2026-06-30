@@ -304,6 +304,17 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.cloudflowTrigger);
     }),
 
+    // CloudFlow connections (register specific :connectionId before the list route)
+    http.get(`${API_BASE}/cloudflow/v1/connections/:connectionId`, ({ params }) => {
+        if (params.connectionId === "conn-1") {
+            return HttpResponse.json(fixtures.cloudflowConnection);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/cloudflow/v1/connections`, () => {
+        return HttpResponse.json(fixtures.cloudflowConnections);
+    }),
+
     // Budgets
     http.patch(`${API_BASE}/analytics/v1/budgets/:id`, ({ params }) => {
         if (params.id === "budget-1") {

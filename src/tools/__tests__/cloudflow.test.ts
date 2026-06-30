@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
-import { CLOUDFLOW_TRIGGER_BASE_URL, getTriggerCloudFlowURL, handleTriggerCloudFlowRequest } from "../cloudflow.js";
+import {
+    CLOUDFLOW_CONNECTIONS_BASE_URL,
+    CLOUDFLOW_TRIGGER_BASE_URL,
+    getTriggerCloudFlowURL,
+    handleGetCloudFlowConnectionRequest,
+    handleListCloudFlowConnectionsRequest,
+    handleTriggerCloudFlowRequest,
+} from "../cloudflow.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
@@ -156,6 +163,141 @@ describe("cloudflow", () => {
 
             expect(response).toEqual({
                 content: [{ type: "text", text: expect.stringContaining("Invalid arguments:") }],
+                isError: true,
+            });
+        });
+    });
+
+    describe("handleListCloudFlowConnectionsRequest", () => {
+        const mockToken = "fake-token";
+
+        const mockResponse = {
+            connections: [
+                {
+                    connectionId: "conn-1",
+                    name: "GCP Org Connection",
+                    enabled: true,
+                    status: "active",
+                },
+            ],
+            nextPageToken: "next-page",
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("calls makeDoitRequest with the default maxResults when none provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+            const response = await handleListCloudFlowConnectionsRequest({}, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDFLOW_CONNECTIONS_BASE_URL}?maxResults=50`, mockToken, {
+                method: "GET",
+                customerContext: undefined,
+            });
+            expect(response).toEqual({
+                content: [{ type: "text", text: JSON.stringify(mockResponse, null, 2) }],
+            });
+        });
+
+        it("passes maxResults, pageToken and customerContext when provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+            await handleListCloudFlowConnectionsRequest(
+                { maxResults: "10", pageToken: "tok", customerContext: "customer-ctx" },
+                mockToken
+            );
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                `${CLOUDFLOW_CONNECTIONS_BASE_URL}?maxResults=10&pageToken=tok`,
+                mockToken,
+                { method: "GET", customerContext: "customer-ctx" }
+            );
+        });
+
+        it("returns an error response when the API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            const response = await handleListCloudFlowConnectionsRequest({}, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to retrieve CloudFlow connections") }],
+                isError: true,
+            });
+        });
+
+        it("returns an error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+            const response = await handleListCloudFlowConnectionsRequest({}, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Network error") }],
+                isError: true,
+            });
+        });
+    });
+
+    describe("handleGetCloudFlowConnectionRequest", () => {
+        const mockToken = "fake-token";
+
+        const mockConnection = {
+            connectionId: "conn-1",
+            name: "GCP Org Connection",
+            enabled: true,
+            status: "active",
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("calls makeDoitRequest with the encoded connection ID", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockConnection);
+
+            const response = await handleGetCloudFlowConnectionRequest({ connectionId: "conn-1" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDFLOW_CONNECTIONS_BASE_URL}/conn-1`, mockToken, {
+                method: "GET",
+                customerContext: undefined,
+            });
+            expect(response).toEqual({
+                content: [{ type: "text", text: JSON.stringify(mockConnection, null, 2) }],
+            });
+        });
+
+        it("passes customerContext when provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockConnection);
+
+            await handleGetCloudFlowConnectionRequest(
+                { connectionId: "conn-1", customerContext: "customer-ctx" },
+                mockToken
+            );
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDFLOW_CONNECTIONS_BASE_URL}/conn-1`, mockToken, {
+                method: "GET",
+                customerContext: "customer-ctx",
+            });
+        });
+
+        it("returns a formatted Zod error when connectionId is empty", async () => {
+            const response = await handleGetCloudFlowConnectionRequest({ connectionId: "   " }, mockToken);
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Invalid arguments:") }],
+                isError: true,
+            });
+        });
+
+        it("returns an error response when the API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            const response = await handleGetCloudFlowConnectionRequest({ connectionId: "conn-1" }, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to retrieve CloudFlow connection") }],
                 isError: true,
             });
         });

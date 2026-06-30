@@ -37,7 +37,11 @@ import {
     handleListCloudDiagramNodeActivitiesRequest,
     handleSearchCloudDiagramsRequest,
 } from "../tools/cloudDiagrams.js";
-import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
+import {
+    handleGetCloudFlowConnectionRequest,
+    handleListCloudFlowConnectionsRequest,
+    handleTriggerCloudFlowRequest,
+} from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
 import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "../tools/commitmentManager.js";
 import { handleConfirmActionRequest } from "../tools/confirmAction.js";
@@ -334,6 +338,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "trigger_cloud_flow":
             result = await handleTriggerCloudFlowRequest(args, token);
+            break;
+        case "list_cloudflow_connections":
+            result = await handleListCloudFlowConnectionsRequest(args, token);
+            break;
+        case "get_cloudflow_connection":
+            result = await handleGetCloudFlowConnectionRequest(args, token);
             break;
         case "list_alerts":
             result = await handleListAlertsRequest(args, token);
