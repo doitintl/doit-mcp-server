@@ -76,7 +76,14 @@ import {
     listCloudDiagramNodeActivitiesTool,
     searchCloudDiagramsTool,
 } from "./tools/cloudDiagrams.js";
-import { handleTriggerCloudFlowRequest, triggerCloudFlowTool } from "./tools/cloudflow.js";
+import {
+    getCloudFlowConnectionTool,
+    handleGetCloudFlowConnectionRequest,
+    handleListCloudFlowConnectionsRequest,
+    handleTriggerCloudFlowRequest,
+    listCloudFlowConnectionsTool,
+    triggerCloudFlowTool,
+} from "./tools/cloudflow.js";
 import {
     cloudIncidentsTool,
     cloudIncidentTool,
@@ -248,6 +255,8 @@ export function createServer() {
                 updateAlertTool,
 
                 triggerCloudFlowTool,
+                listCloudFlowConnectionsTool,
+                getCloudFlowConnectionTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
@@ -418,6 +427,7 @@ export {
     handleGetCloudDiagramCostSnapshotRequest,
     handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
+    handleGetCloudFlowConnectionRequest,
     handleGetCommitmentRequest,
     handleGetDatahubDatasetRequest,
     handleGetFolderRequest,
@@ -438,6 +448,7 @@ export {
     handleListBudgetsRequest,
     handleListCloudDiagramActivityGroupsRequest,
     handleListCloudDiagramNodeActivitiesRequest,
+    handleListCloudFlowConnectionsRequest,
     handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
     handleListFoldersRequest,
