@@ -43,6 +43,7 @@ import {
 import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
 import { getAssetTool, handleGetAssetRequest, handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
 import { askAvaSyncTool, handleAskAvaSyncRequest } from "./tools/ava.js";
+import { handleSearchCustomersRequest, searchCustomersTool } from "./tools/searchCustomers.js";
 import {
     createBudgetTool,
     getBudgetTool,
@@ -211,6 +212,7 @@ export function createServer() {
                 updateAllocationTool,
                 listAssetsTool,
                 getAssetTool,
+                searchCustomersTool,
                 listAlertsTool,
                 getAlertTool,
                 createAlertTool,
@@ -401,6 +403,7 @@ export {
     handleListUsersRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleSearchCustomersRequest,
     handleSendDatahubEventsRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAlertRequest,

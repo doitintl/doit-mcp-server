@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- feat: add `search_customers` tool — DoiT-internal (doer) search across all customers by classification, type, segment, tier package, domains, cloud asset platforms, Flexsave, monthly/invoiced spend, and active contracts (AND-combined). Calls the doer-gated console endpoint `POST /api/customers/v1/customers/search` via the console proxy.
+
 ## v0.14.0 (2026-06-19)
 
 ### Features

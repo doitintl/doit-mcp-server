@@ -20,6 +20,7 @@ import {
 } from "../tools/annotations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
+import { handleSearchCustomersRequest } from "../tools/searchCustomers.js";
 import { handleAskAvaSyncRequest } from "../tools/ava.js";
 import {
     handleCreateBudgetRequest,
@@ -314,6 +315,9 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "get_asset":
             result = await handleGetAssetRequest(args, token);
+            break;
+        case "search_customers":
+            result = await handleSearchCustomersRequest(args, token);
             break;
         case "trigger_cloud_flow":
             result = await handleTriggerCloudFlowRequest(args, token);
