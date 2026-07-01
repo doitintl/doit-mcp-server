@@ -139,7 +139,9 @@ import {
   listCloudFlowConnectionsTool,
   ListCloudFlowTemplatesArgumentsSchema,
   listCloudFlowTemplatesTool,
+  RefineCloudflowArgumentsSchema,
   TriggerCloudFlowArgumentsSchema,
+  refineCloudflowTool,
   triggerCloudFlowTool,
 } from "../../src/tools/cloudflow.js";
 // Re-enable alongside the WRITE_GATED_SUMMARIES entry in utils/toolsHandler.ts
@@ -997,6 +999,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getCloudFlowConnectionTool, GetCloudFlowConnectionArgumentsSchema);
     this.registerTool(listCloudFlowTemplatesTool, ListCloudFlowTemplatesArgumentsSchema);
     this.registerTool(getCloudFlowTemplateTool, GetCloudFlowTemplateArgumentsSchema);
+    this.registerTool(refineCloudflowTool, RefineCloudflowArgumentsSchema);
 
     // Alerts tools
     this.registerTool(listAlertsTool, ListAlertsArgumentsSchema);

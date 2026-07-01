@@ -89,6 +89,7 @@ vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
 vi.mock(import("../tools/cloudflow.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleTriggerCloudFlowRequest: vi.fn(),
+    handleRefineCloudflowRequest: vi.fn(),
 }));
 vi.mock(import("../tools/organizations.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -242,6 +243,7 @@ import {
     getCloudFlowTemplateTool,
     listCloudFlowConnectionsTool,
     listCloudFlowTemplatesTool,
+    refineCloudflowTool,
     triggerCloudFlowTool,
 } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
@@ -388,6 +390,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getCloudFlowConnectionTool,
                 listCloudFlowTemplatesTool,
                 getCloudFlowTemplateTool,
+                refineCloudflowTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
