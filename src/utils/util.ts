@@ -440,6 +440,93 @@ export async function makeConsoleRequest<T>(
 }
 
 /**
+ * Opens an SSE connection via POST and yields parsed events as they arrive.
+ * Throws on non-2xx responses. The caller is responsible for consuming all
+ * events or breaking early (the generator will cancel the reader on GC).
+ */
+const DATA_LINE_PREFIX = "data:";
+
+export async function* makeDoitSSERequest(
+    url: string,
+    body: object,
+    authToken: string
+): AsyncGenerator<{ data: string }> {
+    const parsedUrl = new URL(applyRuntimeDoiTApiBase(url));
+
+    const tracking = getTrackingContext();
+    parsedUrl.searchParams.set("mcp", "true");
+    parsedUrl.searchParams.set("mcpVersion", SERVER_VERSION);
+    if (tracking?.mcpTool) parsedUrl.searchParams.set("mcpTool", tracking.mcpTool);
+    if (tracking?.mcpClient) parsedUrl.searchParams.set("mcpClient", tracking.mcpClient);
+    if (tracking?.mcpClientVersion) parsedUrl.searchParams.set("mcpClientVersion", tracking.mcpClientVersion);
+    if (tracking?.mcpProtocolVersion) parsedUrl.searchParams.set("mcpProtocolVersion", tracking.mcpProtocolVersion);
+
+    const requestUrl = parsedUrl.href;
+    debugLog("SSE request URL:", DebugLevel.VERBOSE, requestUrl);
+
+    const tenantId = process.env.TENANT_ID;
+    const response = await fetch(requestUrl, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+            Accept: "text/event-stream",
+            ...(tenantId ? { "x-tenant-id": tenantId } : {}),
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const bodyText = await response.text();
+        let detail = bodyText;
+        try {
+            const parsed = JSON.parse(bodyText);
+            detail =
+                parsed.message ||
+                parsed.error ||
+                (typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed));
+        } catch {
+            // use bodyText as-is
+        }
+        throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+    }
+
+    if (!response.body) throw new Error("SSE response has no body");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let currentData = "";
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split(/\r\n|\r|\n/);
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+                if (line === "") {
+                    if (currentData) {
+                        yield { data: currentData };
+                    }
+                    currentData = "";
+                } else if (line.startsWith(DATA_LINE_PREFIX)) {
+                    currentData = line.slice(DATA_LINE_PREFIX.length).replace(/^ /, "");
+                }
+            }
+        }
+        // flush any trailing event not terminated by a blank line
+        if (currentData) {
+            yield { data: currentData };
+        }
+    } finally {
+        reader.cancel();
+    }
+}
+
+/**
  * Formats a timestamp (number) as a human-readable date string
  * @param timestamp The timestamp in milliseconds
  * @returns Formatted date string (e.g., '2024-04-27')

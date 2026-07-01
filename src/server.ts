@@ -80,8 +80,10 @@ import {
     getCloudFlowConnectionTool,
     handleGetCloudFlowConnectionRequest,
     handleListCloudFlowConnectionsRequest,
+    handleRefineCloudflowRequest,
     handleTriggerCloudFlowRequest,
     listCloudFlowConnectionsTool,
+    refineCloudflowTool,
     triggerCloudFlowTool,
 } from "./tools/cloudflow.js";
 import {
@@ -259,6 +261,7 @@ export function createServer() {
                 triggerCloudFlowTool,
                 listCloudFlowConnectionsTool,
                 getCloudFlowConnectionTool,
+                refineCloudflowTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
@@ -360,16 +363,26 @@ export function createServer() {
     });
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
-        const { name, arguments: args } = request.params;
+        const { name, arguments: args, _meta } = request.params;
         const token = process.env.DOIT_API_KEY;
         if (!token) {
             return createErrorResponse("Unauthorized");
         }
 
+        const progressToken = _meta?.progressToken;
+        const onProgress = progressToken
+            ? async (message: string) =>
+                  server.notification({
+                      method: "notifications/progress",
+                      params: { progressToken, progress: 0, message },
+                  })
+            : undefined;
+
         return await executeToolHandler(name, args, token, {
             trackingContext: mcpClientInfo,
             userKey,
             approvalStore,
+            onProgress,
         });
     });
 
@@ -464,6 +477,7 @@ export {
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
     handleListUsersRequest,
+    handleRefineCloudflowRequest,
     handleReportsRequest,
     handleRunQueryRequest,
     handleSearchCloudDiagramsRequest,

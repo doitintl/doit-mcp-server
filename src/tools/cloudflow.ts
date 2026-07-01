@@ -8,9 +8,10 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    makeDoitSSERequest,
 } from "../utils/util.js";
 
-export const CLOUDFLOW_BASE_URL = `${DOIT_API_BASE}/cloudflow/v1`;
+const CLOUDFLOW_BASE_URL = `${DOIT_API_BASE}/cloudflow/v1`;
 export const CLOUDFLOW_TRIGGER_BASE_URL = `${CLOUDFLOW_BASE_URL}/trigger`;
 export const CLOUDFLOW_CONNECTIONS_BASE_URL = `${CLOUDFLOW_BASE_URL}/connections`;
 
@@ -66,6 +67,115 @@ export const triggerCloudFlowTool = {
     },
     securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
+
+export const RefineCloudflowArgumentsSchema = z.object({
+    question: z.string().describe("The instruction or question to refine or rebuild the flow"),
+    flowId: z.string().describe("The ID of the CloudFlow flow to refine"),
+    conversationId: z.string().optional().describe("Optional conversation ID for multi-turn sessions"),
+});
+
+export const refineCloudflowTool = {
+    name: "refine_cloudflow",
+    description:
+        "Use this when the user wants to refine or rebuild an existing CloudFlow automation using natural language. Streams real-time progress updates while the AI builds the flow, then returns the final result.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            question: {
+                type: "string",
+                description: "The instruction or question to refine or rebuild the flow",
+            },
+            flowId: {
+                type: "string",
+                description: "The ID of the CloudFlow flow to refine",
+            },
+            conversationId: {
+                type: "string",
+                description: "Optional conversation ID for multi-turn sessions",
+            },
+        },
+        required: ["question", "flowId"],
+    },
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Refining CloudFlow...",
+        "openai/toolInvocation/invoked": "CloudFlow refined",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export async function handleRefineCloudflowRequest(
+    args: any,
+    token: string,
+    onProgress?: (message: string) => Promise<void>
+) {
+    try {
+        const { flowId, question, conversationId } = RefineCloudflowArgumentsSchema.parse(args);
+
+        const url = `${CLOUDFLOW_BASE_URL}/flows/${encodeURIComponent(flowId)}/actions/refine`;
+        const body: Record<string, unknown> = { question };
+        if (conversationId) body.conversationId = conversationId;
+
+        let answerText = "";
+        let responseConversationId: string | undefined;
+
+        try {
+            for await (const { data } of makeDoitSSERequest(url, body, token)) {
+                let parsed: Record<string, unknown>;
+                try {
+                    parsed = JSON.parse(data);
+                } catch {
+                    continue;
+                }
+
+                if (parsed.conversationId) {
+                    responseConversationId = parsed.conversationId as string;
+                    continue;
+                }
+
+                const answer = parsed.answer;
+                if (typeof answer !== "string") continue;
+
+                // Lifecycle events have answer values that are JSON objects (llmStart, llmEnd, toolStart, toolEnd)
+                let isLifecycle = false;
+                try {
+                    const inner = JSON.parse(answer);
+                    if (inner && typeof inner === "object") {
+                        isLifecycle = true;
+                        const label =
+                            (inner as any).toolStart ?? (inner as any).toolEnd ?? (inner as any).value ?? null;
+                        if (label) await onProgress?.(String(label));
+                    }
+                } catch {
+                    // not JSON — plain text chunk
+                }
+
+                if (!isLifecycle) {
+                    answerText += answer;
+                }
+            }
+        } catch (error) {
+            return handleGeneralError(error, "calling refine CloudFlow API");
+        }
+
+        if (!answerText) {
+            return createErrorResponse("No result received from CloudFlow build stream");
+        }
+
+        const result: Record<string, unknown> = { answer: answerText };
+        if (responseConversationId) result.conversationId = responseConversationId;
+        return createSuccessResponse(JSON.stringify(result, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return createErrorResponse(formatZodError(error));
+        }
+        return handleGeneralError(error, "handling refine CloudFlow request");
+    }
+}
 
 export async function handleTriggerCloudFlowRequest(args: any, token: string) {
     try {
