@@ -107,6 +107,7 @@ describe("MCP Tools Integration", () => {
                     "send_datahub_events",
                     "refine_cloudflow",
                     "trigger_cloud_flow",
+                    "list_cloudflows",
                     "list_cloudflow_connections",
                     "get_cloudflow_connection",
                     "list_cloudflow_templates",

@@ -41,6 +41,7 @@ import {
     handleGetCloudFlowConnectionRequest,
     handleGetCloudFlowTemplateRequest,
     handleListCloudFlowConnectionsRequest,
+    handleListCloudFlowsRequest,
     handleListCloudFlowTemplatesRequest,
     handleRefineCloudflowRequest,
     handleTriggerCloudFlowRequest,
@@ -367,6 +368,9 @@ async function runOriginalDispatch(
             break;
         case "refine_cloudflow":
             result = await handleRefineCloudflowRequest(args, token, options?.onProgress);
+            break;
+        case "list_cloudflows":
+            result = await handleListCloudFlowsRequest(args, token);
             break;
         case "list_alerts":
             result = await handleListAlertsRequest(args, token);
