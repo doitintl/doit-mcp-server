@@ -238,7 +238,12 @@ import {
     listCloudDiagramNodeActivitiesTool,
     searchCloudDiagramsTool,
 } from "../tools/cloudDiagrams.js";
-import { getCloudFlowConnectionTool, listCloudFlowConnectionsTool, refineCloudflowTool, triggerCloudFlowTool } from "../tools/cloudflow.js";
+import {
+    getCloudFlowConnectionTool,
+    listCloudFlowConnectionsTool,
+    refineCloudflowTool,
+    triggerCloudFlowTool,
+} from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
 // import { confirmActionTool } from "../tools/confirmAction.js"; // disabled with the approval gate
