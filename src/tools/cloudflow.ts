@@ -1,5 +1,10 @@
 import { z } from "zod";
-import type { CloudFlowConnection, CloudFlowConnectionsResponse } from "../types/cloudflow.js";
+import type {
+    CloudFlowConnection,
+    CloudFlowConnectionsResponse,
+    CloudFlowTemplate,
+    CloudFlowTemplatesResponse,
+} from "../types/cloudflow.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
@@ -13,8 +18,10 @@ import {
 export const CLOUDFLOW_BASE_URL = `${DOIT_API_BASE}/cloudflow/v1`;
 export const CLOUDFLOW_TRIGGER_BASE_URL = `${CLOUDFLOW_BASE_URL}/trigger`;
 export const CLOUDFLOW_CONNECTIONS_BASE_URL = `${CLOUDFLOW_BASE_URL}/connections`;
+export const CLOUDFLOW_TEMPLATES_BASE_URL = `${CLOUDFLOW_BASE_URL}/templates`;
 
 export const DEFAULT_MAX_RESULTS_CLOUDFLOW_CONNECTIONS = "50";
+export const DEFAULT_MAX_RESULTS_CLOUDFLOW_TEMPLATES = "50";
 
 export const TriggerCloudFlowArgumentsSchema = z.object({
     flowID: z.string().describe("The ID of the CloudFlow flow to trigger"),
@@ -206,5 +213,112 @@ export async function handleGetCloudFlowConnectionRequest(args: any, token: stri
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling get CloudFlow connection request");
+    }
+}
+
+// Schema and metadata for list CloudFlow templates
+export const ListCloudFlowTemplatesArgumentsSchema = z.object({
+    maxResults: z
+        .string()
+        .optional()
+        .describe(
+            `Maximum number of templates to return (1–500). Defaults to ${DEFAULT_MAX_RESULTS_CLOUDFLOW_TEMPLATES}.`
+        ),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Pagination cursor returned by a previous call, to request the next page of results."),
+});
+
+export const listCloudFlowTemplatesTool = {
+    name: "list_cloudflow_templates",
+    description:
+        "Use this when the user wants to see the catalogue of available CloudFlow templates (read-only blueprints they can build a flow from). Returns a cursor-paginated list of templates with their id, name, description, and instructions. Do NOT use this to view a single template's details (use get_cloudflow_template) or to trigger a flow (use trigger_cloud_flow).",
+    inputSchema: zodToMcpInputSchema(ListCloudFlowTemplatesArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading CloudFlow templates...",
+        "openai/toolInvocation/invoked": "CloudFlow templates loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleListCloudFlowTemplatesRequest(args: any, token: string) {
+    try {
+        const { maxResults, pageToken } = ListCloudFlowTemplatesArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        params.append("maxResults", maxResults || DEFAULT_MAX_RESULTS_CLOUDFLOW_TEMPLATES);
+        if (pageToken) params.append("pageToken", pageToken);
+
+        const url = `${CLOUDFLOW_TEMPLATES_BASE_URL}?${params}`;
+
+        const data = await makeDoitRequest<CloudFlowTemplatesResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve CloudFlow templates");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling list CloudFlow templates request");
+    }
+}
+
+// Schema and metadata for retrieve a CloudFlow template
+export const GetCloudFlowTemplateArgumentsSchema = z.object({
+    templateId: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1))
+        .describe("The ID of the CloudFlow template to retrieve."),
+});
+
+export const getCloudFlowTemplateTool = {
+    name: "get_cloudflow_template",
+    description:
+        "Use this when the user wants to view the details of a specific CloudFlow template by its ID, including its name, description, and configuration instructions. Do NOT use this to list all templates (use list_cloudflow_templates) or to trigger a flow (use trigger_cloud_flow).",
+    inputSchema: zodToMcpInputSchema(GetCloudFlowTemplateArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading CloudFlow template...",
+        "openai/toolInvocation/invoked": "CloudFlow template loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleGetCloudFlowTemplateRequest(args: any, token: string) {
+    try {
+        const { templateId } = GetCloudFlowTemplateArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const url = `${CLOUDFLOW_TEMPLATES_BASE_URL}/${encodeURIComponent(templateId)}`;
+
+        const data = await makeDoitRequest<CloudFlowTemplate>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve CloudFlow template");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get CloudFlow template request");
     }
 }

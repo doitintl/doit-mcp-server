@@ -38,3 +38,28 @@ export const cloudflowConnectionsFixture = {
     ],
     nextPageToken: "next-page-token",
 };
+
+export const cloudflowTemplateFixture = {
+    id: "tmpl-1",
+    name: "Idle VM Cleanup",
+    description: "Stops idle VMs on a schedule",
+    instructions: "Provide a schedule and target project",
+    createTime: "2024-01-01T00:00:00Z",
+    updateTime: "2024-02-01T00:00:00Z",
+};
+
+export const cloudflowTemplatesFixture = {
+    items: [
+        cloudflowTemplateFixture,
+        {
+            id: "tmpl-2",
+            name: "Unattached Disk Report",
+            description: "Reports unattached disks weekly",
+            instructions: null,
+            createTime: "2024-03-01T00:00:00Z",
+            updateTime: null,
+        },
+    ],
+    pageToken: "next-page-token",
+    rowCount: 2,
+};

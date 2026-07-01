@@ -315,6 +315,17 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.cloudflowConnections);
     }),
 
+    // CloudFlow templates (register specific :templateId before the list route)
+    http.get(`${API_BASE}/cloudflow/v1/templates/:templateId`, ({ params }) => {
+        if (params.templateId === "tmpl-1") {
+            return HttpResponse.json(fixtures.cloudflowTemplate);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/cloudflow/v1/templates`, () => {
+        return HttpResponse.json(fixtures.cloudflowTemplates);
+    }),
+
     // Budgets
     http.patch(`${API_BASE}/analytics/v1/budgets/:id`, ({ params }) => {
         if (params.id === "budget-1") {

@@ -237,7 +237,13 @@ import {
     listCloudDiagramNodeActivitiesTool,
     searchCloudDiagramsTool,
 } from "../tools/cloudDiagrams.js";
-import { getCloudFlowConnectionTool, listCloudFlowConnectionsTool, triggerCloudFlowTool } from "../tools/cloudflow.js";
+import {
+    getCloudFlowConnectionTool,
+    getCloudFlowTemplateTool,
+    listCloudFlowConnectionsTool,
+    listCloudFlowTemplatesTool,
+    triggerCloudFlowTool,
+} from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
 // import { confirmActionTool } from "../tools/confirmAction.js"; // disabled with the approval gate
@@ -380,6 +386,8 @@ describe("ListToolsRequestSchema handler", () => {
                 triggerCloudFlowTool,
                 listCloudFlowConnectionsTool,
                 getCloudFlowConnectionTool,
+                listCloudFlowTemplatesTool,
+                getCloudFlowTemplateTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,

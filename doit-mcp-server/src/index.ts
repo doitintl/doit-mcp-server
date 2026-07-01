@@ -133,8 +133,12 @@ import {
 import {
   GetCloudFlowConnectionArgumentsSchema,
   getCloudFlowConnectionTool,
+  GetCloudFlowTemplateArgumentsSchema,
+  getCloudFlowTemplateTool,
   ListCloudFlowConnectionsArgumentsSchema,
   listCloudFlowConnectionsTool,
+  ListCloudFlowTemplatesArgumentsSchema,
+  listCloudFlowTemplatesTool,
   TriggerCloudFlowArgumentsSchema,
   triggerCloudFlowTool,
 } from "../../src/tools/cloudflow.js";
@@ -991,6 +995,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
     this.registerTool(listCloudFlowConnectionsTool, ListCloudFlowConnectionsArgumentsSchema);
     this.registerTool(getCloudFlowConnectionTool, GetCloudFlowConnectionArgumentsSchema);
+    this.registerTool(listCloudFlowTemplatesTool, ListCloudFlowTemplatesArgumentsSchema);
+    this.registerTool(getCloudFlowTemplateTool, GetCloudFlowTemplateArgumentsSchema);
 
     // Alerts tools
     this.registerTool(listAlertsTool, ListAlertsArgumentsSchema);

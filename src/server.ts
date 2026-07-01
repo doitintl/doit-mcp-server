@@ -78,10 +78,14 @@ import {
 } from "./tools/cloudDiagrams.js";
 import {
     getCloudFlowConnectionTool,
+    getCloudFlowTemplateTool,
     handleGetCloudFlowConnectionRequest,
+    handleGetCloudFlowTemplateRequest,
     handleListCloudFlowConnectionsRequest,
+    handleListCloudFlowTemplatesRequest,
     handleTriggerCloudFlowRequest,
     listCloudFlowConnectionsTool,
+    listCloudFlowTemplatesTool,
     triggerCloudFlowTool,
 } from "./tools/cloudflow.js";
 import {
@@ -259,6 +263,8 @@ export function createServer() {
                 triggerCloudFlowTool,
                 listCloudFlowConnectionsTool,
                 getCloudFlowConnectionTool,
+                listCloudFlowTemplatesTool,
+                getCloudFlowTemplateTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
@@ -430,6 +436,7 @@ export {
     handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
     handleGetCloudFlowConnectionRequest,
+    handleGetCloudFlowTemplateRequest,
     handleGetCommitmentRequest,
     handleGetDatahubDatasetRequest,
     handleGetFolderRequest,
@@ -451,6 +458,7 @@ export {
     handleListCloudDiagramActivityGroupsRequest,
     handleListCloudDiagramNodeActivitiesRequest,
     handleListCloudFlowConnectionsRequest,
+    handleListCloudFlowTemplatesRequest,
     handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
     handleListFoldersRequest,

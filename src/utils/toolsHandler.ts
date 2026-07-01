@@ -39,7 +39,9 @@ import {
 } from "../tools/cloudDiagrams.js";
 import {
     handleGetCloudFlowConnectionRequest,
+    handleGetCloudFlowTemplateRequest,
     handleListCloudFlowConnectionsRequest,
+    handleListCloudFlowTemplatesRequest,
     handleTriggerCloudFlowRequest,
 } from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
@@ -348,6 +350,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "get_cloudflow_connection":
             result = await handleGetCloudFlowConnectionRequest(args, token);
+            break;
+        case "list_cloudflow_templates":
+            result = await handleListCloudFlowTemplatesRequest(args, token);
+            break;
+        case "get_cloudflow_template":
+            result = await handleGetCloudFlowTemplateRequest(args, token);
             break;
         case "list_alerts":
             result = await handleListAlertsRequest(args, token);
