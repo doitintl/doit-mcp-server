@@ -155,6 +155,7 @@ import {
     updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
+import { handleSearchCustomersRequest, searchCustomersTool } from "./tools/searchCustomers.js";
 import {
     getActiveThemeTool,
     getThemeTool,
@@ -249,6 +250,7 @@ export function createServer() {
                 updateAllocationTool,
                 listAssetsTool,
                 getAssetTool,
+                searchCustomersTool,
                 listAlertsTool,
                 getAlertTool,
                 createAlertTool,
@@ -465,6 +467,7 @@ export {
     handleReportsRequest,
     handleRunQueryRequest,
     handleSearchCloudDiagramsRequest,
+    handleSearchCustomersRequest,
     handleSendDatahubEventsRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAlertRequest,

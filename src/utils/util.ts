@@ -48,6 +48,29 @@ export function getTrackingContext(): TrackingContext | undefined {
     return trackingStore.getStore();
 }
 
+// --- Console request context ---
+// A few tools (e.g. search_customers) call DoiT *console* endpoints (console.doit.com
+// /api/...) rather than the public api.doit.com. In the Cloudflare worker those calls
+// must go through the CONSOLE_PROXY service binding (a same-zone fetch of console.doit.com
+// bypasses the console-worker route), so the worker sets this request-scoped env around
+// tool execution. Outside the worker (stdio) the store is empty and makeConsoleRequest
+// falls back to the DOIT_CONSOLE_BASE / AUTH_SERVER_URL env vars with a plain fetch.
+
+export interface ConsoleRequestEnv {
+    baseUrl: string;
+    proxyFetch?: typeof fetch;
+}
+
+const consoleEnvStore = new AsyncLocalStorage<ConsoleRequestEnv>();
+
+export function runWithConsoleEnv<T>(env: ConsoleRequestEnv, fn: () => T): T {
+    return consoleEnvStore.run(env, fn);
+}
+
+export function getConsoleEnv(): ConsoleRequestEnv | undefined {
+    return consoleEnvStore.getStore();
+}
+
 /**
  * Debug levels for controlling log verbosity
  */
@@ -283,23 +306,7 @@ export async function makeDoitRequest<T>(
         }
 
         // add mcp tracking params to the url
-        const tracking = getTrackingContext();
-        const sep = requestUrl.includes("?") ? "&" : "?";
-        requestUrl += `${sep}mcp=true`;
-        requestUrl += `&mcpVersion=${encodeURIComponent(SERVER_VERSION)}`;
-
-        if (tracking?.mcpTool) {
-            requestUrl += `&mcpTool=${encodeURIComponent(tracking.mcpTool)}`;
-        }
-        if (tracking?.mcpClient) {
-            requestUrl += `&mcpClient=${encodeURIComponent(tracking.mcpClient)}`;
-        }
-        if (tracking?.mcpClientVersion) {
-            requestUrl += `&mcpClientVersion=${encodeURIComponent(tracking.mcpClientVersion)}`;
-        }
-        if (tracking?.mcpProtocolVersion) {
-            requestUrl += `&mcpProtocolVersion=${encodeURIComponent(tracking.mcpProtocolVersion)}`;
-        }
+        requestUrl = appendTrackingParams(requestUrl);
 
         if (!process.env.CUSTOMER_CONTEXT) {
             // request from the sse server
@@ -310,18 +317,7 @@ export async function makeDoitRequest<T>(
         const response = await fetch(requestUrl, requestOptions);
 
         if (!response.ok) {
-            const bodyText = await response.text();
-            let detail = bodyText;
-            try {
-                const parsed = JSON.parse(bodyText);
-                detail =
-                    parsed.message ||
-                    parsed.error ||
-                    (typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed));
-            } catch {
-                // use bodyText as-is
-            }
-            throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+            await throwHttpError(response);
         }
         if (!parseResponse) {
             return {} as T;
@@ -335,6 +331,112 @@ export async function makeDoitRequest<T>(
         console.error(`Error making DoiT API ${method} request to ${requestUrl}:`, error);
         return null;
     }
+}
+
+// appendTrackingParams appends the shared MCP tracking query params (mcp, mcpVersion, plus any
+// mcpTool/mcpClient/mcpClientVersion/mcpProtocolVersion present in the tracking context) to a URL.
+function appendTrackingParams(url: string): string {
+    const tracking = getTrackingContext();
+    const sep = url.includes("?") ? "&" : "?";
+    let out = `${url}${sep}mcp=true&mcpVersion=${encodeURIComponent(SERVER_VERSION)}`;
+
+    if (tracking?.mcpTool) {
+        out += `&mcpTool=${encodeURIComponent(tracking.mcpTool)}`;
+    }
+    if (tracking?.mcpClient) {
+        out += `&mcpClient=${encodeURIComponent(tracking.mcpClient)}`;
+    }
+    if (tracking?.mcpClientVersion) {
+        out += `&mcpClientVersion=${encodeURIComponent(tracking.mcpClientVersion)}`;
+    }
+    if (tracking?.mcpProtocolVersion) {
+        out += `&mcpProtocolVersion=${encodeURIComponent(tracking.mcpProtocolVersion)}`;
+    }
+
+    return out;
+}
+
+// throwHttpError reads a non-OK response body, extracts the most specific message available,
+// and throws an Error carrying the HTTP status.
+async function throwHttpError(response: Response): Promise<never> {
+    const bodyText = await response.text();
+    let detail = bodyText;
+    try {
+        const parsed = JSON.parse(bodyText);
+        detail =
+            parsed.message ||
+            parsed.error ||
+            (typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed));
+    } catch {
+        // use bodyText as-is
+    }
+
+    throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+}
+
+function resolveConsoleBase(): { baseUrl: string; doFetch: typeof fetch } {
+    const scoped = getConsoleEnv();
+    if (scoped?.baseUrl) {
+        return {
+            baseUrl: scoped.baseUrl.replace(/\/$/, ""),
+            doFetch: scoped.proxyFetch ?? fetch,
+        };
+    }
+
+    const fallback = process.env.DOIT_CONSOLE_BASE || process.env.AUTH_SERVER_URL || "https://console.doit.com";
+
+    return { baseUrl: fallback.replace(/\/$/, ""), doFetch: fetch };
+}
+
+/**
+ * Calls a DoiT *console* endpoint (console.doit.com /api/...) rather than the public
+ * api.doit.com that makeDoitRequest targets. In the worker it routes through the
+ * CONSOLE_PROXY service binding (set via runWithConsoleEnv); elsewhere it uses the
+ * DOIT_CONSOLE_BASE / AUTH_SERVER_URL env vars. It does NOT append a customerContext
+ * (these endpoints are cross-customer) and, unlike makeDoitRequest, throws on HTTP and
+ * network errors so callers can surface the upstream message (e.g. 403 for non-doers).
+ */
+export async function makeConsoleRequest<T>(
+    path: string,
+    token: string,
+    options: { method?: string; body?: any; timeoutMs?: number } = {}
+): Promise<T> {
+    const { method = "GET", body = undefined, timeoutMs } = options;
+    const { baseUrl, doFetch } = resolveConsoleBase();
+
+    if (token === DEMO_TOKEN) {
+        return {} as T;
+    }
+
+    let requestUrl = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+
+    requestUrl = appendTrackingParams(requestUrl);
+
+    const requestOptions: RequestInit = {
+        method,
+        headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        },
+    };
+
+    if (timeoutMs !== undefined) {
+        requestOptions.signal = AbortSignal.timeout(timeoutMs);
+    }
+
+    if (method !== "GET" && body !== undefined) {
+        requestOptions.body = JSON.stringify(body);
+    }
+
+    debugLog("Console API request URL: ", DebugLevel.VERBOSE, requestUrl);
+    const response = await doFetch(requestUrl, requestOptions);
+
+    if (!response.ok) {
+        await throwHttpError(response);
+    }
+
+    return (await response.json()) as T;
 }
 
 /**

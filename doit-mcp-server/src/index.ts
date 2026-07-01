@@ -1,6 +1,13 @@
 import app from "./app";
-import { type BearerEnv, verifyBearer, wwwAuthenticateHeaderForResource } from "./oauth/bearerMiddleware";
-import { exchangeMcpTokenForUpstreamToken, type TokenExchangeEnv } from "./oauth/tokenExchange";
+import {
+  type BearerEnv,
+  verifyBearer,
+  wwwAuthenticateHeaderForResource,
+} from "./oauth/bearerMiddleware";
+import {
+  exchangeMcpTokenForUpstreamToken,
+  type TokenExchangeEnv,
+} from "./oauth/tokenExchange";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { DurableObject } from "cloudflare:workers";
@@ -15,14 +22,20 @@ import {
   cloudIncidentTool,
   cloudIncidentsTool,
 } from "../../src/tools/cloudIncidents.js";
-import { cloudOverviewTool, CloudOverviewArgumentsSchema } from "../../src/tools/overview.js";
+import {
+  cloudOverviewTool,
+  CloudOverviewArgumentsSchema,
+} from "../../src/tools/overview.js";
 import {
   AnomaliesArgumentsSchema,
   AnomalyArgumentsSchema,
   anomaliesTool,
   anomalyTool,
 } from "../../src/tools/anomalies.js";
-import { AskAvaSyncArgumentsSchema, askAvaSyncTool } from "../../src/tools/ava.js";
+import {
+  AskAvaSyncArgumentsSchema,
+  askAvaSyncTool,
+} from "../../src/tools/ava.js";
 import {
   CreateReportArgumentsSchema,
   GetReportConfigArgumentsSchema,
@@ -99,6 +112,10 @@ import {
   ListAssetsArgumentsSchema,
   listAssetsTool,
 } from "../../src/tools/assets.js";
+import {
+  SearchCustomersArgumentsSchema,
+  searchCustomersTool,
+} from "../../src/tools/searchCustomers.js";
 import {
   CreateAlertArgumentsSchema,
   createAlertTool,
@@ -252,7 +269,11 @@ import {
 
 import type { ApprovalStore } from "../../src/utils/approval.js";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
-import { type TrackingContext, runWithTracking } from "../../src/utils/util.js";
+import {
+  type TrackingContext,
+  runWithConsoleEnv,
+  runWithTracking,
+} from "../../src/utils/util.js";
 import { DurableObjectApprovalStore } from "./durableObjectApprovalStore.js";
 import {
   getErrorMessage,
@@ -269,8 +290,18 @@ import {
 } from "./mcpDiagnostics.js";
 import { adaptToolResponse } from "./responseAdapter.js";
 import { WIDGET_URI } from "./responseAdapter.js";
-import { promptsIncludingLegacyNames, resolvePromptMessages } from "../../src/prompts/index.js";
-import { resolveAuthServerUrl, resolveMcpResourceUrl, type DoitWorkerEnv, type UiDomainProvider } from "./runtimeEnv.js";
+import {
+  promptsIncludingLegacyNames,
+  resolvePromptMessages,
+} from "../../src/prompts/index.js";
+import {
+  resolveAuthServerUrl,
+  resolveMcpResourceUrl,
+  shouldUseConsoleProxy,
+  type ConsoleProxyBinding,
+  type DoitWorkerEnv,
+  type UiDomainProvider,
+} from "./runtimeEnv.js";
 import {
   buildFallbackWidgetResourceContent,
   buildWidgetResourceContent,
@@ -292,7 +323,7 @@ const MCP_NOTIFICATIONS_PING = {
 
 // SSE message to send the MCP ping notification and keep the connection alive.
 const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
-  `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`
+  `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`,
 );
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
 const SESSION_PUBLIC_MCP_URL_KEY = "sessionPublicMcpUrl";
@@ -329,7 +360,9 @@ function withMcpCorsHeaders(init?: HeadersInit): Headers {
   headers.set("Access-Control-Max-Age", "86400");
   headers.set(
     "Vary",
-    existingVary ? `${existingVary}, ${MCP_CORS_VARY_HEADERS}` : MCP_CORS_VARY_HEADERS
+    existingVary
+      ? `${existingVary}, ${MCP_CORS_VARY_HEADERS}`
+      : MCP_CORS_VARY_HEADERS,
   );
 
   return headers;
@@ -361,7 +394,7 @@ function logWidgetResourceError(
     hasPublicMcpUrl: boolean;
     hasClaudeUiDomain: boolean;
     hasOpenAiUiDomain: boolean;
-  }
+  },
 ) {
   console.error(
     message,
@@ -369,7 +402,7 @@ function logWidgetResourceError(
       reason: getErrorMessage(error),
       ...context,
     },
-    error
+    error,
   );
 }
 
@@ -411,7 +444,7 @@ export class DoitMCPAgent extends McpAgent {
       capabilities: {
         resources: {},
       },
-    }
+    },
   );
 
   // Per-instance MCP client info — stored on the DO instance, not a module global,
@@ -492,13 +525,16 @@ export class DoitMCPAgent extends McpAgent {
       return this.upstreamTokenCache.upstreamAccessToken;
     }
 
-    console.info("[mcp] exchanging OAuth MCP token for upstream DoiT API token", {
-      authMethod,
-      cachePresentForDifferentToken: Boolean(
-        this.upstreamTokenCache &&
+    console.info(
+      "[mcp] exchanging OAuth MCP token for upstream DoiT API token",
+      {
+        authMethod,
+        cachePresentForDifferentToken: Boolean(
+          this.upstreamTokenCache &&
           this.upstreamTokenCache.mcpAccessToken !== token,
-      ),
-    });
+        ),
+      },
+    );
     const exchanged = await exchangeMcpTokenForUpstreamToken({
       mcpToken: token,
       env: this.env as TokenExchangeEnv,
@@ -582,7 +618,7 @@ export class DoitMCPAgent extends McpAgent {
   }
 
   private async persistSessionUiDomainProvider(
-    provider: UiDomainProvider
+    provider: UiDomainProvider,
   ): Promise<void> {
     if (provider === "omit") {
       return;
@@ -597,7 +633,7 @@ export class DoitMCPAgent extends McpAgent {
   > {
     try {
       const provider = await this.ctx.storage.get<UiDomainProvider>(
-        SESSION_UI_DOMAIN_PROVIDER_KEY
+        SESSION_UI_DOMAIN_PROVIDER_KEY,
       );
 
       if (provider === "claude" || provider === "openai") {
@@ -610,7 +646,7 @@ export class DoitMCPAgent extends McpAgent {
         {
           reason: getErrorMessage(error),
         },
-        error
+        error,
       );
     }
 
@@ -649,14 +685,18 @@ export class DoitMCPAgent extends McpAgent {
       // ContextStorage (mirrors main); load it so a prior change_customer selection
       // is applied. Regular customer keys are pinned to their own domain (no
       // change_customer), and OAuth sessions keep the JWT-sealed context in memory.
-      if (this.props.authMethod === "apikey" && this.props.isDoitUser === "true") {
+      if (
+        this.props.authMethod === "apikey" &&
+        this.props.isDoitUser === "true"
+      ) {
         try {
-          customerContext = (await this.loadPersistedProps()) || customerContext;
+          customerContext =
+            (await this.loadPersistedProps()) || customerContext;
         } catch (error) {
           console.error(
             "[mcp] loadPersistedProps failed during tool call",
             { reason: getErrorMessage(error), toolName },
-            error
+            error,
           );
         }
       }
@@ -665,19 +705,35 @@ export class DoitMCPAgent extends McpAgent {
         ...args,
         customerContext,
       };
-      const result = await executeToolHandler(
-        toolName,
-        argsWithCustomerContext,
-        token,
-        {
-          trackingContext: this._mcpClientInfo,
-          convertResponse: (rawResult) => adaptToolResponse(toolName, rawResult),
-          // The identity the approval flow is bound to. `props.credential` is the
-          // OAuth-derived DoiT API key and is per-user, so staged actions cannot
-          // be consumed across users even if a token somehow leaked.
-          userKey: token,
-          approvalStore: this.getApprovalStore(),
-        }
+
+      // Console-targeting tools (e.g. search_customers) call console.doit.com /api/...
+      // which in prod must go through the CONSOLE_PROXY service binding. Expose that to
+      // the tool layer for the duration of this call; api.doit.com tools ignore it.
+      const workerEnv = this.env as DoitWorkerEnv & {
+        CONSOLE_PROXY?: ConsoleProxyBinding;
+      };
+      const consoleBaseUrl =
+        workerEnv.DOIT_CONSOLE_BASE ?? resolveAuthServerUrl(workerEnv);
+      const consoleProxy = workerEnv.CONSOLE_PROXY;
+      const consoleProxyFetch =
+        consoleProxy && shouldUseConsoleProxy(workerEnv, consoleBaseUrl)
+          ? (((input: any, init?: any) =>
+              consoleProxy.fetch(input, init)) as typeof fetch)
+          : undefined;
+
+      const result = await runWithConsoleEnv(
+        { baseUrl: consoleBaseUrl, proxyFetch: consoleProxyFetch },
+        () =>
+          executeToolHandler(toolName, argsWithCustomerContext, token, {
+            trackingContext: this._mcpClientInfo,
+            convertResponse: (rawResult) =>
+              adaptToolResponse(toolName, rawResult),
+            // The identity the approval flow is bound to. `props.credential` is the
+            // OAuth-derived DoiT API key and is per-user, so staged actions cannot
+            // be consumed across users even if a token somehow leaked.
+            userKey: token,
+            approvalStore: this.getApprovalStore(),
+          }),
       );
       return result;
     };
@@ -687,9 +743,8 @@ export class DoitMCPAgent extends McpAgent {
   private createChangeCustomerCallback() {
     return async (args: any) => {
       const token = await this.getToken();
-      const { handleChangeCustomerRequest } = await import(
-        "../../src/tools/changeCustomer.js"
-      );
+      const { handleChangeCustomerRequest } =
+        await import("../../src/tools/changeCustomer.js");
 
       // Update the customer context. Legacy API-key sessions persist the switch
       // per-apiKey in ContextStorage (mirrors main), so it survives reconnects.
@@ -703,14 +758,17 @@ export class DoitMCPAgent extends McpAgent {
       };
 
       // change_customer bypasses executeToolHandler, so wrap manually with tracking context.
-      return runWithTracking({ ...this._mcpClientInfo, mcpTool: "change_customer" }, async () => {
-        const response = await handleChangeCustomerRequest(
-          args,
-          token,
-          updateCustomerContext
-        );
-        return adaptToolResponse("change_customer", response);
-      });
+      return runWithTracking(
+        { ...this._mcpClientInfo, mcpTool: "change_customer" },
+        async () => {
+          const response = await handleChangeCustomerRequest(
+            args,
+            token,
+            updateCustomerContext,
+          );
+          return adaptToolResponse("change_customer", response);
+        },
+      );
     };
   }
 
@@ -731,7 +789,7 @@ export class DoitMCPAgent extends McpAgent {
           ui: { ...(tool._meta?.ui ?? {}), resourceUri: WIDGET_URI },
         },
       },
-      this.createToolCallback(tool.name)
+      this.createToolCallback(tool.name),
     );
     this._registeredToolCount += 1;
   }
@@ -743,10 +801,7 @@ export class DoitMCPAgent extends McpAgent {
       WIDGET_URI,
       { mimeType: WIDGET_RESOURCE_MIME_TYPE },
       async () => {
-        if (
-          !this._mcpClientInfo.mcpClient &&
-          !this._sessionUiDomainProvider
-        ) {
+        if (!this._mcpClientInfo.mcpClient && !this._sessionUiDomainProvider) {
           await this.loadPersistedSessionUiDomainProvider();
         }
         const logContext = {
@@ -770,7 +825,7 @@ export class DoitMCPAgent extends McpAgent {
           logWidgetResourceError(
             "[widget] config resolution failed",
             error,
-            logContext
+            logContext,
           );
           return {
             contents: [buildFallbackWidgetResourceContent(WIDGET_URI)],
@@ -798,14 +853,14 @@ export class DoitMCPAgent extends McpAgent {
           logWidgetResourceError(
             "[widget] resource content build failed",
             error,
-            logContext
+            logContext,
           );
           resourceContent = buildFallbackWidgetResourceContent(WIDGET_URI);
         }
         return {
           contents: [resourceContent],
         };
-      }
+      },
     );
     this._registeredResourceCount += 1;
   }
@@ -854,7 +909,7 @@ export class DoitMCPAgent extends McpAgent {
         void this.persistSessionUiDomainProvider(provider).catch((error) => {
           console.error(
             "[mcp] failed to persist session UI domain provider",
-            error
+            error,
           );
         });
       }
@@ -930,6 +985,7 @@ export class DoitMCPAgent extends McpAgent {
     // Assets tools
     this.registerTool(listAssetsTool, ListAssetsArgumentsSchema);
     this.registerTool(getAssetTool, GetAssetArgumentsSchema);
+    this.registerTool(searchCustomersTool, SearchCustomersArgumentsSchema);
 
     // CloudFlow tools
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
@@ -941,7 +997,6 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getAlertTool, GetAlertArgumentsSchema);
     this.registerTool(createAlertTool, CreateAlertArgumentsSchema);
     this.registerTool(updateAlertTool, UpdateAlertArgumentsSchema);
-
 
     // Organizations tools
     this.registerTool(listOrganizationsTool, ListOrganizationsArgumentsSchema);
@@ -1042,10 +1097,13 @@ export class DoitMCPAgent extends McpAgent {
             ...changeCustomerTool._meta,
             "ui/resourceUri": WIDGET_URI,
             "openai/outputTemplate": WIDGET_URI,
-            ui: { ...((changeCustomerTool._meta as any)?.ui ?? {}), resourceUri: WIDGET_URI },
+            ui: {
+              ...((changeCustomerTool._meta as any)?.ui ?? {}),
+              resourceUri: WIDGET_URI,
+            },
           },
         },
-        this.createChangeCustomerCallback()
+        this.createChangeCustomerCallback(),
       );
       this._registeredToolCount += 1;
     }
@@ -1058,7 +1116,7 @@ export class DoitMCPAgent extends McpAgent {
         {
           reason: getErrorMessage(error),
         },
-        error
+        error,
       );
     }
     this.installMcpMethodDiagnostics();
@@ -1094,18 +1152,15 @@ export class DoitMCPAgent extends McpAgent {
 function wrapSSEResponseWithKeepAlive(
   response: Response,
   traceId: string,
-  keepAliveIntervalMs: number = KEEP_ALIVE_INTERVAL_MS
+  keepAliveIntervalMs: number = KEEP_ALIVE_INTERVAL_MS,
 ): Response {
   const originalBody = response.body;
 
   if (!originalBody) {
-    console.log(
-      getMcpDiagnosticsMessage("sse stream missing body", traceId),
-      {
-        ...getMcpTraceContext(traceId),
-        status: response.status,
-      }
-    );
+    console.log(getMcpDiagnosticsMessage("sse stream missing body", traceId), {
+      ...getMcpTraceContext(traceId),
+      status: response.status,
+    });
     return response;
   }
 
@@ -1142,7 +1197,7 @@ function wrapSSEResponseWithKeepAlive(
                 ...getMcpTraceContext(traceId),
                 reason: getErrorMessage(error),
               },
-              error
+              error,
             );
             isStreamActive = false;
           }
@@ -1172,7 +1227,7 @@ function wrapSSEResponseWithKeepAlive(
             ...getMcpTraceContext(traceId),
             reason: getErrorMessage(error),
           },
-          error
+          error,
         );
         streamErrored = true;
         controller.error(error);
@@ -1201,7 +1256,7 @@ function wrapSSEResponseWithKeepAlive(
         keepAliveTimer = null;
       }
       return originalReader.cancel();
-    }
+    },
   });
 
   // Return a new Response with the transformed stream and original headers
@@ -1212,6 +1267,16 @@ function wrapSSEResponseWithKeepAlive(
   });
 }
 
+const DURABLE_OBJECT_STORAGE_TIMEOUT =
+  "Durable Object storage operation exceeded timeout";
+
+function isDurableObjectStorageTimeout(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes(DURABLE_OBJECT_STORAGE_TIMEOUT)
+  );
+}
+
 async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
   const url = new URL(req.url);
   const { pathname } = url;
@@ -1219,22 +1284,43 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
 
   // SSE transport: GET /sse opens the event stream; POST /sse/message sends messages
   if (pathname === "/sse" && req.method === "GET") {
-    const response = await logMcpRoute(
-      traceId,
-      "sse-open",
-      req,
-      () => DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx),
-      { wrapsKeepAlive: true }
-    );
+    let response: Response;
+    try {
+      response = await logMcpRoute(
+        traceId,
+        "sse-open",
+        req,
+        () => DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx),
+        { wrapsKeepAlive: true },
+      );
+    } catch (error) {
+      if (isDurableObjectStorageTimeout(error)) {
+        return new Response("Service temporarily unavailable", {
+          status: 503,
+          headers: { "Retry-After": "5" },
+        });
+      }
+      throw error;
+    }
     return wrapSSEResponseWithKeepAlive(response, traceId);
   }
   if (pathname === "/sse/message") {
     // Re-deliver the live (already-verified) OAuth session to the SSE session DO before
     // dispatch; the SDK pins the connect-time token and loses props on eviction otherwise.
     await applyOAuthSessionFromRequest(req, env, "sse");
-    return logMcpRoute(traceId, "sse-message", req, () =>
-      DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx)
-    );
+    try {
+      return await logMcpRoute(traceId, "sse-message", req, () =>
+        DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx),
+      );
+    } catch (error) {
+      if (isDurableObjectStorageTimeout(error)) {
+        return new Response("Service temporarily unavailable", {
+          status: 503,
+          headers: { "Retry-After": "5" },
+        });
+      }
+      throw error;
+    }
   }
 
   // StreamableHTTP transport: POST /mcp (native) or POST /sse (ChatGPT tries the
@@ -1246,32 +1332,58 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
       pathname === "/sse"
         ? new Request(
             Object.assign(new URL(req.url), { pathname: "/mcp" }).toString(),
-            req
+            req,
           )
         : req;
     // Re-deliver the live (already-verified) OAuth session to the streamable-HTTP session
     // DO before dispatch; the SDK pins the connect-time token and loses props on eviction.
     await applyOAuthSessionFromRequest(mcpReq, env, "streamable-http");
-    return logMcpRoute(
-      traceId,
-      "streamable-http",
-      req,
-      () => DoitMCPAgent.serve("/mcp").fetch(mcpReq, env, ctx),
-      {
-        rewrittenPathname,
-        isRewrite: pathname === "/sse",
-        rewrittenUrlPathname: new URL(mcpReq.url).pathname,
-        rewrittenHasAuthorization: Boolean(mcpReq.headers.get("authorization")),
-        rewrittenHasMcpSessionId: Boolean(mcpReq.headers.get("mcp-session-id")),
+    try {
+      return await logMcpRoute(
+        traceId,
+        "streamable-http",
+        req,
+        () => DoitMCPAgent.serve("/mcp").fetch(mcpReq, env, ctx),
+        {
+          rewrittenPathname,
+          isRewrite: pathname === "/sse",
+          rewrittenUrlPathname: new URL(mcpReq.url).pathname,
+          rewrittenHasAuthorization: Boolean(
+            mcpReq.headers.get("authorization"),
+          ),
+          rewrittenHasMcpSessionId: Boolean(
+            mcpReq.headers.get("mcp-session-id"),
+          ),
+        },
+      );
+    } catch (error) {
+      if (isDurableObjectStorageTimeout(error)) {
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: null,
+            error: { code: -32603, message: "Service temporarily unavailable" },
+          }),
+          {
+            status: 503,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": "5",
+            },
+          },
+        );
       }
-    );
+      throw error;
+    }
   }
 
-  return logMcpRoute(traceId, "not-found", req, async () =>
-    new Response("Not found", { status: 404 })
+  return logMcpRoute(
+    traceId,
+    "not-found",
+    req,
+    async () => new Response("Not found", { status: 404 }),
   );
 }
-
 
 // Workers types `ExecutionContext.props` as readonly, but McpAgent receives the
 // per-connection auth context via ctx.props. Assign through a writable view and
@@ -1279,7 +1391,7 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
 // @cloudflare/workers-oauth-provider package; we now own it.)
 function assignCtxProps(
   ctx: ExecutionContext,
-  props: Record<string, unknown>
+  props: Record<string, unknown>,
 ): void {
   const mutable = ctx as unknown as { props?: Record<string, unknown> };
   mutable.props = { ...(mutable.props ?? {}), ...props };
@@ -1387,7 +1499,7 @@ async function applyOAuthSessionFromRequest(
 async function handleRequest(
   req: Request,
   env: Env,
-  ctx: ExecutionContext
+  ctx: ExecutionContext,
 ): Promise<Response> {
   const url = new URL(req.url);
   const startedAt = Date.now();
@@ -1395,9 +1507,13 @@ async function handleRequest(
     ? getMcpTraceId(req)
     : undefined;
   const authHeader = req.headers.get("Authorization");
-  const mcpResourceUrl = resolveMcpResourceUrl(env as { MCP_RESOURCE_URL?: string });
+  const mcpResourceUrl = resolveMcpResourceUrl(
+    env as { MCP_RESOURCE_URL?: string },
+  );
   const isMcpPath =
-    url.pathname === "/sse" || url.pathname === "/sse/message" || url.pathname === "/mcp";
+    url.pathname === "/sse" ||
+    url.pathname === "/sse/message" ||
+    url.pathname === "/mcp";
 
   try {
     // Serve the RFC 9728 protected-resource metadata unauthenticated at ANY path
@@ -1406,8 +1522,12 @@ async function handleRequest(
     // here before the MCP auth check runs. The metadata points clients to the real
     // authorization server (auth.doit.com).
     if (isMcpDiscoveryPath(url.pathname)) {
-      const authServerUrl = resolveAuthServerUrl(env as { AUTH_SERVER_URL?: string });
-      const resource = resolveMcpResourceUrl(env as { MCP_RESOURCE_URL?: string });
+      const authServerUrl = resolveAuthServerUrl(
+        env as { AUTH_SERVER_URL?: string },
+      );
+      const resource = resolveMcpResourceUrl(
+        env as { MCP_RESOURCE_URL?: string },
+      );
       const response = Response.json({
         resource,
         authorization_servers: [authServerUrl],
@@ -1464,12 +1584,15 @@ async function handleRequest(
 
         if (!result.ok) {
           if (result.reason === "verification_unavailable") {
-            const response = new Response("Authentication service unavailable", {
-              status: 503,
-              headers: {
-                "Retry-After": "30",
+            const response = new Response(
+              "Authentication service unavailable",
+              {
+                status: 503,
+                headers: {
+                  "Retry-After": "30",
+                },
               },
-            });
+            );
             logMcpRequestComplete(traceId, response, startedAt);
             return response;
           }
@@ -1505,7 +1628,8 @@ async function handleRequest(
           const response = new Response("Unauthorized", {
             status: 401,
             headers: {
-              "WWW-Authenticate": wwwAuthenticateHeaderForResource(mcpResourceUrl),
+              "WWW-Authenticate":
+                wwwAuthenticateHeaderForResource(mcpResourceUrl),
             },
           });
           logMcpRequestComplete(traceId, response, startedAt);
@@ -1530,7 +1654,11 @@ async function handleRequest(
 
         // Dispatch through main's handleMcpRequest so we get its routing,
         // diagnostics, and SSE keep-alive wrapping.
-        const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
+        const response = await handleMcpRequest(
+          withMcpTraceId(req, traceId),
+          env,
+          ctx,
+        );
         if (response.status >= 400) {
           logMcpRequestComplete(traceId, response, startedAt);
         }
@@ -1540,11 +1668,7 @@ async function handleRequest(
 
     // Non-MCP, non-discovery requests (home page, widget, well-known metadata)
     // are served by the Hono app.
-    const response = await app.fetch(
-      withMcpTraceId(req, traceId),
-      env,
-      ctx
-    );
+    const response = await app.fetch(withMcpTraceId(req, traceId), env, ctx);
     if (response.status >= 400) {
       logMcpRequestComplete(traceId, response, startedAt);
     }
@@ -1560,7 +1684,11 @@ async function handleRequest(
 // worker cross-origin: answer the preflight, and expose WWW-Authenticate on the
 // 401 challenge so the client can discover the authorization server.
 export default {
-  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    req: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     if (req.method === "OPTIONS") {
       return mcpCorsPreflightResponse();
     }

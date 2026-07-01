@@ -88,6 +88,7 @@ import {
     handleUpdateReportRequest,
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
+import { handleSearchCustomersRequest } from "../tools/searchCustomers.js";
 import { handleGetActiveThemeRequest, handleGetThemeRequest, handleListThemesRequest } from "../tools/themes.js";
 import {
     // createTicketTool, // Re-enable alongside the WRITE_GATED_SUMMARIES entry below.
@@ -335,6 +336,9 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "get_asset":
             result = await handleGetAssetRequest(args, token);
+            break;
+        case "search_customers":
+            result = await handleSearchCustomersRequest(args, token);
             break;
         case "trigger_cloud_flow":
             result = await handleTriggerCloudFlowRequest(args, token);

@@ -10,6 +10,9 @@ export interface RuntimeEnvVars {
   OPENAI_UI_DOMAIN?: string;
   MCP_RESOURCE_URL?: string;
   AUTH_SERVER_URL?: string;
+  // Base URL for doer console-data endpoints (e.g. search_customers); falls back to
+  // AUTH_SERVER_URL. Lets local dev point console tools at a local customers service.
+  DOIT_CONSOLE_BASE?: string;
 }
 
 export type DoitWorkerEnv = Env & RuntimeEnvVars;

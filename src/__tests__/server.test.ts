@@ -276,6 +276,7 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
+import { searchCustomersTool } from "../tools/searchCustomers.js";
 import { getActiveThemeTool, getThemeTool, listThemesTool } from "../tools/themes.js";
 import {
     createTicketCommentTool,
@@ -370,6 +371,7 @@ describe("ListToolsRequestSchema handler", () => {
                 updateAllocationTool,
                 listAssetsTool,
                 getAssetTool,
+                searchCustomersTool,
                 listAlertsTool,
                 getAlertTool,
                 createAlertTool,
