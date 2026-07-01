@@ -209,8 +209,8 @@ import {
     handleUpdateReportRequest,
     handleValidateUserRequest,
 } from "../server.js";
+import { listAccountTeamTool } from "../tools/accountTeam.js";
 import { createAlertTool, getAlertTool, listAlertsTool, updateAlertTool } from "../tools/alerts.js";
-
 import {
     createAllocationTool,
     getAllocationTool,
@@ -227,9 +227,18 @@ import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { getAssetTool, listAssetsTool } from "../tools/assets.js";
 import { searchCustomersTool } from "../tools/searchCustomers.js";
 import { askAvaSyncTool } from "../tools/ava.js";
+import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
-import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
-import { triggerCloudFlowTool } from "../tools/cloudflow.js";
+import {
+    findCloudDiagramsTool,
+    getCloudDiagramCostSnapshotTool,
+    getCloudDiagramResourceRelationshipsTool,
+    getCloudDiagramsStatsTool,
+    listCloudDiagramActivityGroupsTool,
+    listCloudDiagramNodeActivitiesTool,
+    searchCloudDiagramsTool,
+} from "../tools/cloudDiagrams.js";
+import { getCloudFlowConnectionTool, listCloudFlowConnectionsTool, triggerCloudFlowTool } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
 // import { confirmActionTool } from "../tools/confirmAction.js"; // disabled with the approval gate
@@ -243,7 +252,7 @@ import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { getFolderTool, listFoldersTool } from "../tools/folders.js";
-import { getInsightResourcesTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
+import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import {
     assignObjectsToLabelTool,
@@ -255,6 +264,7 @@ import {
 } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { cloudOverviewTool } from "../tools/overview.js";
+import { getResourcePermissionsTool } from "../tools/permissions.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import { compareSpendTool, costBreakdownTool, costTrendTool } from "../tools/queryHelpers.js";
@@ -267,7 +277,7 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { getThemeTool, listThemesTool } from "../tools/themes.js";
+import { getActiveThemeTool, getThemeTool, listThemesTool } from "../tools/themes.js";
 import {
     createTicketCommentTool,
     createTicketTool,
@@ -340,6 +350,7 @@ describe("ListToolsRequestSchema handler", () => {
                 compareSpendTool,
                 listOptimizationRecommendationsTool,
                 getInsightResourcesTool,
+                getInsightTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,
@@ -367,6 +378,8 @@ describe("ListToolsRequestSchema handler", () => {
                 updateAlertTool,
 
                 triggerCloudFlowTool,
+                listCloudFlowConnectionsTool,
+                getCloudFlowConnectionTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
@@ -384,12 +397,21 @@ describe("ListToolsRequestSchema handler", () => {
                 getFolderTool,
                 listThemesTool,
                 getThemeTool,
+                getActiveThemeTool,
+                getAwsAccountTool,
+                getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,
                 updateDatahubDatasetTool,
                 sendDatahubEventsTool,
                 findCloudDiagramsTool,
+                getCloudDiagramsStatsTool,
+                searchCloudDiagramsTool,
+                getCloudDiagramCostSnapshotTool,
+                getCloudDiagramResourceRelationshipsTool,
+                listCloudDiagramActivityGroupsTool,
+                listCloudDiagramNodeActivitiesTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
@@ -400,6 +422,8 @@ describe("ListToolsRequestSchema handler", () => {
                 updateAnnotationTool,
                 listCommitmentsTool,
                 getCommitmentTool,
+                listAccountTeamTool,
+                getResourcePermissionsTool,
                 askAvaSyncTool,
                 // confirmActionTool, // disabled with the approval gate
             ],

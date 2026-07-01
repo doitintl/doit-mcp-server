@@ -14,6 +14,21 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.roles);
     }),
 
+    // Account Team
+    http.get(`${API_BASE}/customers/v1/accountTeam`, () => {
+        return HttpResponse.json(fixtures.accountTeam);
+    }),
+
+    // Resource Permissions (sharing)
+    http.get(`${API_BASE}/sharing/v1/:resourceType/:resourceId`, ({ params }) => {
+        const { resourceType, resourceId } = params;
+        const allowed = ["alerts", "budgets", "reports", "allocations"];
+        if (allowed.includes(resourceType as string) && resourceId === "budget-1") {
+            return HttpResponse.json(fixtures.resourcePermissions);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+
     // Users
     http.post(`${API_BASE}/iam/v1/users/invite`, () => {
         return HttpResponse.json(fixtures.inviteUser, { status: 201 });
@@ -264,10 +279,40 @@ export const mockedDoitApiHandlers = [
     http.post(`${API_BASE}/clouddiagrams/v1/scheme/find`, () => {
         return HttpResponse.json(fixtures.cloudDiagrams);
     }),
+    http.get(`${API_BASE}/clouddiagrams/v1/scheme/stats`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramsStats);
+    }),
+    http.post(`${API_BASE}/clouddiagrams/v1/scheme/search`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramsSearch);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/resources/:rid/relationships`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramResourceRelationships);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/costs`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramCostSnapshot);
+    }),
+    // Node activities must be registered before the catch-all /activity route
+    http.get(`${API_BASE}/clouddiagrams/v1/activity/node-activities`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramNodeActivities);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/activity`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramActivityGroups);
+    }),
 
     // CloudFlow trigger
     http.post(`${API_BASE}/cloudflow/v1/trigger/:flowId`, () => {
         return HttpResponse.json(fixtures.cloudflowTrigger);
+    }),
+
+    // CloudFlow connections (register specific :connectionId before the list route)
+    http.get(`${API_BASE}/cloudflow/v1/connections/:connectionId`, ({ params }) => {
+        if (params.connectionId === "conn-1") {
+            return HttpResponse.json(fixtures.cloudflowConnection);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/cloudflow/v1/connections`, () => {
+        return HttpResponse.json(fixtures.cloudflowConnections);
     }),
 
     // Budgets
@@ -299,6 +344,19 @@ export const mockedDoitApiHandlers = [
     }),
     http.get(`${API_BASE}/analytics/v1/commitment-manager`, () => {
         return HttpResponse.json(fixtures.commitments);
+    }),
+
+    // Themes (active)
+    http.get(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
+        return HttpResponse.json(fixtures.activeTheme);
+    }),
+
+    // Insights (retrieve a single insight by source + key)
+    http.get(`${API_BASE}/insights/v1/results/source/:source/insight/:key`, ({ params }) => {
+        if (params.source === "aws-cost-optimization-hub" && params.key === "delete-ebs-volumes") {
+            return HttpResponse.json(fixtures.insight);
+        }
+        return new HttpResponse(null, { status: 404 });
     }),
 
     // AVA

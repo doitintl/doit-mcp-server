@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
+    ACTIVE_THEME_URL,
+    getActiveThemeTool,
     getThemeTool,
+    handleGetActiveThemeRequest,
     handleGetThemeRequest,
     handleListThemesRequest,
     listThemesTool,
@@ -194,5 +197,72 @@ describe("get_theme", () => {
     it("should have correct tool name and be read-only", () => {
         expect(getThemeTool.name).toBe("get_theme");
         expect(getThemeTool.annotations.readOnlyHint).toBe(true);
+    });
+});
+
+describe("getActiveThemeTool metadata", () => {
+    it("should be read-only and named get_active_theme", () => {
+        expect(getActiveThemeTool.annotations.readOnlyHint).toBe(true);
+        expect(getActiveThemeTool.name).toBe("get_active_theme");
+    });
+});
+
+describe("get_active_theme", () => {
+    const mockToken = "fake-token";
+
+    it("should call makeDoitRequest with the active-theme URL and return the active theme", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ themeId: "theme-1" });
+
+        const response = await handleGetActiveThemeRequest({}, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(ACTIVE_THEME_URL, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.themeId).toBe("theme-1");
+    });
+
+    it("should return the default sentinel when no custom theme is active", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ themeId: "default" });
+
+        const response = await handleGetActiveThemeRequest({}, mockToken);
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.themeId).toBe("default");
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ themeId: "theme-1" });
+
+        await handleGetActiveThemeRequest({ customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(ACTIVE_THEME_URL, mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleGetActiveThemeRequest({}, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("active theme") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleGetActiveThemeRequest({}, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
     });
 });

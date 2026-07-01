@@ -16,3 +16,11 @@ export type ThemesResponse = {
     rowCount?: number;
     themes: CustomTheme[];
 };
+
+export type ActiveTheme = {
+    /**
+     * Identifier of the active theme. The reserved sentinel "default" is returned
+     * when the user is using the built-in default (no custom or preset theme stored).
+     */
+    themeId: string;
+};

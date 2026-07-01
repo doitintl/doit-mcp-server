@@ -61,8 +61,10 @@ import {
 import {
   ListInsightsArgumentsSchema,
   GetInsightResourcesArgumentsSchema,
+  GetInsightArgumentsSchema,
   listOptimizationRecommendationsTool,
   getInsightResourcesTool,
+  getInsightTool,
 } from "../../src/tools/insights.js";
 import {
   ValidateUserArgumentsSchema,
@@ -129,6 +131,10 @@ import {
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
 import {
+  GetCloudFlowConnectionArgumentsSchema,
+  getCloudFlowConnectionTool,
+  ListCloudFlowConnectionsArgumentsSchema,
+  listCloudFlowConnectionsTool,
   TriggerCloudFlowArgumentsSchema,
   triggerCloudFlowTool,
 } from "../../src/tools/cloudflow.js";
@@ -159,6 +165,14 @@ import {
   listRolesTool,
 } from "../../src/tools/roles.js";
 import {
+  ListAccountTeamArgumentsSchema,
+  listAccountTeamTool,
+} from "../../src/tools/accountTeam.js";
+import {
+  GetResourcePermissionsArgumentsSchema,
+  getResourcePermissionsTool,
+} from "../../src/tools/permissions.js";
+import {
   AssignObjectsToLabelArgumentsSchema,
   assignObjectsToLabelTool,
   CreateLabelArgumentsSchema,
@@ -179,8 +193,16 @@ import {
   listFoldersTool,
 } from "../../src/tools/folders.js";
 import {
+  GetAwsAccountArgumentsSchema,
+  getAwsAccountTool,
+  GetCloudConnectSupportedFeaturesArgumentsSchema,
+  getCloudConnectSupportedFeaturesTool,
+} from "../../src/tools/awsAccounts.js";
+import {
   GetThemeArgumentsSchema,
   getThemeTool,
+  GetActiveThemeArgumentsSchema,
+  getActiveThemeTool,
   ListThemesArgumentsSchema,
   listThemesTool,
 } from "../../src/tools/themes.js";
@@ -191,6 +213,18 @@ import {
 import {
   FindCloudDiagramsArgumentsSchema,
   findCloudDiagramsTool,
+  GetCloudDiagramCostSnapshotArgumentsSchema,
+  getCloudDiagramCostSnapshotTool,
+  GetCloudDiagramResourceRelationshipsArgumentsSchema,
+  getCloudDiagramResourceRelationshipsTool,
+  GetCloudDiagramsStatsArgumentsSchema,
+  getCloudDiagramsStatsTool,
+  ListCloudDiagramActivityGroupsArgumentsSchema,
+  listCloudDiagramActivityGroupsTool,
+  ListCloudDiagramNodeActivitiesArgumentsSchema,
+  listCloudDiagramNodeActivitiesTool,
+  SearchCloudDiagramsArgumentsSchema,
+  searchCloudDiagramsTool,
 } from "../../src/tools/cloudDiagrams.js";
 import {
   CreateBudgetArgumentsSchema,
@@ -292,6 +326,7 @@ const SSE_KEEP_ALIVE_MESSAGE = new TextEncoder().encode(
   `event: message\ndata: ${JSON.stringify(MCP_NOTIFICATIONS_PING)}\n\n`,
 );
 const SESSION_UI_DOMAIN_PROVIDER_KEY = "sessionUiDomainProvider";
+const SESSION_PUBLIC_MCP_URL_KEY = "sessionPublicMcpUrl";
 const MCP_CORS_ALLOW_HEADERS = [
   "authorization",
   "content-type",
@@ -389,6 +424,11 @@ export class ContextStorage extends DurableObject {
   }
 }
 
+// Durable key for the latest verified access token. The SDK pins the connect-time token in
+// the DO and an evicted DO re-wakes with that stale token, so we persist the live token here
+// and getToken() reads it in preference to props.credential. See applyOAuthSession.
+const LIVE_CREDENTIAL_STORAGE_KEY = "mcp:liveCredential";
+
 export class DoitMCPAgent extends McpAgent {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -411,6 +451,7 @@ export class DoitMCPAgent extends McpAgent {
   // so there is no cross-session bleed between DO instances sharing the same isolate.
   private _mcpClientInfo: TrackingContext = {};
   private _sessionUiDomainProvider?: UiDomainProvider;
+  private _sessionPublicMcpUrl?: string;
   private _registeredPromptCount = 0;
   private _registeredResourceCount = 0;
   private _registeredToolCount = 0;
@@ -439,7 +480,19 @@ export class DoitMCPAgent extends McpAgent {
   // exchange the MCP-scoped token for a separate upstream token before calling
   // DoiT APIs, per the MCP authorization spec.
   private async getToken(): Promise<string> {
-    const token = this.props.apiKey as string;
+    // applyOAuthSession is called before every message dispatch and keeps
+    // this.props.credential current in memory, so read from there on the hot path.
+    // Fall back to durable storage only when props were lost (DO evicted before
+    // applyOAuthSession ran — abnormal, but guards against a stale connect-time token).
+    let token = this.props.credential as string;
+    if (!token) {
+      const persisted = await this.ctx.storage.get<string>(
+        LIVE_CREDENTIAL_STORAGE_KEY
+      );
+      if (typeof persisted === "string" && persisted) {
+        token = persisted;
+      }
+    }
     const authMethod = this.props.authMethod as string | undefined;
     console.info("[mcp] resolving upstream DoiT API token", {
       authMethod,
@@ -496,28 +549,64 @@ export class DoitMCPAgent extends McpAgent {
     return exchanged.accessToken;
   }
 
+  // Re-deliver the live, Worker-verified OAuth session to the DO. The SDK delivers props
+  // only at connect/initialize and never refreshes them on later messages, so the
+  // connect-time token goes stale (~15 min) and an evicted DO re-wakes with the stale token.
+  // We rebuild the session from the token's own (already-verified) claims. The token is
+  // persisted to durable storage only when it changes, so getToken() can recover it after
+  // DO eviction without incurring a storage write on every message. customerContext is kept
+  // when already set so a mid-session change_customer switch isn't reverted. Called per
+  // message via applyOAuthSessionFromRequest.
+  async applyOAuthSession(token: string): Promise<void> {
+    if (!token || token === DEMO_TOKEN) {
+      return;
+    }
+    const claims = decodeSessionClaims(token);
+    if (!claims) {
+      return;
+    }
+    const credentialChanged = token !== (this.props?.credential as string | undefined);
+    this.props = {
+      ...(this.props ?? {}),
+      credential: token,
+      authMethod: "oauth",
+      customerContext:
+        (this.props?.customerContext as string) || claims.customerContext,
+      userId: claims.userId,
+      cid: claims.cid,
+      flowId: claims.flowId,
+      isDoitUser: claims.isDoitUser,
+    };
+    if (credentialChanged) {
+      // Persist the new token so getToken() can recover it after DO eviction.
+      await this.ctx.storage.put(LIVE_CREDENTIAL_STORAGE_KEY, token);
+      // Drop the cached upstream token so getToken() re-exchanges with the live one.
+      this.upstreamTokenCache = undefined;
+    }
+  }
+
   // Persist the legacy session's customerContext to the ContextStorage DO,
-  // keyed by apiKey, so a change_customer selection survives reconnects (mirrors
-  // main). No-op when CONTEXT_STORAGE is unbound (e.g. test harnesses).
+  // keyed by the session credential, so a change_customer selection survives
+  // reconnects (mirrors main). No-op when CONTEXT_STORAGE is unbound (e.g. test harnesses).
   private async saveProps(): Promise<void> {
     const env = this.env as DoitWorkerEnv;
-    const apiKey = this.props.apiKey as string;
+    const credential = this.props.credential as string;
     const customerContext = this.props.customerContext as string;
-    if (apiKey && env?.CONTEXT_STORAGE) {
-      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
+    if (credential && env?.CONTEXT_STORAGE) {
+      const id = env.CONTEXT_STORAGE.idFromName(credential);
       const contextStorage = env.CONTEXT_STORAGE.get(id);
       await contextStorage.saveContext(customerContext);
     }
   }
 
-  // Load the persisted customerContext for this apiKey from the ContextStorage DO.
+  // Load the persisted customerContext for this credential from the ContextStorage DO.
   // Returns the persisted value (and updates this.props) when present, else the
   // current in-memory context. Used only on legacy (API-key) sessions.
   private async loadPersistedProps(): Promise<string | null> {
     const env = this.env as DoitWorkerEnv;
-    const apiKey = this.props.apiKey as string;
-    if (apiKey && env?.CONTEXT_STORAGE) {
-      const id = env.CONTEXT_STORAGE.idFromName(apiKey);
+    const credential = this.props.credential as string;
+    if (credential && env?.CONTEXT_STORAGE) {
+      const id = env.CONTEXT_STORAGE.idFromName(credential);
       const contextStorage = env.CONTEXT_STORAGE.get(id);
       const persisted = await contextStorage.loadContext();
       if (persisted) {
@@ -562,6 +651,28 @@ export class DoitMCPAgent extends McpAgent {
     }
 
     return undefined;
+  }
+
+  private getSessionPublicMcpUrl(): string | undefined {
+    if (this._sessionPublicMcpUrl) {
+      return this._sessionPublicMcpUrl;
+    }
+
+    const publicMcpUrl = this.props?.[SESSION_PUBLIC_MCP_URL_KEY];
+    if (typeof publicMcpUrl !== "string" || !publicMcpUrl) {
+      return undefined;
+    }
+
+    try {
+      new URL(publicMcpUrl);
+      this._sessionPublicMcpUrl = publicMcpUrl;
+      return publicMcpUrl;
+    } catch {
+      console.warn("[widget] ignoring invalid session public MCP URL", {
+        publicMcpUrl,
+      });
+      return undefined;
+    }
   }
 
   // Generic callback factory for tools
@@ -617,7 +728,7 @@ export class DoitMCPAgent extends McpAgent {
             trackingContext: this._mcpClientInfo,
             convertResponse: (rawResult) =>
               adaptToolResponse(toolName, rawResult),
-            // The identity the approval flow is bound to. `props.apiKey` is the
+            // The identity the approval flow is bound to. `props.credential` is the
             // OAuth-derived DoiT API key and is per-user, so staged actions cannot
             // be consumed across users even if a token somehow leaked.
             userKey: token,
@@ -697,6 +808,7 @@ export class DoitMCPAgent extends McpAgent {
           mcpClient: this._mcpClientInfo.mcpClient,
           mcpClientVersion: this._mcpClientInfo.mcpClientVersion,
           sessionProvider: this._sessionUiDomainProvider,
+          hasSessionPublicMcpUrl: Boolean(this.getSessionPublicMcpUrl()),
           hasWorkerUrl: Boolean(env.WORKER_URL),
           hasPublicMcpUrl: Boolean(env.PUBLIC_MCP_URL),
           hasClaudeUiDomain: Boolean(env.CLAUDE_UI_DOMAIN),
@@ -706,7 +818,9 @@ export class DoitMCPAgent extends McpAgent {
         let publicMcpUrl: string;
         try {
           widgetFetchOrigin = resolveWidgetFetchOrigin(env);
-          publicMcpUrl = resolvePublicMcpUrl(env, widgetFetchOrigin);
+          publicMcpUrl =
+            this.getSessionPublicMcpUrl() ??
+            resolvePublicMcpUrl(env, widgetFetchOrigin);
         } catch (error) {
           logWidgetResourceError(
             "[widget] config resolution failed",
@@ -768,7 +882,7 @@ export class DoitMCPAgent extends McpAgent {
     console.log(getMcpDiagnosticsMessage("init start"), {
       serverName: SERVER_NAME_WEB,
       serverVersion: SERVER_VERSION,
-      hasApiKey: Boolean(this.props.apiKey),
+      hasCredential: Boolean(this.props.credential),
       hasCustomerContext: Boolean(this.props.customerContext),
       isDoitUser: this.props.isDoitUser,
     });
@@ -836,14 +950,9 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(costBreakdownTool, CostBreakdownArgumentsSchema);
     this.registerTool(costTrendTool, CostTrendArgumentsSchema);
     this.registerTool(compareSpendTool, CompareSpendArgumentsSchema);
-    this.registerTool(
-      listOptimizationRecommendationsTool,
-      ListInsightsArgumentsSchema,
-    );
-    this.registerTool(
-      getInsightResourcesTool,
-      GetInsightResourcesArgumentsSchema,
-    );
+    this.registerTool(listOptimizationRecommendationsTool, ListInsightsArgumentsSchema);
+    this.registerTool(getInsightResourcesTool, GetInsightResourcesArgumentsSchema);
+    this.registerTool(getInsightTool, GetInsightArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);
     this.registerTool(createReportTool, CreateReportArgumentsSchema);
@@ -886,6 +995,8 @@ export class DoitMCPAgent extends McpAgent {
 
     // CloudFlow tools
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
+    this.registerTool(listCloudFlowConnectionsTool, ListCloudFlowConnectionsArgumentsSchema);
+    this.registerTool(getCloudFlowConnectionTool, GetCloudFlowConnectionArgumentsSchema);
 
     // Alerts tools
     this.registerTool(listAlertsTool, ListAlertsArgumentsSchema);
@@ -906,6 +1017,12 @@ export class DoitMCPAgent extends McpAgent {
 
     // Roles tools
     this.registerTool(listRolesTool, ListRolesArgumentsSchema);
+
+    // Account Team tools
+    this.registerTool(listAccountTeamTool, ListAccountTeamArgumentsSchema);
+
+    // Permissions tools
+    this.registerTool(getResourcePermissionsTool, GetResourcePermissionsArgumentsSchema);
 
     // Products tools
     this.registerTool(listProductsTool, ListProductsArgumentsSchema);
@@ -931,6 +1048,11 @@ export class DoitMCPAgent extends McpAgent {
     // Themes tools
     this.registerTool(listThemesTool, ListThemesArgumentsSchema);
     this.registerTool(getThemeTool, GetThemeArgumentsSchema);
+    this.registerTool(getActiveThemeTool, GetActiveThemeArgumentsSchema);
+
+    // AWS Account Management tools
+    this.registerTool(getAwsAccountTool, GetAwsAccountArgumentsSchema);
+    this.registerTool(getCloudConnectSupportedFeaturesTool, GetCloudConnectSupportedFeaturesArgumentsSchema);
 
     // DataHub Datasets tools
     this.registerTool(
@@ -950,6 +1072,12 @@ export class DoitMCPAgent extends McpAgent {
 
     // Cloud Diagrams tools
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);
+    this.registerTool(getCloudDiagramsStatsTool, GetCloudDiagramsStatsArgumentsSchema);
+    this.registerTool(searchCloudDiagramsTool, SearchCloudDiagramsArgumentsSchema);
+    this.registerTool(getCloudDiagramCostSnapshotTool, GetCloudDiagramCostSnapshotArgumentsSchema);
+    this.registerTool(getCloudDiagramResourceRelationshipsTool, GetCloudDiagramResourceRelationshipsArgumentsSchema);
+    this.registerTool(listCloudDiagramActivityGroupsTool, ListCloudDiagramActivityGroupsArgumentsSchema);
+    this.registerTool(listCloudDiagramNodeActivitiesTool, ListCloudDiagramNodeActivitiesArgumentsSchema);
 
     // Budgets tools
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);
@@ -1019,13 +1147,13 @@ export class DoitMCPAgent extends McpAgent {
       promptCount: this._registeredPromptCount,
       resourceCount: this._registeredResourceCount,
       hasChangeCustomerTool: this.props.isDoitUser === "true",
-      hasApiKey: Boolean(this.props.apiKey),
+      hasCredential: Boolean(this.props.credential),
       hasCustomerContext: Boolean(this.props.customerContext),
       isDoitUser: this.props.isDoitUser,
     });
 
     console.log(getMcpDiagnosticsMessage("init complete"), {
-      hasApiKey: Boolean(this.props.apiKey),
+      hasCredential: Boolean(this.props.credential),
       hasCustomerContext: Boolean(this.props.customerContext),
       isDoitUser: this.props.isDoitUser,
       sessionProvider: this._sessionUiDomainProvider,
@@ -1198,6 +1326,9 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
     return wrapSSEResponseWithKeepAlive(response, traceId);
   }
   if (pathname === "/sse/message") {
+    // Re-deliver the live (already-verified) OAuth session to the SSE session DO before
+    // dispatch; the SDK pins the connect-time token and loses props on eviction otherwise.
+    await applyOAuthSessionFromRequest(req, env, "sse");
     try {
       return await logMcpRoute(traceId, "sse-message", req, () =>
         DoitMCPAgent.serveSSE("/sse").fetch(req, env, ctx),
@@ -1225,6 +1356,9 @@ async function handleMcpRequest(req: Request, env: Env, ctx: ExecutionContext) {
             req,
           )
         : req;
+    // Re-deliver the live (already-verified) OAuth session to the streamable-HTTP session
+    // DO before dispatch; the SDK pins the connect-time token and loses props on eviction.
+    await applyOAuthSessionFromRequest(mcpReq, env, "streamable-http");
     try {
       return await logMcpRoute(
         traceId,
@@ -1284,6 +1418,33 @@ function assignCtxProps(
   mutable.props = { ...(mutable.props ?? {}), ...props };
 }
 
+function getSessionPublicMcpUrlFromRequest(req: Request): string | undefined {
+  const url = new URL(req.url);
+  if (url.pathname !== "/sse" && url.pathname !== "/mcp") {
+    return undefined;
+  }
+
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+function withSessionPublicMcpUrl(
+  req: Request,
+  props: Record<string, unknown>
+): Record<string, unknown> {
+  const sessionPublicMcpUrl = getSessionPublicMcpUrlFromRequest(req);
+
+  if (!sessionPublicMcpUrl) {
+    return props;
+  }
+
+  return {
+    ...props,
+    [SESSION_PUBLIC_MCP_URL_KEY]: sessionPublicMcpUrl,
+  };
+}
+
 // Helper function to extract token from Authorization header.
 // Supports both "Bearer <token>" and bare "<token>" formats.
 function extractTokenFromAuthHeader(authHeader: string): string | null {
@@ -1293,6 +1454,66 @@ function extractTokenFromAuthHeader(authHeader: string): string | null {
     return bearerMatch[1];
   }
   return authHeader;
+}
+
+// Decode (without verifying) the session claims a DoiT MCP access token carries, to rebuild
+// the DO's OAuth props on every message. The token was already verified at the Worker entry.
+function decodeSessionClaims(token: string): {
+  customerContext: string;
+  userId: string;
+  cid: string;
+  flowId: string;
+  isDoitUser: string;
+} | null {
+  try {
+    const segment = token.split(".")[1];
+    const c = JSON.parse(
+      atob(segment.replace(/-/g, "+").replace(/_/g, "/"))
+    ) as Record<string, unknown>;
+    if (typeof c.sub !== "string") return null;
+    return {
+      customerContext:
+        typeof c.customer_context === "string" ? c.customer_context : "",
+      userId: c.sub,
+      cid: typeof c.cid === "string" ? c.cid : "",
+      flowId: typeof c.flow_id === "string" ? c.flow_id : "",
+      isDoitUser: c.doit_employee === true ? "true" : "false",
+    };
+  } catch {
+    return null;
+  }
+}
+
+type McpSessionKind = "sse" | "streamable-http";
+
+// Push the live, Worker-verified token to the session DO before the SDK dispatches the
+// message; the SDK doesn't re-deliver it (see DoitMCPAgent.applyOAuthSession). The DO id
+// mirrors the SDK's addressing (agents@^0.0.95, binding MCP_OBJECT): `${kind}:${sessionId}`,
+// sessionId from the ?sessionId= query (SSE) or the mcp-session-id header (streamable-HTTP).
+async function applyOAuthSessionFromRequest(
+  req: Request,
+  env: Env,
+  kind: McpSessionKind
+): Promise<void> {
+  // No session id => the connection/initialize request; the SDK delivers props via _init.
+  const sessionId =
+    kind === "sse"
+      ? new URL(req.url).searchParams.get("sessionId")
+      : req.headers.get("mcp-session-id");
+  if (!sessionId) return;
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader ? extractTokenFromAuthHeader(authHeader) : null;
+  if (!token || token === DEMO_TOKEN) return;
+  try {
+    const namespace = env.MCP_OBJECT;
+    const stub = namespace.get(namespace.idFromName(`${kind}:${sessionId}`));
+    await stub.applyOAuthSession(token);
+  } catch (err) {
+    console.warn("[mcp] session credential refresh skipped (transient)", {
+      kind,
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 // Main request handler that checks for Authorization header
@@ -1362,18 +1583,17 @@ async function handleRequest(
           token === DEMO_TOKEN &&
           (env as { DEMO_MODE_ENABLED?: string }).DEMO_MODE_ENABLED === "true"
         ) {
-          assignCtxProps(ctx, {
-            apiKey: DEMO_TOKEN,
-            customerContext: "demo",
-            authMethod: "oauth",
-            userId: "demo",
-            isDoitUser: "false",
-          });
-          const response = await handleMcpRequest(
-            withMcpTraceId(req, traceId),
-            env,
+          assignCtxProps(
             ctx,
+            withSessionPublicMcpUrl(req, {
+              credential: DEMO_TOKEN,
+              customerContext: "demo",
+              authMethod: "oauth",
+              userId: "demo",
+              isDoitUser: "false",
+            })
           );
+          const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
           if (response.status >= 400) {
             logMcpRequestComplete(traceId, response, startedAt);
           }
@@ -1411,7 +1631,7 @@ async function handleRequest(
                 hasCustomerContext: Boolean(legacy.customerContext),
               });
               assignCtxProps(ctx, {
-                apiKey: token,
+                credential: token,
                 customerContext: legacy.customerContext,
                 authMethod: "apikey",
                 userId: legacy.email,
@@ -1440,15 +1660,18 @@ async function handleRequest(
         // OAuth-issued token: customer context is sealed in the JWT claim.
         // Ignore any customerContext query param to close the override loophole.
         // change_customer is gated on isDoitUser — only DoiT employees may switch context.
-        assignCtxProps(ctx, {
-          apiKey: token,
-          customerContext: result.claims.customerContext,
-          authMethod: "oauth",
-          userId: result.claims.userId,
-          cid: result.claims.cid,
-          flowId: result.claims.flowId,
-          isDoitUser: result.claims.isDoitEmployee ? "true" : "false",
-        });
+        assignCtxProps(
+          ctx,
+          withSessionPublicMcpUrl(req, {
+            credential: token,
+            customerContext: result.claims.customerContext,
+            authMethod: "oauth",
+            userId: result.claims.userId,
+            cid: result.claims.cid,
+            flowId: result.claims.flowId,
+            isDoitUser: result.claims.isDoitEmployee ? "true" : "false",
+          })
+        );
 
         // Dispatch through main's handleMcpRequest so we get its routing,
         // diagnostics, and SSE keep-alive wrapping.

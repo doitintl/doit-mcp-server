@@ -1,11 +1,11 @@
 import { z } from "zod";
+import { handleListAccountTeamRequest } from "../tools/accountTeam.js";
 import {
     handleCreateAlertRequest,
     handleGetAlertRequest,
     handleListAlertsRequest,
     handleUpdateAlertRequest,
 } from "../tools/alerts.js";
-
 import {
     handleCreateAllocationRequest,
     handleGetAllocationRequest,
@@ -22,14 +22,27 @@ import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies
 import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
 import { handleSearchCustomersRequest } from "../tools/searchCustomers.js";
 import { handleAskAvaSyncRequest } from "../tools/ava.js";
+import { handleGetAwsAccountRequest, handleGetCloudConnectSupportedFeaturesRequest } from "../tools/awsAccounts.js";
 import {
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
     handleListBudgetsRequest,
     handleUpdateBudgetRequest,
 } from "../tools/budgets.js";
-import { handleFindCloudDiagramsRequest } from "../tools/cloudDiagrams.js";
-import { handleTriggerCloudFlowRequest } from "../tools/cloudflow.js";
+import {
+    handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramCostSnapshotRequest,
+    handleGetCloudDiagramResourceRelationshipsRequest,
+    handleGetCloudDiagramsStatsRequest,
+    handleListCloudDiagramActivityGroupsRequest,
+    handleListCloudDiagramNodeActivitiesRequest,
+    handleSearchCloudDiagramsRequest,
+} from "../tools/cloudDiagrams.js";
+import {
+    handleGetCloudFlowConnectionRequest,
+    handleListCloudFlowConnectionsRequest,
+    handleTriggerCloudFlowRequest,
+} from "../tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "../tools/cloudIncidents.js";
 import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "../tools/commitmentManager.js";
 import { handleConfirmActionRequest } from "../tools/confirmAction.js";
@@ -43,7 +56,11 @@ import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetFolderRequest, handleListFoldersRequest } from "../tools/folders.js";
-import { handleGetInsightResourcesRequest, handleListInsightsRequest } from "../tools/insights.js";
+import {
+    handleGetInsightRequest,
+    handleGetInsightResourcesRequest,
+    handleListInsightsRequest,
+} from "../tools/insights.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
 import {
     handleAssignObjectsToLabelRequest,
@@ -55,6 +72,7 @@ import {
 } from "../tools/labels.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleCloudOverviewRequest } from "../tools/overview.js";
+import { handleGetResourcePermissionsRequest } from "../tools/permissions.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
 import {
@@ -71,7 +89,7 @@ import {
     handleUpdateReportRequest,
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
-import { handleGetThemeRequest, handleListThemesRequest } from "../tools/themes.js";
+import { handleGetActiveThemeRequest, handleGetThemeRequest, handleListThemesRequest } from "../tools/themes.js";
 import {
     // createTicketTool, // Re-enable alongside the WRITE_GATED_SUMMARIES entry below.
     handleCreateTicketCommentRequest,
@@ -253,6 +271,9 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
         case "get_insight_resources":
             result = await handleGetInsightResourcesRequest(args, token);
             break;
+        case "get_insight":
+            result = await handleGetInsightRequest(args, token);
+            break;
         case "get_report_results":
             result = await handleGetReportResultsRequest(args, token);
             break;
@@ -322,6 +343,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
         case "trigger_cloud_flow":
             result = await handleTriggerCloudFlowRequest(args, token);
             break;
+        case "list_cloudflow_connections":
+            result = await handleListCloudFlowConnectionsRequest(args, token);
+            break;
+        case "get_cloudflow_connection":
+            result = await handleGetCloudFlowConnectionRequest(args, token);
+            break;
         case "list_alerts":
             result = await handleListAlertsRequest(args, token);
             break;
@@ -380,11 +407,20 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
         case "get_folder":
             result = await handleGetFolderRequest(args, token);
             break;
+        case "get_aws_account":
+            result = await handleGetAwsAccountRequest(args, token);
+            break;
+        case "get_cloud_connect_supported_features":
+            result = await handleGetCloudConnectSupportedFeaturesRequest(args, token);
+            break;
         case "list_themes":
             result = await handleListThemesRequest(args, token);
             break;
         case "get_theme":
             result = await handleGetThemeRequest(args, token);
+            break;
+        case "get_active_theme":
+            result = await handleGetActiveThemeRequest(args, token);
             break;
         case "list_datahub_datasets":
             result = await handleListDatahubDatasetsRequest(args, token);
@@ -403,6 +439,24 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "find_cloud_diagrams":
             result = await handleFindCloudDiagramsRequest(args, token);
+            break;
+        case "get_cloud_diagrams_stats":
+            result = await handleGetCloudDiagramsStatsRequest(args, token);
+            break;
+        case "search_cloud_diagrams":
+            result = await handleSearchCloudDiagramsRequest(args, token);
+            break;
+        case "get_cloud_diagram_cost_snapshot":
+            result = await handleGetCloudDiagramCostSnapshotRequest(args, token);
+            break;
+        case "get_cloud_diagram_resource_relationships":
+            result = await handleGetCloudDiagramResourceRelationshipsRequest(args, token);
+            break;
+        case "list_cloud_diagram_activity_groups":
+            result = await handleListCloudDiagramActivityGroupsRequest(args, token);
+            break;
+        case "list_cloud_diagram_node_activities":
+            result = await handleListCloudDiagramNodeActivitiesRequest(args, token);
             break;
         case "list_budgets":
             result = await handleListBudgetsRequest(args, token);
@@ -436,6 +490,12 @@ async function runOriginalDispatch(toolName: string, args: any, token: string): 
             break;
         case "ask_ava_sync":
             result = await handleAskAvaSyncRequest(args, token);
+            break;
+        case "list_account_team":
+            result = await handleListAccountTeamRequest(args, token);
+            break;
+        case "get_resource_permissions":
+            result = await handleGetResourcePermissionsRequest(args, token);
             break;
         default:
             return createErrorResponse(`Unknown tool: ${toolName}`);

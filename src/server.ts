@@ -10,6 +10,7 @@ import {
     McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
+import { handleListAccountTeamRequest, listAccountTeamTool } from "./tools/accountTeam.js";
 import {
     createAlertTool,
     getAlertTool,
@@ -43,7 +44,12 @@ import {
 import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
 import { getAssetTool, handleGetAssetRequest, handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
 import { askAvaSyncTool, handleAskAvaSyncRequest } from "./tools/ava.js";
-import { handleSearchCustomersRequest, searchCustomersTool } from "./tools/searchCustomers.js";
+import {
+    getAwsAccountTool,
+    getCloudConnectSupportedFeaturesTool,
+    handleGetAwsAccountRequest,
+    handleGetCloudConnectSupportedFeaturesRequest,
+} from "./tools/awsAccounts.js";
 import {
     createBudgetTool,
     getBudgetTool,
@@ -54,8 +60,30 @@ import {
     listBudgetsTool,
     updateBudgetTool,
 } from "./tools/budgets.js";
-import { findCloudDiagramsTool, handleFindCloudDiagramsRequest } from "./tools/cloudDiagrams.js";
-import { handleTriggerCloudFlowRequest, triggerCloudFlowTool } from "./tools/cloudflow.js";
+import {
+    findCloudDiagramsTool,
+    getCloudDiagramCostSnapshotTool,
+    getCloudDiagramResourceRelationshipsTool,
+    getCloudDiagramsStatsTool,
+    handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramCostSnapshotRequest,
+    handleGetCloudDiagramResourceRelationshipsRequest,
+    handleGetCloudDiagramsStatsRequest,
+    handleListCloudDiagramActivityGroupsRequest,
+    handleListCloudDiagramNodeActivitiesRequest,
+    handleSearchCloudDiagramsRequest,
+    listCloudDiagramActivityGroupsTool,
+    listCloudDiagramNodeActivitiesTool,
+    searchCloudDiagramsTool,
+} from "./tools/cloudDiagrams.js";
+import {
+    getCloudFlowConnectionTool,
+    handleGetCloudFlowConnectionRequest,
+    handleListCloudFlowConnectionsRequest,
+    handleTriggerCloudFlowRequest,
+    listCloudFlowConnectionsTool,
+    triggerCloudFlowTool,
+} from "./tools/cloudflow.js";
 import {
     cloudIncidentsTool,
     cloudIncidentTool,
@@ -85,7 +113,7 @@ import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "./tools/d
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
 import { getFolderTool, handleGetFolderRequest, handleListFoldersRequest, listFoldersTool } from "./tools/folders.js";
-import { getInsightResourcesTool, listOptimizationRecommendationsTool } from "./tools/insights.js";
+import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "./tools/insights.js";
 import {
     getInvoiceTool,
     handleGetInvoiceRequest,
@@ -108,6 +136,7 @@ import {
 } from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import { cloudOverviewTool } from "./tools/overview.js";
+import { getResourcePermissionsTool, handleGetResourcePermissionsRequest } from "./tools/permissions.js";
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
 import { compareSpendTool, costBreakdownTool, costTrendTool } from "./tools/queryHelpers.js";
@@ -126,7 +155,15 @@ import {
     updateReportTool,
 } from "./tools/reports.js";
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
-import { getThemeTool, handleGetThemeRequest, handleListThemesRequest, listThemesTool } from "./tools/themes.js";
+import { handleSearchCustomersRequest, searchCustomersTool } from "./tools/searchCustomers.js";
+import {
+    getActiveThemeTool,
+    getThemeTool,
+    handleGetActiveThemeRequest,
+    handleGetThemeRequest,
+    handleListThemesRequest,
+    listThemesTool,
+} from "./tools/themes.js";
 import {
     createTicketCommentTool,
     createTicketTool,
@@ -192,6 +229,7 @@ export function createServer() {
                 compareSpendTool,
                 listOptimizationRecommendationsTool,
                 getInsightResourcesTool,
+                getInsightTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,
@@ -219,6 +257,8 @@ export function createServer() {
                 updateAlertTool,
 
                 triggerCloudFlowTool,
+                listCloudFlowConnectionsTool,
+                getCloudFlowConnectionTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
@@ -236,12 +276,21 @@ export function createServer() {
                 getFolderTool,
                 listThemesTool,
                 getThemeTool,
+                getActiveThemeTool,
+                getAwsAccountTool,
+                getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,
                 updateDatahubDatasetTool,
                 sendDatahubEventsTool,
                 findCloudDiagramsTool,
+                getCloudDiagramsStatsTool,
+                searchCloudDiagramsTool,
+                getCloudDiagramCostSnapshotTool,
+                getCloudDiagramResourceRelationshipsTool,
+                listCloudDiagramActivityGroupsTool,
+                listCloudDiagramNodeActivitiesTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
@@ -252,6 +301,8 @@ export function createServer() {
                 updateAnnotationTool,
                 listCommitmentsTool,
                 getCommitmentTool,
+                listAccountTeamTool,
+                getResourcePermissionsTool,
                 askAvaSyncTool,
                 // confirm_action is no longer exposed while the approval gate is
                 // disabled — without any write-gated tool minting tokens there is
@@ -367,11 +418,18 @@ export {
     handleDimensionsRequest,
     handleFindCloudDiagramsRequest,
     handleGeneralError,
+    handleGetActiveThemeRequest,
     handleGetAlertRequest,
     handleGetAllocationRequest,
     handleGetAnnotationRequest,
     handleGetAssetRequest,
+    handleGetAwsAccountRequest,
     handleGetBudgetRequest,
+    handleGetCloudConnectSupportedFeaturesRequest,
+    handleGetCloudDiagramCostSnapshotRequest,
+    handleGetCloudDiagramResourceRelationshipsRequest,
+    handleGetCloudDiagramsStatsRequest,
+    handleGetCloudFlowConnectionRequest,
     handleGetCommitmentRequest,
     handleGetDatahubDatasetRequest,
     handleGetFolderRequest,
@@ -380,14 +438,19 @@ export {
     handleGetLabelRequest,
     handleGetReportConfigRequest,
     handleGetReportResultsRequest,
+    handleGetResourcePermissionsRequest,
     handleGetThemeRequest,
     handleGetTicketRequest,
     handleInviteUserRequest,
+    handleListAccountTeamRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAnnotationsRequest,
     handleListAssetsRequest,
     handleListBudgetsRequest,
+    handleListCloudDiagramActivityGroupsRequest,
+    handleListCloudDiagramNodeActivitiesRequest,
+    handleListCloudFlowConnectionsRequest,
     handleListCommitmentsRequest,
     handleListDatahubDatasetsRequest,
     handleListFoldersRequest,
@@ -403,6 +466,7 @@ export {
     handleListUsersRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleSearchCloudDiagramsRequest,
     handleSearchCustomersRequest,
     handleSendDatahubEventsRequest,
     handleTriggerCloudFlowRequest,

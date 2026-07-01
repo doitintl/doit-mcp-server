@@ -139,7 +139,15 @@ This MCP server provides many tools including the following:
 - [`list_assets`](https://developer.doit.com/reference/listassets): Returns a list of all available customer assets such as Google Cloud billing accounts, G Suite/Workspace subscriptions, etc.
 - [`get_asset`](https://developer.doit.com/reference/getasset): Returns details of a specific customer asset by ID, including properties such as customer domain, subscription, and reseller information
 - [`trigger_cloud_flow`](https://developer.doit.com/reference/triggercloudflow): Triggers a CloudFlow by its flow ID, optionally passing a JSON payload as the request body
+- [`list_cloudflow_connections`](https://developer.doit.com/reference/listcloudflowconnections): Returns a cursor-paginated list of CloudFlow cloud provider connections (GCP/AWS), with their config and status; supports `maxResults` (1–100, default 50) and `pageToken`
+- [`get_cloudflow_connection`](https://developer.doit.com/reference/getcloudflowconnection): Returns the details of a specific CloudFlow connection by `connectionId`, including its GCP/AWS configuration, collaborators, and status
 - [`find_cloud_diagrams`](https://developer.doit.com/reference/findclouddiagrams): Returns diagram URLs matching the provided resource IDs from the DoiT Cloud Diagrams API
+- [`get_cloud_diagrams_stats`](https://developer.doit.com/reference/getclouddiagramsstats): Returns activity statistics for your cloud diagrams over a time period (`start`/`end` RFC3339 date-times) — node create/update/delete change counts grouped by cloud service, plus each diagram's import/sync state
+- [`search_cloud_diagrams`](https://developer.doit.com/reference/searchclouddiagrams): Searches your cloud diagrams and components by name or property, returning matching layers (`scheme`), components, and property-matched components (`prop`); optionally scope to a layer with `ss_id` and page with `from`/`size`
+- [`get_cloud_diagram_cost_snapshot`](https://developer.doit.com/reference/getclouddiagramcostsnapshot): Returns a bounded cost snapshot for a cloud diagram layer (`layerId`) over a `startDate`/`endDate` (YYYY-MM-DD) — total spend, period-over-period trend percentage, top resources and services by cost, and a cost trend (optionally bucketed by `interval`: day/week/month)
+- [`get_cloud_diagram_resource_relationships`](https://developer.doit.com/reference/getclouddiagramresourcerelationships): Returns how a resource (`resourceId`) in a cloud diagram layer (`layerId`) connects to other resources — the anchor plus related resources with relation type and hop distance; optionally tune `direction` (downstream/upstream/both), `depth` (direct/transitive), and `kind` (edges/group_members/both)
+- [`list_cloud_diagram_activity_groups`](https://developer.doit.com/reference/listclouddiagramactivitygroups): Lists the change history of a cloud diagram layer (`ss_id`) grouped by snapshot, ordered by timestamp descending; each group references a snapshot and contains the individual activity records (node/link/group/attachment create/update/delete) that belong to it. Page with `offset`/`limit` and filter by `tags`
+- [`list_cloud_diagram_node_activities`](https://developer.doit.com/reference/listclouddiagramnodeactivities): Lists individual activity records (`NODE_CREATE`/`NODE_UPDATE`/`NODE_DELETE`) for a single component node (`ss_id` + `nodeId`) in a cloud diagram layer, ordered by timestamp descending, each including the user who made the change. Page with `offset`/`limit`
 - [`list_reports`](https://developer.doit.com/reference/listreports): Lists Cloud Analytics reports that your account has access to
 - [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
 - [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID
@@ -196,6 +204,12 @@ This MCP server provides many tools including the following:
 - [`get_folder`](https://developer.doit.com/reference/getfolder): Returns details of a specific Cloud Analytics folder by ID or name
 - [`list_themes`](https://developer.doit.com/reference/listcustomthemes): Returns the custom color themes defined for your account
 - [`get_theme`](https://developer.doit.com/reference/getcustomtheme): Returns details of a specific custom color theme by ID or name
+- [`get_active_theme`](https://developer.doit.com/reference/getactivetheme): Returns the color theme currently active for the authenticated user (the sentinel `"default"` means the built-in default is in use)
+- [`list_account_team`](https://developer.doit.com/reference/listaccountteam): Returns the DoiT account managers assigned to the customer, including name, email, role, and Calendly link
+- [`get_resource_permissions`](https://developer.doit.com/reference/getresourcepermission-2): Returns the sharing settings (per-user roles and public visibility) for a specific alert, budget, report, or allocation
+- [`get_aws_account`](https://developer.doit.com/reference/getawsaccount): Returns the CloudConnect details of a connected AWS account (role ARN, billing S3 bucket, enabled and supported features) by AWS account ID
+- [`get_cloud_connect_supported_features`](https://developer.doit.com/reference/getcloudconnectsupportedfeatures): Returns the DoiT CloudConnect features supported for a connected cloud account (AWS account ID or Azure tenant ID) and whether the required permissions are present
+- [`get_insight`](https://developer.doit.com/reference/getinsightresult): Returns the metadata and aggregate summary (savings, risk counts, status) of a single optimization insight identified by its source and key
 
 
 ## Usage Examples

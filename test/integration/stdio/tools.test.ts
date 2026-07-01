@@ -47,28 +47,37 @@ describe("MCP Tools Integration", () => {
                     "create_ticket_comment",
                     "find_cloud_diagrams",
                     "get_alert",
+                    "get_cloud_diagrams_stats",
                     "get_allocation",
                     "get_annotation",
                     "get_anomalies",
                     "get_anomaly",
                     "get_asset",
+                    "get_aws_account",
                     "get_budget",
+                    "get_cloud_connect_supported_features",
+                    "get_cloud_diagram_cost_snapshot",
+                    "get_cloud_diagram_resource_relationships",
                     "get_cloud_incident",
                     "get_cloud_incidents",
                     "get_cloud_overview",
                     "get_commitment",
+                    "get_active_theme",
                     "get_datahub_dataset",
                     "get_dimension",
                     "get_folder",
+                    "get_insight",
                     "get_insight_resources",
                     "get_invoice",
                     "get_label",
                     "get_label_assignments",
                     "get_report_config",
                     "get_report_results",
+                    "get_resource_permissions",
                     "get_theme",
                     "get_ticket",
                     "invite_user",
+                    "list_account_team",
                     "list_alerts",
                     "list_allocations",
                     "list_annotations",
@@ -91,8 +100,13 @@ describe("MCP Tools Integration", () => {
                     "list_tickets",
                     "list_users",
                     "run_query",
+                    "list_cloud_diagram_activity_groups",
+                    "list_cloud_diagram_node_activities",
+                    "search_cloud_diagrams",
                     "send_datahub_events",
                     "trigger_cloud_flow",
+                    "list_cloudflow_connections",
+                    "get_cloudflow_connection",
                     "update_alert",
                     "update_allocation",
                     "update_annotation",
@@ -191,6 +205,79 @@ describe("MCP Tools Integration", () => {
             expect(parsed.roles[0].type).toBe("preset");
             expect(parsed.roles[1].id).toBe("role-2");
             expect(parsed.roles[1].name).toBe("Viewer");
+        });
+    });
+
+    describe("list_account_team", () => {
+        it("returns account managers from mock API", async () => {
+            const result = await client.callTool({ name: "list_account_team", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.accountManagers).toHaveLength(2);
+            expect(parsed.accountManagers[0].id).toBe("mgr-123");
+            expect(parsed.accountManagers[0].email).toBe("manager@doit.com");
+            expect(parsed.accountManagers[0].name).toBe("John Manager");
+            expect(parsed.accountManagers[0].role).toBe("Account Manager");
+            expect(parsed.accountManagers[0].calendlyLink).toBe("https://calendly.com/john-manager");
+            expect(parsed.accountManagers[1].id).toBe("fsr-456");
+        });
+    });
+
+    describe("get_resource_permissions", () => {
+        it("returns sharing settings for a budget resource", async () => {
+            const result = await client.callTool({
+                name: "get_resource_permissions",
+                arguments: { resourceType: "budgets", resourceId: "budget-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-1");
+            expect(parsed.name).toBe("Q4 Cloud Spend");
+            expect(parsed.permissions).toHaveLength(2);
+            expect(parsed.permissions[0].user).toBe("owner@example.com");
+            expect(parsed.permissions[0].role).toBe("owner");
+            expect(parsed.permissions[1].role).toBe("viewer");
+            expect(parsed.public).toBe("viewer");
+        });
+
+        it("returns a validation error for an invalid resourceType", async () => {
+            const result = await client.callTool({
+                name: "get_resource_permissions",
+                arguments: { resourceType: "widgets", resourceId: "budget-1" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_active_theme", () => {
+        it("returns the active theme id from the mock API", async () => {
+            const result = await client.callTool({ name: "get_active_theme", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.themeId).toBe("theme-1");
+        });
+    });
+
+    describe("get_insight", () => {
+        it("returns a single insight by source and key", async () => {
+            const result = await client.callTool({
+                name: "get_insight",
+                arguments: { source: "aws-cost-optimization-hub", key: "delete-ebs-volumes" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.key).toBe("delete-ebs-volumes");
+            expect(parsed.source).toBe("aws-cost-optimization-hub");
+            expect(parsed.title).toBe("Delete unattached EBS volumes");
+            expect(parsed.summary.potentialDailySavings).toBe(12.5);
+        });
+
+        it("returns a validation error when key is missing", async () => {
+            const result = await client.callTool({
+                name: "get_insight",
+                arguments: { source: "aws-cost-optimization-hub" },
+            });
+            expect(result.isError).toBe(true);
         });
     });
 
@@ -1229,6 +1316,153 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("get_cloud_diagrams_stats", () => {
+        it("returns diagram activity stats for a time period", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagrams_stats",
+                arguments: { start: "2026-04-01T00:00:00Z", end: "2026-04-28T00:00:00Z" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(1);
+            expect(parsed[0]._id).toBe("scheme-1");
+            expect(parsed[0].ss_id).toBe("sheet-1");
+            expect(parsed[0].changes[0].type).toBe("NODE_CREATE");
+            expect(parsed[0].import.status).toBe("success");
+        });
+
+        it("returns a validation error for an invalid date-time", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagrams_stats",
+                arguments: { start: "2026-04-01", end: "also-bad" },
+            });
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("RFC3339");
+        });
+    });
+
+    describe("search_cloud_diagrams", () => {
+        it("returns matching diagram layers and components", async () => {
+            const result = await client.callTool({
+                name: "search_cloud_diagrams",
+                arguments: { query: "production" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.scheme).toHaveLength(1);
+            expect(parsed.scheme[0].ss_id).toBe("sheet-1");
+            expect(parsed.component).toHaveLength(1);
+            expect(parsed.component[0].name).toBe("web-server");
+            expect(parsed.component[0].props.service_type).toBe("AWS::EC2::Instance");
+        });
+
+        it("returns a validation error when query is missing", async () => {
+            const result = await client.callTool({
+                name: "search_cloud_diagrams",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("list_cloud_diagram_activity_groups", () => {
+        it("returns activity groups for a layer", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_activity_groups",
+                arguments: { ss_id: "sheet-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(1);
+            expect(parsed[0]._id).toBe("group-1");
+            expect(parsed[0].snapshot).toBe("snap-1");
+            expect(parsed[0].items[0].activity).toBe("NODE_CREATE");
+        });
+
+        it("returns a validation error when ss_id is missing", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_activity_groups",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("list_cloud_diagram_node_activities", () => {
+        it("returns node activities for a node", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_node_activities",
+                arguments: { ss_id: "sheet-1", nodeId: "node-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("act-1");
+            expect(parsed[0].activity).toBe("NODE_UPDATE");
+            expect(parsed[0].user).toBe("alice@example.com");
+        });
+
+        it("returns a validation error when nodeId is missing", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_node_activities",
+                arguments: { ss_id: "sheet-1" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_cloud_diagram_cost_snapshot", () => {
+        it("returns a bounded cost snapshot for a diagram layer", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_cost_snapshot",
+                arguments: { layerId: "sheet-1", startDate: "2026-04-01", endDate: "2026-04-30" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.diagramId).toBe("sheet-1");
+            expect(parsed.currency).toBe("USD");
+            expect(parsed.total).toBe(1234.56);
+            expect(parsed.topResources).toHaveLength(2);
+            expect(parsed.topResources[0].name).toBe("web-server");
+            expect(parsed.byService[0].service).toBe("EC2");
+            expect(parsed.trend).toHaveLength(2);
+        });
+
+        it("returns a validation error for an invalid date", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_cost_snapshot",
+                arguments: { layerId: "sheet-1", startDate: "2026-04-01", endDate: "not-a-date" },
+            });
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("YYYY-MM-DD");
+        });
+    });
+
+    describe("get_cloud_diagram_resource_relationships", () => {
+        it("returns the anchor resource and its relations", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_resource_relationships",
+                arguments: { layerId: "sheet-1", resourceId: "node-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.anchor.id).toBe("node-1");
+            expect(parsed.anchor.serviceType).toBe("AWS::EC2::Instance");
+            expect(parsed.relations).toHaveLength(2);
+            expect(parsed.relations[0].relation).toBe("downstream");
+            expect(parsed.relations[0].hops).toBe(1);
+            expect(parsed.truncated).toBe(false);
+        });
+
+        it("returns a validation error when resourceId is missing", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_resource_relationships",
+                arguments: { layerId: "sheet-1" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
     describe("list_budgets", () => {
         it("returns budgets from mock API", async () => {
             const result = await client.callTool({ name: "list_budgets", arguments: {} });
@@ -1376,6 +1610,48 @@ describe("MCP Tools Integration", () => {
             expect(parsed.status).toBe("triggered");
             expect(parsed.executionId).toBe("exec-123");
             expect(Object.keys(parsed)).toHaveLength(2);
+        });
+    });
+
+    describe("list_cloudflow_connections", () => {
+        it("returns CloudFlow connections from mock API", async () => {
+            const result = await client.callTool({ name: "list_cloudflow_connections", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connections).toHaveLength(2);
+            expect(parsed.connections[0].connectionId).toBe("conn-1");
+            expect(parsed.connections[0].name).toBe("GCP Org Connection");
+            expect(parsed.nextPageToken).toBe("next-page-token");
+        });
+
+        it("accepts maxResults and pageToken parameters", async () => {
+            const result = await client.callTool({
+                name: "list_cloudflow_connections",
+                arguments: { maxResults: "1", pageToken: "tok" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connections).toHaveLength(2);
+        });
+    });
+
+    describe("get_cloudflow_connection", () => {
+        it("returns a single CloudFlow connection by ID", async () => {
+            const result = await client.callTool({
+                name: "get_cloudflow_connection",
+                arguments: { connectionId: "conn-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connectionId).toBe("conn-1");
+            expect(parsed.name).toBe("GCP Org Connection");
+            expect(parsed.gcpConfig.level).toBe("organization");
+        });
+
+        it("returns a validation error when connectionId is missing", async () => {
+            const result = await client.callTool({ name: "get_cloudflow_connection", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 

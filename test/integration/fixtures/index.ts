@@ -1,4 +1,5 @@
 import {
+    activeThemeFixture,
     alertFixture,
     alertsFixture,
     allocationFixture,
@@ -17,6 +18,7 @@ import {
     createReportFixture,
     dimensionFixture,
     dimensionsFixture,
+    insightFixture,
     labelAssignmentsFixture,
     labelFixture,
     labelsFixture,
@@ -34,8 +36,16 @@ import {
 import { anomaliesFixture, anomalyFixture } from "./anomalies.js";
 import { avaAskSyncFixture, avaAskSyncWithConversationFixture } from "./ava.js";
 import { assetDetailedFixture, assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
-import { cloudDiagramsFixture } from "./cloudDiagrams.js";
-import { cloudflowTriggerFixture } from "./cloudflow.js";
+import {
+    cloudDiagramActivityGroupsFixture,
+    cloudDiagramCostSnapshotFixture,
+    cloudDiagramNodeActivitiesFixture,
+    cloudDiagramResourceRelationshipsFixture,
+    cloudDiagramsFixture,
+    cloudDiagramsSearchFixture,
+    cloudDiagramsStatsFixture,
+} from "./cloudDiagrams.js";
+import { cloudflowConnectionFixture, cloudflowConnectionsFixture, cloudflowTriggerFixture } from "./cloudflow.js";
 import { cloudIncidentFixture, cloudIncidentsFixture } from "./cloudIncidents.js";
 import {
     createDatahubDatasetFixture,
@@ -45,8 +55,10 @@ import {
     updateDatahubDatasetFixture,
 } from "./datahub.js";
 import {
+    accountTeamFixture,
     inviteUserFixture,
     organizationsFixture,
+    resourcePermissionsFixture,
     rolesFixture,
     updateUserFixture,
     usersFixture,
@@ -70,6 +82,8 @@ export const fixtures = {
     products: productsFixture,
     validateUser: validateUserFixture,
     inviteUser: inviteUserFixture,
+    accountTeam: accountTeamFixture,
+    resourcePermissions: resourcePermissionsFixture,
 
     cloudIncidents: cloudIncidentsFixture,
     cloudIncident: cloudIncidentFixture,
@@ -107,6 +121,12 @@ export const fixtures = {
     createTicketComment: createTicketCommentFixture,
 
     cloudDiagrams: cloudDiagramsFixture,
+    cloudDiagramsStats: cloudDiagramsStatsFixture,
+    cloudDiagramsSearch: cloudDiagramsSearchFixture,
+    cloudDiagramCostSnapshot: cloudDiagramCostSnapshotFixture,
+    cloudDiagramResourceRelationships: cloudDiagramResourceRelationshipsFixture,
+    cloudDiagramActivityGroups: cloudDiagramActivityGroupsFixture,
+    cloudDiagramNodeActivities: cloudDiagramNodeActivitiesFixture,
 
     datahubDatasets: datahubDatasetsFixture,
     datahubDataset: datahubDatasetFixture,
@@ -115,6 +135,8 @@ export const fixtures = {
     sendDatahubEvents: sendDatahubEventsFixture,
 
     cloudflowTrigger: cloudflowTriggerFixture,
+    cloudflowConnections: cloudflowConnectionsFixture,
+    cloudflowConnection: cloudflowConnectionFixture,
 
     label: labelFixture,
     labels: labelsFixture,
@@ -134,6 +156,9 @@ export const fixtures = {
 
     commitment: commitmentFixture,
     commitments: commitmentsFixture,
+
+    activeTheme: activeThemeFixture,
+    insight: insightFixture,
 
     avaAskSync: avaAskSyncFixture,
     avaAskSyncWithConversation: avaAskSyncWithConversationFixture,
