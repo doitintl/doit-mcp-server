@@ -2,10 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
     CLOUDFLOW_CONNECTIONS_BASE_URL,
+    CLOUDFLOW_TEMPLATES_BASE_URL,
     CLOUDFLOW_TRIGGER_BASE_URL,
     getTriggerCloudFlowURL,
     handleGetCloudFlowConnectionRequest,
+    handleGetCloudFlowTemplateRequest,
     handleListCloudFlowConnectionsRequest,
+    handleListCloudFlowTemplatesRequest,
     handleTriggerCloudFlowRequest,
 } from "../cloudflow.js";
 
@@ -298,6 +301,146 @@ describe("cloudflow", () => {
 
             expect(response).toEqual({
                 content: [{ type: "text", text: expect.stringContaining("Failed to retrieve CloudFlow connection") }],
+                isError: true,
+            });
+        });
+    });
+
+    describe("handleListCloudFlowTemplatesRequest", () => {
+        const mockToken = "fake-token";
+
+        const mockResponse = {
+            items: [
+                {
+                    id: "tmpl-1",
+                    name: "Idle VM Cleanup",
+                    description: "Stops idle VMs on a schedule",
+                    instructions: null,
+                    createTime: "2024-01-01T00:00:00Z",
+                    updateTime: null,
+                },
+            ],
+            pageToken: "next-page",
+            rowCount: 1,
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("calls makeDoitRequest with the default maxResults when none provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+            const response = await handleListCloudFlowTemplatesRequest({}, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDFLOW_TEMPLATES_BASE_URL}?maxResults=50`, mockToken, {
+                method: "GET",
+                customerContext: undefined,
+            });
+            expect(response).toEqual({
+                content: [{ type: "text", text: JSON.stringify(mockResponse, null, 2) }],
+            });
+        });
+
+        it("passes maxResults, pageToken and customerContext when provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+            await handleListCloudFlowTemplatesRequest(
+                { maxResults: "10", pageToken: "tok", customerContext: "customer-ctx" },
+                mockToken
+            );
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                `${CLOUDFLOW_TEMPLATES_BASE_URL}?maxResults=10&pageToken=tok`,
+                mockToken,
+                { method: "GET", customerContext: "customer-ctx" }
+            );
+        });
+
+        it("returns an error response when the API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            const response = await handleListCloudFlowTemplatesRequest({}, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to retrieve CloudFlow templates") }],
+                isError: true,
+            });
+        });
+
+        it("returns an error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+            const response = await handleListCloudFlowTemplatesRequest({}, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Network error") }],
+                isError: true,
+            });
+        });
+    });
+
+    describe("handleGetCloudFlowTemplateRequest", () => {
+        const mockToken = "fake-token";
+
+        const mockTemplate = {
+            id: "tmpl-1",
+            name: "Idle VM Cleanup",
+            description: "Stops idle VMs on a schedule",
+            instructions: "Provide a schedule and target project",
+            createTime: "2024-01-01T00:00:00Z",
+            updateTime: "2024-02-01T00:00:00Z",
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("calls makeDoitRequest with the encoded template ID", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockTemplate);
+
+            const response = await handleGetCloudFlowTemplateRequest({ templateId: "tmpl-1" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDFLOW_TEMPLATES_BASE_URL}/tmpl-1`, mockToken, {
+                method: "GET",
+                customerContext: undefined,
+            });
+            expect(response).toEqual({
+                content: [{ type: "text", text: JSON.stringify(mockTemplate, null, 2) }],
+            });
+        });
+
+        it("passes customerContext when provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockTemplate);
+
+            await handleGetCloudFlowTemplateRequest(
+                { templateId: "tmpl-1", customerContext: "customer-ctx" },
+                mockToken
+            );
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDFLOW_TEMPLATES_BASE_URL}/tmpl-1`, mockToken, {
+                method: "GET",
+                customerContext: "customer-ctx",
+            });
+        });
+
+        it("returns a formatted Zod error when templateId is empty", async () => {
+            const response = await handleGetCloudFlowTemplateRequest({ templateId: "   " }, mockToken);
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Invalid arguments:") }],
+                isError: true,
+            });
+        });
+
+        it("returns an error response when the API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            const response = await handleGetCloudFlowTemplateRequest({ templateId: "tmpl-1" }, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to retrieve CloudFlow template") }],
                 isError: true,
             });
         });

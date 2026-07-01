@@ -45,7 +45,13 @@ import {
     cloudDiagramsSearchFixture,
     cloudDiagramsStatsFixture,
 } from "./cloudDiagrams.js";
-import { cloudflowConnectionFixture, cloudflowConnectionsFixture, cloudflowTriggerFixture } from "./cloudflow.js";
+import {
+    cloudflowConnectionFixture,
+    cloudflowConnectionsFixture,
+    cloudflowTemplateFixture,
+    cloudflowTemplatesFixture,
+    cloudflowTriggerFixture,
+} from "./cloudflow.js";
 import { cloudIncidentFixture, cloudIncidentsFixture } from "./cloudIncidents.js";
 import {
     createDatahubDatasetFixture,
@@ -137,6 +143,8 @@ export const fixtures = {
     cloudflowTrigger: cloudflowTriggerFixture,
     cloudflowConnections: cloudflowConnectionsFixture,
     cloudflowConnection: cloudflowConnectionFixture,
+    cloudflowTemplates: cloudflowTemplatesFixture,
+    cloudflowTemplate: cloudflowTemplateFixture,
 
     label: labelFixture,
     labels: labelsFixture,

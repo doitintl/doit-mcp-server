@@ -240,7 +240,9 @@ import {
 } from "../tools/cloudDiagrams.js";
 import {
     getCloudFlowConnectionTool,
+    getCloudFlowTemplateTool,
     listCloudFlowConnectionsTool,
+    listCloudFlowTemplatesTool,
     refineCloudflowTool,
     triggerCloudFlowTool,
 } from "../tools/cloudflow.js";
@@ -386,6 +388,8 @@ describe("ListToolsRequestSchema handler", () => {
                 triggerCloudFlowTool,
                 listCloudFlowConnectionsTool,
                 getCloudFlowConnectionTool,
+                listCloudFlowTemplatesTool,
+                getCloudFlowTemplateTool,
                 refineCloudflowTool,
                 listOrganizationsTool,
                 listPlatformsTool,

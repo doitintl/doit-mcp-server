@@ -58,3 +58,18 @@ export type CloudFlowConnectionsResponse = {
     connections: CloudFlowConnection[];
     nextPageToken?: string;
 };
+
+export type CloudFlowTemplate = {
+    id: string;
+    name: string;
+    description?: string;
+    instructions?: string | null;
+    createTime: string;
+    updateTime?: string | null;
+};
+
+export type CloudFlowTemplatesResponse = {
+    items: CloudFlowTemplate[];
+    pageToken?: string | null;
+    rowCount?: number | null;
+};

@@ -133,8 +133,12 @@ import {
 import {
   GetCloudFlowConnectionArgumentsSchema,
   getCloudFlowConnectionTool,
+  GetCloudFlowTemplateArgumentsSchema,
+  getCloudFlowTemplateTool,
   ListCloudFlowConnectionsArgumentsSchema,
   listCloudFlowConnectionsTool,
+  ListCloudFlowTemplatesArgumentsSchema,
+  listCloudFlowTemplatesTool,
   RefineCloudflowArgumentsSchema,
   TriggerCloudFlowArgumentsSchema,
   refineCloudflowTool,
@@ -993,6 +997,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
     this.registerTool(listCloudFlowConnectionsTool, ListCloudFlowConnectionsArgumentsSchema);
     this.registerTool(getCloudFlowConnectionTool, GetCloudFlowConnectionArgumentsSchema);
+    this.registerTool(listCloudFlowTemplatesTool, ListCloudFlowTemplatesArgumentsSchema);
+    this.registerTool(getCloudFlowTemplateTool, GetCloudFlowTemplateArgumentsSchema);
     this.registerTool(refineCloudflowTool, RefineCloudflowArgumentsSchema);
 
     // Alerts tools

@@ -109,6 +109,8 @@ describe("MCP Tools Integration", () => {
                     "trigger_cloud_flow",
                     "list_cloudflow_connections",
                     "get_cloudflow_connection",
+                    "list_cloudflow_templates",
+                    "get_cloudflow_template",
                     "update_alert",
                     "update_allocation",
                     "update_annotation",
@@ -1652,6 +1654,48 @@ describe("MCP Tools Integration", () => {
 
         it("returns a validation error when connectionId is missing", async () => {
             const result = await client.callTool({ name: "get_cloudflow_connection", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("list_cloudflow_templates", () => {
+        it("returns CloudFlow templates from mock API", async () => {
+            const result = await client.callTool({ name: "list_cloudflow_templates", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.items).toHaveLength(2);
+            expect(parsed.items[0].id).toBe("tmpl-1");
+            expect(parsed.items[0].name).toBe("Idle VM Cleanup");
+            expect(parsed.pageToken).toBe("next-page-token");
+        });
+
+        it("accepts maxResults and pageToken parameters", async () => {
+            const result = await client.callTool({
+                name: "list_cloudflow_templates",
+                arguments: { maxResults: "1", pageToken: "tok" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.items).toHaveLength(2);
+        });
+    });
+
+    describe("get_cloudflow_template", () => {
+        it("returns a single CloudFlow template by ID", async () => {
+            const result = await client.callTool({
+                name: "get_cloudflow_template",
+                arguments: { templateId: "tmpl-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("tmpl-1");
+            expect(parsed.name).toBe("Idle VM Cleanup");
+            expect(parsed.instructions).toBe("Provide a schedule and target project");
+        });
+
+        it("returns a validation error when templateId is missing", async () => {
+            const result = await client.callTool({ name: "get_cloudflow_template", arguments: {} });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");
         });
