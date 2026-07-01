@@ -968,14 +968,8 @@ export class DoitMCPAgent extends McpAgent {
     // Tickets tools
     this.registerTool(listTicketsTool, ListTicketsArgumentsSchema);
     this.registerTool(getTicketTool, GetTicketArgumentsSchema);
-    this.registerTool(
-      listTicketCommentsTool,
-      ListTicketCommentsArgumentsSchema,
-    );
-    this.registerTool(
-      createTicketCommentTool,
-      CreateTicketCommentArgumentsSchema,
-    );
+    this.registerTool(listTicketCommentsTool, ListTicketCommentsArgumentsSchema);
+    this.registerTool(createTicketCommentTool, CreateTicketCommentArgumentsSchema);
     this.registerTool(createTicketTool, CreateTicketArgumentsSchema);
 
     // Invoices tools
@@ -1032,14 +1026,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getLabelTool, GetLabelArgumentsSchema);
     this.registerTool(createLabelTool, CreateLabelArgumentsSchema);
     this.registerTool(updateLabelTool, UpdateLabelArgumentsSchema);
-    this.registerTool(
-      getLabelAssignmentsTool,
-      GetLabelAssignmentsArgumentsSchema,
-    );
-    this.registerTool(
-      assignObjectsToLabelTool,
-      AssignObjectsToLabelArgumentsSchema,
-    );
+    this.registerTool(getLabelAssignmentsTool, GetLabelAssignmentsArgumentsSchema);
+    this.registerTool(assignObjectsToLabelTool, AssignObjectsToLabelArgumentsSchema);
 
     // Folders tools
     this.registerTool(listFoldersTool, ListFoldersArgumentsSchema);
@@ -1055,19 +1043,10 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getCloudConnectSupportedFeaturesTool, GetCloudConnectSupportedFeaturesArgumentsSchema);
 
     // DataHub Datasets tools
-    this.registerTool(
-      listDatahubDatasetsTool,
-      ListDatahubDatasetsArgumentsSchema,
-    );
+    this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
     this.registerTool(getDatahubDatasetTool, GetDatahubDatasetArgumentsSchema);
-    this.registerTool(
-      createDatahubDatasetTool,
-      CreateDatahubDatasetArgumentsSchema,
-    );
-    this.registerTool(
-      updateDatahubDatasetTool,
-      UpdateDatahubDatasetArgumentsSchema,
-    );
+    this.registerTool(createDatahubDatasetTool, CreateDatahubDatasetArgumentsSchema);
+    this.registerTool(updateDatahubDatasetTool, UpdateDatahubDatasetArgumentsSchema);
     this.registerTool(sendDatahubEventsTool, SendDatahubEventsArgumentsSchema);
 
     // Cloud Diagrams tools

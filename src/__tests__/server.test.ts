@@ -225,7 +225,6 @@ import {
 } from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { getAssetTool, listAssetsTool } from "../tools/assets.js";
-import { searchCustomersTool } from "../tools/searchCustomers.js";
 import { askAvaSyncTool } from "../tools/ava.js";
 import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
@@ -277,6 +276,7 @@ import {
     updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
+import { searchCustomersTool } from "../tools/searchCustomers.js";
 import { getActiveThemeTool, getThemeTool, listThemesTool } from "../tools/themes.js";
 import {
     createTicketCommentTool,

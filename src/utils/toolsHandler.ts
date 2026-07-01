@@ -20,7 +20,6 @@ import {
 } from "../tools/annotations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
-import { handleSearchCustomersRequest } from "../tools/searchCustomers.js";
 import { handleAskAvaSyncRequest } from "../tools/ava.js";
 import { handleGetAwsAccountRequest, handleGetCloudConnectSupportedFeaturesRequest } from "../tools/awsAccounts.js";
 import {
@@ -89,6 +88,7 @@ import {
     handleUpdateReportRequest,
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
+import { handleSearchCustomersRequest } from "../tools/searchCustomers.js";
 import { handleGetActiveThemeRequest, handleGetThemeRequest, handleListThemesRequest } from "../tools/themes.js";
 import {
     // createTicketTool, // Re-enable alongside the WRITE_GATED_SUMMARIES entry below.
