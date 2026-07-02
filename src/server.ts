@@ -86,6 +86,7 @@ import {
     handleRefineCloudflowRequest,
     handleTriggerCloudFlowRequest,
     listCloudFlowConnectionsTool,
+    listCloudFlowsTool,
     listCloudFlowTemplatesTool,
     refineCloudflowTool,
     triggerCloudFlowTool,
@@ -263,6 +264,7 @@ export function createServer() {
                 updateAlertTool,
 
                 triggerCloudFlowTool,
+                listCloudFlowsTool,
                 listCloudFlowConnectionsTool,
                 getCloudFlowConnectionTool,
                 listCloudFlowTemplatesTool,

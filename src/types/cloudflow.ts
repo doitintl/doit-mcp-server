@@ -73,3 +73,31 @@ export type CloudFlowTemplatesResponse = {
     pageToken?: string | null;
     rowCount?: number | null;
 };
+
+export type CloudFlowItem = {
+    id: string;
+    name: string;
+    description?: string;
+    instructions?: string | null;
+    published: boolean;
+    triggerType?: string | null;
+    createTime: string;
+    updateTime?: string | null;
+    lastExecutedTime?: string | null;
+    lastExecutionStatus?:
+        | "pending"
+        | "running"
+        | "complete"
+        | "pending-approval"
+        | "failed"
+        | "sleeping"
+        | "stopped"
+        | null;
+    nextRun?: string | null;
+};
+
+export type CloudFlowListResponse = {
+    items: CloudFlowItem[];
+    pageToken?: string | null;
+    rowCount: null;
+};

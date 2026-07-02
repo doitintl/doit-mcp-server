@@ -2,6 +2,7 @@ import { z } from "zod";
 import type {
     CloudFlowConnection,
     CloudFlowConnectionsResponse,
+    CloudFlowListResponse,
     CloudFlowTemplate,
     CloudFlowTemplatesResponse,
 } from "../types/cloudflow.js";
@@ -20,9 +21,11 @@ const CLOUDFLOW_BASE_URL = `${DOIT_API_BASE}/cloudflow/v1`;
 export const CLOUDFLOW_TRIGGER_BASE_URL = `${CLOUDFLOW_BASE_URL}/trigger`;
 export const CLOUDFLOW_CONNECTIONS_BASE_URL = `${CLOUDFLOW_BASE_URL}/connections`;
 export const CLOUDFLOW_TEMPLATES_BASE_URL = `${CLOUDFLOW_BASE_URL}/templates`;
+export const CLOUDFLOW_FLOWS_BASE_URL = `${CLOUDFLOW_BASE_URL}/flows`;
 
 export const DEFAULT_MAX_RESULTS_CLOUDFLOW_CONNECTIONS = "50";
 export const DEFAULT_MAX_RESULTS_CLOUDFLOW_TEMPLATES = "50";
+export const DEFAULT_MAX_RESULTS_CLOUDFLOW_FLOWS = "50";
 
 export const TriggerCloudFlowArgumentsSchema = z.object({
     flowID: z.string().describe("The ID of the CloudFlow flow to trigger"),
@@ -430,5 +433,61 @@ export async function handleGetCloudFlowTemplateRequest(args: any, token: string
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling get CloudFlow template request");
+    }
+}
+
+// Schema and metadata for list CloudFlows
+export const ListCloudFlowsArgumentsSchema = z.object({
+    maxResults: z
+        .string()
+        .optional()
+        .describe(`Maximum number of flows to return (1–500). Defaults to ${DEFAULT_MAX_RESULTS_CLOUDFLOW_FLOWS}.`),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Pagination cursor returned by a previous call, to request the next page of results."),
+});
+
+export const listCloudFlowsTool = {
+    name: "list_cloudflows",
+    description:
+        "Use this when the user wants to see their CloudFlow automation flows. Returns a cursor-paginated list of flows with their metadata, status, and last execution info.",
+    inputSchema: zodToMcpInputSchema(ListCloudFlowsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading CloudFlows...",
+        "openai/toolInvocation/invoked": "CloudFlows loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleListCloudFlowsRequest(args: any, token: string) {
+    try {
+        const { maxResults, pageToken } = ListCloudFlowsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        params.append("maxResults", maxResults || DEFAULT_MAX_RESULTS_CLOUDFLOW_FLOWS);
+        if (pageToken) params.append("pageToken", pageToken);
+
+        const url = `${CLOUDFLOW_FLOWS_BASE_URL}?${params}`;
+
+        const data = await makeDoitRequest<CloudFlowListResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve CloudFlows");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling list CloudFlows request");
     }
 }
