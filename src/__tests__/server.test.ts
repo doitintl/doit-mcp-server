@@ -242,6 +242,7 @@ import {
     getCloudFlowConnectionTool,
     getCloudFlowTemplateTool,
     listCloudFlowConnectionsTool,
+    listCloudFlowsTool,
     listCloudFlowTemplatesTool,
     refineCloudflowTool,
     triggerCloudFlowTool,
@@ -386,6 +387,7 @@ describe("ListToolsRequestSchema handler", () => {
                 updateAlertTool,
 
                 triggerCloudFlowTool,
+                listCloudFlowsTool,
                 listCloudFlowConnectionsTool,
                 getCloudFlowConnectionTool,
                 listCloudFlowTemplatesTool,

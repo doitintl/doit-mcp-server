@@ -139,6 +139,8 @@ import {
   listCloudFlowConnectionsTool,
   ListCloudFlowTemplatesArgumentsSchema,
   listCloudFlowTemplatesTool,
+  ListCloudFlowsArgumentsSchema,
+  listCloudFlowsTool,
   RefineCloudflowArgumentsSchema,
   TriggerCloudFlowArgumentsSchema,
   refineCloudflowTool,
@@ -995,6 +997,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // CloudFlow tools
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
+    this.registerTool(listCloudFlowsTool, ListCloudFlowsArgumentsSchema);
     this.registerTool(listCloudFlowConnectionsTool, ListCloudFlowConnectionsArgumentsSchema);
     this.registerTool(getCloudFlowConnectionTool, GetCloudFlowConnectionArgumentsSchema);
     this.registerTool(listCloudFlowTemplatesTool, ListCloudFlowTemplatesArgumentsSchema);
