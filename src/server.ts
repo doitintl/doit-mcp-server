@@ -184,11 +184,15 @@ import {
     listTicketsTool,
 } from "./tools/tickets.js";
 import {
+    cancelInviteTool,
+    handleCancelInviteRequest,
     handleInviteUserRequest,
     handleListUsersRequest,
+    handleResendInviteRequest,
     handleUpdateUserRequest,
     inviteUserTool,
     listUsersTool,
+    resendInviteTool,
     updateUserTool,
 } from "./tools/users.js";
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
@@ -275,6 +279,8 @@ export function createServer() {
                 listUsersTool,
                 updateUserTool,
                 inviteUserTool,
+                cancelInviteTool,
+                resendInviteTool,
                 listRolesTool,
                 listProductsTool,
                 listLabelsTool,
@@ -424,6 +430,7 @@ export {
     handleAnomalyRequest,
     handleAskAvaSyncRequest,
     handleAssignObjectsToLabelRequest,
+    handleCancelInviteRequest,
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAlertRequest,
@@ -489,6 +496,7 @@ export {
     handleListUsersRequest,
     handleRefineCloudflowRequest,
     handleReportsRequest,
+    handleResendInviteRequest,
     handleRunQueryRequest,
     handleSearchCloudDiagramsRequest,
     handleSearchCustomersRequest,

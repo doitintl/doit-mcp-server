@@ -252,6 +252,7 @@ export async function makeDoitRequest<T>(
         customerContext?: string;
         parseResponse?: boolean;
         timeoutMs?: number;
+        additionalHeaders?: Record<string, string>;
     } = {}
 ): Promise<T | null> {
     const {
@@ -261,6 +262,7 @@ export async function makeDoitRequest<T>(
         customerContext,
         parseResponse = true,
         timeoutMs,
+        additionalHeaders,
     } = options;
 
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
@@ -281,10 +283,11 @@ export async function makeDoitRequest<T>(
         return {} as T;
     }
 
-    const headers = {
+    const headers: Record<string, string> = {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
         Accept: "application/json",
+        ...additionalHeaders,
     };
 
     let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;

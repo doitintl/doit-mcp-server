@@ -29,9 +29,15 @@ export const mockedDoitApiHandlers = [
         return new HttpResponse(null, { status: 404 });
     }),
 
-    // Users
+    // Users — register specific paths before the :id catch-all
     http.post(`${API_BASE}/iam/v1/users/invite`, () => {
         return HttpResponse.json(fixtures.inviteUser, { status: 201 });
+    }),
+    http.post(`${API_BASE}/iam/v1/users/:id/cancel-invite`, () => {
+        return HttpResponse.json(fixtures.cancelInvite);
+    }),
+    http.post(`${API_BASE}/iam/v1/users/:id/resend-invite`, () => {
+        return HttpResponse.json(fixtures.resendInvite);
     }),
     http.patch(`${API_BASE}/iam/v1/users/:id`, () => {
         return HttpResponse.json(fixtures.updateUser);

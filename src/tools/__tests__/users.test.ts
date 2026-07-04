@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
+    handleCancelInviteRequest,
     handleInviteUserRequest,
     handleListUsersRequest,
+    handleResendInviteRequest,
     handleUpdateUserRequest,
     USERS_BASE_URL,
     USERS_INVITE_URL,
@@ -386,5 +388,160 @@ describe("handleInviteUserRequest", () => {
                 body: { email: "newuser@example.com" },
             })
         );
+    });
+});
+
+describe("handleCancelInviteRequest", () => {
+    const mockToken = "fake-token";
+    const mockResponse = { id: "user-3", email: "invited@example.com", inviteStatus: "Cancelled" };
+
+    it("should call makeDoitRequest with POST and correct cancel URL", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        await handleCancelInviteRequest({ id: "user-3" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/user-3/cancel-invite"),
+            mockToken,
+            expect.objectContaining({
+                method: "POST",
+                additionalHeaders: expect.objectContaining({ "Idempotency-Key": expect.any(String) }),
+            })
+        );
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        await handleCancelInviteRequest({ id: "user-3", customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ customerContext: "customer-123" })
+        );
+    });
+
+    it("should include dryRun query param when provided", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        await handleCancelInviteRequest({ id: "user-3", dryRun: true }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("dryRun=true"),
+            mockToken,
+            expect.any(Object)
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+        const response = await handleCancelInviteRequest({ id: "user-3" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("cancel invite") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleCancelInviteRequest({ id: "user-3" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return validation error for empty id", async () => {
+        const response = await handleCancelInviteRequest({ id: "  " }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("User ID is required") }],
+            isError: true,
+        });
+    });
+});
+
+describe("handleResendInviteRequest", () => {
+    const mockToken = "fake-token";
+    const mockResponse = {
+        id: "user-3",
+        email: "invited@example.com",
+        inviteStatus: "Pending",
+        inviteExpiry: "2026-07-11T00:00:00Z",
+    };
+
+    it("should call makeDoitRequest with POST and correct resend URL", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        await handleResendInviteRequest({ id: "user-3" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/user-3/resend-invite"),
+            mockToken,
+            expect.objectContaining({
+                method: "POST",
+                additionalHeaders: expect.objectContaining({ "Idempotency-Key": expect.any(String) }),
+            })
+        );
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        await handleResendInviteRequest({ id: "user-3", customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ customerContext: "customer-123" })
+        );
+    });
+
+    it("should include dryRun query param when provided", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
+
+        await handleResendInviteRequest({ id: "user-3", dryRun: true }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("dryRun=true"),
+            mockToken,
+            expect.any(Object)
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+        const response = await handleResendInviteRequest({ id: "user-3" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("resend invite") }],
+            isError: true,
+        });
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleResendInviteRequest({ id: "user-3" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should return validation error for empty id", async () => {
+        const response = await handleResendInviteRequest({ id: "" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("User ID is required") }],
+            isError: true,
+        });
     });
 });

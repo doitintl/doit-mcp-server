@@ -102,7 +102,13 @@ import {
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
 } from "../tools/tickets.js";
-import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
+import {
+    handleCancelInviteRequest,
+    handleInviteUserRequest,
+    handleListUsersRequest,
+    handleResendInviteRequest,
+    handleUpdateUserRequest,
+} from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
 import { APPROVAL_TTL_MS, type ApprovalStore, buildApprovalResponse, mintApprovalToken } from "./approval.js";
 import {
@@ -399,6 +405,12 @@ async function runOriginalDispatch(
             break;
         case "invite_user":
             result = await handleInviteUserRequest(args, token);
+            break;
+        case "cancel_invite":
+            result = await handleCancelInviteRequest(args, token);
+            break;
+        case "resend_invite":
+            result = await handleResendInviteRequest(args, token);
             break;
         case "list_roles":
             result = await handleListRolesRequest(args, token);

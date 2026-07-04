@@ -62,8 +62,10 @@ import {
 } from "./datahub.js";
 import {
     accountTeamFixture,
+    cancelInviteFixture,
     inviteUserFixture,
     organizationsFixture,
+    resendInviteFixture,
     resourcePermissionsFixture,
     rolesFixture,
     updateUserFixture,
@@ -88,6 +90,8 @@ export const fixtures = {
     products: productsFixture,
     validateUser: validateUserFixture,
     inviteUser: inviteUserFixture,
+    cancelInvite: cancelInviteFixture,
+    resendInvite: resendInviteFixture,
     accountTeam: accountTeamFixture,
     resourcePermissions: resourcePermissionsFixture,
 

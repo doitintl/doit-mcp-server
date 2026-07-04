@@ -206,3 +206,109 @@ export async function handleListUsersRequest(args: any, token: string) {
         return handleGeneralError(error, "handling list users request");
     }
 }
+
+export const CancelInviteArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "User ID is required and cannot be empty."))
+        .describe("The unique ID of the invited user whose invite should be cancelled."),
+    dryRun: z
+        .boolean()
+        .optional()
+        .describe("If true, validates and simulates the operation without committing changes."),
+});
+
+export const cancelInviteTool = {
+    name: "cancel_invite",
+    description:
+        "Use this when the user wants to cancel a pending invitation. Ask the user to confirm before executing. The invite document remains visible with inviteStatus: Cancelled, but the token becomes invalid. Do NOT use this for resending invites (use resend_invite) or inviting new users (use invite_user).",
+    inputSchema: zodToMcpInputSchema(CancelInviteArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Cancelling invite...",
+        "openai/toolInvocation/invoked": "Invite cancelled",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export const ResendInviteArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "User ID is required and cannot be empty."))
+        .describe("The unique ID of the invited user whose invite should be resent."),
+    dryRun: z
+        .boolean()
+        .optional()
+        .describe("If true, validates and simulates the operation without committing changes."),
+});
+
+export const resendInviteTool = {
+    name: "resend_invite",
+    description:
+        "Use this when the user wants to resend a pending invitation to reset its expiry. Ask the user to confirm before executing. Do NOT use this for cancelling invites (use cancel_invite) or inviting new users (use invite_user).",
+    inputSchema: zodToMcpInputSchema(ResendInviteArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Resending invite...",
+        "openai/toolInvocation/invoked": "Invite resent",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export async function handleCancelInviteRequest(args: any, token: string) {
+    try {
+        const { id, dryRun } = CancelInviteArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        if (dryRun !== undefined) params.append("dryRun", String(dryRun));
+        const query = params.toString();
+        const url = `${USERS_BASE_URL}/${encodeURIComponent(id)}/cancel-invite${query ? `?${query}` : ""}`;
+
+        const data = await makeDoitRequest(url, token, {
+            method: "POST",
+            customerContext,
+            additionalHeaders: { "Idempotency-Key": crypto.randomUUID() },
+        });
+
+        if (!data) return createErrorResponse("Failed to cancel invite");
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling cancel invite request");
+    }
+}
+
+export async function handleResendInviteRequest(args: any, token: string) {
+    try {
+        const { id, dryRun } = ResendInviteArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        if (dryRun !== undefined) params.append("dryRun", String(dryRun));
+        const query = params.toString();
+        const url = `${USERS_BASE_URL}/${encodeURIComponent(id)}/resend-invite${query ? `?${query}` : ""}`;
+
+        const data = await makeDoitRequest(url, token, {
+            method: "POST",
+            customerContext,
+            additionalHeaders: { "Idempotency-Key": crypto.randomUUID() },
+        });
+
+        if (!data) return createErrorResponse("Failed to resend invite");
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling resend invite request");
+    }
+}
