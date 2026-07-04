@@ -76,6 +76,7 @@ describe("MCP Tools Integration", () => {
                     "get_resource_permissions",
                     "get_theme",
                     "get_ticket",
+                    "cancel_invite",
                     "invite_user",
                     "list_account_team",
                     "list_alerts",
@@ -120,6 +121,7 @@ describe("MCP Tools Integration", () => {
                     "update_label",
                     "update_report",
                     "update_user",
+                    "resend_invite",
                     "validate_user",
                 ].sort()
             );
@@ -368,6 +370,73 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("cancel_invite", () => {
+        it("returns cancelled invite response from mock API", async () => {
+            const result = await client.callTool({
+                name: "cancel_invite",
+                arguments: { id: "user-3" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("user-3");
+            expect(parsed.inviteStatus).toBe("Cancelled");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "cancel_invite",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(result.isError).toBe(true);
+            expect(text).toBeTruthy();
+        });
+
+        it("rejects empty id", async () => {
+            const result = await client.callTool({
+                name: "cancel_invite",
+                arguments: { id: "  " },
+            });
+            const text = getTextContent(result);
+            expect(result.isError).toBe(true);
+            expect(text).toContain("User ID is required");
+        });
+    });
+
+    describe("resend_invite", () => {
+        it("returns resent invite response from mock API", async () => {
+            const result = await client.callTool({
+                name: "resend_invite",
+                arguments: { id: "user-3" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("user-3");
+            expect(parsed.inviteStatus).toBe("Pending");
+            expect(parsed.inviteExpiry).toBeTruthy();
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "resend_invite",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(result.isError).toBe(true);
+            expect(text).toBeTruthy();
+        });
+
+        it("rejects empty id", async () => {
+            const result = await client.callTool({
+                name: "resend_invite",
+                arguments: { id: "" },
+            });
+            const text = getTextContent(result);
+            expect(result.isError).toBe(true);
+            expect(text).toContain("User ID is required");
         });
     });
 

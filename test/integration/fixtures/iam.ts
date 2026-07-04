@@ -123,3 +123,18 @@ export const resourcePermissionsFixture = {
     ],
     public: "viewer",
 };
+
+export const cancelInviteFixture = {
+    id: "user-3",
+    email: "invited@example.com",
+    status: "invited",
+    inviteStatus: "Cancelled",
+};
+
+export const resendInviteFixture = {
+    id: "user-3",
+    email: "invited@example.com",
+    status: "invited",
+    inviteStatus: "Pending",
+    inviteExpiry: "2026-07-11T00:00:00Z",
+};

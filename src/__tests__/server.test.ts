@@ -294,7 +294,7 @@ import {
     listTicketCommentsTool,
     listTicketsTool,
 } from "../tools/tickets.js";
-import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
+import { cancelInviteTool, inviteUserTool, listUsersTool, resendInviteTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import * as utilModule from "../utils/util.js";
 
@@ -398,6 +398,8 @@ describe("ListToolsRequestSchema handler", () => {
                 listUsersTool,
                 updateUserTool,
                 inviteUserTool,
+                cancelInviteTool,
+                resendInviteTool,
                 listRolesTool,
                 listProductsTool,
                 listLabelsTool,
