@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { UsersResponse } from "../types/users.js";
 import { JOB_FUNCTION_VALUES, LANGUAGE_VALUES } from "../types/users.js";
@@ -278,7 +279,7 @@ export async function handleCancelInviteRequest(args: any, token: string) {
         const data = await makeDoitRequest(url, token, {
             method: "POST",
             customerContext,
-            additionalHeaders: { "Idempotency-Key": crypto.randomUUID() },
+            additionalHeaders: { "Idempotency-Key": randomUUID() },
         });
 
         if (!data) return createErrorResponse("Failed to cancel invite");
@@ -302,7 +303,7 @@ export async function handleResendInviteRequest(args: any, token: string) {
         const data = await makeDoitRequest(url, token, {
             method: "POST",
             customerContext,
-            additionalHeaders: { "Idempotency-Key": crypto.randomUUID() },
+            additionalHeaders: { "Idempotency-Key": randomUUID() },
         });
 
         if (!data) return createErrorResponse("Failed to resend invite");
