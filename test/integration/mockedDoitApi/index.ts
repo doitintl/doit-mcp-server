@@ -361,7 +361,7 @@ export const mockedDoitApiHandlers = [
     http.get(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
         return HttpResponse.json(fixtures.activeTheme);
     }),
-    http.patch(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
+    http.put(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
         return HttpResponse.json(fixtures.setActiveTheme);
     }),
 

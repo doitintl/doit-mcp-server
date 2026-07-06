@@ -281,13 +281,13 @@ describe("setActiveThemeTool metadata", () => {
 describe("set_active_theme", () => {
     const mockToken = "fake-token";
 
-    it("should call makeDoitRequest with PATCH method and themeId in body", async () => {
+    it("should call makeDoitRequest with PUT method and themeId in body", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ themeId: "theme-1" });
 
         const response = await handleSetActiveThemeRequest({ themeId: "theme-1" }, mockToken);
 
         expect(makeDoitRequest).toHaveBeenCalledWith(ACTIVE_THEME_URL, mockToken, {
-            method: "PATCH",
+            method: "PUT",
             body: { themeId: "theme-1" },
             customerContext: undefined,
         });
@@ -311,7 +311,7 @@ describe("set_active_theme", () => {
         await handleSetActiveThemeRequest({ themeId: "theme-1", customerContext: "customer-123" }, mockToken);
 
         expect(makeDoitRequest).toHaveBeenCalledWith(ACTIVE_THEME_URL, mockToken, {
-            method: "PATCH",
+            method: "PUT",
             body: { themeId: "theme-1" },
             customerContext: "customer-123",
         });

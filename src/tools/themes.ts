@@ -200,7 +200,7 @@ export async function handleSetActiveThemeRequest(args: any, token: string) {
         const { customerContext } = args;
 
         const data = await makeDoitRequest<ActiveTheme>(ACTIVE_THEME_URL, token, {
-            method: "PATCH",
+            method: "PUT",
             body: { themeId: parsed.themeId },
             customerContext,
         });
@@ -249,30 +249,7 @@ export const updateThemeTool = {
     name: "update_theme",
     description:
         "Use this when the user wants to modify an existing custom color theme — rename it, change its primary color, or update its color palette. Accepts either the theme ID or a partial name match. Ask the user to confirm changes before executing. Do NOT use this for creating a new theme or changing which theme is active (use set_active_theme).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: { type: "string", description: "The ID of the theme to update." },
-            name: {
-                type: "string",
-                description: "Partial name match (case-insensitive) used to find the theme when ID is unknown.",
-            },
-            newName: { type: "string", description: "New display name for the theme." },
-            primaryColor: {
-                type: "string",
-                description: "New primary hex color for the theme (e.g. #1A73E8).",
-            },
-            colors: {
-                type: "object",
-                description: "New color palette. Provide both light and dark arrays.",
-                properties: {
-                    light: { type: "array", items: { type: "string" }, description: "Hex colors for light mode." },
-                    dark: { type: "array", items: { type: "string" }, description: "Hex colors for dark mode." },
-                },
-                required: ["light", "dark"],
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(UpdateThemeArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
