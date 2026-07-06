@@ -207,6 +207,8 @@ This MCP server provides many tools including the following:
 - [`list_themes`](https://developer.doit.com/reference/listcustomthemes): Returns the custom color themes defined for your account
 - [`get_theme`](https://developer.doit.com/reference/getcustomtheme): Returns details of a specific custom color theme by ID or name
 - [`get_active_theme`](https://developer.doit.com/reference/getactivetheme): Returns the color theme currently active for the authenticated user (the sentinel `"default"` means the built-in default is in use)
+- [`set_active_theme`](https://developer.doit.com/reference/patchactivetheme): Sets the active color theme for the authenticated user; pass the sentinel `"default"` to revert to the built-in default
+- [`update_theme`](https://developer.doit.com/reference/patchcustomtheme): Updates an existing custom color theme (rename, change primary color, or replace the color palette) by ID or name
 - [`list_account_team`](https://developer.doit.com/reference/listaccountteam): Returns the DoiT account managers assigned to the customer, including name, email, role, and Calendly link
 - [`get_resource_permissions`](https://developer.doit.com/reference/getresourcepermission-2): Returns the sharing settings (per-user roles and public visibility) for a specific alert, budget, report, or allocation
 - [`get_aws_account`](https://developer.doit.com/reference/getawsaccount): Returns the CloudConnect details of a connected AWS account (role ARN, billing S3 bucket, enabled and supported features) by AWS account ID

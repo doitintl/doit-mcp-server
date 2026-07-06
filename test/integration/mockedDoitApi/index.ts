@@ -361,6 +361,14 @@ export const mockedDoitApiHandlers = [
     http.get(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
         return HttpResponse.json(fixtures.activeTheme);
     }),
+    http.patch(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
+        return HttpResponse.json(fixtures.setActiveTheme);
+    }),
+
+    // Themes (custom)
+    http.patch(`${API_BASE}/analytics/v1/settings/themes/:id`, () => {
+        return HttpResponse.json(fixtures.updateTheme);
+    }),
 
     // Insights (retrieve a single insight by source + key)
     http.get(`${API_BASE}/insights/v1/results/source/:source/insight/:key`, ({ params }) => {

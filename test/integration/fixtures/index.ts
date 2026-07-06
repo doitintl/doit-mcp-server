@@ -26,12 +26,14 @@ import {
     reportConfigFixture,
     reportResultsFixture,
     reportsFixture,
+    setActiveThemeFixture,
     updateAlertFixture,
     updateAllocationFixture,
     updateAnnotationFixture,
     updateBudgetFixture,
     updateLabelFixture,
     updateReportFixture,
+    updateThemeFixture,
 } from "./analytics.js";
 import { anomaliesFixture, anomalyFixture } from "./anomalies.js";
 import { avaAskSyncFixture, avaAskSyncWithConversationFixture } from "./ava.js";
@@ -166,6 +168,8 @@ export const fixtures = {
     commitments: commitmentsFixture,
 
     activeTheme: activeThemeFixture,
+    setActiveTheme: setActiveThemeFixture,
+    updateTheme: updateThemeFixture,
     insight: insightFixture,
 
     avaAskSync: avaAskSyncFixture,
