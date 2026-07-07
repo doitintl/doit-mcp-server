@@ -1,10 +1,26 @@
 # Changelog
 
-## Unreleased
+## v0.15.0 (2026-07-07)
 
 ### Features
 
-- feat: add `search_customers` tool — DoiT-internal (doer) search across all customers by classification, type, segment, tier package, domains, cloud asset platforms, Flexsave, monthly/invoiced spend, and active contracts (AND-combined). Calls the doer-gated console endpoint `POST /api/customers/v1/customers/search` via the console proxy.
+- feat(themes): add set_active_theme and update_theme tools (`9cd6fb9`)
+- feat(cloudflow): add list_cloudflows tool (`776b3fc`)
+- feat(cloudflow): add list_cloudflow_templates and get_cloudflow_template tools (`cefa729`)
+- feat(cloudflow): add refine_cloudflow MCP tool (`ef81b43`)
+- feat: add search_customers doer tool (`089f5bf`)
+- feat(cloudflow): add list_cloudflow_connections and get_cloudflow_connection tools (`557f7b3`)
+- feat(clouddiagrams): add get_cloud_diagram_cost_snapshot and get_cloud_diagram_resource_relationships tools (`1c0640d`)
+- feat(clouddiagrams): add list_cloud_diagram_activity_groups and list_cloud_diagram_node_activities tools (`91d34ba`)
+- feat(clouddiagrams): add get_cloud_diagrams_stats and search_cloud_diagrams tools (`25f0b78`)
+- feat(api): add get_active_theme and get_insight tools (`42b1174`)
+- feat(api): add list_account_team and get_resource_permissions tools (`9ffd33d`)
+- feat(aws): add get_aws_account and get_cloud_connect_supported_features tools (`fd0d009`)
+
+### Bug Fixes
+
+- fix: improve cloud diagram stats tool desc (`366b335`)
+- fix: use session mcp url for widget domain (`97c4b5a`)
 
 ## v0.14.0 (2026-06-19)
 
