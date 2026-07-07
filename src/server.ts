@@ -169,7 +169,11 @@ import {
     handleGetActiveThemeRequest,
     handleGetThemeRequest,
     handleListThemesRequest,
+    handleSetActiveThemeRequest,
+    handleUpdateThemeRequest,
     listThemesTool,
+    setActiveThemeTool,
+    updateThemeTool,
 } from "./tools/themes.js";
 import {
     createTicketCommentTool,
@@ -288,6 +292,8 @@ export function createServer() {
                 listThemesTool,
                 getThemeTool,
                 getActiveThemeTool,
+                setActiveThemeTool,
+                updateThemeTool,
                 getAwsAccountTool,
                 getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,
@@ -493,6 +499,7 @@ export {
     handleSearchCloudDiagramsRequest,
     handleSearchCustomersRequest,
     handleSendDatahubEventsRequest,
+    handleSetActiveThemeRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAlertRequest,
     handleUpdateAllocationRequest,
@@ -501,6 +508,7 @@ export {
     handleUpdateDatahubDatasetRequest,
     handleUpdateLabelRequest,
     handleUpdateReportRequest,
+    handleUpdateThemeRequest,
     handleUpdateUserRequest,
     handleValidateUserRequest,
 };

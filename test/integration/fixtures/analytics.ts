@@ -504,6 +504,22 @@ export const activeThemeFixture = {
     themeId: "theme-1",
 };
 
+export const setActiveThemeFixture = {
+    themeId: "theme-2",
+};
+
+export const updateThemeFixture = {
+    id: "theme-1",
+    name: "Ocean Updated",
+    primaryColor: "#0B57D0",
+    colors: {
+        light: ["#0B57D0", "#34A853"],
+        dark: ["#0842A0", "#1E8E3E"],
+    },
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
 export const insightFixture = {
     key: "delete-ebs-volumes",
     source: "aws-cost-optimization-hub",

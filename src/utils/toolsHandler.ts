@@ -93,7 +93,13 @@ import {
 } from "../tools/reports.js";
 import { handleListRolesRequest } from "../tools/roles.js";
 import { handleSearchCustomersRequest } from "../tools/searchCustomers.js";
-import { handleGetActiveThemeRequest, handleGetThemeRequest, handleListThemesRequest } from "../tools/themes.js";
+import {
+    handleGetActiveThemeRequest,
+    handleGetThemeRequest,
+    handleListThemesRequest,
+    handleSetActiveThemeRequest,
+    handleUpdateThemeRequest,
+} from "../tools/themes.js";
 import {
     // createTicketTool, // Re-enable alongside the WRITE_GATED_SUMMARIES entry below.
     handleCreateTicketCommentRequest,
@@ -444,6 +450,12 @@ async function runOriginalDispatch(
             break;
         case "get_active_theme":
             result = await handleGetActiveThemeRequest(args, token);
+            break;
+        case "set_active_theme":
+            result = await handleSetActiveThemeRequest(args, token);
+            break;
+        case "update_theme":
+            result = await handleUpdateThemeRequest(args, token);
             break;
         case "list_datahub_datasets":
             result = await handleListDatahubDatasetsRequest(args, token);

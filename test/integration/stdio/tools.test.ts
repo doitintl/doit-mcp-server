@@ -119,7 +119,9 @@ describe("MCP Tools Integration", () => {
                     "update_datahub_dataset",
                     "update_label",
                     "update_report",
+                    "update_theme",
                     "update_user",
+                    "set_active_theme",
                     "validate_user",
                 ].sort()
             );
@@ -260,6 +262,53 @@ describe("MCP Tools Integration", () => {
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
             expect(parsed.themeId).toBe("theme-1");
+        });
+    });
+
+    describe("set_active_theme", () => {
+        it("sets the active theme and returns the updated active theme", async () => {
+            const result = await client.callTool({ name: "set_active_theme", arguments: { themeId: "theme-2" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.themeId).toBe("theme-2");
+        });
+
+        it("returns a validation error when themeId is missing", async () => {
+            const result = await client.callTool({ name: "set_active_theme", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("themeId");
+        });
+    });
+
+    describe("update_theme", () => {
+        it("updates a theme by id and returns the updated theme", async () => {
+            const result = await client.callTool({
+                name: "update_theme",
+                arguments: { id: "theme-1", newName: "Ocean Updated" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("theme-1");
+            expect(parsed.name).toBe("Ocean Updated");
+            expect(parsed.primaryColor).toBe("#0B57D0");
+        });
+
+        it("returns a validation error when neither id nor name is provided", async () => {
+            const result = await client.callTool({
+                name: "update_theme",
+                arguments: { newName: "X" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Either id or name must be provided");
+        });
+
+        it("returns a validation error when no update fields are provided", async () => {
+            const result = await client.callTool({
+                name: "update_theme",
+                arguments: { id: "theme-1" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("newName");
         });
     });
 

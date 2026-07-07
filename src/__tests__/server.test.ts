@@ -286,7 +286,13 @@ import {
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
 import { searchCustomersTool } from "../tools/searchCustomers.js";
-import { getActiveThemeTool, getThemeTool, listThemesTool } from "../tools/themes.js";
+import {
+    getActiveThemeTool,
+    getThemeTool,
+    listThemesTool,
+    setActiveThemeTool,
+    updateThemeTool,
+} from "../tools/themes.js";
 import {
     createTicketCommentTool,
     createTicketTool,
@@ -411,6 +417,8 @@ describe("ListToolsRequestSchema handler", () => {
                 listThemesTool,
                 getThemeTool,
                 getActiveThemeTool,
+                setActiveThemeTool,
+                updateThemeTool,
                 getAwsAccountTool,
                 getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,
