@@ -160,7 +160,7 @@ export const updateResourcePermissionsTool = {
     },
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {
