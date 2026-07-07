@@ -123,3 +123,16 @@ export const resourcePermissionsFixture = {
     ],
     public: "viewer",
 };
+
+export const updateResourcePermissionsFixture = {
+    id: "budget-1",
+    name: "Q4 Cloud Spend",
+    description: "Budget tracking for Q4",
+    createTime: 1700000000000,
+    updateTime: 1700200000000,
+    permissions: [
+        { user: "owner@example.com", role: "owner" },
+        { user: "editor@example.com", role: "editor" },
+    ],
+    public: null,
+};

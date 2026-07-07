@@ -172,3 +172,20 @@ export type CloudDiagramNodeActivity = {
 };
 
 export type ListCloudDiagramNodeActivitiesResponse = CloudDiagramNodeActivity[];
+
+// Get diagram components — POST /clouddiagrams/v1/scheme/get
+export type CloudDiagramSchemeStatussheetInfo = {
+    _id: string;
+    account_name?: string;
+    [key: string]: unknown;
+};
+
+export type CloudDiagramScheme = {
+    _id: string;
+    name?: string;
+    type?: "application" | "infrastructure" | "network" | "template";
+    account_name?: string;
+    statussheet?: Record<string, CloudDiagramSchemeStatussheetInfo>;
+};
+
+export type GetCloudDiagramComponentsResponse = CloudDiagramScheme[];

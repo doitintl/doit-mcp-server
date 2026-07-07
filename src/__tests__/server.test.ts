@@ -231,6 +231,7 @@ import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tool
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import {
     findCloudDiagramsTool,
+    getCloudDiagramComponentsTool,
     getCloudDiagramCostSnapshotTool,
     getCloudDiagramResourceRelationshipsTool,
     getCloudDiagramsStatsTool,
@@ -272,7 +273,7 @@ import {
 } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { cloudOverviewTool } from "../tools/overview.js";
-import { getResourcePermissionsTool } from "../tools/permissions.js";
+import { getResourcePermissionsTool, updateResourcePermissionsTool } from "../tools/permissions.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
 import { compareSpendTool, costBreakdownTool, costTrendTool } from "../tools/queryHelpers.js";
@@ -433,6 +434,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getCloudDiagramResourceRelationshipsTool,
                 listCloudDiagramActivityGroupsTool,
                 listCloudDiagramNodeActivitiesTool,
+                getCloudDiagramComponentsTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
@@ -445,6 +447,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getCommitmentTool,
                 listAccountTeamTool,
                 getResourcePermissionsTool,
+                updateResourcePermissionsTool,
                 askAvaSyncTool,
                 // confirmActionTool, // disabled with the approval gate
             ],
