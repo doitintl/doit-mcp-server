@@ -98,7 +98,9 @@ export function schemaToZod(schema: JsonSchema | undefined): ZodTypeAny {
 
     if (isBinaryFile) {
         zodType = zodType.describe(
-            schema.description ? `${schema.description} (local file path)` : "Local file path to upload"
+            schema.description
+                ? `${schema.description} (base64-encoded file content)`
+                : "Base64-encoded file content to upload"
         );
     } else if (schema.description) {
         zodType = zodType.describe(schema.description);
