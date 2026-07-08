@@ -150,12 +150,8 @@ vi.mock(import("../tools/commitmentManager.js"), async (importOriginal) => ({
 }));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
-    createErrorResponse: vi.fn((msg) => ({
-        content: [{ type: "text", text: msg }],
-    })),
-    createSuccessResponse: vi.fn((text) => ({
-        content: [{ type: "text", text }],
-    })),
+    createErrorResponse: vi.fn((msg) => ({ content: [{ type: "text", text: msg }] })),
+    createSuccessResponse: vi.fn((text) => ({ content: [{ type: "text", text }] })),
     formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
     handleGeneralError: vi.fn((_error, context) => ({
         content: [{ type: "text", text: `General Error: ${context}` }],
@@ -579,18 +575,9 @@ describe("GetPromptRequestSchema handler", () => {
         const response = await handler({ params: { name: "__test_multi__" } });
 
         expect(response.messages).toHaveLength(3);
-        expect(response.messages[0]).toEqual({
-            role: "user",
-            content: { type: "text", text: "Hello" },
-        });
-        expect(response.messages[1]).toEqual({
-            role: "assistant",
-            content: { type: "text", text: "How can I help?" },
-        });
-        expect(response.messages[2]).toEqual({
-            role: "user",
-            content: { type: "text", text: "Tell me about costs." },
-        });
+        expect(response.messages[0]).toEqual({ role: "user", content: { type: "text", text: "Hello" } });
+        expect(response.messages[1]).toEqual({ role: "assistant", content: { type: "text", text: "How can I help?" } });
+        expect(response.messages[2]).toEqual({ role: "user", content: { type: "text", text: "Tell me about costs." } });
     });
 
     it("throws McpError with InvalidParams for an unknown prompt name", async () => {
@@ -692,9 +679,7 @@ describe("GetPromptRequestSchema handler", () => {
 
     it("returns prompt for search_expert_inquiries with expected structure and content", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({
-            params: { name: "search_expert_inquiries" },
-        });
+        const response = await handler({ params: { name: "search_expert_inquiries" } });
 
         expect(response.description).toContain("expert inquiries");
         expect(response.messages).toHaveLength(1);
@@ -706,10 +691,7 @@ describe("GetPromptRequestSchema handler", () => {
     it("appends arguments to search_expert_inquiries message", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
         const response = await handler({
-            params: {
-                name: "search_expert_inquiries",
-                arguments: { keyword: "billing", platform: "gcp" },
-            },
+            params: { name: "search_expert_inquiries", arguments: { keyword: "billing", platform: "gcp" } },
         });
 
         const text: string = response.messages[0].content.text;
@@ -745,9 +727,7 @@ describe("InitializeRequestSchema handler", () => {
     it("returns server info and capabilities with the provided protocol version", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
 
-        const response = await handler({
-            params: { protocolVersion: "2024-11-05" },
-        });
+        const response = await handler({ params: { protocolVersion: "2024-11-05" } });
 
         expect(response).toEqual({
             protocolVersion: "2024-11-05",
@@ -766,9 +746,7 @@ describe("InitializeRequestSchema handler", () => {
 });
 
 describe("CallToolRequestSchema handler", () => {
-    const mockRequest = (name: string, args: any) => ({
-        params: { name, arguments: args },
-    });
+    const mockRequest = (name: string, args: any) => ({ params: { name, arguments: args } });
 
     const getCallToolHandler = () =>
         setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
@@ -778,18 +756,14 @@ describe("CallToolRequestSchema handler", () => {
         const response = await getCallToolHandler()(mockRequest("list_cloud_incidents", {}));
 
         expect(createErrorResponseSpy).toHaveBeenCalled();
-        expect(response).toEqual({
-            content: [{ type: "text", text: "Unauthorized" }],
-        });
+        expect(response).toEqual({ content: [{ type: "text", text: "Unauthorized" }] });
     });
 
     it("returns Unknown tool error for unrecognised tool names", async () => {
         const response = await getCallToolHandler()(mockRequest("unknown_tool", {}));
 
         expect(createErrorResponseSpy).toHaveBeenCalled();
-        expect(response).toEqual({
-            content: [{ type: "text", text: "Unknown tool: unknown_tool" }],
-        });
+        expect(response).toEqual({ content: [{ type: "text", text: "Unknown tool: unknown_tool" }] });
     });
 
     it("handles ZodError and returns a formatted error response", async () => {
@@ -814,9 +788,7 @@ describe("CallToolRequestSchema handler", () => {
         const response = await getCallToolHandler()(mockRequest("get_cloud_incidents", {}));
 
         expect(handleGeneralError).toHaveBeenCalledWith(expect.any(Error), "handling tool request");
-        expect(response).toEqual({
-            content: [{ type: "text", text: "General Error: handling tool request" }],
-        });
+        expect(response).toEqual({ content: [{ type: "text", text: "General Error: handling tool request" }] });
     });
 
     const toolRoutingCases: Array<[string, string, any, any]> = [
@@ -862,10 +834,7 @@ describe("CallToolRequestSchema handler", () => {
         [
             "create_allocation",
             "create_allocation",
-            {
-                name: "Test",
-                rule: { components: [{ key: "env", type: "label", values: ["prod"] }] },
-            },
+            { name: "Test", rule: { components: [{ key: "env", type: "label", values: ["prod"] }] } },
             handleCreateAllocationRequest,
         ],
         [
@@ -874,9 +843,7 @@ describe("CallToolRequestSchema handler", () => {
             {
                 id: "allocation-123",
                 name: "Updated",
-                rule: {
-                    components: [{ key: "env", type: "label", values: ["staging"] }],
-                },
+                rule: { components: [{ key: "env", type: "label", values: ["staging"] }] },
             },
             handleUpdateAllocationRequest,
         ],
