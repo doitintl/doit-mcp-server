@@ -253,6 +253,23 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.annotations);
     }),
 
+    // Folders
+    http.post(`${API_BASE}/analytics/v1/folders`, () => {
+        return HttpResponse.json(fixtures.createFolder, { status: 201 });
+    }),
+    http.patch(`${API_BASE}/analytics/v1/folders/:id`, () => {
+        return HttpResponse.json(fixtures.updateFolder);
+    }),
+    http.get(`${API_BASE}/analytics/v1/folders/:id`, ({ params }) => {
+        if (params.id === "folder-1") {
+            return HttpResponse.json(fixtures.folder);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/analytics/v1/folders`, () => {
+        return HttpResponse.json(fixtures.folders);
+    }),
+
     // DataHub Datasets
     http.post(`${API_BASE}/datahub/v1/datasets`, () => {
         return HttpResponse.json(fixtures.createDatahubDataset);
