@@ -120,6 +120,7 @@ import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "./tools/d
 import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
 import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
 import { getFolderTool, handleGetFolderRequest, handleListFoldersRequest, listFoldersTool } from "./tools/folders.js";
+import { generatedTools, generatedToolsByName } from "./tools/generated/registry.js";
 import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "./tools/insights.js";
 import {
     getInvoiceTool,
@@ -198,8 +199,19 @@ import {
 import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
 import { MemoryApprovalStore } from "./utils/approval.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
+import { zodToMcpInputSchema } from "./utils/schemaHelpers.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError, type TrackingContext } from "./utils/util.js";
+
+// Raw stdio tool definitions for every non-blacklisted OpenAPI operation — see
+// src/tools/generated/blacklist.ts for what's excluded (already hand-covered elsewhere).
+const generatedToolDefinitions = generatedTools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: zodToMcpInputSchema(tool.zodSchema),
+    annotations: tool.annotations,
+    securitySchemes: tool.securitySchemes,
+}));
 
 export function createServer() {
     // Connection-level MCP client info — set once on initialize, read on every tool call.
@@ -325,6 +337,7 @@ export function createServer() {
                 // disabled — without any write-gated tool minting tokens there is
                 // nothing for clients to confirm. Re-add when the gate returns.
                 // confirmActionTool,
+                ...generatedToolDefinitions,
             ],
         };
     });
@@ -397,6 +410,7 @@ export function createServer() {
             userKey,
             approvalStore,
             onProgress,
+            generatedTools: generatedToolsByName,
         });
     });
 

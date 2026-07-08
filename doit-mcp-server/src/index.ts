@@ -278,6 +278,9 @@ import {
   SendDatahubEventsArgumentsSchema,
   sendDatahubEventsTool,
 } from "../../src/tools/datahubEvents.js";
+import { generateTools } from "../../src/tools/generated/generateTools.js";
+import generatedToolsOpenApiSpec from "../../src/tools/generated/openapi.json";
+import type { OpenAPIV3 } from "openapi-types";
 
 import type { ApprovalStore } from "../../src/utils/approval.js";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -323,6 +326,16 @@ import {
   type WidgetResourceContent,
   WIDGET_RESOURCE_MIME_TYPE,
 } from "./widgetResource.js";
+
+// Computed once per isolate from the bundled spec (esbuild inlines the JSON at build
+// time — the Worker has no filesystem, so unlike stdio's loadSpec.ts this can't read
+// openapi.json off disk). Shared by every DoitMCPAgent instance in this isolate.
+const generatedTools = generateTools(
+  generatedToolsOpenApiSpec as unknown as OpenAPIV3.Document,
+);
+const generatedToolsByName = new Map(
+  generatedTools.map((tool) => [tool.name, tool]),
+);
 
 const KEEP_ALIVE_INTERVAL_MS = 120_000; // 2 minutes in milliseconds
 
@@ -499,7 +512,7 @@ export class DoitMCPAgent extends McpAgent {
     let token = this.props.credential as string;
     if (!token) {
       const persisted = await this.ctx.storage.get<string>(
-        LIVE_CREDENTIAL_STORAGE_KEY
+        LIVE_CREDENTIAL_STORAGE_KEY,
       );
       if (typeof persisted === "string" && persisted) {
         token = persisted;
@@ -577,7 +590,8 @@ export class DoitMCPAgent extends McpAgent {
     if (!claims) {
       return;
     }
-    const credentialChanged = token !== (this.props?.credential as string | undefined);
+    const credentialChanged =
+      token !== (this.props?.credential as string | undefined);
     this.props = {
       ...(this.props ?? {}),
       credential: token,
@@ -745,6 +759,7 @@ export class DoitMCPAgent extends McpAgent {
             // be consumed across users even if a token somehow leaked.
             userKey: token,
             approvalStore: this.getApprovalStore(),
+            generatedTools: generatedToolsByName,
           }),
       );
       return result;
@@ -962,8 +977,14 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(costBreakdownTool, CostBreakdownArgumentsSchema);
     this.registerTool(costTrendTool, CostTrendArgumentsSchema);
     this.registerTool(compareSpendTool, CompareSpendArgumentsSchema);
-    this.registerTool(listOptimizationRecommendationsTool, ListInsightsArgumentsSchema);
-    this.registerTool(getInsightResourcesTool, GetInsightResourcesArgumentsSchema);
+    this.registerTool(
+      listOptimizationRecommendationsTool,
+      ListInsightsArgumentsSchema,
+    );
+    this.registerTool(
+      getInsightResourcesTool,
+      GetInsightResourcesArgumentsSchema,
+    );
     this.registerTool(getInsightTool, GetInsightArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);
@@ -980,8 +1001,14 @@ export class DoitMCPAgent extends McpAgent {
     // Tickets tools
     this.registerTool(listTicketsTool, ListTicketsArgumentsSchema);
     this.registerTool(getTicketTool, GetTicketArgumentsSchema);
-    this.registerTool(listTicketCommentsTool, ListTicketCommentsArgumentsSchema);
-    this.registerTool(createTicketCommentTool, CreateTicketCommentArgumentsSchema);
+    this.registerTool(
+      listTicketCommentsTool,
+      ListTicketCommentsArgumentsSchema,
+    );
+    this.registerTool(
+      createTicketCommentTool,
+      CreateTicketCommentArgumentsSchema,
+    );
     this.registerTool(createTicketTool, CreateTicketArgumentsSchema);
 
     // Invoices tools
@@ -1002,10 +1029,22 @@ export class DoitMCPAgent extends McpAgent {
     // CloudFlow tools
     this.registerTool(triggerCloudFlowTool, TriggerCloudFlowArgumentsSchema);
     this.registerTool(listCloudFlowsTool, ListCloudFlowsArgumentsSchema);
-    this.registerTool(listCloudFlowConnectionsTool, ListCloudFlowConnectionsArgumentsSchema);
-    this.registerTool(getCloudFlowConnectionTool, GetCloudFlowConnectionArgumentsSchema);
-    this.registerTool(listCloudFlowTemplatesTool, ListCloudFlowTemplatesArgumentsSchema);
-    this.registerTool(getCloudFlowTemplateTool, GetCloudFlowTemplateArgumentsSchema);
+    this.registerTool(
+      listCloudFlowConnectionsTool,
+      ListCloudFlowConnectionsArgumentsSchema,
+    );
+    this.registerTool(
+      getCloudFlowConnectionTool,
+      GetCloudFlowConnectionArgumentsSchema,
+    );
+    this.registerTool(
+      listCloudFlowTemplatesTool,
+      ListCloudFlowTemplatesArgumentsSchema,
+    );
+    this.registerTool(
+      getCloudFlowTemplateTool,
+      GetCloudFlowTemplateArgumentsSchema,
+    );
     this.registerTool(refineCloudflowTool, RefineCloudflowArgumentsSchema);
 
     // Alerts tools
@@ -1032,7 +1071,10 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(listAccountTeamTool, ListAccountTeamArgumentsSchema);
 
     // Permissions tools
-    this.registerTool(getResourcePermissionsTool, GetResourcePermissionsArgumentsSchema);
+    this.registerTool(
+      getResourcePermissionsTool,
+      GetResourcePermissionsArgumentsSchema,
+    );
 
     // Products tools
     this.registerTool(listProductsTool, ListProductsArgumentsSchema);
@@ -1042,8 +1084,14 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getLabelTool, GetLabelArgumentsSchema);
     this.registerTool(createLabelTool, CreateLabelArgumentsSchema);
     this.registerTool(updateLabelTool, UpdateLabelArgumentsSchema);
-    this.registerTool(getLabelAssignmentsTool, GetLabelAssignmentsArgumentsSchema);
-    this.registerTool(assignObjectsToLabelTool, AssignObjectsToLabelArgumentsSchema);
+    this.registerTool(
+      getLabelAssignmentsTool,
+      GetLabelAssignmentsArgumentsSchema,
+    );
+    this.registerTool(
+      assignObjectsToLabelTool,
+      AssignObjectsToLabelArgumentsSchema,
+    );
 
     // Folders tools
     this.registerTool(listFoldersTool, ListFoldersArgumentsSchema);
@@ -1058,23 +1106,53 @@ export class DoitMCPAgent extends McpAgent {
 
     // AWS Account Management tools
     this.registerTool(getAwsAccountTool, GetAwsAccountArgumentsSchema);
-    this.registerTool(getCloudConnectSupportedFeaturesTool, GetCloudConnectSupportedFeaturesArgumentsSchema);
+    this.registerTool(
+      getCloudConnectSupportedFeaturesTool,
+      GetCloudConnectSupportedFeaturesArgumentsSchema,
+    );
 
     // DataHub Datasets tools
-    this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
+    this.registerTool(
+      listDatahubDatasetsTool,
+      ListDatahubDatasetsArgumentsSchema,
+    );
     this.registerTool(getDatahubDatasetTool, GetDatahubDatasetArgumentsSchema);
-    this.registerTool(createDatahubDatasetTool, CreateDatahubDatasetArgumentsSchema);
-    this.registerTool(updateDatahubDatasetTool, UpdateDatahubDatasetArgumentsSchema);
+    this.registerTool(
+      createDatahubDatasetTool,
+      CreateDatahubDatasetArgumentsSchema,
+    );
+    this.registerTool(
+      updateDatahubDatasetTool,
+      UpdateDatahubDatasetArgumentsSchema,
+    );
     this.registerTool(sendDatahubEventsTool, SendDatahubEventsArgumentsSchema);
 
     // Cloud Diagrams tools
     this.registerTool(findCloudDiagramsTool, FindCloudDiagramsArgumentsSchema);
-    this.registerTool(getCloudDiagramsStatsTool, GetCloudDiagramsStatsArgumentsSchema);
-    this.registerTool(searchCloudDiagramsTool, SearchCloudDiagramsArgumentsSchema);
-    this.registerTool(getCloudDiagramCostSnapshotTool, GetCloudDiagramCostSnapshotArgumentsSchema);
-    this.registerTool(getCloudDiagramResourceRelationshipsTool, GetCloudDiagramResourceRelationshipsArgumentsSchema);
-    this.registerTool(listCloudDiagramActivityGroupsTool, ListCloudDiagramActivityGroupsArgumentsSchema);
-    this.registerTool(listCloudDiagramNodeActivitiesTool, ListCloudDiagramNodeActivitiesArgumentsSchema);
+    this.registerTool(
+      getCloudDiagramsStatsTool,
+      GetCloudDiagramsStatsArgumentsSchema,
+    );
+    this.registerTool(
+      searchCloudDiagramsTool,
+      SearchCloudDiagramsArgumentsSchema,
+    );
+    this.registerTool(
+      getCloudDiagramCostSnapshotTool,
+      GetCloudDiagramCostSnapshotArgumentsSchema,
+    );
+    this.registerTool(
+      getCloudDiagramResourceRelationshipsTool,
+      GetCloudDiagramResourceRelationshipsArgumentsSchema,
+    );
+    this.registerTool(
+      listCloudDiagramActivityGroupsTool,
+      ListCloudDiagramActivityGroupsArgumentsSchema,
+    );
+    this.registerTool(
+      listCloudDiagramNodeActivitiesTool,
+      ListCloudDiagramNodeActivitiesArgumentsSchema,
+    );
 
     // Budgets tools
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);
@@ -1094,6 +1172,19 @@ export class DoitMCPAgent extends McpAgent {
 
     // AVA tools
     this.registerTool(askAvaSyncTool, AskAvaSyncArgumentsSchema);
+
+    // Auto-generated tools — every OpenAPI operation not already hand-covered above.
+    // See src/tools/generated/blacklist.ts for what's excluded.
+    for (const tool of generatedTools) {
+      this.registerTool(
+        {
+          name: tool.name,
+          description: tool.description,
+          annotations: tool.annotations,
+        },
+        tool.zodSchema,
+      );
+    }
 
     // Approval flow — exposed so the LLM can finalize destructive actions that
     // were previously staged by other tools. See src/tools/confirmAction.ts.
@@ -1428,7 +1519,7 @@ function getSessionPublicMcpUrlFromRequest(req: Request): string | undefined {
 
 function withSessionPublicMcpUrl(
   req: Request,
-  props: Record<string, unknown>
+  props: Record<string, unknown>,
 ): Record<string, unknown> {
   const sessionPublicMcpUrl = getSessionPublicMcpUrlFromRequest(req);
 
@@ -1465,7 +1556,7 @@ function decodeSessionClaims(token: string): {
   try {
     const segment = token.split(".")[1];
     const c = JSON.parse(
-      atob(segment.replace(/-/g, "+").replace(/_/g, "/"))
+      atob(segment.replace(/-/g, "+").replace(/_/g, "/")),
     ) as Record<string, unknown>;
     if (typeof c.sub !== "string") return null;
     return {
@@ -1490,7 +1581,7 @@ type McpSessionKind = "sse" | "streamable-http";
 async function applyOAuthSessionFromRequest(
   req: Request,
   env: Env,
-  kind: McpSessionKind
+  kind: McpSessionKind,
 ): Promise<void> {
   // No session id => the connection/initialize request; the SDK delivers props via _init.
   const sessionId =
@@ -1588,9 +1679,13 @@ async function handleRequest(
               authMethod: "oauth",
               userId: "demo",
               isDoitUser: "false",
-            })
+            }),
           );
-          const response = await handleMcpRequest(withMcpTraceId(req, traceId), env, ctx);
+          const response = await handleMcpRequest(
+            withMcpTraceId(req, traceId),
+            env,
+            ctx,
+          );
           if (response.status >= 400) {
             logMcpRequestComplete(traceId, response, startedAt);
           }
@@ -1667,7 +1762,7 @@ async function handleRequest(
             cid: result.claims.cid,
             flowId: result.claims.flowId,
             isDoitUser: result.claims.isDoitEmployee ? "true" : "false",
-          })
+          }),
         );
 
         // Dispatch through main's handleMcpRequest so we get its routing,

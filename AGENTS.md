@@ -148,6 +148,17 @@ When adding a new MCP tool:
 
 **Note**: Tools must be registered in both transports to be available in all deployment modes.
 
+## Auto-generated tools (`src/tools/generated/`)
+
+Every OpenAPI operation not covered by a hand-written tool above is exposed automatically:
+
+- `openapi.json` — a pre-dereferenced (zero `$ref`) snapshot of the DoiT external API spec, checked in and statically imported by both transports (the Worker has no filesystem, so this can't be loaded at runtime). Refresh it manually with `yarn generate:refresh-spec` when the API spec changes.
+- `blacklist.ts` — `{method, path}` pairs already covered by a hand-written tool above; add/remove entries here to control what the generator exposes. Verify new entries against the spec before adding — the generator silently skips anything listed here.
+- `generateTools.ts` — builds one tool per non-blacklisted operation (snake_case name from `operationId`, Zod schema from the OpenAPI parameter/body schemas, `readOnlyHint`/`destructiveHint` from the HTTP method).
+- `callOperation.ts` — generic request executor shared by both transports. Multipart file fields are base64-encoded content (not a local path) so the same tool contract works on stdio and the filesystem-less Worker.
+
+Both transports inject their own tool registry into `executeToolHandler`'s `generatedTools` option (see `ToolHandlerOptions` in `src/utils/toolsHandler.ts`) rather than importing a shared singleton — stdio loads the spec via `fs`, the Worker via a static import, and the dispatch code in `toolsHandler.ts` stays transport-agnostic.
+
 The project uses:
 - **TypeScript** for type safety
 - **Biome** for linting and formatting

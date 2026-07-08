@@ -59,6 +59,8 @@ import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
 import { handleGetFolderRequest, handleListFoldersRequest } from "../tools/folders.js";
+import { handleGeneratedOperationRequest } from "../tools/generated/callOperation.js";
+import type { GeneratedTool } from "../tools/generated/types.js";
 import {
     handleGetInsightRequest,
     handleGetInsightResourcesRequest,
@@ -162,6 +164,14 @@ export interface ToolHandlerOptions {
     approvalStore?: ApprovalStore;
     /** Called for each SSE progress event from streaming tools (e.g. refine_cloudflow). */
     onProgress?: (message: string) => Promise<void>;
+    /**
+     * Registry of auto-generated tools (see src/tools/generated/), keyed by tool name.
+     * Injected by the caller rather than imported here because each transport loads the
+     * bundled OpenAPI spec differently — stdio reads it off disk, the Worker has no
+     * filesystem and statically imports it instead. Tool names not in the static switch
+     * below fall back to this registry before erroring as unknown.
+     */
+    generatedTools?: Map<string, GeneratedTool>;
 }
 
 /**
@@ -178,14 +188,17 @@ export async function executeToolHandler(
     token: string,
     options: ToolHandlerOptions = {}
 ): Promise<any> {
-    const { trackingContext, convertResponse, userKey, approvalStore, onProgress } = options;
+    const { trackingContext, convertResponse, userKey, approvalStore, onProgress, generatedTools } = options;
     return runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
         try {
             // Dispatches an already-confirmed (or non-gated) tool call. The approval
             // gate below never calls this directly for a write-gated tool without first
             // going through `confirm_action` + `ApprovalStore.consume`.
             const runOriginal = async (innerToolName: string, innerArgs: any, innerToken: string): Promise<any> => {
-                const result = await runOriginalDispatch(innerToolName, innerArgs, innerToken, { onProgress });
+                const result = await runOriginalDispatch(innerToolName, innerArgs, innerToken, {
+                    onProgress,
+                    generatedTools,
+                });
                 return convertResponse ? convertResponse(result) : result;
             };
 
@@ -532,8 +545,13 @@ async function runOriginalDispatch(
         case "get_resource_permissions":
             result = await handleGetResourcePermissionsRequest(args, token);
             break;
-        default:
-            return createErrorResponse(`Unknown tool: ${toolName}`);
+        default: {
+            const generatedTool = options?.generatedTools?.get(toolName);
+            if (!generatedTool) {
+                return createErrorResponse(`Unknown tool: ${toolName}`);
+            }
+            result = await handleGeneratedOperationRequest(generatedTool, args, token);
+        }
     }
     return result;
 }

@@ -252,6 +252,11 @@ export async function makeDoitRequest<T>(
         customerContext?: string;
         parseResponse?: boolean;
         timeoutMs?: number;
+        /** Response parsing mode on success. Defaults to "json". Use "text" when the caller
+         *  can't assume every response is JSON (e.g. an empty 204 body from a generated
+         *  DELETE tool) — `.json()` on an empty body throws, which makeDoitRequest would
+         *  otherwise swallow into a misleading `null`/failure result. */
+        parseAs?: "json" | "text";
     } = {}
 ): Promise<T | null> {
     const {
@@ -261,6 +266,7 @@ export async function makeDoitRequest<T>(
         customerContext,
         parseResponse = true,
         timeoutMs,
+        parseAs = "json",
     } = options;
 
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
@@ -281,10 +287,14 @@ export async function makeDoitRequest<T>(
         return {} as T;
     }
 
-    const headers = {
+    // FormData bodies (generated multipart tools) must NOT get a JSON Content-Type or be
+    // JSON.stringify'd — fetch sets the correct multipart boundary itself when the header
+    // is left unset and the body is a FormData instance.
+    const isFormDataBody = typeof FormData !== "undefined" && body instanceof FormData;
+    const headers: Record<string, string> = {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
         Accept: "application/json",
+        ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
     };
 
     let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;
@@ -301,8 +311,8 @@ export async function makeDoitRequest<T>(
 
         // Add body for non-GET requests if provided
         if (method !== "GET" && body !== undefined) {
-            requestOptions.body = JSON.stringify(body);
-            debugLog("API request body: ", DebugLevel.TRACE, requestOptions.body);
+            requestOptions.body = isFormDataBody ? (body as FormData) : JSON.stringify(body);
+            debugLog("API request body: ", DebugLevel.TRACE, isFormDataBody ? "<FormData>" : requestOptions.body);
         }
 
         // add mcp tracking params to the url
@@ -322,7 +332,7 @@ export async function makeDoitRequest<T>(
         if (!parseResponse) {
             return {} as T;
         }
-        return (await response.json()) as T;
+        return (parseAs === "text" ? await response.text() : await response.json()) as T;
     } catch (error) {
         if (error instanceof DOMException && error.name === "TimeoutError") {
             console.error(`DoiT API ${method} request timed out after ${timeoutMs}ms`);
