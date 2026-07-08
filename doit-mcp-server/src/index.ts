@@ -179,6 +179,8 @@ import {
 import {
   GetResourcePermissionsArgumentsSchema,
   getResourcePermissionsTool,
+  UpdateResourcePermissionsArgumentsSchema,
+  updateResourcePermissionsTool,
 } from "../../src/tools/permissions.js";
 import {
   AssignObjectsToLabelArgumentsSchema,
@@ -229,6 +231,8 @@ import {
 import {
   FindCloudDiagramsArgumentsSchema,
   findCloudDiagramsTool,
+  GetCloudDiagramComponentsArgumentsSchema,
+  getCloudDiagramComponentsTool,
   GetCloudDiagramCostSnapshotArgumentsSchema,
   getCloudDiagramCostSnapshotTool,
   GetCloudDiagramResourceRelationshipsArgumentsSchema,
@@ -1037,6 +1041,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // Permissions tools
     this.registerTool(getResourcePermissionsTool, GetResourcePermissionsArgumentsSchema);
+    this.registerTool(updateResourcePermissionsTool, UpdateResourcePermissionsArgumentsSchema);
 
     // Products tools
     this.registerTool(listProductsTool, ListProductsArgumentsSchema);
@@ -1081,6 +1086,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getCloudDiagramResourceRelationshipsTool, GetCloudDiagramResourceRelationshipsArgumentsSchema);
     this.registerTool(listCloudDiagramActivityGroupsTool, ListCloudDiagramActivityGroupsArgumentsSchema);
     this.registerTool(listCloudDiagramNodeActivitiesTool, ListCloudDiagramNodeActivitiesArgumentsSchema);
+    this.registerTool(getCloudDiagramComponentsTool, GetCloudDiagramComponentsArgumentsSchema);
 
     // Budgets tools
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);

@@ -30,6 +30,7 @@ import {
 } from "../tools/budgets.js";
 import {
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramComponentsRequest,
     handleGetCloudDiagramCostSnapshotRequest,
     handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
@@ -80,7 +81,7 @@ import {
 } from "../tools/labels.js";
 import { handleListOrganizationsRequest } from "../tools/organizations.js";
 import { handleCloudOverviewRequest } from "../tools/overview.js";
-import { handleGetResourcePermissionsRequest } from "../tools/permissions.js";
+import { handleGetResourcePermissionsRequest, handleUpdateResourcePermissionsRequest } from "../tools/permissions.js";
 import { handleListPlatformsRequest } from "../tools/platforms.js";
 import { handleListProductsRequest } from "../tools/products.js";
 import {
@@ -504,6 +505,9 @@ async function runOriginalDispatch(
         case "list_cloud_diagram_node_activities":
             result = await handleListCloudDiagramNodeActivitiesRequest(args, token);
             break;
+        case "get_cloud_diagram_components":
+            result = await handleGetCloudDiagramComponentsRequest(args, token);
+            break;
         case "list_budgets":
             result = await handleListBudgetsRequest(args, token);
             break;
@@ -542,6 +546,9 @@ async function runOriginalDispatch(
             break;
         case "get_resource_permissions":
             result = await handleGetResourcePermissionsRequest(args, token);
+            break;
+        case "update_resource_permissions":
+            result = await handleUpdateResourcePermissionsRequest(args, token);
             break;
         default:
             return createErrorResponse(`Unknown tool: ${toolName}`);

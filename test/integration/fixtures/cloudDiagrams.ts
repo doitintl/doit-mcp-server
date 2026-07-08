@@ -126,6 +126,28 @@ export const cloudDiagramCostSnapshotFixture = {
     ],
 };
 
+export const cloudDiagramComponentsFixture = [
+    {
+        _id: "scheme-1",
+        name: "Production VPC",
+        type: "infrastructure",
+        account_name: "prod-account",
+        statussheet: {
+            "sheet-1": { _id: "sheet-1", account_name: "prod-account" },
+            "sheet-2": { _id: "sheet-2", account_name: "staging-account" },
+        },
+    },
+    {
+        _id: "scheme-2",
+        name: "Dev Environment",
+        type: "application",
+        account_name: "dev-account",
+        statussheet: {
+            "sheet-3": { _id: "sheet-3", account_name: "dev-account" },
+        },
+    },
+];
+
 export const cloudDiagramResourceRelationshipsFixture = {
     anchor: { id: "node-1", type: "node", name: "web-server", serviceType: "AWS::EC2::Instance" },
     direction: "both",

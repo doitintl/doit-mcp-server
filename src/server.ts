@@ -62,10 +62,12 @@ import {
 } from "./tools/budgets.js";
 import {
     findCloudDiagramsTool,
+    getCloudDiagramComponentsTool,
     getCloudDiagramCostSnapshotTool,
     getCloudDiagramResourceRelationshipsTool,
     getCloudDiagramsStatsTool,
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramComponentsRequest,
     handleGetCloudDiagramCostSnapshotRequest,
     handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
@@ -152,7 +154,12 @@ import {
 } from "./tools/labels.js";
 import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
 import { cloudOverviewTool } from "./tools/overview.js";
-import { getResourcePermissionsTool, handleGetResourcePermissionsRequest } from "./tools/permissions.js";
+import {
+    getResourcePermissionsTool,
+    handleGetResourcePermissionsRequest,
+    handleUpdateResourcePermissionsRequest,
+    updateResourcePermissionsTool,
+} from "./tools/permissions.js";
 import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
 import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
 import { compareSpendTool, costBreakdownTool, costTrendTool } from "./tools/queryHelpers.js";
@@ -319,6 +326,7 @@ export function createServer() {
                 getCloudDiagramResourceRelationshipsTool,
                 listCloudDiagramActivityGroupsTool,
                 listCloudDiagramNodeActivitiesTool,
+                getCloudDiagramComponentsTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
@@ -331,6 +339,7 @@ export function createServer() {
                 getCommitmentTool,
                 listAccountTeamTool,
                 getResourcePermissionsTool,
+                updateResourcePermissionsTool,
                 askAvaSyncTool,
                 // confirm_action is no longer exposed while the approval gate is
                 // disabled — without any write-gated tool minting tokens there is
@@ -465,6 +474,7 @@ export {
     handleGetAwsAccountRequest,
     handleGetBudgetRequest,
     handleGetCloudConnectSupportedFeaturesRequest,
+    handleGetCloudDiagramComponentsRequest,
     handleGetCloudDiagramCostSnapshotRequest,
     handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
@@ -521,6 +531,7 @@ export {
     handleUpdateFolderRequest,
     handleUpdateLabelRequest,
     handleUpdateReportRequest,
+    handleUpdateResourcePermissionsRequest,
     handleUpdateThemeRequest,
     handleUpdateUserRequest,
     handleValidateUserRequest,
