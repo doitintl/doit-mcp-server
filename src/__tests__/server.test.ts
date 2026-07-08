@@ -259,7 +259,7 @@ import {
 import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
-import { getFolderTool, listFoldersTool } from "../tools/folders.js";
+import { createFolderTool, getFolderTool, listFoldersTool, updateFolderTool } from "../tools/folders.js";
 import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import {
@@ -414,6 +414,8 @@ describe("ListToolsRequestSchema handler", () => {
                 assignObjectsToLabelTool,
                 listFoldersTool,
                 getFolderTool,
+                createFolderTool,
+                updateFolderTool,
                 listThemesTool,
                 getThemeTool,
                 getActiveThemeTool,

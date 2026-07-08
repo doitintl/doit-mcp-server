@@ -144,3 +144,109 @@ export async function handleGetFolderRequest(args: any, token: string) {
         return handleGeneralError(error, "handling get folder request");
     }
 }
+
+// Schema and metadata for create folder
+export const CreateFolderArgumentsSchema = z.object({
+    name: z.string().min(1).describe("The name of the folder (required, non-empty)."),
+    description: z.string().optional().describe("An optional description for the folder."),
+    parentFolderId: z
+        .string()
+        .optional()
+        .describe('The ID of the parent folder. Omit or set to "root" to create at the top level.'),
+});
+
+export const createFolderTool = {
+    name: "create_folder",
+    description:
+        "Use this when the user wants to create a new Cloud Analytics folder to organize reports and allocations. Ask the user to confirm the folder details before executing. Do NOT use this for creating reports (use create_report) or labels (use create_label).",
+    inputSchema: zodToMcpInputSchema(CreateFolderArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating folder...",
+        "openai/toolInvocation/invoked": "Folder created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export async function handleCreateFolderRequest(args: any, token: string) {
+    try {
+        const parsed = CreateFolderArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const body = { ...parsed };
+
+        const data = await makeDoitRequest<Folder>(FOLDERS_BASE_URL, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to create folder");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create folder request");
+    }
+}
+
+// Schema and metadata for update folder
+export const UpdateFolderArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Folder ID is required and cannot be empty."))
+        .describe("The ID of the folder to update (required)."),
+    name: z.string().min(1).optional().describe("New name for the folder."),
+    description: z.string().nullable().optional().describe("New description for the folder. Set to null to clear."),
+    parentFolderId: z
+        .string()
+        .optional()
+        .describe('The ID of the new parent folder, or "root" to move to the top level.'),
+});
+
+export const updateFolderTool = {
+    name: "update_folder",
+    description:
+        "Use this when the user wants to rename, re-describe, or move (reparent) an existing Cloud Analytics folder. Ask the user to confirm changes before executing. Note: if a sibling folder at the target parent already has the same name, the folder will be auto-renamed by the API. Do NOT use this for creating new folders (use create_folder) or updating reports (use update_report).",
+    inputSchema: zodToMcpInputSchema(UpdateFolderArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating folder...",
+        "openai/toolInvocation/invoked": "Folder updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export async function handleUpdateFolderRequest(args: any, token: string) {
+    try {
+        const parsed = UpdateFolderArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const { id, ...body } = parsed;
+        const url = `${FOLDERS_BASE_URL}/${encodeURIComponent(id)}`;
+
+        const data = await makeDoitRequest<Folder>(url, token, {
+            method: "PATCH",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to update folder");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling update folder request");
+    }
+}

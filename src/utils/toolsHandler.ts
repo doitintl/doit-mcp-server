@@ -58,7 +58,12 @@ import {
 import { handleSendDatahubEventsRequest } from "../tools/datahubEvents.js";
 import { handleDimensionRequest } from "../tools/dimension.js";
 import { handleDimensionsRequest } from "../tools/dimensions.js";
-import { handleGetFolderRequest, handleListFoldersRequest } from "../tools/folders.js";
+import {
+    handleCreateFolderRequest,
+    handleGetFolderRequest,
+    handleListFoldersRequest,
+    handleUpdateFolderRequest,
+} from "../tools/folders.js";
 import {
     handleGetInsightRequest,
     handleGetInsightResourcesRequest,
@@ -435,6 +440,12 @@ async function runOriginalDispatch(
             break;
         case "get_folder":
             result = await handleGetFolderRequest(args, token);
+            break;
+        case "create_folder":
+            result = await handleCreateFolderRequest(args, token);
+            break;
+        case "update_folder":
+            result = await handleUpdateFolderRequest(args, token);
             break;
         case "get_aws_account":
             result = await handleGetAwsAccountRequest(args, token);

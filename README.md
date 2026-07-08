@@ -204,6 +204,8 @@ This MCP server provides many tools including the following:
 - [`assign_objects_to_label`](https://developer.doit.com/reference/assignobjectstolabel): Assigns or unassigns objects to a label
 - [`list_folders`](https://developer.doit.com/reference/listfolders): Returns the Cloud Analytics folders the user has access to
 - [`get_folder`](https://developer.doit.com/reference/getfolder): Returns details of a specific Cloud Analytics folder by ID or name
+- [`create_folder`](https://developer.doit.com/reference/createfolder): Creates a new Cloud Analytics folder; optionally place it under a parent folder
+- [`update_folder`](https://developer.doit.com/reference/updatefolder): Renames, re-describes, or moves (reparents) an existing Cloud Analytics folder
 - [`list_themes`](https://developer.doit.com/reference/listcustomthemes): Returns the custom color themes defined for your account
 - [`get_theme`](https://developer.doit.com/reference/getcustomtheme): Returns details of a specific custom color theme by ID or name
 - [`get_active_theme`](https://developer.doit.com/reference/getactivetheme): Returns the color theme currently active for the authenticated user (the sentinel `"default"` means the built-in default is in use)

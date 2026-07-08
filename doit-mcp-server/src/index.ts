@@ -195,10 +195,14 @@ import {
   updateLabelTool,
 } from "../../src/tools/labels.js";
 import {
+  CreateFolderArgumentsSchema,
+  createFolderTool,
   GetFolderArgumentsSchema,
   getFolderTool,
   ListFoldersArgumentsSchema,
   listFoldersTool,
+  UpdateFolderArgumentsSchema,
+  updateFolderTool,
 } from "../../src/tools/folders.js";
 import {
   GetAwsAccountArgumentsSchema,
@@ -1048,6 +1052,8 @@ export class DoitMCPAgent extends McpAgent {
     // Folders tools
     this.registerTool(listFoldersTool, ListFoldersArgumentsSchema);
     this.registerTool(getFolderTool, GetFolderArgumentsSchema);
+    this.registerTool(createFolderTool, CreateFolderArgumentsSchema);
+    this.registerTool(updateFolderTool, UpdateFolderArgumentsSchema);
 
     // Themes tools
     this.registerTool(listThemesTool, ListThemesArgumentsSchema);
