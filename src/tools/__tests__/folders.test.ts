@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
+    createFolderTool,
     DEFAULT_MAX_RESULTS_FOLDERS,
     FOLDERS_BASE_URL,
     getFolderTool,
+    handleCreateFolderRequest,
     handleGetFolderRequest,
     handleListFoldersRequest,
+    handleUpdateFolderRequest,
     listFoldersTool,
+    updateFolderTool,
 } from "../folders.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -242,5 +246,195 @@ describe("get_folder", () => {
     it("should have correct tool name and be read-only", () => {
         expect(getFolderTool.name).toBe("get_folder");
         expect(getFolderTool.annotations.readOnlyHint).toBe(true);
+    });
+});
+
+describe("create_folder", () => {
+    const mockToken = "fake-token";
+
+    const mockFolder = {
+        id: "folder-new",
+        name: "New Folder",
+        description: "A new folder",
+        parentFolderId: "root",
+    };
+
+    it("should call makeDoitRequest with POST and return created folder", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockFolder);
+
+        const response = await handleCreateFolderRequest(
+            { name: "New Folder", description: "A new folder" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(FOLDERS_BASE_URL, mockToken, {
+            method: "POST",
+            body: { name: "New Folder", description: "A new folder" },
+            customerContext: undefined,
+        });
+
+        const text = response.content[0].text;
+        const parsed = JSON.parse(text);
+        expect(parsed.id).toBe("folder-new");
+        expect(parsed.name).toBe("New Folder");
+    });
+
+    it("should create folder with parentFolderId", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ ...mockFolder, parentFolderId: "parent-1" });
+
+        await handleCreateFolderRequest({ name: "Sub Folder", parentFolderId: "parent-1" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(FOLDERS_BASE_URL, mockToken, {
+            method: "POST",
+            body: { name: "Sub Folder", parentFolderId: "parent-1" },
+            customerContext: undefined,
+        });
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockFolder);
+
+        await handleCreateFolderRequest({ name: "New Folder", customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(FOLDERS_BASE_URL, mockToken, {
+            method: "POST",
+            body: { name: "New Folder" },
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error when name is missing", async () => {
+        const response = await handleCreateFolderRequest({}, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("Invalid arguments");
+    });
+
+    it("should return error when name is empty", async () => {
+        const response = await handleCreateFolderRequest({ name: "" }, mockToken);
+
+        expect(response.isError).toBe(true);
+    });
+
+    it("should return error when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleCreateFolderRequest({ name: "New Folder" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("folder") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleCreateFolderRequest({ name: "New Folder" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should not be read-only", () => {
+        expect(createFolderTool.name).toBe("create_folder");
+        expect(createFolderTool.annotations.readOnlyHint).toBe(false);
+    });
+});
+
+describe("update_folder", () => {
+    const mockToken = "fake-token";
+
+    const mockFolder = {
+        id: "folder-1",
+        name: "Updated Folder",
+        description: "Updated description",
+        parentFolderId: "root",
+    };
+
+    it("should call makeDoitRequest with PATCH and return updated folder", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockFolder);
+
+        const response = await handleUpdateFolderRequest({ id: "folder-1", name: "Updated Folder" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${FOLDERS_BASE_URL}/folder-1`, mockToken, {
+            method: "PATCH",
+            body: { name: "Updated Folder" },
+            customerContext: undefined,
+        });
+
+        const text = response.content[0].text;
+        const parsed = JSON.parse(text);
+        expect(parsed.id).toBe("folder-1");
+        expect(parsed.name).toBe("Updated Folder");
+    });
+
+    it("should reparent folder by setting parentFolderId", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ ...mockFolder, parentFolderId: "parent-2" });
+
+        await handleUpdateFolderRequest({ id: "folder-1", parentFolderId: "parent-2" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${FOLDERS_BASE_URL}/folder-1`, mockToken, {
+            method: "PATCH",
+            body: { parentFolderId: "parent-2" },
+            customerContext: undefined,
+        });
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockFolder);
+
+        await handleUpdateFolderRequest(
+            { id: "folder-1", name: "Updated Folder", customerContext: "customer-123" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${FOLDERS_BASE_URL}/folder-1`, mockToken, {
+            method: "PATCH",
+            body: { name: "Updated Folder" },
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should return error when id is missing", async () => {
+        const response = await handleUpdateFolderRequest({ name: "Updated" }, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("Required");
+    });
+
+    it("should return error when id is only whitespace", async () => {
+        const response = await handleUpdateFolderRequest({ id: "   " }, mockToken);
+
+        expect(response.isError).toBe(true);
+    });
+
+    it("should return error when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleUpdateFolderRequest({ id: "folder-1", name: "Updated Folder" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("folder") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleUpdateFolderRequest({ id: "folder-1" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
+    });
+
+    it("should not be read-only", () => {
+        expect(updateFolderTool.name).toBe("update_folder");
+        expect(updateFolderTool.annotations.readOnlyHint).toBe(false);
     });
 });

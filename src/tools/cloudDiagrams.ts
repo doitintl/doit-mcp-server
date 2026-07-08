@@ -3,6 +3,7 @@ import type {
     CloudDiagramCostSnapshot,
     CloudDiagramResourceRelationshipsResponse,
     FindCloudDiagramsResponse,
+    GetCloudDiagramComponentsResponse,
     GetCloudDiagramsStatsResponse,
     ListCloudDiagramActivityGroupsResponse,
     ListCloudDiagramNodeActivitiesResponse,
@@ -21,6 +22,7 @@ import {
 export const CLOUD_DIAGRAMS_BASE_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/find`;
 export const CLOUD_DIAGRAMS_STATS_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/stats`;
 export const CLOUD_DIAGRAMS_SEARCH_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/search`;
+export const CLOUD_DIAGRAMS_SCHEME_GET_URL = `${DOIT_API_BASE}/clouddiagrams/v1/scheme/get`;
 export const CLOUD_DIAGRAMS_STATUSSHEET_URL = `${DOIT_API_BASE}/clouddiagrams/v1/statussheet`;
 export const CLOUD_DIAGRAMS_ACTIVITY_URL = `${DOIT_API_BASE}/clouddiagrams/v1/activity`;
 export const CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL = `${DOIT_API_BASE}/clouddiagrams/v1/activity/node-activities`;
@@ -425,5 +427,71 @@ export async function handleListCloudDiagramNodeActivitiesRequest(args: any, tok
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling list cloud diagram node activities request");
+    }
+}
+
+export const GetCloudDiagramComponentsArgumentsSchema = z.object({
+    scheme_ids: z.array(z.string()).optional().describe("Filter to specific diagram IDs. Omit to return all diagrams."),
+    layer_ids: z
+        .array(z.string())
+        .optional()
+        .describe("Filter to specific layer (statussheet) IDs. Omit to return all layers."),
+    include_components: z
+        .boolean()
+        .optional()
+        .describe(
+            "Include component data (nodes, elements, groups, links, etc.) in the response. Defaults to false for lighter responses. Enable when you need component IDs for other diagram endpoints."
+        ),
+    skip_empty: z.boolean().optional().describe("Exclude layers that have no components. Defaults to false."),
+});
+
+export const getCloudDiagramComponentsTool = {
+    name: "get_cloud_diagram_components",
+    description:
+        "Use this when the user wants to discover all cloud infrastructure diagrams and their layers (statussheets), or to look up layer IDs needed for other diagram endpoints. Returns all diagrams with their connected layers and optionally their component data. This is the primary discovery endpoint — use it before calling endpoints that require a layer ID. Optionally filter by diagram IDs (scheme_ids) or layer IDs (layer_ids), and set include_components=true to get full component lists. Do NOT use this for cost analysis (use run_query) or diagram search (use search_cloud_diagrams).",
+    inputSchema: zodToMcpInputSchema(GetCloudDiagramComponentsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Fetching diagram components...",
+        "openai/toolInvocation/invoked": "Diagram components retrieved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export async function handleGetCloudDiagramComponentsRequest(args: any, token: string) {
+    try {
+        const { scheme_ids, layer_ids, include_components, skip_empty } =
+            GetCloudDiagramComponentsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const params = new URLSearchParams();
+        if (include_components) params.append("components", "true");
+        if (skip_empty) params.append("skip_empty", "true");
+
+        const query = params.toString();
+        const url = query ? `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?${query}` : CLOUD_DIAGRAMS_SCHEME_GET_URL;
+
+        const body: Record<string, unknown> = {};
+        if (scheme_ids !== undefined) body.scheme_ids = scheme_ids;
+        if (layer_ids !== undefined) body.layer_ids = layer_ids;
+
+        const data = await makeDoitRequest<GetCloudDiagramComponentsResponse>(url, token, {
+            method: "POST",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to retrieve cloud diagram components");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get cloud diagram components request");
     }
 }

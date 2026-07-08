@@ -14,10 +14,13 @@ import {
     createAllocationFixture,
     createAnnotationFixture,
     createBudgetFixture,
+    createFolderFixture,
     createLabelFixture,
     createReportFixture,
     dimensionFixture,
     dimensionsFixture,
+    folderFixture,
+    foldersFixture,
     insightFixture,
     labelAssignmentsFixture,
     labelFixture,
@@ -31,6 +34,7 @@ import {
     updateAllocationFixture,
     updateAnnotationFixture,
     updateBudgetFixture,
+    updateFolderFixture,
     updateLabelFixture,
     updateReportFixture,
     updateThemeFixture,
@@ -40,6 +44,7 @@ import { avaAskSyncFixture, avaAskSyncWithConversationFixture } from "./ava.js";
 import { assetDetailedFixture, assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
 import {
     cloudDiagramActivityGroupsFixture,
+    cloudDiagramComponentsFixture,
     cloudDiagramCostSnapshotFixture,
     cloudDiagramNodeActivitiesFixture,
     cloudDiagramResourceRelationshipsFixture,
@@ -68,6 +73,7 @@ import {
     organizationsFixture,
     resourcePermissionsFixture,
     rolesFixture,
+    updateResourcePermissionsFixture,
     updateUserFixture,
     usersFixture,
     validateUserFixture,
@@ -92,6 +98,7 @@ export const fixtures = {
     inviteUser: inviteUserFixture,
     accountTeam: accountTeamFixture,
     resourcePermissions: resourcePermissionsFixture,
+    updateResourcePermissions: updateResourcePermissionsFixture,
 
     cloudIncidents: cloudIncidentsFixture,
     cloudIncident: cloudIncidentFixture,
@@ -135,6 +142,7 @@ export const fixtures = {
     cloudDiagramResourceRelationships: cloudDiagramResourceRelationshipsFixture,
     cloudDiagramActivityGroups: cloudDiagramActivityGroupsFixture,
     cloudDiagramNodeActivities: cloudDiagramNodeActivitiesFixture,
+    cloudDiagramComponents: cloudDiagramComponentsFixture,
 
     datahubDatasets: datahubDatasetsFixture,
     datahubDataset: datahubDatasetFixture,
@@ -163,6 +171,11 @@ export const fixtures = {
     annotations: annotationsFixture,
     createAnnotation: createAnnotationFixture,
     updateAnnotation: updateAnnotationFixture,
+
+    folder: folderFixture,
+    folders: foldersFixture,
+    createFolder: createFolderFixture,
+    updateFolder: updateFolderFixture,
 
     commitment: commitmentFixture,
     commitments: commitmentsFixture,

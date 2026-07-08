@@ -540,3 +540,37 @@ export const insightFixture = {
     lastUpdated: "2026-06-01T00:00:00.000Z",
     tags: [],
 };
+
+export const folderFixture = {
+    id: "folder-1",
+    name: "Analytics",
+    description: "Cloud Analytics reports",
+    parentFolderId: "root",
+};
+
+export const foldersFixture = {
+    pageToken: "",
+    rowCount: 1,
+    folders: [
+        {
+            id: "folder-1",
+            name: "Analytics",
+            description: "Cloud Analytics reports",
+            parentFolderId: "root",
+        },
+    ],
+};
+
+export const createFolderFixture = {
+    id: "folder-new",
+    name: "New Folder",
+    description: "A newly created folder",
+    parentFolderId: "root",
+};
+
+export const updateFolderFixture = {
+    id: "folder-1",
+    name: "Analytics Renamed",
+    description: "Updated description",
+    parentFolderId: "root",
+};

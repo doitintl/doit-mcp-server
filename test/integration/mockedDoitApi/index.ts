@@ -28,6 +28,14 @@ export const mockedDoitApiHandlers = [
         }
         return new HttpResponse(null, { status: 404 });
     }),
+    http.patch(`${API_BASE}/sharing/v1/:resourceType/:resourceId`, ({ params }) => {
+        const { resourceType, resourceId } = params;
+        const allowed = ["alerts", "budgets", "reports", "allocations"];
+        if (allowed.includes(resourceType as string) && resourceId === "budget-1") {
+            return HttpResponse.json(fixtures.updateResourcePermissions);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
 
     // Users
     http.post(`${API_BASE}/iam/v1/users/invite`, () => {
@@ -253,6 +261,23 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.annotations);
     }),
 
+    // Folders
+    http.post(`${API_BASE}/analytics/v1/folders`, () => {
+        return HttpResponse.json(fixtures.createFolder, { status: 201 });
+    }),
+    http.patch(`${API_BASE}/analytics/v1/folders/:id`, () => {
+        return HttpResponse.json(fixtures.updateFolder);
+    }),
+    http.get(`${API_BASE}/analytics/v1/folders/:id`, ({ params }) => {
+        if (params.id === "folder-1") {
+            return HttpResponse.json(fixtures.folder);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/analytics/v1/folders`, () => {
+        return HttpResponse.json(fixtures.folders);
+    }),
+
     // DataHub Datasets
     http.post(`${API_BASE}/datahub/v1/datasets`, () => {
         return HttpResponse.json(fixtures.createDatahubDataset);
@@ -278,6 +303,9 @@ export const mockedDoitApiHandlers = [
     // Cloud Diagrams
     http.post(`${API_BASE}/clouddiagrams/v1/scheme/find`, () => {
         return HttpResponse.json(fixtures.cloudDiagrams);
+    }),
+    http.post(`${API_BASE}/clouddiagrams/v1/scheme/get`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramComponents);
     }),
     http.get(`${API_BASE}/clouddiagrams/v1/scheme/stats`, () => {
         return HttpResponse.json(fixtures.cloudDiagramsStats);

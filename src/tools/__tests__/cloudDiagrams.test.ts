@@ -4,10 +4,12 @@ import {
     CLOUD_DIAGRAMS_ACTIVITY_URL,
     CLOUD_DIAGRAMS_BASE_URL,
     CLOUD_DIAGRAMS_NODE_ACTIVITIES_URL,
+    CLOUD_DIAGRAMS_SCHEME_GET_URL,
     CLOUD_DIAGRAMS_SEARCH_URL,
     CLOUD_DIAGRAMS_STATS_URL,
     CLOUD_DIAGRAMS_STATUSSHEET_URL,
     handleFindCloudDiagramsRequest,
+    handleGetCloudDiagramComponentsRequest,
     handleGetCloudDiagramCostSnapshotRequest,
     handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
@@ -561,5 +563,82 @@ describe("get_cloud_diagram_resource_relationships", () => {
         const response = await handleGetCloudDiagramResourceRelationshipsRequest({ layerId: "sheet-1" }, mockToken);
 
         expect(response.isError).toBe(true);
+    });
+});
+
+describe("get_cloud_diagram_components", () => {
+    const mockToken = "fake-token";
+
+    const mockSchemes = [
+        {
+            _id: "scheme-1",
+            name: "Production VPC",
+            type: "infrastructure",
+            account_name: "prod-account",
+            statussheet: {
+                "sheet-1": { _id: "sheet-1", account_name: "prod-account" },
+            },
+        },
+    ];
+
+    it("should POST to scheme/get URL and return schemes", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSchemes);
+
+        const response = await handleGetCloudDiagramComponentsRequest({}, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SCHEME_GET_URL, mockToken, {
+            method: "POST",
+            body: {},
+            customerContext: undefined,
+        });
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed).toHaveLength(1);
+        expect(parsed[0]._id).toBe("scheme-1");
+        expect(parsed[0].statussheet["sheet-1"]._id).toBe("sheet-1");
+    });
+
+    it("should pass scheme_ids and layer_ids in the request body", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSchemes);
+
+        await handleGetCloudDiagramComponentsRequest({ scheme_ids: ["scheme-1"], layer_ids: ["sheet-1"] }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SCHEME_GET_URL, mockToken, {
+            method: "POST",
+            body: { scheme_ids: ["scheme-1"], layer_ids: ["sheet-1"] },
+            customerContext: undefined,
+        });
+    });
+
+    it("should append components and skip_empty as query params when set", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSchemes);
+
+        await handleGetCloudDiagramComponentsRequest({ include_components: true, skip_empty: true }, mockToken);
+
+        const calledUrl = (makeDoitRequest as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+        expect(calledUrl).toContain("components=true");
+        expect(calledUrl).toContain("skip_empty=true");
+    });
+
+    it("should pass customerContext", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSchemes);
+
+        await handleGetCloudDiagramComponentsRequest({ customerContext: "cust-42" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "POST",
+            body: {},
+            customerContext: "cust-42",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleGetCloudDiagramComponentsRequest({}, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("diagram components") }],
+            isError: true,
+        });
     });
 });

@@ -65,6 +65,7 @@ describe("MCP Tools Integration", () => {
                     "get_active_theme",
                     "get_datahub_dataset",
                     "get_dimension",
+                    "create_folder",
                     "get_folder",
                     "get_insight",
                     "get_insight_resources",
@@ -117,10 +118,13 @@ describe("MCP Tools Integration", () => {
                     "update_annotation",
                     "update_budget",
                     "update_datahub_dataset",
+                    "update_folder",
                     "update_label",
                     "update_report",
+                    "update_resource_permissions",
                     "update_theme",
                     "update_user",
+                    "get_cloud_diagram_components",
                     "set_active_theme",
                     "validate_user",
                 ].sort()
@@ -1354,6 +1358,72 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("list_folders", () => {
+        it("returns a list of folders", async () => {
+            const result = await client.callTool({ name: "list_folders", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.folders).toHaveLength(1);
+            expect(parsed.folders[0].id).toBe("folder-1");
+            expect(parsed.folders[0].name).toBe("Analytics");
+        });
+    });
+
+    describe("get_folder", () => {
+        it("returns a specific folder by id", async () => {
+            const result = await client.callTool({ name: "get_folder", arguments: { id: "folder-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("folder-1");
+            expect(parsed.name).toBe("Analytics");
+            expect(parsed.description).toBe("Cloud Analytics reports");
+        });
+    });
+
+    describe("create_folder", () => {
+        it("returns created folder from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_folder",
+                arguments: { name: "New Folder", description: "A newly created folder" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("folder-new");
+            expect(parsed.name).toBe("New Folder");
+        });
+
+        it("rejects invalid arguments (missing name)", async () => {
+            const result = await client.callTool({
+                name: "create_folder",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_folder", () => {
+        it("returns updated folder from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_folder",
+                arguments: { id: "folder-1", name: "Analytics Renamed" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("folder-1");
+            expect(parsed.name).toBe("Analytics Renamed");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_folder",
+                arguments: { name: "No id provided" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Required");
+        });
+    });
+
     describe("find_cloud_diagrams", () => {
         it("returns diagram URLs for given resource IDs", async () => {
             const result = await client.callTool({
@@ -1883,6 +1953,71 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({ name: "get_cloud_incident", arguments: {} });
             const text = getTextContent(result);
             expect(text.toLowerCase()).toContain("either id or title must be provided");
+        });
+    });
+
+    describe("get_cloud_diagram_components", () => {
+        it("returns all diagram schemes without filters", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_components",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("scheme-1");
+            expect(parsed[0].name).toBe("Production VPC");
+            expect(parsed[0].statussheet["sheet-1"]._id).toBe("sheet-1");
+        });
+
+        it("returns schemes when filtered by scheme_ids", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_components",
+                arguments: { scheme_ids: ["scheme-1"] },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("scheme-1");
+        });
+
+        it("returns validation error for invalid argument type", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_components",
+                arguments: { scheme_ids: "not-an-array" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("update_resource_permissions", () => {
+        it("updates permissions for a budget resource", async () => {
+            const result = await client.callTool({
+                name: "update_resource_permissions",
+                arguments: {
+                    resourceType: "budgets",
+                    resourceId: "budget-1",
+                    permissions: [
+                        { user: "owner@example.com", role: "owner" },
+                        { user: "editor@example.com", role: "editor" },
+                    ],
+                    public: null,
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-1");
+            expect(parsed.permissions).toHaveLength(2);
+            expect(parsed.permissions[1].role).toBe("editor");
+            expect(parsed.public).toBeNull();
+        });
+
+        it("returns validation error for an invalid resourceType", async () => {
+            const result = await client.callTool({
+                name: "update_resource_permissions",
+                arguments: { resourceType: "widgets", resourceId: "budget-1" },
+            });
+            expect(result.isError).toBe(true);
         });
     });
 });

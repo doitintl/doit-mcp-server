@@ -1,13 +1,13 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
-    CallToolRequestSchema,
-    ErrorCode,
-    GetPromptRequestSchema,
-    InitializeRequestSchema,
-    ListPromptsRequestSchema,
-    ListResourcesRequestSchema,
-    ListToolsRequestSchema,
-    McpError,
+  CallToolRequestSchema,
+  ErrorCode,
+  GetPromptRequestSchema,
+  InitializeRequestSchema,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -16,306 +16,346 @@ import { SERVER_VERSION } from "../utils/consts.js";
 
 vi.mock("@modelcontextprotocol/sdk/server/index.js");
 vi.mock(import("../tools/overview.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleCloudOverviewRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleCloudOverviewRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudIncidents.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleCloudIncidentsRequest: vi.fn(),
-    handleCloudIncidentRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleCloudIncidentsRequest: vi.fn(),
+  handleCloudIncidentRequest: vi.fn(),
 }));
 vi.mock(import("../tools/anomalies.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleAnomaliesRequest: vi.fn(),
-    handleAnomalyRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleAnomaliesRequest: vi.fn(),
+  handleAnomalyRequest: vi.fn(),
 }));
 vi.mock(import("../tools/ava.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleAskAvaSyncRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleAskAvaSyncRequest: vi.fn(),
 }));
 vi.mock(import("../tools/reports.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleReportsRequest: vi.fn(),
-    handleRunQueryRequest: vi.fn(),
-    handleGetReportResultsRequest: vi.fn(),
-    handleGetReportConfigRequest: vi.fn(),
-    handleCreateReportRequest: vi.fn(),
-    handleUpdateReportRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleReportsRequest: vi.fn(),
+  handleRunQueryRequest: vi.fn(),
+  handleGetReportResultsRequest: vi.fn(),
+  handleGetReportConfigRequest: vi.fn(),
+  handleCreateReportRequest: vi.fn(),
+  handleUpdateReportRequest: vi.fn(),
 }));
 vi.mock(import("../tools/validateUser.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleValidateUserRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleValidateUserRequest: vi.fn(),
 }));
 vi.mock(import("../tools/dimensions.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleDimensionsRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleDimensionsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/dimension.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleDimensionRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleDimensionRequest: vi.fn(),
 }));
 vi.mock(import("../tools/tickets.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleCreateTicketCommentRequest: vi.fn(),
-    handleCreateTicketRequest: vi.fn(),
-    handleGetTicketRequest: vi.fn(),
-    handleListTicketCommentsRequest: vi.fn(),
-    handleListTicketsRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleCreateTicketCommentRequest: vi.fn(),
+  handleCreateTicketRequest: vi.fn(),
+  handleGetTicketRequest: vi.fn(),
+  handleListTicketCommentsRequest: vi.fn(),
+  handleListTicketsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/invoices.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListInvoicesRequest: vi.fn(),
-    handleGetInvoiceRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListInvoicesRequest: vi.fn(),
+  handleGetInvoiceRequest: vi.fn(),
 }));
 vi.mock(import("../tools/allocations.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListAllocationsRequest: vi.fn(),
-    handleGetAllocationRequest: vi.fn(),
-    handleCreateAllocationRequest: vi.fn(),
-    handleUpdateAllocationRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListAllocationsRequest: vi.fn(),
+  handleGetAllocationRequest: vi.fn(),
+  handleCreateAllocationRequest: vi.fn(),
+  handleUpdateAllocationRequest: vi.fn(),
 }));
 vi.mock(import("../tools/assets.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleGetAssetRequest: vi.fn(),
-    handleListAssetsRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleGetAssetRequest: vi.fn(),
+  handleListAssetsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListAlertsRequest: vi.fn(),
-    handleGetAlertRequest: vi.fn(),
-    handleCreateAlertRequest: vi.fn(),
-    handleUpdateAlertRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListAlertsRequest: vi.fn(),
+  handleGetAlertRequest: vi.fn(),
+  handleCreateAlertRequest: vi.fn(),
+  handleUpdateAlertRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudflow.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleTriggerCloudFlowRequest: vi.fn(),
-    handleRefineCloudflowRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleTriggerCloudFlowRequest: vi.fn(),
+  handleRefineCloudflowRequest: vi.fn(),
 }));
 vi.mock(import("../tools/organizations.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListOrganizationsRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListOrganizationsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/users.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListUsersRequest: vi.fn(),
-    handleUpdateUserRequest: vi.fn(),
-    handleInviteUserRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListUsersRequest: vi.fn(),
+  handleUpdateUserRequest: vi.fn(),
+  handleInviteUserRequest: vi.fn(),
 }));
 vi.mock(import("../tools/roles.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListRolesRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListRolesRequest: vi.fn(),
 }));
 vi.mock(import("../tools/labels.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListLabelsRequest: vi.fn(),
-    handleGetLabelRequest: vi.fn(),
-    handleCreateLabelRequest: vi.fn(),
-    handleUpdateLabelRequest: vi.fn(),
-    handleGetLabelAssignmentsRequest: vi.fn(),
-    handleAssignObjectsToLabelRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListLabelsRequest: vi.fn(),
+  handleGetLabelRequest: vi.fn(),
+  handleCreateLabelRequest: vi.fn(),
+  handleUpdateLabelRequest: vi.fn(),
+  handleGetLabelAssignmentsRequest: vi.fn(),
+  handleAssignObjectsToLabelRequest: vi.fn(),
 }));
 vi.mock(import("../tools/datahubDatasets.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListDatahubDatasetsRequest: vi.fn(),
-    handleGetDatahubDatasetRequest: vi.fn(),
-    handleCreateDatahubDatasetRequest: vi.fn(),
-    handleUpdateDatahubDatasetRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListDatahubDatasetsRequest: vi.fn(),
+  handleGetDatahubDatasetRequest: vi.fn(),
+  handleCreateDatahubDatasetRequest: vi.fn(),
+  handleUpdateDatahubDatasetRequest: vi.fn(),
 }));
 vi.mock(import("../tools/datahubEvents.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleSendDatahubEventsRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleSendDatahubEventsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleFindCloudDiagramsRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleFindCloudDiagramsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/budgets.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListBudgetsRequest: vi.fn(),
-    handleGetBudgetRequest: vi.fn(),
-    handleCreateBudgetRequest: vi.fn(),
-    handleUpdateBudgetRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListBudgetsRequest: vi.fn(),
+  handleGetBudgetRequest: vi.fn(),
+  handleCreateBudgetRequest: vi.fn(),
+  handleUpdateBudgetRequest: vi.fn(),
 }));
 vi.mock(import("../tools/annotations.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListAnnotationsRequest: vi.fn(),
-    handleGetAnnotationRequest: vi.fn(),
-    handleCreateAnnotationRequest: vi.fn(),
-    handleUpdateAnnotationRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListAnnotationsRequest: vi.fn(),
+  handleGetAnnotationRequest: vi.fn(),
+  handleCreateAnnotationRequest: vi.fn(),
+  handleUpdateAnnotationRequest: vi.fn(),
 }));
 vi.mock(import("../tools/commitmentManager.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    handleListCommitmentsRequest: vi.fn(),
-    handleGetCommitmentRequest: vi.fn(),
+  ...(await importOriginal()),
+  handleListCommitmentsRequest: vi.fn(),
+  handleGetCommitmentRequest: vi.fn(),
 }));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
-    ...(await importOriginal()),
-    createErrorResponse: vi.fn((msg) => ({
-        content: [{ type: "text", text: msg }],
-    })),
-    createSuccessResponse: vi.fn((text) => ({
-        content: [{ type: "text", text }],
-    })),
-    formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
-    handleGeneralError: vi.fn((_error, context) => ({
-        content: [{ type: "text", text: `General Error: ${context}` }],
-    })),
-    DOIT_API_BASE: "https://api.doit.com",
-    makeDoitRequest: vi.fn(),
+  ...(await importOriginal()),
+  createErrorResponse: vi.fn((msg) => ({
+    content: [{ type: "text", text: msg }],
+  })),
+  createSuccessResponse: vi.fn((text) => ({
+    content: [{ type: "text", text }],
+  })),
+  formatZodError: vi.fn((error) => `Formatted Zod Error: ${error.message}`),
+  handleGeneralError: vi.fn((_error, context) => ({
+    content: [{ type: "text", text: `General Error: ${context}` }],
+  })),
+  DOIT_API_BASE: "https://api.doit.com",
+  makeDoitRequest: vi.fn(),
 }));
 
 const setRequestHandlerMock = vi.fn();
 (Server as any).mockImplementation(() => ({
-    setRequestHandler: setRequestHandlerMock,
-    connect: vi.fn(),
-    _capabilities: { tools: {}, prompts: {}, resources: {} },
+  setRequestHandler: setRequestHandlerMock,
+  connect: vi.fn(),
+  _capabilities: { tools: {}, prompts: {}, resources: {} },
 }));
 
 import {
-    createServer,
-    handleAnomaliesRequest,
-    handleAnomalyRequest,
-    handleAskAvaSyncRequest,
-    handleAssignObjectsToLabelRequest,
-    handleCloudIncidentRequest,
-    handleCloudIncidentsRequest,
-    handleCreateAllocationRequest,
-    handleCreateDatahubDatasetRequest,
-    handleCreateLabelRequest,
-    handleCreateTicketCommentRequest,
-    handleCreateTicketRequest,
-    handleDimensionRequest,
-    handleDimensionsRequest,
-    handleGeneralError,
-    handleGetAlertRequest,
-    handleGetAllocationRequest,
-    handleGetAssetRequest,
-    handleGetCommitmentRequest,
-    handleGetDatahubDatasetRequest,
-    handleGetInvoiceRequest,
-    handleGetLabelAssignmentsRequest,
-    handleGetReportResultsRequest,
-    handleGetTicketRequest,
-    handleListAlertsRequest,
-    handleListAllocationsRequest,
-    handleListAssetsRequest,
-    handleListCommitmentsRequest,
-    handleListDatahubDatasetsRequest,
-    handleListInvoicesRequest,
-    handleListTicketCommentsRequest,
-    handleListTicketsRequest,
-    handleReportsRequest,
-    handleRunQueryRequest,
-    handleSendDatahubEventsRequest,
-    handleTriggerCloudFlowRequest,
-    handleUpdateAllocationRequest,
-    handleUpdateDatahubDatasetRequest,
-    handleUpdateLabelRequest,
-    handleUpdateReportRequest,
-    handleValidateUserRequest,
+  createServer,
+  handleAnomaliesRequest,
+  handleAnomalyRequest,
+  handleAskAvaSyncRequest,
+  handleAssignObjectsToLabelRequest,
+  handleCloudIncidentRequest,
+  handleCloudIncidentsRequest,
+  handleCreateAllocationRequest,
+  handleCreateDatahubDatasetRequest,
+  handleCreateLabelRequest,
+  handleCreateTicketCommentRequest,
+  handleCreateTicketRequest,
+  handleDimensionRequest,
+  handleDimensionsRequest,
+  handleGeneralError,
+  handleGetAlertRequest,
+  handleGetAllocationRequest,
+  handleGetAssetRequest,
+  handleGetCommitmentRequest,
+  handleGetDatahubDatasetRequest,
+  handleGetInvoiceRequest,
+  handleGetLabelAssignmentsRequest,
+  handleGetReportResultsRequest,
+  handleGetTicketRequest,
+  handleListAlertsRequest,
+  handleListAllocationsRequest,
+  handleListAssetsRequest,
+  handleListCommitmentsRequest,
+  handleListDatahubDatasetsRequest,
+  handleListInvoicesRequest,
+  handleListTicketCommentsRequest,
+  handleListTicketsRequest,
+  handleReportsRequest,
+  handleRunQueryRequest,
+  handleSendDatahubEventsRequest,
+  handleTriggerCloudFlowRequest,
+  handleUpdateAllocationRequest,
+  handleUpdateDatahubDatasetRequest,
+  handleUpdateLabelRequest,
+  handleUpdateReportRequest,
+  handleValidateUserRequest,
 } from "../server.js";
 import { listAccountTeamTool } from "../tools/accountTeam.js";
-import { createAlertTool, getAlertTool, listAlertsTool, updateAlertTool } from "../tools/alerts.js";
 import {
-    createAllocationTool,
-    getAllocationTool,
-    listAllocationsTool,
-    updateAllocationTool,
+  createAlertTool,
+  getAlertTool,
+  listAlertsTool,
+  updateAlertTool,
+} from "../tools/alerts.js";
+import {
+  createAllocationTool,
+  getAllocationTool,
+  listAllocationsTool,
+  updateAllocationTool,
 } from "../tools/allocations.js";
 import {
-    createAnnotationTool,
-    getAnnotationTool,
-    listAnnotationsTool,
-    updateAnnotationTool,
+  createAnnotationTool,
+  getAnnotationTool,
+  listAnnotationsTool,
+  updateAnnotationTool,
 } from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { getAssetTool, listAssetsTool } from "../tools/assets.js";
 import { askAvaSyncTool } from "../tools/ava.js";
-import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
-import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import {
-    findCloudDiagramsTool,
-    getCloudDiagramCostSnapshotTool,
-    getCloudDiagramResourceRelationshipsTool,
-    getCloudDiagramsStatsTool,
-    listCloudDiagramActivityGroupsTool,
-    listCloudDiagramNodeActivitiesTool,
-    searchCloudDiagramsTool,
+  getAwsAccountTool,
+  getCloudConnectSupportedFeaturesTool,
+} from "../tools/awsAccounts.js";
+import {
+  createBudgetTool,
+  getBudgetTool,
+  listBudgetsTool,
+  updateBudgetTool,
+} from "../tools/budgets.js";
+import {
+  findCloudDiagramsTool,
+  getCloudDiagramComponentsTool,
+  getCloudDiagramCostSnapshotTool,
+  getCloudDiagramResourceRelationshipsTool,
+  getCloudDiagramsStatsTool,
+  listCloudDiagramActivityGroupsTool,
+  listCloudDiagramNodeActivitiesTool,
+  searchCloudDiagramsTool,
 } from "../tools/cloudDiagrams.js";
 import {
-    getCloudFlowConnectionTool,
-    getCloudFlowTemplateTool,
-    listCloudFlowConnectionsTool,
-    listCloudFlowsTool,
-    listCloudFlowTemplatesTool,
-    refineCloudflowTool,
-    triggerCloudFlowTool,
+  getCloudFlowConnectionTool,
+  getCloudFlowTemplateTool,
+  listCloudFlowConnectionsTool,
+  listCloudFlowsTool,
+  listCloudFlowTemplatesTool,
+  refineCloudflowTool,
+  triggerCloudFlowTool,
 } from "../tools/cloudflow.js";
-import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
-import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
+import {
+  cloudIncidentsTool,
+  cloudIncidentTool,
+} from "../tools/cloudIncidents.js";
+import {
+  getCommitmentTool,
+  listCommitmentsTool,
+} from "../tools/commitmentManager.js";
 // import { confirmActionTool } from "../tools/confirmAction.js"; // disabled with the approval gate
 import {
-    createDatahubDatasetTool,
-    getDatahubDatasetTool,
-    listDatahubDatasetsTool,
-    updateDatahubDatasetTool,
+  createDatahubDatasetTool,
+  getDatahubDatasetTool,
+  listDatahubDatasetsTool,
+  updateDatahubDatasetTool,
 } from "../tools/datahubDatasets.js";
 import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
-import { getFolderTool, listFoldersTool } from "../tools/folders.js";
+import {
+  createFolderTool,
+  getFolderTool,
+  listFoldersTool,
+  updateFolderTool,
+} from "../tools/folders.js";
 import { generatedTools } from "../tools/generated/registry.js";
-import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
+import {
+  getInsightResourcesTool,
+  getInsightTool,
+  listOptimizationRecommendationsTool,
+} from "../tools/insights.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import {
-    assignObjectsToLabelTool,
-    createLabelTool,
-    getLabelAssignmentsTool,
-    getLabelTool,
-    listLabelsTool,
-    updateLabelTool,
+  assignObjectsToLabelTool,
+  createLabelTool,
+  getLabelAssignmentsTool,
+  getLabelTool,
+  listLabelsTool,
+  updateLabelTool,
 } from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
 import { cloudOverviewTool } from "../tools/overview.js";
-import { getResourcePermissionsTool } from "../tools/permissions.js";
+import {
+  getResourcePermissionsTool,
+  updateResourcePermissionsTool,
+} from "../tools/permissions.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
-import { compareSpendTool, costBreakdownTool, costTrendTool } from "../tools/queryHelpers.js";
 import {
-    createReportTool,
-    getReportConfigTool,
-    getReportResultsTool,
-    reportsTool,
-    runQueryTool,
-    updateReportTool,
+  compareSpendTool,
+  costBreakdownTool,
+  costTrendTool,
+} from "../tools/queryHelpers.js";
+import {
+  createReportTool,
+  getReportConfigTool,
+  getReportResultsTool,
+  reportsTool,
+  runQueryTool,
+  updateReportTool,
 } from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
 import { searchCustomersTool } from "../tools/searchCustomers.js";
 import {
-    getActiveThemeTool,
-    getThemeTool,
-    listThemesTool,
-    setActiveThemeTool,
-    updateThemeTool,
+  getActiveThemeTool,
+  getThemeTool,
+  listThemesTool,
+  setActiveThemeTool,
+  updateThemeTool,
 } from "../tools/themes.js";
 import {
-    createTicketCommentTool,
-    createTicketTool,
-    getTicketTool,
-    listTicketCommentsTool,
-    listTicketsTool,
+  createTicketCommentTool,
+  createTicketTool,
+  getTicketTool,
+  listTicketCommentsTool,
+  listTicketsTool,
 } from "../tools/tickets.js";
-import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
+import {
+  inviteUserTool,
+  listUsersTool,
+  updateUserTool,
+} from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import * as utilModule from "../utils/util.js";
 
 const generatedToolDefinitions = generatedTools.map((tool) => ({
-    name: tool.name,
-    description: tool.description,
-    inputSchema: zodToMcpInputSchema(tool.zodSchema),
-    annotations: tool.annotations,
-    securitySchemes: tool.securitySchemes,
+  name: tool.name,
+  description: tool.description,
+  inputSchema: zodToMcpInputSchema(tool.zodSchema),
+  annotations: tool.annotations,
+  securitySchemes: tool.securitySchemes,
 }));
 
 const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
@@ -325,622 +365,840 @@ const originalProcessEnv = process.env;
 let _server: any;
 
 beforeEach(() => {
-    vi.resetAllMocks();
-    process.env = { ...originalProcessEnv, DOIT_API_KEY: "fake-token" };
-    (Server as any).mockImplementation(() => ({
-        setRequestHandler: setRequestHandlerMock,
-        connect: vi.fn(),
-        _capabilities: { tools: {}, prompts: {}, resources: {} },
-    }));
-    _server = createServer();
-    formatZodErrorSpy.mockClear();
-    createErrorResponseSpy.mockClear();
+  vi.resetAllMocks();
+  process.env = { ...originalProcessEnv, DOIT_API_KEY: "fake-token" };
+  (Server as any).mockImplementation(() => ({
+    setRequestHandler: setRequestHandlerMock,
+    connect: vi.fn(),
+    _capabilities: { tools: {}, prompts: {}, resources: {} },
+  }));
+  _server = createServer();
+  formatZodErrorSpy.mockClear();
+  createErrorResponseSpy.mockClear();
 });
 
 afterEach(() => {
-    process.env = originalProcessEnv;
+  process.env = originalProcessEnv;
 });
 
 describe("createServer", () => {
-    it("creates a Server instance with correct name and version", () => {
-        expect(Server).toHaveBeenCalledWith(
-            { name: "doit-mcp-server", version: SERVER_VERSION },
-            { capabilities: { tools: {}, prompts: {}, resources: {} } }
-        );
-    });
+  it("creates a Server instance with correct name and version", () => {
+    expect(Server).toHaveBeenCalledWith(
+      { name: "doit-mcp-server", version: SERVER_VERSION },
+      { capabilities: { tools: {}, prompts: {}, resources: {} } },
+    );
+  });
 
-    it("registers handlers for all required schemas", () => {
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListToolsRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListPromptsRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(GetPromptRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListResourcesRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(CallToolRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(InitializeRequestSchema, expect.any(Function));
-    });
+  it("registers handlers for all required schemas", () => {
+    expect(setRequestHandlerMock).toHaveBeenCalledWith(
+      ListToolsRequestSchema,
+      expect.any(Function),
+    );
+    expect(setRequestHandlerMock).toHaveBeenCalledWith(
+      ListPromptsRequestSchema,
+      expect.any(Function),
+    );
+    expect(setRequestHandlerMock).toHaveBeenCalledWith(
+      GetPromptRequestSchema,
+      expect.any(Function),
+    );
+    expect(setRequestHandlerMock).toHaveBeenCalledWith(
+      ListResourcesRequestSchema,
+      expect.any(Function),
+    );
+    expect(setRequestHandlerMock).toHaveBeenCalledWith(
+      CallToolRequestSchema,
+      expect.any(Function),
+    );
+    expect(setRequestHandlerMock).toHaveBeenCalledWith(
+      InitializeRequestSchema,
+      expect.any(Function),
+    );
+  });
 });
 
 describe("ListToolsRequestSchema handler", () => {
-    it("returns all registered tools in order", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+  it("returns all registered tools in order", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === ListToolsRequestSchema,
+    )?.[1];
 
-        const response = await handler();
+    const response = await handler();
 
-        expect(response).toEqual({
-            tools: [
-                cloudOverviewTool,
-                cloudIncidentsTool,
-                cloudIncidentTool,
-                anomaliesTool,
-                anomalyTool,
-                reportsTool,
-                runQueryTool,
-                costBreakdownTool,
-                costTrendTool,
-                compareSpendTool,
-                listOptimizationRecommendationsTool,
-                getInsightResourcesTool,
-                getInsightTool,
-                getReportResultsTool,
-                getReportConfigTool,
-                createReportTool,
-                updateReportTool,
-                validateUserTool,
-                dimensionsTool,
-                dimensionTool,
-                listTicketsTool,
-                getTicketTool,
-                listTicketCommentsTool,
-                createTicketCommentTool,
-                createTicketTool,
-                listInvoicesTool,
-                getInvoiceTool,
-                listAllocationsTool,
-                getAllocationTool,
-                createAllocationTool,
-                updateAllocationTool,
-                listAssetsTool,
-                getAssetTool,
-                searchCustomersTool,
-                listAlertsTool,
-                getAlertTool,
-                createAlertTool,
-                updateAlertTool,
+    expect(response).toEqual({
+      tools: [
+        cloudOverviewTool,
+        cloudIncidentsTool,
+        cloudIncidentTool,
+        anomaliesTool,
+        anomalyTool,
+        reportsTool,
+        runQueryTool,
+        costBreakdownTool,
+        costTrendTool,
+        compareSpendTool,
+        listOptimizationRecommendationsTool,
+        getInsightResourcesTool,
+        getInsightTool,
+        getReportResultsTool,
+        getReportConfigTool,
+        createReportTool,
+        updateReportTool,
+        validateUserTool,
+        dimensionsTool,
+        dimensionTool,
+        listTicketsTool,
+        getTicketTool,
+        listTicketCommentsTool,
+        createTicketCommentTool,
+        createTicketTool,
+        listInvoicesTool,
+        getInvoiceTool,
+        listAllocationsTool,
+        getAllocationTool,
+        createAllocationTool,
+        updateAllocationTool,
+        listAssetsTool,
+        getAssetTool,
+        searchCustomersTool,
+        listAlertsTool,
+        getAlertTool,
+        createAlertTool,
+        updateAlertTool,
 
-                triggerCloudFlowTool,
-                listCloudFlowsTool,
-                listCloudFlowConnectionsTool,
-                getCloudFlowConnectionTool,
-                listCloudFlowTemplatesTool,
-                getCloudFlowTemplateTool,
-                refineCloudflowTool,
-                listOrganizationsTool,
-                listPlatformsTool,
-                listUsersTool,
-                updateUserTool,
-                inviteUserTool,
-                listRolesTool,
-                listProductsTool,
-                listLabelsTool,
-                getLabelTool,
-                createLabelTool,
-                updateLabelTool,
-                getLabelAssignmentsTool,
-                assignObjectsToLabelTool,
-                listFoldersTool,
-                getFolderTool,
-                listThemesTool,
-                getThemeTool,
-                getActiveThemeTool,
-                setActiveThemeTool,
-                updateThemeTool,
-                getAwsAccountTool,
-                getCloudConnectSupportedFeaturesTool,
-                listDatahubDatasetsTool,
-                getDatahubDatasetTool,
-                createDatahubDatasetTool,
-                updateDatahubDatasetTool,
-                sendDatahubEventsTool,
-                findCloudDiagramsTool,
-                getCloudDiagramsStatsTool,
-                searchCloudDiagramsTool,
-                getCloudDiagramCostSnapshotTool,
-                getCloudDiagramResourceRelationshipsTool,
-                listCloudDiagramActivityGroupsTool,
-                listCloudDiagramNodeActivitiesTool,
-                listBudgetsTool,
-                getBudgetTool,
-                createBudgetTool,
-                updateBudgetTool,
-                listAnnotationsTool,
-                getAnnotationTool,
-                createAnnotationTool,
-                updateAnnotationTool,
-                listCommitmentsTool,
-                getCommitmentTool,
-                listAccountTeamTool,
-                getResourcePermissionsTool,
-                askAvaSyncTool,
-                // confirmActionTool, // disabled with the approval gate
-                ...generatedToolDefinitions,
-            ],
-        });
+        triggerCloudFlowTool,
+        listCloudFlowsTool,
+        listCloudFlowConnectionsTool,
+        getCloudFlowConnectionTool,
+        listCloudFlowTemplatesTool,
+        getCloudFlowTemplateTool,
+        refineCloudflowTool,
+        listOrganizationsTool,
+        listPlatformsTool,
+        listUsersTool,
+        updateUserTool,
+        inviteUserTool,
+        listRolesTool,
+        listProductsTool,
+        listLabelsTool,
+        getLabelTool,
+        createLabelTool,
+        updateLabelTool,
+        getLabelAssignmentsTool,
+        assignObjectsToLabelTool,
+        listFoldersTool,
+        getFolderTool,
+        createFolderTool,
+        updateFolderTool,
+        listThemesTool,
+        getThemeTool,
+        getActiveThemeTool,
+        setActiveThemeTool,
+        updateThemeTool,
+        getAwsAccountTool,
+        getCloudConnectSupportedFeaturesTool,
+        listDatahubDatasetsTool,
+        getDatahubDatasetTool,
+        createDatahubDatasetTool,
+        updateDatahubDatasetTool,
+        sendDatahubEventsTool,
+        findCloudDiagramsTool,
+        getCloudDiagramsStatsTool,
+        searchCloudDiagramsTool,
+        getCloudDiagramCostSnapshotTool,
+        getCloudDiagramResourceRelationshipsTool,
+        listCloudDiagramActivityGroupsTool,
+        listCloudDiagramNodeActivitiesTool,
+        getCloudDiagramComponentsTool,
+        listBudgetsTool,
+        getBudgetTool,
+        createBudgetTool,
+        updateBudgetTool,
+        listAnnotationsTool,
+        getAnnotationTool,
+        createAnnotationTool,
+        updateAnnotationTool,
+        listCommitmentsTool,
+        getCommitmentTool,
+        listAccountTeamTool,
+        getResourcePermissionsTool,
+        updateResourcePermissionsTool,
+        askAvaSyncTool,
+        // confirmActionTool, // disabled with the approval gate
+        ...generatedToolDefinitions,
+      ],
     });
+  });
 
-    it("includes a generated tool for a non-blacklisted OpenAPI operation", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+  it("includes a generated tool for a non-blacklisted OpenAPI operation", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === ListToolsRequestSchema,
+    )?.[1];
 
-        const response = await handler();
+    const response = await handler();
 
-        expect(generatedToolDefinitions.length).toBeGreaterThan(0);
-        expect(response.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "delete_alert" })]));
-    });
+    expect(generatedToolDefinitions.length).toBeGreaterThan(0);
+    expect(response.tools).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "delete_alert" }),
+      ]),
+    );
+  });
 
-    /** Mutating tools that previously lacked MCP hints: destructive annotations and ask-to-confirm copy in descriptions. */
-    it("list_tools: user, invite, and DataHub mutating tools expose destructive hints and confirmation guidance", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
-        const { tools } = await handler();
-        const names = [
-            "update_user",
-            "invite_user",
-            "create_datahub_dataset",
-            "update_datahub_dataset",
-            "send_datahub_events",
-        ] as const;
-        for (const name of names) {
-            const tool = tools.find((t: { name: string }) => t.name === name);
-            expect(tool, name).toBeDefined();
-            expect(tool.annotations).toEqual({
-                readOnlyHint: false,
-                destructiveHint: true,
-                openWorldHint: true,
-            });
-            expect(tool.description).toMatch(/Ask the user to confirm/i);
-        }
-    });
+  /** Mutating tools that previously lacked MCP hints: destructive annotations and ask-to-confirm copy in descriptions. */
+  it("list_tools: user, invite, and DataHub mutating tools expose destructive hints and confirmation guidance", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === ListToolsRequestSchema,
+    )?.[1];
+    const { tools } = await handler();
+    const names = [
+      "update_user",
+      "invite_user",
+      "create_datahub_dataset",
+      "update_datahub_dataset",
+      "send_datahub_events",
+    ] as const;
+    for (const name of names) {
+      const tool = tools.find((t: { name: string }) => t.name === name);
+      expect(tool, name).toBeDefined();
+      expect(tool.annotations).toEqual({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+      });
+      expect(tool.description).toMatch(/Ask the user to confirm/i);
+    }
+  });
 });
 
 describe("ListPromptsRequestSchema handler", () => {
-    it("returns a non-empty list of prompts with name and description fields", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+  it("returns a non-empty list of prompts with name and description fields", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === ListPromptsRequestSchema,
+    )?.[1];
 
-        const response = await handler();
+    const response = await handler();
 
-        expect(response.prompts.length).toBeGreaterThan(0);
-        expect(response.prompts[0]).toHaveProperty("name");
-        expect(response.prompts[0]).toHaveProperty("description");
-        expect(response.prompts[0]).not.toHaveProperty("text");
-    });
+    expect(response.prompts.length).toBeGreaterThan(0);
+    expect(response.prompts[0]).toHaveProperty("name");
+    expect(response.prompts[0]).toHaveProperty("description");
+    expect(response.prompts[0]).not.toHaveProperty("text");
+  });
 
-    it("exposes only snake_case names", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+  it("exposes only snake_case names", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === ListPromptsRequestSchema,
+    )?.[1];
 
-        const response = await handler();
-        const names: string[] = response.prompts.map((p: { name: string }) => p.name);
-        const snakeCasePattern = /^[a-z][a-z0-9_]*$/;
+    const response = await handler();
+    const names: string[] = response.prompts.map(
+      (p: { name: string }) => p.name,
+    );
+    const snakeCasePattern = /^[a-z][a-z0-9_]*$/;
 
-        expect(names).toContain("allow_artifacts");
-        expect(names).not.toContain("Allow Artifacts");
-        for (const name of names) {
-            expect(name).toMatch(snakeCasePattern);
-        }
-    });
+    expect(names).toContain("allow_artifacts");
+    expect(names).not.toContain("Allow Artifacts");
+    for (const name of names) {
+      expect(name).toMatch(snakeCasePattern);
+    }
+  });
 });
 
 describe("GetPromptRequestSchema handler", () => {
-    const TEST_PROMPT_NAMES = ["__test_multi__", "__test_args__", "__test_no_args__"];
+  const TEST_PROMPT_NAMES = [
+    "__test_multi__",
+    "__test_args__",
+    "__test_no_args__",
+  ];
 
-    afterEach(() => {
-        for (const name of TEST_PROMPT_NAMES) {
-            const idx = prompts.findIndex((p) => p.name === name);
-            if (idx !== -1) prompts.splice(idx, 1);
-        }
+  afterEach(() => {
+    for (const name of TEST_PROMPT_NAMES) {
+      const idx = prompts.findIndex((p) => p.name === name);
+      if (idx !== -1) prompts.splice(idx, 1);
+    }
+  });
+
+  it("returns description and a single message for a snake_case prompt name", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+
+    const response = await handler({ params: { name: "allow_artifacts" } });
+
+    expect(response).toHaveProperty("description");
+    expect(response).toHaveProperty("messages");
+    expect(response.messages).toHaveLength(1);
+    expect(response.messages[0].role).toBe("user");
+    expect(response.messages[0].content.type).toBe("text");
+    expect(response.messages[0].content.text).toBeTruthy();
+  });
+
+  it("throws McpError with InvalidParams for a human-readable prompt name (not exposed by this server)", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+
+    await expect(
+      handler({ params: { name: "Allow Artifacts" } }),
+    ).rejects.toThrow(McpError);
+    await expect(
+      handler({ params: { name: "Allow Artifacts" } }),
+    ).rejects.toMatchObject({
+      code: ErrorCode.InvalidParams,
+    });
+  });
+
+  it("returns all messages for a multi-message prompt", async () => {
+    const multiMessagePrompt = {
+      name: "__test_multi__",
+      description: "Multi-message test prompt",
+      messages: [
+        { role: "user" as const, text: "Hello" },
+        { role: "assistant" as const, text: "How can I help?" },
+        { role: "user" as const, text: "Tell me about costs." },
+      ],
+    };
+    prompts.push(multiMessagePrompt); // this will be cleaned up by the afterEach hook
+
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({ params: { name: "__test_multi__" } });
+
+    expect(response.messages).toHaveLength(3);
+    expect(response.messages[0]).toEqual({
+      role: "user",
+      content: { type: "text", text: "Hello" },
+    });
+    expect(response.messages[1]).toEqual({
+      role: "assistant",
+      content: { type: "text", text: "How can I help?" },
+    });
+    expect(response.messages[2]).toEqual({
+      role: "user",
+      content: { type: "text", text: "Tell me about costs." },
+    });
+  });
+
+  it("throws McpError with InvalidParams for an unknown prompt name", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+
+    await expect(
+      handler({ params: { name: "nonexistent-prompt" } }),
+    ).rejects.toThrow(McpError);
+    await expect(
+      handler({ params: { name: "nonexistent-prompt" } }),
+    ).rejects.toMatchObject({
+      code: ErrorCode.InvalidParams,
+      message: expect.stringContaining("nonexistent-prompt"),
+    });
+  });
+
+  it("returns messages with only the provided arguments appended, ignoring missing ones", async () => {
+    prompts.push({
+      name: "__test_args__",
+      description: "Test prompt with required args",
+      text: "Please handle the following request.",
+      arguments: [
+        { name: "arg1", description: "First arg", required: true },
+        { name: "arg2", description: "Second arg", required: true },
+      ],
     });
 
-    it("returns description and a single message for a snake_case prompt name", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-
-        const response = await handler({ params: { name: "allow_artifacts" } });
-
-        expect(response).toHaveProperty("description");
-        expect(response).toHaveProperty("messages");
-        expect(response.messages).toHaveLength(1);
-        expect(response.messages[0].role).toBe("user");
-        expect(response.messages[0].content.type).toBe("text");
-        expect(response.messages[0].content.text).toBeTruthy();
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({
+      params: { name: "__test_args__", arguments: { arg1: "value" } },
     });
 
-    it("throws McpError with InvalidParams for a human-readable prompt name (not exposed by this server)", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+    expect(response.messages).toHaveLength(1);
+    expect(response.messages[0].content.text).toBe(
+      "Please handle the following request.\n\narg1: value",
+    );
+  });
 
-        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toThrow(McpError);
-        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toMatchObject({
-            code: ErrorCode.InvalidParams,
-        });
+  it("appends required arguments as key-value pairs after the last message", async () => {
+    prompts.push({
+      name: "__test_args__",
+      description: "Test prompt with required args",
+      text: "Please handle the following request.",
+      arguments: [
+        { name: "name", description: "User name", required: true },
+        { name: "id", description: "User ID", required: true },
+      ],
     });
 
-    it("returns all messages for a multi-message prompt", async () => {
-        const multiMessagePrompt = {
-            name: "__test_multi__",
-            description: "Multi-message test prompt",
-            messages: [
-                { role: "user" as const, text: "Hello" },
-                { role: "assistant" as const, text: "How can I help?" },
-                { role: "user" as const, text: "Tell me about costs." },
-            ],
-        };
-        prompts.push(multiMessagePrompt); // this will be cleaned up by the afterEach hook
-
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({ params: { name: "__test_multi__" } });
-
-        expect(response.messages).toHaveLength(3);
-        expect(response.messages[0]).toEqual({
-            role: "user",
-            content: { type: "text", text: "Hello" },
-        });
-        expect(response.messages[1]).toEqual({
-            role: "assistant",
-            content: { type: "text", text: "How can I help?" },
-        });
-        expect(response.messages[2]).toEqual({
-            role: "user",
-            content: { type: "text", text: "Tell me about costs." },
-        });
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({
+      params: { name: "__test_args__", arguments: { name: "Alice", id: "42" } },
     });
 
-    it("throws McpError with InvalidParams for an unknown prompt name", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+    expect(response.messages).toHaveLength(1);
+    expect(response.messages[0].content.text).toBe(
+      "Please handle the following request.\n\nname: Alice\nid: 42",
+    );
+  });
 
-        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(McpError);
-        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toMatchObject({
-            code: ErrorCode.InvalidParams,
-            message: expect.stringContaining("nonexistent-prompt"),
-        });
+  it("appends arguments only to the last message in a multi-message prompt", async () => {
+    prompts.push({
+      name: "__test_args__",
+      description: "Multi-message prompt with args",
+      messages: [
+        { role: "user" as const, text: "What should I do?" },
+        { role: "assistant" as const, text: "I will trigger the flow." },
+      ],
+      arguments: [{ name: "flowID", description: "Flow ID", required: true }],
     });
 
-    it("returns messages with only the provided arguments appended, ignoring missing ones", async () => {
-        prompts.push({
-            name: "__test_args__",
-            description: "Test prompt with required args",
-            text: "Please handle the following request.",
-            arguments: [
-                { name: "arg1", description: "First arg", required: true },
-                { name: "arg2", description: "Second arg", required: true },
-            ],
-        });
-
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({
-            params: { name: "__test_args__", arguments: { arg1: "value" } },
-        });
-
-        expect(response.messages).toHaveLength(1);
-        expect(response.messages[0].content.text).toBe("Please handle the following request.\n\narg1: value");
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({
+      params: { name: "__test_args__", arguments: { flowID: "flow-7" } },
     });
 
-    it("appends required arguments as key-value pairs after the last message", async () => {
-        prompts.push({
-            name: "__test_args__",
-            description: "Test prompt with required args",
-            text: "Please handle the following request.",
-            arguments: [
-                { name: "name", description: "User name", required: true },
-                { name: "id", description: "User ID", required: true },
-            ],
-        });
+    expect(response.messages).toHaveLength(2);
+    expect(response.messages[0].content.text).toBe("What should I do?");
+    expect(response.messages[1].content.text).toBe(
+      "I will trigger the flow.\n\nflowID: flow-7",
+    );
+  });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({
-            params: { name: "__test_args__", arguments: { name: "Alice", id: "42" } },
-        });
+  it("returns prompt for expert_inquiries with expected message and arguments", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({ params: { name: "expert_inquiries" } });
 
-        expect(response.messages).toHaveLength(1);
-        expect(response.messages[0].content.text).toBe("Please handle the following request.\n\nname: Alice\nid: 42");
+    expect(response).toHaveProperty("description");
+    expect(response.description).toContain("expert inquiries");
+    expect(response.messages).toHaveLength(1);
+    expect(response.messages[0].role).toBe("user");
+    expect(response.messages[0].content.type).toBe("text");
+    expect(response.messages[0].content.text).toContain("expert inquiries");
+    expect(response.messages[0].content.text).toContain("support API");
+  });
+
+  it("returns prompt for expert_inquiries with arguments appended to message", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({
+      params: {
+        name: "expert_inquiries",
+        arguments: { platform: "aws" },
+      },
     });
 
-    it("appends arguments only to the last message in a multi-message prompt", async () => {
-        prompts.push({
-            name: "__test_args__",
-            description: "Multi-message prompt with args",
-            messages: [
-                { role: "user" as const, text: "What should I do?" },
-                { role: "assistant" as const, text: "I will trigger the flow." },
-            ],
-            arguments: [{ name: "flowID", description: "Flow ID", required: true }],
-        });
+    expect(response.messages).toHaveLength(1);
+    expect(response.messages[0].content.text).toContain("platform: aws");
+  });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({
-            params: { name: "__test_args__", arguments: { flowID: "flow-7" } },
-        });
-
-        expect(response.messages).toHaveLength(2);
-        expect(response.messages[0].content.text).toBe("What should I do?");
-        expect(response.messages[1].content.text).toBe("I will trigger the flow.\n\nflowID: flow-7");
+  it("returns prompt for search_expert_inquiries with expected structure and content", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({
+      params: { name: "search_expert_inquiries" },
     });
 
-    it("returns prompt for expert_inquiries with expected message and arguments", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({ params: { name: "expert_inquiries" } });
+    expect(response.description).toContain("expert inquiries");
+    expect(response.messages).toHaveLength(1);
+    expect(response.messages[0].role).toBe("user");
+    const text: string = response.messages[0].content.text;
+    expect(text).toContain("list_tickets");
+  });
 
-        expect(response).toHaveProperty("description");
-        expect(response.description).toContain("expert inquiries");
-        expect(response.messages).toHaveLength(1);
-        expect(response.messages[0].role).toBe("user");
-        expect(response.messages[0].content.type).toBe("text");
-        expect(response.messages[0].content.text).toContain("expert inquiries");
-        expect(response.messages[0].content.text).toContain("support API");
+  it("appends arguments to search_expert_inquiries message", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({
+      params: {
+        name: "search_expert_inquiries",
+        arguments: { keyword: "billing", platform: "gcp" },
+      },
     });
 
-    it("returns prompt for expert_inquiries with arguments appended to message", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({
-            params: {
-                name: "expert_inquiries",
-                arguments: { platform: "aws" },
-            },
-        });
+    const text: string = response.messages[0].content.text;
+    expect(text).toContain("keyword: billing");
+    expect(text).toContain("platform: gcp");
+  });
 
-        expect(response.messages).toHaveLength(1);
-        expect(response.messages[0].content.text).toContain("platform: aws");
+  it("does not alter message text when no arguments are provided", async () => {
+    prompts.push({
+      name: "__test_no_args__",
+      description: "Prompt without arguments",
+      text: "Static prompt text with no placeholders",
     });
 
-    it("returns prompt for search_expert_inquiries with expected structure and content", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({
-            params: { name: "search_expert_inquiries" },
-        });
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === GetPromptRequestSchema,
+    )?.[1];
+    const response = await handler({ params: { name: "__test_no_args__" } });
 
-        expect(response.description).toContain("expert inquiries");
-        expect(response.messages).toHaveLength(1);
-        expect(response.messages[0].role).toBe("user");
-        const text: string = response.messages[0].content.text;
-        expect(text).toContain("list_tickets");
-    });
-
-    it("appends arguments to search_expert_inquiries message", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({
-            params: {
-                name: "search_expert_inquiries",
-                arguments: { keyword: "billing", platform: "gcp" },
-            },
-        });
-
-        const text: string = response.messages[0].content.text;
-        expect(text).toContain("keyword: billing");
-        expect(text).toContain("platform: gcp");
-    });
-
-    it("does not alter message text when no arguments are provided", async () => {
-        prompts.push({
-            name: "__test_no_args__",
-            description: "Prompt without arguments",
-            text: "Static prompt text with no placeholders",
-        });
-
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-        const response = await handler({ params: { name: "__test_no_args__" } });
-
-        expect(response.messages[0].content.text).toBe("Static prompt text with no placeholders");
-    });
+    expect(response.messages[0].content.text).toBe(
+      "Static prompt text with no placeholders",
+    );
+  });
 });
 
 describe("ListResourcesRequestSchema handler", () => {
-    it("returns an empty resources list", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListResourcesRequestSchema)?.[1];
+  it("returns an empty resources list", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === ListResourcesRequestSchema,
+    )?.[1];
 
-        const response = await handler();
+    const response = await handler();
 
-        expect(response).toEqual({ resources: [] });
-    });
+    expect(response).toEqual({ resources: [] });
+  });
 });
 
 describe("InitializeRequestSchema handler", () => {
-    it("returns server info and capabilities with the provided protocol version", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
+  it("returns server info and capabilities with the provided protocol version", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === InitializeRequestSchema,
+    )?.[1];
 
-        const response = await handler({
-            params: { protocolVersion: "2024-11-05" },
-        });
-
-        expect(response).toEqual({
-            protocolVersion: "2024-11-05",
-            serverInfo: { name: "doit-mcp-server", version: SERVER_VERSION },
-            capabilities: { tools: {}, prompts: {}, resources: {} },
-        });
+    const response = await handler({
+      params: { protocolVersion: "2024-11-05" },
     });
 
-    it("falls back to default protocol version when not provided", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
-
-        const response = await handler({ params: {} });
-
-        expect(response.protocolVersion).toBe("2024-11-05");
+    expect(response).toEqual({
+      protocolVersion: "2024-11-05",
+      serverInfo: { name: "doit-mcp-server", version: SERVER_VERSION },
+      capabilities: { tools: {}, prompts: {}, resources: {} },
     });
+  });
+
+  it("falls back to default protocol version when not provided", async () => {
+    const handler = setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === InitializeRequestSchema,
+    )?.[1];
+
+    const response = await handler({ params: {} });
+
+    expect(response.protocolVersion).toBe("2024-11-05");
+  });
 });
 
 describe("CallToolRequestSchema handler", () => {
-    const mockRequest = (name: string, args: any) => ({
-        params: { name, arguments: args },
+  const mockRequest = (name: string, args: any) => ({
+    params: { name, arguments: args },
+  });
+
+  const getCallToolHandler = () =>
+    setRequestHandlerMock.mock.calls.find(
+      (call) => call[0] === CallToolRequestSchema,
+    )?.[1];
+
+  it("returns Unauthorized when DOIT_API_KEY is missing", async () => {
+    process.env.DOIT_API_KEY = undefined;
+    const response = await getCallToolHandler()(
+      mockRequest("list_cloud_incidents", {}),
+    );
+
+    expect(createErrorResponseSpy).toHaveBeenCalled();
+    expect(response).toEqual({
+      content: [{ type: "text", text: "Unauthorized" }],
+    });
+  });
+
+  it("returns Unknown tool error for unrecognised tool names", async () => {
+    const response = await getCallToolHandler()(
+      mockRequest("unknown_tool", {}),
+    );
+
+    expect(createErrorResponseSpy).toHaveBeenCalled();
+    expect(response).toEqual({
+      content: [{ type: "text", text: "Unknown tool: unknown_tool" }],
+    });
+  });
+
+  it("handles ZodError and returns a formatted error response", async () => {
+    (handleCloudIncidentsRequest as any).mockImplementation(() => {
+      throw new z.ZodError([
+        { path: ["invalid"], message: "Invalid field", code: "custom" },
+      ]);
     });
 
-    const getCallToolHandler = () =>
-        setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+    const response = await getCallToolHandler()(
+      mockRequest("get_cloud_incidents", { invalid: "args" }),
+    );
 
-    it("returns Unauthorized when DOIT_API_KEY is missing", async () => {
-        process.env.DOIT_API_KEY = undefined;
-        const response = await getCallToolHandler()(mockRequest("list_cloud_incidents", {}));
+    expect(formatZodErrorSpy).toHaveBeenCalled();
+    expect(createErrorResponseSpy).toHaveBeenCalled();
+    expect(response).toEqual({
+      content: [
+        { type: "text", text: expect.stringContaining("Formatted Zod Error") },
+      ],
+    });
+  });
 
-        expect(createErrorResponseSpy).toHaveBeenCalled();
-        expect(response).toEqual({
-            content: [{ type: "text", text: "Unauthorized" }],
-        });
+  it("handles general errors and returns a generic error response", async () => {
+    (handleCloudIncidentsRequest as any).mockImplementation(() => {
+      throw new Error("API request failed");
     });
 
-    it("returns Unknown tool error for unrecognised tool names", async () => {
-        const response = await getCallToolHandler()(mockRequest("unknown_tool", {}));
+    const response = await getCallToolHandler()(
+      mockRequest("get_cloud_incidents", {}),
+    );
 
-        expect(createErrorResponseSpy).toHaveBeenCalled();
-        expect(response).toEqual({
-            content: [{ type: "text", text: "Unknown tool: unknown_tool" }],
-        });
+    expect(handleGeneralError).toHaveBeenCalledWith(
+      expect.any(Error),
+      "handling tool request",
+    );
+    expect(response).toEqual({
+      content: [{ type: "text", text: "General Error: handling tool request" }],
     });
+  });
 
-    it("handles ZodError and returns a formatted error response", async () => {
-        (handleCloudIncidentsRequest as any).mockImplementation(() => {
-            throw new z.ZodError([{ path: ["invalid"], message: "Invalid field", code: "custom" }]);
-        });
+  const toolRoutingCases: Array<[string, string, any, any]> = [
+    [
+      "get_cloud_incidents",
+      "get_cloud_incidents",
+      { filter: "status:open" },
+      handleCloudIncidentsRequest,
+    ],
+    [
+      "get_cloud_incident",
+      "get_cloud_incident",
+      { id: "incident-123" },
+      handleCloudIncidentRequest,
+    ],
+    [
+      "get_anomalies",
+      "get_anomalies",
+      { filter: "severity:high" },
+      handleAnomaliesRequest,
+    ],
+    ["get_anomaly", "get_anomaly", { id: "anomaly-456" }, handleAnomalyRequest],
+    ["list_reports", "list_reports", { type: "cost" }, handleReportsRequest],
+    ["run_query", "run_query", { config: {} }, handleRunQueryRequest],
+    [
+      "get_report_results",
+      "get_report_results",
+      { reportId: "report-789" },
+      handleGetReportResultsRequest,
+    ],
+    [
+      "update_report",
+      "update_report",
+      { id: "report-1", name: "Updated" },
+      handleUpdateReportRequest,
+    ],
+    [
+      "validate_user",
+      "validate_user",
+      { email: "test@example.com" },
+      handleValidateUserRequest,
+    ],
+    [
+      "list_dimensions",
+      "list_dimensions",
+      { filter: "type:fixed" },
+      handleDimensionsRequest,
+    ],
+    [
+      "get_dimension",
+      "get_dimension",
+      { id: "dimension-abc" },
+      handleDimensionRequest,
+    ],
+    ["list_tickets", "list_tickets", { pageSize: 5 }, handleListTicketsRequest],
+    ["get_ticket", "get_ticket", { id: "12345" }, handleGetTicketRequest],
+    [
+      "list_ticket_comments",
+      "list_ticket_comments",
+      { ticketId: "12345" },
+      handleListTicketCommentsRequest,
+    ],
+    [
+      "create_ticket_comment",
+      "create_ticket_comment",
+      { ticketId: "12345", body: "test" },
+      handleCreateTicketCommentRequest,
+    ],
+    [
+      "create_ticket",
+      "create_ticket",
+      {
+        ticket: {
+          body: "Billing issue",
+          created: "2026-04-22T00:00:00Z",
+          platform: "amazon_web_services",
+          product: "billing",
+          severity: "high",
+          subject: "Billing question",
+        },
+      },
+      handleCreateTicketRequest,
+    ],
+    [
+      "list_invoices",
+      "list_invoices",
+      { pageToken: "next-page-token" },
+      handleListInvoicesRequest,
+    ],
+    [
+      "get_invoice",
+      "get_invoice",
+      { id: "invoice-123" },
+      handleGetInvoiceRequest,
+    ],
+    [
+      "list_allocations",
+      "list_allocations",
+      { pageToken: "next-page-token" },
+      handleListAllocationsRequest,
+    ],
+    [
+      "get_allocation",
+      "get_allocation",
+      { id: "allocation-123" },
+      handleGetAllocationRequest,
+    ],
+    [
+      "create_allocation",
+      "create_allocation",
+      {
+        name: "Test",
+        rule: { components: [{ key: "env", type: "label", values: ["prod"] }] },
+      },
+      handleCreateAllocationRequest,
+    ],
+    [
+      "update_allocation",
+      "update_allocation",
+      {
+        id: "allocation-123",
+        name: "Updated",
+        rule: {
+          components: [{ key: "env", type: "label", values: ["staging"] }],
+        },
+      },
+      handleUpdateAllocationRequest,
+    ],
+    [
+      "list_assets",
+      "list_assets",
+      { pageToken: "next-page" },
+      handleListAssetsRequest,
+    ],
+    ["get_asset", "get_asset", { id: "asset-123" }, handleGetAssetRequest],
+    [
+      "list_alerts",
+      "list_alerts",
+      { sortBy: "name", sortOrder: "asc" },
+      handleListAlertsRequest,
+    ],
+    ["get_alert", "get_alert", { id: "alert-123" }, handleGetAlertRequest],
+    [
+      "create_label",
+      "create_label",
+      { name: "Test", color: "blue" },
+      handleCreateLabelRequest,
+    ],
+    [
+      "update_label",
+      "update_label",
+      { id: "label-1", name: "Updated" },
+      handleUpdateLabelRequest,
+    ],
+    [
+      "get_label_assignments",
+      "get_label_assignments",
+      { id: "label-1" },
+      handleGetLabelAssignmentsRequest,
+    ],
+    [
+      "assign_objects_to_label",
+      "assign_objects_to_label",
+      { id: "label-1", add: [{ objectId: "report-1", objectType: "report" }] },
+      handleAssignObjectsToLabelRequest,
+    ],
+    [
+      "list_datahub_datasets",
+      "list_datahub_datasets",
+      {},
+      handleListDatahubDatasetsRequest,
+    ],
+    [
+      "get_datahub_dataset",
+      "get_datahub_dataset",
+      { name: "My Custom Dataset" },
+      handleGetDatahubDatasetRequest,
+    ],
+    [
+      "create_datahub_dataset",
+      "create_datahub_dataset",
+      { name: "New Dataset", description: "A dataset" },
+      handleCreateDatahubDatasetRequest,
+    ],
+    [
+      "update_datahub_dataset",
+      "update_datahub_dataset",
+      { name: "My Dataset", description: "Updated" },
+      handleUpdateDatahubDatasetRequest,
+    ],
+    [
+      "send_datahub_events",
+      "send_datahub_events",
+      { events: [{ provider: "Datadog", time: "2024-03-10T23:00:00Z" }] },
+      handleSendDatahubEventsRequest,
+    ],
+    [
+      "trigger_cloud_flow (with body)",
+      "trigger_cloud_flow",
+      { flowID: "flow-456", requestBodyJson: { key: "value" } },
+      handleTriggerCloudFlowRequest,
+    ],
+    [
+      "trigger_cloud_flow (without body)",
+      "trigger_cloud_flow",
+      { flowID: "flow-789" },
+      handleTriggerCloudFlowRequest,
+    ],
+    ["list_commitments", "list_commitments", {}, handleListCommitmentsRequest],
+    [
+      "get_commitment",
+      "get_commitment",
+      { id: "commitment-1" },
+      handleGetCommitmentRequest,
+    ],
+    [
+      "ask_ava_sync",
+      "ask_ava_sync",
+      { question: "What is my spend?" },
+      handleAskAvaSyncRequest,
+    ],
+  ];
 
-        const response = await getCallToolHandler()(mockRequest("get_cloud_incidents", { invalid: "args" }));
+  // Tools gated by the server-side approval flow (confirm_action two-phase commit).
+  // POC scope keeps the gated set minimal; see WRITE_GATED_SUMMARIES in toolsHandler.ts.
+  // Approval gating for create_ticket is currently disabled — we rely on the tool's
+  // `destructiveHint: true` annotation instead. Re-add "create_ticket" here when the
+  // WRITE_GATED_SUMMARIES entry is uncommented.
+  const WRITE_GATED_TOOL_NAMES = new Set<string>([/* "create_ticket" */]);
 
-        expect(formatZodErrorSpy).toHaveBeenCalled();
-        expect(createErrorResponseSpy).toHaveBeenCalled();
-        expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Formatted Zod Error") }],
-        });
-    });
-
-    it("handles general errors and returns a generic error response", async () => {
-        (handleCloudIncidentsRequest as any).mockImplementation(() => {
-            throw new Error("API request failed");
-        });
-
-        const response = await getCallToolHandler()(mockRequest("get_cloud_incidents", {}));
-
-        expect(handleGeneralError).toHaveBeenCalledWith(expect.any(Error), "handling tool request");
-        expect(response).toEqual({
-            content: [{ type: "text", text: "General Error: handling tool request" }],
-        });
-    });
-
-    const toolRoutingCases: Array<[string, string, any, any]> = [
-        ["get_cloud_incidents", "get_cloud_incidents", { filter: "status:open" }, handleCloudIncidentsRequest],
-        ["get_cloud_incident", "get_cloud_incident", { id: "incident-123" }, handleCloudIncidentRequest],
-        ["get_anomalies", "get_anomalies", { filter: "severity:high" }, handleAnomaliesRequest],
-        ["get_anomaly", "get_anomaly", { id: "anomaly-456" }, handleAnomalyRequest],
-        ["list_reports", "list_reports", { type: "cost" }, handleReportsRequest],
-        ["run_query", "run_query", { config: {} }, handleRunQueryRequest],
-        ["get_report_results", "get_report_results", { reportId: "report-789" }, handleGetReportResultsRequest],
-        ["update_report", "update_report", { id: "report-1", name: "Updated" }, handleUpdateReportRequest],
-        ["validate_user", "validate_user", { email: "test@example.com" }, handleValidateUserRequest],
-        ["list_dimensions", "list_dimensions", { filter: "type:fixed" }, handleDimensionsRequest],
-        ["get_dimension", "get_dimension", { id: "dimension-abc" }, handleDimensionRequest],
-        ["list_tickets", "list_tickets", { pageSize: 5 }, handleListTicketsRequest],
-        ["get_ticket", "get_ticket", { id: "12345" }, handleGetTicketRequest],
-        ["list_ticket_comments", "list_ticket_comments", { ticketId: "12345" }, handleListTicketCommentsRequest],
-        [
-            "create_ticket_comment",
-            "create_ticket_comment",
-            { ticketId: "12345", body: "test" },
-            handleCreateTicketCommentRequest,
-        ],
-        [
-            "create_ticket",
-            "create_ticket",
-            {
-                ticket: {
-                    body: "Billing issue",
-                    created: "2026-04-22T00:00:00Z",
-                    platform: "amazon_web_services",
-                    product: "billing",
-                    severity: "high",
-                    subject: "Billing question",
-                },
-            },
-            handleCreateTicketRequest,
-        ],
-        ["list_invoices", "list_invoices", { pageToken: "next-page-token" }, handleListInvoicesRequest],
-        ["get_invoice", "get_invoice", { id: "invoice-123" }, handleGetInvoiceRequest],
-        ["list_allocations", "list_allocations", { pageToken: "next-page-token" }, handleListAllocationsRequest],
-        ["get_allocation", "get_allocation", { id: "allocation-123" }, handleGetAllocationRequest],
-        [
-            "create_allocation",
-            "create_allocation",
-            {
-                name: "Test",
-                rule: { components: [{ key: "env", type: "label", values: ["prod"] }] },
-            },
-            handleCreateAllocationRequest,
-        ],
-        [
-            "update_allocation",
-            "update_allocation",
-            {
-                id: "allocation-123",
-                name: "Updated",
-                rule: {
-                    components: [{ key: "env", type: "label", values: ["staging"] }],
-                },
-            },
-            handleUpdateAllocationRequest,
-        ],
-        ["list_assets", "list_assets", { pageToken: "next-page" }, handleListAssetsRequest],
-        ["get_asset", "get_asset", { id: "asset-123" }, handleGetAssetRequest],
-        ["list_alerts", "list_alerts", { sortBy: "name", sortOrder: "asc" }, handleListAlertsRequest],
-        ["get_alert", "get_alert", { id: "alert-123" }, handleGetAlertRequest],
-        ["create_label", "create_label", { name: "Test", color: "blue" }, handleCreateLabelRequest],
-        ["update_label", "update_label", { id: "label-1", name: "Updated" }, handleUpdateLabelRequest],
-        ["get_label_assignments", "get_label_assignments", { id: "label-1" }, handleGetLabelAssignmentsRequest],
-        [
-            "assign_objects_to_label",
-            "assign_objects_to_label",
-            { id: "label-1", add: [{ objectId: "report-1", objectType: "report" }] },
-            handleAssignObjectsToLabelRequest,
-        ],
-        ["list_datahub_datasets", "list_datahub_datasets", {}, handleListDatahubDatasetsRequest],
-        ["get_datahub_dataset", "get_datahub_dataset", { name: "My Custom Dataset" }, handleGetDatahubDatasetRequest],
-        [
-            "create_datahub_dataset",
-            "create_datahub_dataset",
-            { name: "New Dataset", description: "A dataset" },
-            handleCreateDatahubDatasetRequest,
-        ],
-        [
-            "update_datahub_dataset",
-            "update_datahub_dataset",
-            { name: "My Dataset", description: "Updated" },
-            handleUpdateDatahubDatasetRequest,
-        ],
-        [
-            "send_datahub_events",
-            "send_datahub_events",
-            { events: [{ provider: "Datadog", time: "2024-03-10T23:00:00Z" }] },
-            handleSendDatahubEventsRequest,
-        ],
-        [
-            "trigger_cloud_flow (with body)",
-            "trigger_cloud_flow",
-            { flowID: "flow-456", requestBodyJson: { key: "value" } },
-            handleTriggerCloudFlowRequest,
-        ],
-        [
-            "trigger_cloud_flow (without body)",
-            "trigger_cloud_flow",
-            { flowID: "flow-789" },
-            handleTriggerCloudFlowRequest,
-        ],
-        ["list_commitments", "list_commitments", {}, handleListCommitmentsRequest],
-        ["get_commitment", "get_commitment", { id: "commitment-1" }, handleGetCommitmentRequest],
-        ["ask_ava_sync", "ask_ava_sync", { question: "What is my spend?" }, handleAskAvaSyncRequest],
-    ];
-
-    // Tools gated by the server-side approval flow (confirm_action two-phase commit).
-    // POC scope keeps the gated set minimal; see WRITE_GATED_SUMMARIES in toolsHandler.ts.
-    // Approval gating for create_ticket is currently disabled — we rely on the tool's
-    // `destructiveHint: true` annotation instead. Re-add "create_ticket" here when the
-    // WRITE_GATED_SUMMARIES entry is uncommented.
-    const WRITE_GATED_TOOL_NAMES = new Set<string>([
-        /* "create_ticket" */
-    ]);
-
-    it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
-        const first = await getCallToolHandler()(mockRequest(toolName, args));
-        if (WRITE_GATED_TOOL_NAMES.has(toolName)) {
-            const envelope = JSON.parse(first.content[0].text);
-            expect(envelope.status).toBe("approval_required");
-            await getCallToolHandler()(mockRequest("confirm_action", { token: envelope.approvalToken }));
-        }
-        expect(handler).toHaveBeenCalledWith(args, "fake-token");
-    });
+  it.each(toolRoutingCases)(
+    "routes %s to the correct handler",
+    async (_label, toolName, args, handler) => {
+      const first = await getCallToolHandler()(mockRequest(toolName, args));
+      if (WRITE_GATED_TOOL_NAMES.has(toolName)) {
+        const envelope = JSON.parse(first.content[0].text);
+        expect(envelope.status).toBe("approval_required");
+        await getCallToolHandler()(
+          mockRequest("confirm_action", { token: envelope.approvalToken }),
+        );
+      }
+      expect(handler).toHaveBeenCalledWith(args, "fake-token");
+    },
+  );
 });
