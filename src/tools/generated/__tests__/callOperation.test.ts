@@ -5,135 +5,154 @@ import { handleGeneratedOperationRequest } from "../callOperation.js";
 import type { GeneratedTool } from "../types.js";
 
 vi.mock("../../../utils/util.js", async (importOriginal) => {
-    const actual = await importOriginal();
-    return {
-        ...actual,
-        makeDoitRequest: vi.fn(),
-    };
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    makeDoitRequest: vi.fn(),
+  };
 });
 
 beforeEach(() => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
 afterEach(() => {
-    vi.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 function buildTool(overrides: Partial<GeneratedTool> = {}): GeneratedTool {
-    return {
-        name: "get_widget",
-        description: "Get a widget",
-        zodSchema: z.object({ id: z.string(), pageToken: z.string().optional() }),
-        metadata: {
-            method: "get",
-            pathTemplate: "/widgets/{id}",
-            pathParams: ["id"],
-            queryParams: ["pageToken"],
-            bodyEncoding: "json",
-            multipartFileFields: [],
-        },
-        annotations: {
-            readOnlyHint: true,
-            destructiveHint: false,
-            openWorldHint: true,
-        },
-        securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
-        ...overrides,
-    };
+  return {
+    name: "get_widget",
+    description: "Get a widget",
+    zodSchema: z.object({ id: z.string(), pageToken: z.string().optional() }),
+    metadata: {
+      method: "get",
+      pathTemplate: "/widgets/{id}",
+      pathParams: ["id"],
+      queryParams: ["pageToken"],
+      headerParams: [],
+      bodyEncoding: "json",
+      multipartFileFields: [],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: true,
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+    ...overrides,
+  };
 }
 
 describe("handleGeneratedOperationRequest", () => {
-    const mockToken = "fake-token";
+  const mockToken = "fake-token";
 
-    beforeEach(() => {
-        vi.clearAllMocks();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("substitutes path params and appends query params", async () => {
+    (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+
+    await handleGeneratedOperationRequest(
+      buildTool(),
+      { id: "abc", pageToken: "p1" },
+      mockToken,
+    );
+
+    expect(makeDoitRequest).toHaveBeenCalledWith(
+      `${DOIT_API_BASE}/widgets/abc?pageToken=p1`,
+      mockToken,
+      expect.objectContaining({
+        method: "GET",
+        appendParams: false,
+        parseAs: "text",
+      }),
+    );
+  });
+
+  it("appends customerContext as a query param when provided", async () => {
+    (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+
+    await handleGeneratedOperationRequest(
+      buildTool(),
+      { id: "abc", customerContext: "cust-1" },
+      mockToken,
+    );
+
+    const [url] = (makeDoitRequest as vi.Mock).mock.calls[0];
+    expect(url).toContain("customerContext=cust-1");
+  });
+
+  it("sends leftover fields as a JSON body for non-GET operations", async () => {
+    (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+    const tool = buildTool({
+      metadata: {
+        method: "post",
+        pathTemplate: "/widgets",
+        pathParams: [],
+        queryParams: [],
+        headerParams: [],
+        bodyEncoding: "json",
+        multipartFileFields: [],
+      },
+      zodSchema: z.object({ name: z.string() }),
     });
 
-    it("substitutes path params and appends query params", async () => {
-        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+    await handleGeneratedOperationRequest(tool, { name: "test" }, mockToken);
 
-        await handleGeneratedOperationRequest(buildTool(), { id: "abc", pageToken: "p1" }, mockToken);
+    expect(makeDoitRequest).toHaveBeenCalledWith(
+      `${DOIT_API_BASE}/widgets`,
+      mockToken,
+      expect.objectContaining({ method: "POST", body: { name: "test" } }),
+    );
+  });
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(
-            `${DOIT_API_BASE}/widgets/abc?pageToken=p1`,
-            mockToken,
-            expect.objectContaining({
-                method: "GET",
-                appendParams: false,
-                parseAs: "text",
-            })
-        );
+  it("builds a multipart FormData body from base64 file fields", async () => {
+    (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+    const tool = buildTool({
+      zodSchema: z.object({ file: z.string(), name: z.string() }),
+      metadata: {
+        method: "post",
+        pathTemplate: "/uploads",
+        pathParams: [],
+        queryParams: [],
+        headerParams: [],
+        bodyEncoding: "multipart",
+        multipartFileFields: ["file"],
+      },
     });
 
-    it("appends customerContext as a query param when provided", async () => {
-        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+    await handleGeneratedOperationRequest(
+      tool,
+      { file: Buffer.from("hello").toString("base64"), name: "test.txt" },
+      mockToken,
+    );
 
-        await handleGeneratedOperationRequest(buildTool(), { id: "abc", customerContext: "cust-1" }, mockToken);
+    const [, , options] = (makeDoitRequest as vi.Mock).mock.calls[0];
+    expect(options.body).toBeInstanceOf(FormData);
+  });
 
-        const [url] = (makeDoitRequest as vi.Mock).mock.calls[0];
-        expect(url).toContain("customerContext=cust-1");
-    });
+  it("returns a validation error response for invalid args without calling the API", async () => {
+    const response = await handleGeneratedOperationRequest(
+      buildTool(),
+      {},
+      mockToken,
+    );
 
-    it("sends leftover fields as a JSON body for non-GET operations", async () => {
-        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
-        const tool = buildTool({
-            metadata: {
-                method: "post",
-                pathTemplate: "/widgets",
-                pathParams: [],
-                queryParams: [],
-                bodyEncoding: "json",
-                multipartFileFields: [],
-            },
-            zodSchema: z.object({ name: z.string() }),
-        });
+    expect(makeDoitRequest).not.toHaveBeenCalled();
+    expect(response.isError).toBe(true);
+  });
 
-        await handleGeneratedOperationRequest(tool, { name: "test" }, mockToken);
+  it("surfaces a failure response when makeDoitRequest returns null", async () => {
+    (makeDoitRequest as vi.Mock).mockResolvedValue(null);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(
-            `${DOIT_API_BASE}/widgets`,
-            mockToken,
-            expect.objectContaining({ method: "POST", body: { name: "test" } })
-        );
-    });
+    const response = await handleGeneratedOperationRequest(
+      buildTool(),
+      { id: "abc" },
+      mockToken,
+    );
 
-    it("builds a multipart FormData body from base64 file fields", async () => {
-        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
-        const tool = buildTool({
-            zodSchema: z.object({ file: z.string(), name: z.string() }),
-            metadata: {
-                method: "post",
-                pathTemplate: "/uploads",
-                pathParams: [],
-                queryParams: [],
-                bodyEncoding: "multipart",
-                multipartFileFields: ["file"],
-            },
-        });
-
-        await handleGeneratedOperationRequest(
-            tool,
-            { file: Buffer.from("hello").toString("base64"), name: "test.txt" },
-            mockToken
-        );
-
-        const [, , options] = (makeDoitRequest as vi.Mock).mock.calls[0];
-        expect(options.body).toBeInstanceOf(FormData);
-    });
-
-    it("returns a validation error response for invalid args without calling the API", async () => {
-        const response = await handleGeneratedOperationRequest(buildTool(), {}, mockToken);
-
-        expect(makeDoitRequest).not.toHaveBeenCalled();
-        expect(response.isError).toBe(true);
-    });
-
-    it("surfaces a failure response when makeDoitRequest returns null", async () => {
-        (makeDoitRequest as vi.Mock).mockResolvedValue(null);
-
-        const response = await handleGeneratedOperationRequest(buildTool(), { id: "abc" }, mockToken);
-
-        expect(response.isError).toBe(true);
-    });
+    expect(response.isError).toBe(true);
+  });
 });
