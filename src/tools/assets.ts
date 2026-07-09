@@ -115,9 +115,7 @@ export const GetAssetArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the asset when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided.",
-    });
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getAssetTool = {
     name: "get_asset",
@@ -157,10 +155,7 @@ export async function handleGetAssetRequest(args: any, token: string) {
                 method: "GET",
                 customerContext,
             });
-            const items = ((listData as any)?.assets ?? []) as Array<{
-                id: string;
-                name: string;
-            }>;
+            const items = ((listData as any)?.assets ?? []) as Array<{ id: string; name: string }>;
             const result = matchByName(items, parsed.name);
             if ("error" in result) return createErrorResponse(result.error);
             // (multiple match case now handled as error by matchByName)
@@ -168,10 +163,7 @@ export async function handleGetAssetRequest(args: any, token: string) {
         }
 
         const url = `${ASSETS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<AssetDetailed>(url, token, {
-            method: "GET",
-            customerContext,
-        });
+        const data = await makeDoitRequest<AssetDetailed>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve asset");
         }

@@ -53,16 +53,7 @@ export async function handleListPlatformsRequest(args: any, token: string) {
         }
 
         return createSuccessResponse(
-            JSON.stringify(
-                {
-                    platforms: platforms.map((p) => ({
-                        id: p.id,
-                        displayName: p.displayName,
-                    })),
-                },
-                null,
-                2
-            )
+            JSON.stringify({ platforms: platforms.map((p) => ({ id: p.id, displayName: p.displayName })) }, null, 2)
         );
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));

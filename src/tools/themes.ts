@@ -70,9 +70,7 @@ export const GetThemeArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the theme when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided.",
-    });
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getThemeTool = {
     name: "get_theme",
@@ -82,10 +80,7 @@ export const getThemeTool = {
     inputSchema: {
         type: "object",
         properties: {
-            id: {
-                type: "string",
-                description: "The ID of the custom theme to retrieve.",
-            },
+            id: { type: "string", description: "The ID of the custom theme to retrieve." },
             name: {
                 type: "string",
                 description: "Partial name match (case-insensitive). Used to find the theme when ID is unknown.",
@@ -122,10 +117,7 @@ export async function handleGetThemeRequest(args: any, token: string) {
         }
 
         const url = `${THEMES_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<CustomTheme>(url, token, {
-            method: "GET",
-            customerContext,
-        });
+        const data = await makeDoitRequest<CustomTheme>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve theme");
         }
@@ -258,9 +250,7 @@ export const UpdateThemeArgumentsSchema = z
             "New color palette for the theme. Provide both light and dark arrays."
         ),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided to identify the theme.",
-    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided to identify the theme." })
     .refine((d) => d.newName || d.primaryColor || d.colors, {
         message: "At least one of newName, primaryColor, or colors must be provided.",
     });

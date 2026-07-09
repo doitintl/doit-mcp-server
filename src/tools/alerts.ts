@@ -96,9 +96,7 @@ export const GetAlertArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the alert when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided.",
-    });
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getAlertTool = {
     name: "get_alert",
@@ -150,10 +148,7 @@ export async function handleGetAlertRequest(args: any, token: string) {
 
         const url = `${ALERTS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         try {
-            const data = await makeDoitRequest<Alert>(url, token, {
-                method: "GET",
-                customerContext,
-            });
+            const data = await makeDoitRequest<Alert>(url, token, { method: "GET", customerContext });
             if (!data) {
                 return createErrorResponse("Failed to retrieve alert");
             }
@@ -199,9 +194,7 @@ export async function handleListAlertsRequest(args: any, token: string) {
             const alerts = alertsData.alerts || [];
 
             const responseData = {
-                ...(alertsData.pageToken !== undefined && {
-                    pageToken: alertsData.pageToken,
-                }),
+                ...(alertsData.pageToken !== undefined && { pageToken: alertsData.pageToken }),
                 rowCount: alertsData.rowCount || 0,
                 alerts,
             };

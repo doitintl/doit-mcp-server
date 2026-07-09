@@ -105,10 +105,7 @@ export async function handleGetDatahubDatasetRequest(args: any, token: string) {
         const { customerContext } = args;
         const url = `${DATAHUB_DATASETS_BASE_URL}/${encodeURIComponent(name)}`;
 
-        const data = await makeDoitRequest(url, token, {
-            method: "GET",
-            customerContext,
-        });
+        const data = await makeDoitRequest(url, token, { method: "GET", customerContext });
 
         if (!data) {
             return createErrorResponse("Failed to retrieve DataHub dataset");

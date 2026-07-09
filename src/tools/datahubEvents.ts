@@ -48,9 +48,7 @@ const DatahubEventSchema = z.object({
     time: z
         .string()
         .min(1)
-        .datetime({
-            message: "Must be a valid ISO 8601 / RFC 3339 date-time string (e.g. 2024-03-10T23:00:00Z).",
-        })
+        .datetime({ message: "Must be a valid ISO 8601 / RFC 3339 date-time string (e.g. 2024-03-10T23:00:00Z)." })
         .describe(
             "The event timestamp (required). Must be an RFC 3339 date-time string (e.g. '2024-03-10T23:00:00Z')."
         ),

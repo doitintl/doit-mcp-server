@@ -87,9 +87,7 @@ export const GetBudgetArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the budget when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided.",
-    });
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getBudgetTool = {
     name: "get_budget",
@@ -270,10 +268,7 @@ export async function handleGetBudgetRequest(args: any, token: string) {
                 method: "GET",
                 customerContext,
             });
-            const items = (listData?.budgets ?? []) as Array<{
-                id: string;
-                budgetName: string;
-            }>;
+            const items = (listData?.budgets ?? []) as Array<{ id: string; budgetName: string }>;
             const result = matchByName(
                 items.map((b) => ({ ...b, name: b.budgetName })),
                 parsed.name
@@ -284,10 +279,7 @@ export async function handleGetBudgetRequest(args: any, token: string) {
         }
 
         const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<BudgetDetails>(url, token, {
-            method: "GET",
-            customerContext,
-        });
+        const data = await makeDoitRequest<BudgetDetails>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve budget details");
         }

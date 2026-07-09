@@ -51,9 +51,7 @@ export const GetReportResultsArgumentsSchema = z
             .optional()
             .describe("Partial report name match (case-insensitive). Used to find the report when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided.",
-    });
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 // Get Report Config Schema Definition
 export const GetReportConfigArgumentsSchema = z.object({
@@ -840,10 +838,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
                 method: "GET",
                 customerContext,
             });
-            const items = (listData?.reports ?? []).map((r) => ({
-                ...r,
-                name: r.reportName,
-            }));
+            const items = (listData?.reports ?? []).map((r) => ({ ...r, name: r.reportName }));
             const result = matchByName(items, parsed.name, "name");
             if ("error" in result) return createErrorResponse(result.error);
             // (multiple match case now handled as error by matchByName)

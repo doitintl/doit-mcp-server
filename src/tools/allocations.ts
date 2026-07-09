@@ -50,9 +50,7 @@ export const GetAllocationArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the allocation when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided.",
-    });
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 // Zod schema for an allocation component (matches AllocationComponent interface)
 const AllocationComponentSchema = z.object({

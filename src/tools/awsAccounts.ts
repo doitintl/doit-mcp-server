@@ -44,10 +44,7 @@ export async function handleGetAwsAccountRequest(args: any, token: string) {
         const { customerContext } = args;
 
         const url = `${CLOUDCONNECT_BASE_URL}/aws/accounts/${encodeURIComponent(accountID)}`;
-        const data = await makeDoitRequest<AwsAccount>(url, token, {
-            method: "GET",
-            customerContext,
-        });
+        const data = await makeDoitRequest<AwsAccount>(url, token, { method: "GET", customerContext });
 
         if (!data) {
             return createErrorResponse("Failed to retrieve AWS account");

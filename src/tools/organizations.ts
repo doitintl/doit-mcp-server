@@ -53,16 +53,7 @@ export async function handleListOrganizationsRequest(args: any, token: string) {
         }
 
         return createSuccessResponse(
-            JSON.stringify(
-                {
-                    organizations: organizations.map((org) => ({
-                        id: org.id,
-                        name: org.name,
-                    })),
-                },
-                null,
-                2
-            )
+            JSON.stringify({ organizations: organizations.map((org) => ({ id: org.id, name: org.name })) }, null, 2)
         );
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));

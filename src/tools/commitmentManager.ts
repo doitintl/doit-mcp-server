@@ -107,10 +107,7 @@ export async function handleGetCommitmentRequest(args: any, token: string) {
         const { customerContext } = args;
         const url = `${COMMITMENT_MANAGER_BASE_URL}/${encodeURIComponent(id)}`;
 
-        const data = await makeDoitRequest(url, token, {
-            method: "GET",
-            customerContext,
-        });
+        const data = await makeDoitRequest(url, token, { method: "GET", customerContext });
 
         if (!data) {
             return createErrorResponse("Failed to retrieve commitment");

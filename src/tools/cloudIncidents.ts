@@ -52,9 +52,7 @@ export const CloudIncidentArgumentsSchema = z
             .optional()
             .describe("Partial title match (case-insensitive). Used to find the incident when ID is unknown."),
     })
-    .refine((d) => d.id || d.title, {
-        message: "Either id or title must be provided.",
-    });
+    .refine((d) => d.id || d.title, { message: "Either id or title must be provided." });
 
 // Interfaces
 export interface CloudIncident {
@@ -240,10 +238,7 @@ export async function handleCloudIncidentRequest(args: any, token: string) {
                     customerContext,
                 }
             );
-            const items = (listData?.incidents ?? []).map((i) => ({
-                ...i,
-                name: i.title,
-            }));
+            const items = (listData?.incidents ?? []).map((i) => ({ ...i, name: i.title }));
             const result = matchByName(items, parsed.title, "name");
             if ("error" in result) return createErrorResponse(result.error);
             // (multiple match case now handled as error by matchByName)

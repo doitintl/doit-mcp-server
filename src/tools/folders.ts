@@ -89,9 +89,7 @@ export const GetFolderArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the folder when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided.",
-    });
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getFolderTool = {
     name: "get_folder",
@@ -138,10 +136,7 @@ export async function handleGetFolderRequest(args: any, token: string) {
         }
 
         const url = `${FOLDERS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<Folder>(url, token, {
-            method: "GET",
-            customerContext,
-        });
+        const data = await makeDoitRequest<Folder>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve folder");
         }

@@ -112,9 +112,7 @@ export const GetLabelArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the label when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, {
-        message: "Either id or name must be provided.",
-    });
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 export const getLabelTool = {
     name: "get_label",
@@ -162,10 +160,7 @@ export async function handleGetLabelRequest(args: any, token: string) {
         }
 
         const url = `${LABELS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<Label>(url, token, {
-            method: "GET",
-            customerContext,
-        });
+        const data = await makeDoitRequest<Label>(url, token, { method: "GET", customerContext });
         if (!data) {
             return createErrorResponse("Failed to retrieve label");
         }
