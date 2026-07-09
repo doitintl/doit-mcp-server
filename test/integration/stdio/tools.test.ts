@@ -30,6 +30,7 @@ describe("MCP Tools Integration", () => {
 
             expect(names).toEqual(
                 [
+                    "add_ticket_tags",
                     "ask_ava_sync",
                     "assign_objects_to_label",
                     "compare_spend",
@@ -98,6 +99,7 @@ describe("MCP Tools Integration", () => {
                     "list_roles",
                     "list_themes",
                     "list_ticket_comments",
+                    "list_ticket_tags",
                     "list_tickets",
                     "list_users",
                     "run_query",
@@ -801,6 +803,70 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({
                 name: "create_ticket_comment",
                 arguments: { ticketId: "ticket-abc", body: "test" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
+        });
+    });
+
+    describe("list_ticket_tags", () => {
+        it("returns tags for a ticket", async () => {
+            const result = await client.callTool({ name: "list_ticket_tags", arguments: { ticketId: "12345" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.tags).toEqual(["billing", "urgent"]);
+        });
+
+        it("rejects missing ticketId", async () => {
+            const result = await client.callTool({ name: "list_ticket_tags", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("ticketId");
+        });
+
+        it("rejects non-numeric ticketId", async () => {
+            const result = await client.callTool({
+                name: "list_ticket_tags",
+                arguments: { ticketId: "ticket-abc" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
+        });
+    });
+
+    describe("add_ticket_tags", () => {
+        it("returns applied tags and sends correct POST body", async () => {
+            const result = await client.callTool({
+                name: "add_ticket_tags",
+                arguments: { ticketId: "12345", tags: ["billing", "urgent"] },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.applied_tags).toEqual(["customer_tag/billing", "customer_tag/urgent"]);
+            expect(parsed._requestBody.tags).toEqual(["billing", "urgent"]);
+        });
+
+        it("rejects missing ticketId", async () => {
+            const result = await client.callTool({
+                name: "add_ticket_tags",
+                arguments: { tags: ["billing"] },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("ticketId");
+        });
+
+        it("rejects empty tags array", async () => {
+            const result = await client.callTool({
+                name: "add_ticket_tags",
+                arguments: { ticketId: "12345", tags: [] },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("At least one tag");
+        });
+
+        it("rejects non-numeric ticketId", async () => {
+            const result = await client.callTool({
+                name: "add_ticket_tags",
+                arguments: { ticketId: "ticket-abc", tags: ["billing"] },
             });
             const text = getTextContent(result);
             expect(text).toContain("numeric");

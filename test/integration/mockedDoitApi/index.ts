@@ -143,6 +143,20 @@ export const mockedDoitApiHandlers = [
         }
         return new HttpResponse(null, { status: 404 });
     }),
+    // Tags routes must be registered before the catch-all /:ticketId route
+    http.post(`${API_BASE}/support/v1/tickets/:ticketId/tags`, async ({ params, request }) => {
+        if (params.ticketId === "12345") {
+            const body = (await request.json()) as Record<string, unknown>;
+            return HttpResponse.json({ ...fixtures.addTicketTags, _requestBody: body });
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/support/v1/tickets/:ticketId/tags`, ({ params }) => {
+        if (params.ticketId === "12345") {
+            return HttpResponse.json(fixtures.ticketTags);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/support/v1/tickets/:ticketId`, ({ params }) => {
         if (params.ticketId === "12345") {
             return HttpResponse.json(fixtures.ticketDetail);

@@ -192,16 +192,20 @@ import {
     updateThemeTool,
 } from "./tools/themes.js";
 import {
+    addTicketTagsTool,
     createTicketCommentTool,
     createTicketTool,
     getTicketTool,
+    handleAddTicketTagsRequest,
     handleCreateTicketCommentRequest,
     handleCreateTicketRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
+    handleListTicketTagsRequest,
     listTicketCommentsTool,
     listTicketsTool,
+    listTicketTagsTool,
 } from "./tools/tickets.js";
 import {
     handleInviteUserRequest,
@@ -269,6 +273,8 @@ export function createServer() {
                 listTicketCommentsTool,
                 createTicketCommentTool,
                 createTicketTool,
+                listTicketTagsTool,
+                addTicketTagsTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -446,6 +452,7 @@ export const server = createServer();
 export {
     createErrorResponse,
     formatZodError,
+    handleAddTicketTagsRequest,
     handleAnomaliesRequest,
     handleAnomalyRequest,
     handleAskAvaSyncRequest,
@@ -514,6 +521,7 @@ export {
     handleListThemesRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
+    handleListTicketTagsRequest,
     handleListUsersRequest,
     handleRefineCloudflowRequest,
     handleReportsRequest,

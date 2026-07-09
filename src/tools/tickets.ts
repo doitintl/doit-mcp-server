@@ -341,3 +341,111 @@ export async function handleCreateTicketCommentRequest(args: any, token: string)
         return handleGeneralError(error, "handling create ticket comment request");
     }
 }
+
+// Response shape for GET /support/v1/tickets/{ticketId}/tags
+export interface TicketTagsResponse {
+    tags: string[];
+}
+
+// Response shape for POST /support/v1/tickets/{ticketId}/tags
+export interface AddTicketTagsResponse {
+    applied_tags: string[];
+}
+
+// Arguments schema for listing ticket tags
+export const ListTicketTagsArgumentsSchema = z.object({
+    ticketId: ListTicketCommentsArgumentsSchema.shape.ticketId.describe(
+        "The numeric ID of the support ticket whose tags to retrieve."
+    ),
+});
+
+// Tool definition for listing ticket tags
+export const listTicketTagsTool = {
+    name: "list_ticket_tags",
+    description:
+        "Returns the tags currently set on a support ticket. For customers, only tags under the customer namespace are returned (with the prefix stripped). For DoiT employees, the full tag set is returned verbatim, including internal namespaces. Do NOT use this for ticket comments (use list_ticket_comments) or ticket details (use get_ticket).",
+    inputSchema: zodToMcpInputSchema(ListTicketTagsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading ticket tags...",
+        "openai/toolInvocation/invoked": "Ticket tags loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+// Handler for listing ticket tags
+export async function handleListTicketTagsRequest(args: any, token: string) {
+    try {
+        const { ticketId } = ListTicketTagsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${TICKETS_BASE_URL}/${encodeURIComponent(ticketId)}/tags`;
+        const data = await makeDoitRequest<TicketTagsResponse>(url, token, {
+            method: "GET",
+            customerContext,
+        });
+        if (!data) {
+            return createErrorResponse("Failed to retrieve ticket tags");
+        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling list ticket tags request");
+    }
+}
+
+// Arguments schema for adding ticket tags
+export const AddTicketTagsArgumentsSchema = z.object({
+    ticketId: ListTicketCommentsArgumentsSchema.shape.ticketId.describe(
+        "The numeric ID of the support ticket to add tags to."
+    ),
+    tags: z
+        .array(z.string().min(1, "A tag cannot be empty.").max(80, "A tag cannot exceed 80 characters."))
+        .min(1, "At least one tag is required.")
+        .max(50, "No more than 50 tags can be added at once.")
+        .describe(
+            "The tags to add. The operation is additive — existing tags are preserved and re-adding an existing tag is a no-op. Tags are normalized (trimmed + lowercased) server-side; customer tags are auto-prefixed with a customer namespace."
+        ),
+});
+
+// Tool definition for adding ticket tags
+export const addTicketTagsTool = {
+    name: "add_ticket_tags",
+    description:
+        "Adds one or more tags to an existing support ticket. The operation is additive — only the listed tags are added and existing tags are preserved; re-adding a tag that is already present is a successful no-op. Returns the tags that were actually stored after server-side normalization. Do NOT use this to replace or remove tags.",
+    inputSchema: zodToMcpInputSchema(AddTicketTagsArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Adding tags to ticket...",
+        "openai/toolInvocation/invoked": "Tags added",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+// Handler for adding ticket tags
+export async function handleAddTicketTagsRequest(args: any, token: string) {
+    try {
+        const { ticketId, tags } = AddTicketTagsArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${TICKETS_BASE_URL}/${encodeURIComponent(ticketId)}/tags`;
+        const data = await makeDoitRequest<AddTicketTagsResponse>(url, token, {
+            method: "POST",
+            body: { tags },
+            customerContext,
+        });
+        if (!data) {
+            return createErrorResponse("Failed to add ticket tags");
+        }
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling add ticket tags request");
+    }
+}
