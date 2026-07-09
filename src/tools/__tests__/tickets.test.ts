@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
+    handleAddTicketTagsRequest,
     handleCreateTicketCommentRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
+    handleListTicketTagsRequest,
     TICKETS_BASE_URL,
 } from "../tickets.js";
 
@@ -405,6 +407,139 @@ describe("handleCreateTicketCommentRequest", () => {
 
     it("should return error when ticketId is non-numeric", async () => {
         const response = await handleCreateTicketCommentRequest({ ticketId: "ticket-abc", body: "test" }, mockToken);
+
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("numeric") }],
+            isError: true,
+        });
+    });
+});
+
+describe("handleListTicketTagsRequest", () => {
+    const mockToken = "fake-token";
+
+    it("should call makeDoitRequest with correct URL and return data", async () => {
+        const mockResponse = { tags: ["billing", "urgent"] };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+        const response = await handleListTicketTagsRequest({ ticketId: "12345" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}/12345/tags`, mockToken, {
+            method: "GET",
+            customerContext: undefined,
+        });
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.tags).toEqual(["billing", "urgent"]);
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ tags: [] });
+
+        await handleListTicketTagsRequest({ ticketId: "12345", customerContext: "customer-abc" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+            method: "GET",
+            customerContext: "customer-abc",
+        });
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleListTicketTagsRequest({ ticketId: "12345" }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("ticket tags") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when ticketId is missing", async () => {
+        const response = await handleListTicketTagsRequest({}, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when ticketId is non-numeric and not call makeDoitRequest", async () => {
+        const response = await handleListTicketTagsRequest({ ticketId: "ticket-abc" }, mockToken);
+
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("numeric") }],
+            isError: true,
+        });
+    });
+});
+
+describe("handleAddTicketTagsRequest", () => {
+    const mockToken = "fake-token";
+    const validArgs = { ticketId: "12345", tags: ["billing", "urgent"] };
+
+    it("should call makeDoitRequest with POST, correct URL, and body", async () => {
+        const mockResponse = { applied_tags: ["customer_tag/billing", "customer_tag/urgent"] };
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+        const response = await handleAddTicketTagsRequest(validArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}/12345/tags`, mockToken, {
+            method: "POST",
+            body: { tags: ["billing", "urgent"] },
+            customerContext: undefined,
+        });
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.applied_tags).toEqual(["customer_tag/billing", "customer_tag/urgent"]);
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ applied_tags: [] });
+
+        await handleAddTicketTagsRequest({ ...validArgs, customerContext: "customer-abc" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ customerContext: "customer-abc" })
+        );
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleAddTicketTagsRequest(validArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("ticket tags") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when ticketId is missing", async () => {
+        const response = await handleAddTicketTagsRequest({ tags: ["billing"] }, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when tags is empty and not call makeDoitRequest", async () => {
+        const response = await handleAddTicketTagsRequest({ ticketId: "12345", tags: [] }, mockToken);
+
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("At least one tag") }],
+            isError: true,
+        });
+    });
+
+    it("should return error when ticketId is non-numeric and not call makeDoitRequest", async () => {
+        const response = await handleAddTicketTagsRequest({ ticketId: "ticket-abc", tags: ["billing"] }, mockToken);
 
         expect(makeDoitRequest).not.toHaveBeenCalled();
         expect(response).toEqual({

@@ -295,11 +295,13 @@ import {
     updateThemeTool,
 } from "../tools/themes.js";
 import {
+    addTicketTagsTool,
     createTicketCommentTool,
     createTicketTool,
     getTicketTool,
     listTicketCommentsTool,
     listTicketsTool,
+    listTicketTagsTool,
 } from "../tools/tickets.js";
 import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
@@ -379,6 +381,8 @@ describe("ListToolsRequestSchema handler", () => {
                 listTicketCommentsTool,
                 createTicketCommentTool,
                 createTicketTool,
+                listTicketTagsTool,
+                addTicketTagsTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,

@@ -79,12 +79,14 @@ import {
     validateUserFixture,
 } from "./iam.js";
 import {
+    addTicketTagsFixture,
     createTicketCommentFixture,
     platformsFixture,
     productsFixture,
     ticketCommentsFixture,
     ticketDetailFixture,
     ticketsFixture,
+    ticketTagsFixture,
 } from "./support.js";
 
 export const fixtures = {
@@ -134,6 +136,8 @@ export const fixtures = {
     ticketDetail: ticketDetailFixture,
     ticketComments: ticketCommentsFixture,
     createTicketComment: createTicketCommentFixture,
+    ticketTags: ticketTagsFixture,
+    addTicketTags: addTicketTagsFixture,
 
     cloudDiagrams: cloudDiagramsFixture,
     cloudDiagramsStats: cloudDiagramsStatsFixture,

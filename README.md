@@ -164,6 +164,8 @@ This MCP server provides many tools including the following:
 - [`get_ticket`](https://developer.doit.com/reference/idofticketget): Get details of a specific support ticket by its ID
 - [`list_ticket_comments`](https://developer.doit.com/reference/idofticketcommentslist): List all comments on a support ticket by its ID. Customers see only public comments; DoiT employees see both public and private comments
 - [`create_ticket_comment`](https://developer.doit.com/reference/idofticketcommentspost): Add a comment to an existing support ticket. For customers, comments are always public. For DoiT employees, comments can be marked as private internal notes
+- [`list_ticket_tags`](https://developer.doit.com/reference/listtickettags): List the tags currently set on a support ticket. Customers see only their own namespaced tags (prefix stripped); DoiT employees see the full tag set verbatim
+- [`add_ticket_tags`](https://developer.doit.com/reference/idoftickettagsadd): Add one or more tags to an existing support ticket. Additive — existing tags are preserved and re-adding a tag is a no-op; returns the tags actually stored after normalization
 - [`list_invoices`](https://developer.doit.com/reference/listinvoices): List all current and historical invoices for your organization from the DoiT API
 - [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
 - [`list_allocations`](https://developer.doit.com/reference/listallocations): List allocations for report or run_query configuration that your account has access to from the DoiT API

@@ -108,11 +108,13 @@ import {
 } from "../tools/themes.js";
 import {
     // createTicketTool, // Re-enable alongside the WRITE_GATED_SUMMARIES entry below.
+    handleAddTicketTagsRequest,
     handleCreateTicketCommentRequest,
     handleCreateTicketRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
+    handleListTicketTagsRequest,
 } from "../tools/tickets.js";
 import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
@@ -335,6 +337,12 @@ async function runOriginalDispatch(
             break;
         case "create_ticket":
             result = await handleCreateTicketRequest(args, token);
+            break;
+        case "list_ticket_tags":
+            result = await handleListTicketTagsRequest(args, token);
+            break;
+        case "add_ticket_tags":
+            result = await handleAddTicketTagsRequest(args, token);
             break;
         case "list_invoices":
             result = await handleListInvoicesRequest(args, token);

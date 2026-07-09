@@ -73,3 +73,11 @@ export const createTicketCommentFixture = {
     created: 1700030000000,
     attachments: [],
 };
+
+export const ticketTagsFixture = {
+    tags: ["billing", "urgent"],
+};
+
+export const addTicketTagsFixture = {
+    applied_tags: ["customer_tag/billing", "customer_tag/urgent"],
+};
