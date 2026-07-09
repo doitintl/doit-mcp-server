@@ -133,7 +133,7 @@ export const GetInsightArgumentsSchema = z.object({
 
 export const listOptimizationRecommendationsTool = {
     name: "list_optimization_recommendations",
-    coversEndpoint: { method: "get", path: "/insights/v1/results" },
+    coversEndpoint: "get:/insights/v1/results",
     description:
         "Use this when the user asks about optimization, recommendations, insights, savings opportunities, " +
         "rightsizing, idle resources, security findings, or cost reduction suggestions. " +
@@ -156,10 +156,7 @@ export const listOptimizationRecommendationsTool = {
 
 export const getInsightResourcesTool = {
     name: "get_insight_resources",
-    coversEndpoint: {
-        method: "get",
-        path: "/insights/v1/results/source/{sourceID}/insight/{insightKey}/resource-results",
-    },
+    coversEndpoint: "get:/insights/v1/results/source/{sourceID}/insight/{insightKey}/resource-results",
     description:
         "Use this when the user wants to see which specific resources are affected by an optimization " +
         "insight. Returns resource IDs, accounts, potential savings, and remediation details. Do NOT " +
@@ -179,10 +176,7 @@ export const getInsightResourcesTool = {
 
 export const getInsightTool = {
     name: "get_insight",
-    coversEndpoint: {
-        method: "get",
-        path: "/insights/v1/results/source/{sourceID}/insight/{insightKey}",
-    },
+    coversEndpoint: "get:/insights/v1/results/source/{sourceID}/insight/{insightKey}",
     description:
         "Use this when the user wants the details and aggregate summary (savings, risk counts, status, " +
         "description) of a single optimization insight identified by its source and key. Returns the " +

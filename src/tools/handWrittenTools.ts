@@ -75,8 +75,7 @@ import {
 import { inviteUserTool, listUsersTool, updateUserTool } from "./users.js";
 import { validateUserTool } from "./validateUser.js";
 
-type EndpointCoverage = { method: string; path: string };
-type HandWrittenTool = { name: string; coversEndpoint?: EndpointCoverage };
+type HandWrittenTool = { name: string; coversEndpoint?: string };
 
 /**
  * Every hand-written tool exposed via stdio's ListTools response (see src/server.ts).
@@ -184,7 +183,5 @@ export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
 ];
 
 export const COVERED_ENDPOINTS: Set<string> = new Set(
-    HAND_WRITTEN_TOOLS.flatMap((tool) =>
-        tool.coversEndpoint ? [`${tool.coversEndpoint.method.toLowerCase()}:${tool.coversEndpoint.path}`] : []
-    )
+    HAND_WRITTEN_TOOLS.flatMap((tool) => (tool.coversEndpoint ? [tool.coversEndpoint.toLowerCase()] : []))
 );

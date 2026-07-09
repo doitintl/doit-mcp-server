@@ -71,7 +71,7 @@ export const SendDatahubEventsArgumentsSchema = z.object({
 
 export const sendDatahubEventsTool = {
     name: "send_datahub_events",
-    coversEndpoint: { method: "post", path: "/datahub/v1/events" },
+    coversEndpoint: "post:/datahub/v1/events",
     description:
         "Use this when the user wants to send DataHub events for ingestion (1–50,000 events per call). Each event requires a provider name and an RFC 3339 timestamp, and can optionally include dimensions and metrics. Ask the user to confirm the event count and provider details before executing. Data becomes available in Cloud Analytics within ~15 minutes. Do NOT use this for creating datasets (use create_datahub_dataset) or viewing datasets (use list_datahub_datasets).",
     inputSchema: zodToMcpInputSchema(SendDatahubEventsArgumentsSchema),

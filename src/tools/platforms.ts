@@ -16,7 +16,7 @@ export const ListPlatformsArgumentsSchema = z.object({});
 
 export const listPlatformsTool = {
     name: "list_platforms",
-    coversEndpoint: { method: "get", path: "/support/v1/metadata/platforms" },
+    coversEndpoint: "get:/support/v1/metadata/platforms",
     description:
         "Use this when the user wants to see available cloud platforms in their DoiT account. Returns a list of platforms. Do NOT use this for cloud incidents (use get_cloud_incidents) or products (use list_products).",
     inputSchema: zodToMcpInputSchema(ListPlatformsArgumentsSchema),

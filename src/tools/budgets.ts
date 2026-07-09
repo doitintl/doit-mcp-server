@@ -63,7 +63,7 @@ export const ListBudgetsArgumentsSchema = z.object({
 
 export const listBudgetsTool = {
     name: "list_budgets",
-    coversEndpoint: { method: "get", path: "/analytics/v1/budgets" },
+    coversEndpoint: "get:/analytics/v1/budgets",
     description:
         "Use this when the user wants to see their cloud spending budgets or check budget status. Returns a paginated list of budgets with names, amounts, and utilization. Do NOT use this for cost analysis (use run_query) or spending alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(ListBudgetsArgumentsSchema),
@@ -91,7 +91,7 @@ export const GetBudgetArgumentsSchema = z
 
 export const getBudgetTool = {
     name: "get_budget",
-    coversEndpoint: { method: "get", path: "/analytics/v1/budgets/{id}" },
+    coversEndpoint: "get:/analytics/v1/budgets/{id}",
     description:
         "Use this when the user wants to view the details and current utilization of a specific budget. Accepts either the budget ID or a partial name (case-insensitive). Do NOT use this for listing all budgets (use list_budgets) or cost analysis (use run_query).",
     inputSchema: zodToMcpInputSchema(GetBudgetArgumentsSchema),
@@ -241,7 +241,7 @@ export const CreateBudgetArgumentsSchema = createBudgetRefinements(CreateBudgetB
 
 export const createBudgetTool = {
     name: "create_budget",
-    coversEndpoint: { method: "post", path: "/analytics/v1/budgets" },
+    coversEndpoint: "post:/analytics/v1/budgets",
     description:
         "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires budget name, currency, type, and start period. Ask the user to confirm the budget parameters before executing. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateBudgetArgumentsSchema),
@@ -406,7 +406,7 @@ export const UpdateBudgetArgumentsSchema = updateBudgetRefinements(
 
 export const updateBudgetTool = {
     name: "update_budget",
-    coversEndpoint: { method: "patch", path: "/analytics/v1/budgets/{id}" },
+    coversEndpoint: "patch:/analytics/v1/budgets/{id}",
     description:
         "Use this when the user wants to modify an existing budget. Supports partial updates. Ask the user to confirm the changes before executing. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateBudgetArgumentsSchema),

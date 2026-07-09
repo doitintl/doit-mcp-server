@@ -56,7 +56,7 @@ export function parseValidatedUserResponse(response: ValidateUserToolResponse): 
 // Tool metadata
 export const validateUserTool = {
     name: "validate_user",
-    coversEndpoint: { method: "get", path: "/auth/v1/validate" },
+    coversEndpoint: "get:/auth/v1/validate",
     description:
         "Use this ONLY when the user explicitly asks to verify their account connection or check who they are logged in as. Do NOT call this proactively before other tool calls — the OAuth token already guarantees the user is authenticated. Do NOT use this for listing users in the organization (use list_users).",
     inputSchema: {

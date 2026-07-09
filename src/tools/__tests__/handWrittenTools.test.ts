@@ -12,8 +12,8 @@ describe("COVERED_ENDPOINTS", () => {
     });
 
     it("has no duplicate method+path pairs across hand-written tools", () => {
-        const keys = HAND_WRITTEN_TOOLS.filter((tool) => tool.coversEndpoint).map(
-            (tool) => `${tool.coversEndpoint?.method.toLowerCase()}:${tool.coversEndpoint?.path}`
+        const keys = HAND_WRITTEN_TOOLS.filter((tool) => tool.coversEndpoint).map((tool) =>
+            tool.coversEndpoint?.toLowerCase()
         );
         expect(new Set(keys).size).toBe(keys.length);
     });

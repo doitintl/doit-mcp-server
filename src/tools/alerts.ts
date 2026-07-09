@@ -44,7 +44,7 @@ export const ListAlertsArgumentsSchema = z.object({
 // Tool metadata
 export const listAlertsTool = {
     name: "list_alerts",
-    coversEndpoint: { method: "get", path: "/analytics/v1/alerts" },
+    coversEndpoint: "get:/analytics/v1/alerts",
     description:
         "Use this when the user wants to see their cost alerts or check alert configurations. Returns a paginated list of alerts. Do NOT use this for anomaly detection (use get_anomalies) or budget tracking (use list_budgets).",
     inputSchema: {
@@ -100,7 +100,7 @@ export const GetAlertArgumentsSchema = z
 
 export const getAlertTool = {
     name: "get_alert",
-    coversEndpoint: { method: "get", path: "/analytics/v1/alerts/{id}" },
+    coversEndpoint: "get:/analytics/v1/alerts/{id}",
     description:
         "Use this when the user wants to view the details of a specific cost alert. Accepts either the alert ID or a partial name (case-insensitive). Do NOT use this for listing all alerts (use list_alerts) or anomalies (use get_anomalies).",
     inputSchema: {
@@ -263,7 +263,7 @@ export const CreateAlertArgumentsSchema = z.object({
 
 export const createAlertTool = {
     name: "create_alert",
-    coversEndpoint: { method: "post", path: "/analytics/v1/alerts" },
+    coversEndpoint: "post:/analytics/v1/alerts",
     description:
         "Use this when the user wants to set up a new cost alert with thresholds and notification settings. Ask the user to confirm the alert parameters before executing. Do NOT use this for creating budgets (use create_budget) or viewing existing alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(CreateAlertArgumentsSchema),
@@ -317,7 +317,7 @@ export const UpdateAlertArgumentsSchema = z.object({
 
 export const updateAlertTool = {
     name: "update_alert",
-    coversEndpoint: { method: "patch", path: "/analytics/v1/alerts/{id}" },
+    coversEndpoint: "patch:/analytics/v1/alerts/{id}",
     description:
         "Use this when the user wants to modify an existing cost alert. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateAlertArgumentsSchema),

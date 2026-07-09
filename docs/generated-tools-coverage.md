@@ -15,12 +15,12 @@ was added or removed, and it was easy to forget (and never showed up as a compil
 ## How it works now
 
 Every hand-written tool object can declare an optional `coversEndpoint` field naming the exact
-OpenAPI operation it duplicates:
+OpenAPI operation it duplicates, as a `"method:path"` string:
 
 ```ts
 export const listAlertsTool = {
     name: "list_alerts",
-    coversEndpoint: { method: "get", path: "/analytics/v1/alerts" },
+    coversEndpoint: "get:/analytics/v1/alerts",
     description: "...",
     // ...
 };
@@ -43,7 +43,7 @@ whose `${method}:${pathTemplate}` key is present. Both transports pass `COVERED_
 ## What to do when adding a hand-written tool
 
 If the tool calls an endpoint that also exists as an operation in
-`src/tools/generated/openapi.json`, add `coversEndpoint: { method, path }` to the tool object
+`src/tools/generated/openapi.json`, add `coversEndpoint: "method:path"` to the tool object
 itself, using the **spec's** method and path template (with the spec's own `{param}` names) — not
 necessarily the tool's own runtime HTTP verb. That's it. No second file to edit.
 
@@ -55,7 +55,7 @@ leaving it off is correct, not an oversight.
 
 `update_resource_permissions` in `src/tools/permissions.ts` calls `PATCH` against
 `/sharing/v1/{resourceType}/{resourceId}` at runtime, but the OpenAPI spec's operation for that
-same path is `PUT`. Its `coversEndpoint` is deliberately `{ method: "put", path: "..." }` —
+same path is `PUT`. Its `coversEndpoint` is deliberately `"put:..."` —
 matching the **spec operation being suppressed**, not the tool's own request method. If you ever
 see a generated tool that seems to duplicate a hand-written tool despite the hand-written tool
 having a `coversEndpoint`, check for exactly this kind of method mismatch first: look up the

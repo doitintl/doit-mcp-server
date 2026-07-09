@@ -19,7 +19,7 @@ export const ListThemesArgumentsSchema = z.object({});
 
 export const listThemesTool = {
     name: "list_themes",
-    coversEndpoint: { method: "get", path: "/analytics/v1/settings/themes" },
+    coversEndpoint: "get:/analytics/v1/settings/themes",
     description:
         "Use this when the user wants to see the custom color themes defined for their account, which control the colors applied to Cloud Analytics reports. Returns a list of themes with their metadata. Do NOT use this for listing reports (use list_reports) or labels (use list_labels).",
     inputSchema: zodToMcpInputSchema(ListThemesArgumentsSchema),
@@ -74,7 +74,7 @@ export const GetThemeArgumentsSchema = z
 
 export const getThemeTool = {
     name: "get_theme",
-    coversEndpoint: { method: "get", path: "/analytics/v1/settings/themes/{id}" },
+    coversEndpoint: "get:/analytics/v1/settings/themes/{id}",
     description:
         "Use this when the user wants to view details of a specific custom color theme. Accepts either the theme ID or a partial name (case-insensitive). Do NOT use this for listing all themes (use list_themes).",
     inputSchema: {
@@ -133,10 +133,7 @@ export const GetActiveThemeArgumentsSchema = z.object({});
 
 export const getActiveThemeTool = {
     name: "get_active_theme",
-    coversEndpoint: {
-        method: "get",
-        path: "/analytics/v1/settings/active-theme",
-    },
+    coversEndpoint: "get:/analytics/v1/settings/active-theme",
     description:
         'Use this when the user wants to know which color theme is currently active for their account (the theme applied to Cloud Analytics reports). Returns the active theme id; the reserved sentinel "default" means no custom or preset theme is selected and the built-in default is in use. Do NOT use this to list all themes (use list_themes) or to fetch a specific theme by id (use get_theme).',
     inputSchema: zodToMcpInputSchema(GetActiveThemeArgumentsSchema),
@@ -185,10 +182,7 @@ export const SetActiveThemeArgumentsSchema = z.object({
 
 export const setActiveThemeTool = {
     name: "set_active_theme",
-    coversEndpoint: {
-        method: "put",
-        path: "/analytics/v1/settings/active-theme",
-    },
+    coversEndpoint: "put:/analytics/v1/settings/active-theme",
     description:
         'Use this when the user wants to change or activate a custom color theme for their Cloud Analytics reports. Accepts a theme ID or the sentinel "default" to revert to the built-in default. Ask the user to confirm the change before executing. Do NOT use this to retrieve the current active theme (use get_active_theme) or to update theme colors (use update_theme).',
     inputSchema: zodToMcpInputSchema(SetActiveThemeArgumentsSchema),
@@ -257,10 +251,7 @@ export const UpdateThemeArgumentsSchema = z
 
 export const updateThemeTool = {
     name: "update_theme",
-    coversEndpoint: {
-        method: "patch",
-        path: "/analytics/v1/settings/themes/{id}",
-    },
+    coversEndpoint: "patch:/analytics/v1/settings/themes/{id}",
     description:
         "Use this when the user wants to modify an existing custom color theme — rename it, change its primary color, or update its color palette. Accepts either the theme ID or a partial name match. Ask the user to confirm changes before executing. Do NOT use this for creating a new theme or changing which theme is active (use set_active_theme).",
     inputSchema: zodToMcpInputSchema(UpdateThemeArgumentsSchema),

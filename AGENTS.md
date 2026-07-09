@@ -143,7 +143,7 @@ When adding a new MCP tool:
 3. Implement handler function
 4. Register tool in `src/server.ts` (stdio transport) — via `src/tools/handWrittenTools.ts`'s `HAND_WRITTEN_TOOLS` array
 5. Register tool in `doit-mcp-server/src/index.ts` (HTTP/SSE transport)
-6. If the tool duplicates an OpenAPI operation from `src/tools/generated/openapi.json`, add `coversEndpoint: { method, path }` to the tool object itself (see `docs/generated-tools-coverage.md`) so the generator skips that operation automatically — no separate list to update
+6. If the tool duplicates an OpenAPI operation from `src/tools/generated/openapi.json`, add `coversEndpoint: "method:path"` to the tool object itself (see `docs/generated-tools-coverage.md`) so the generator skips that operation automatically — no separate list to update
 7. Add tests in `src/tools/__tests__/`
 8. Update README.md with tool documentation
 

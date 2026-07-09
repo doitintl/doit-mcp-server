@@ -16,7 +16,7 @@ export const ListRolesArgumentsSchema = z.object({});
 
 export const listRolesTool = {
     name: "list_roles",
-    coversEndpoint: { method: "get", path: "/iam/v1/roles" },
+    coversEndpoint: "get:/iam/v1/roles",
     description:
         "Use this when the user wants to see available roles in their DoiT organization. Returns a list of roles with permissions. Do NOT use this for listing users (use list_users) or organizations (use list_organizations).",
     inputSchema: zodToMcpInputSchema(ListRolesArgumentsSchema),
