@@ -52,6 +52,7 @@ export interface AnomaliesResponse {
 // Tool metadata
 export const anomaliesTool = {
     name: "get_anomalies",
+    coversEndpoint: { method: "get", path: "/anomalies/v1" },
     description:
         "Use this when the user wants to check for unexpected cost spikes, billing anomalies, or unusual spending patterns. Returns recent anomalies with severity and impact. Do NOT use this for optimization recommendations or savings opportunities (use list_optimization_recommendations), regular cost analysis (use run_query), or viewing alerts (use list_alerts).",
     inputSchema: {
@@ -77,6 +78,7 @@ export const anomaliesTool = {
 
 export const anomalyTool = {
     name: "get_anomaly",
+    coversEndpoint: { method: "get", path: "/anomalies/v1/{id}" },
     description:
         "Use this when the user wants to view details of a specific cost anomaly by its ID. Returns full anomaly data including affected resources and cost impact. Do NOT use this for listing all anomalies (use get_anomalies).",
     inputSchema: {

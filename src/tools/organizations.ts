@@ -16,6 +16,7 @@ export const ListOrganizationsArgumentsSchema = z.object({}); // for consistency
 
 export const listOrganizationsTool = {
     name: "list_organizations",
+    coversEndpoint: { method: "get", path: "/iam/v1/organizations" },
     description:
         "Use this when the user wants to see the organizations in their DoiT account. Returns a list of organizations. Do NOT use this for listing users (use list_users) or platforms (use list_platforms).",
     inputSchema: zodToMcpInputSchema(ListOrganizationsArgumentsSchema),
@@ -52,7 +53,16 @@ export async function handleListOrganizationsRequest(args: any, token: string) {
         }
 
         return createSuccessResponse(
-            JSON.stringify({ organizations: organizations.map((org) => ({ id: org.id, name: org.name })) }, null, 2)
+            JSON.stringify(
+                {
+                    organizations: organizations.map((org) => ({
+                        id: org.id,
+                        name: org.name,
+                    })),
+                },
+                null,
+                2
+            )
         );
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));

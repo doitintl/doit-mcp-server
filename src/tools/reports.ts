@@ -51,7 +51,9 @@ export const GetReportResultsArgumentsSchema = z
             .optional()
             .describe("Partial report name match (case-insensitive). Used to find the report when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
+    .refine((d) => d.id || d.name, {
+        message: "Either id or name must be provided.",
+    });
 
 // Get Report Config Schema Definition
 export const GetReportConfigArgumentsSchema = z.object({
@@ -123,6 +125,7 @@ export interface GetReportResultsResponse {
 // Tool metadata
 export const reportsTool = {
     name: "list_reports",
+    coversEndpoint: { method: "get", path: "/analytics/v1/reports" },
     description:
         "Use this when the user wants to see their saved Cloud Analytics reports or browse available reports. Returns a paginated list of reports with their IDs and metadata. Do NOT use this for running queries (use run_query) or getting report results (use get_report_results).",
     inputSchema: {
@@ -153,6 +156,7 @@ export const reportsTool = {
 
 export const getReportResultsTool = {
     name: "get_report_results",
+    coversEndpoint: { method: "get", path: "/analytics/v1/reports/{id}" },
     description:
         "Use this when the user wants to retrieve the data results of a specific saved report. Accepts either the report ID or a partial name (case-insensitive). Do NOT use this for listing all reports (use list_reports) or running ad-hoc queries (use run_query).",
     inputSchema: {
@@ -183,6 +187,7 @@ export const getReportResultsTool = {
 
 export const getReportConfigTool = {
     name: "get_report_config",
+    coversEndpoint: { method: "get", path: "/analytics/v1/reports/{id}/config" },
     description:
         "Get the configuration of a specific Cloud Analytics report by ID. Returns the stored report object including name, type, and a nested 'config' field containing data source, metrics, dimensions, time range, filters, and visualization settings.",
     inputSchema: zodToMcpInputSchema(GetReportConfigArgumentsSchema),
@@ -483,6 +488,7 @@ export const RunQueryArgumentsSchema = z.object({
 
 export const runQueryTool = {
     name: "run_query",
+    coversEndpoint: { method: "post", path: "/analytics/v1/reports/query" },
     description: `Use this when the user wants to analyze cloud costs, generate a cost breakdown, view spending trends, or run a custom analytics query across their cloud providers. Accepts a structured config with data source, metrics, dimensions, time range, and filters. Do NOT use this for listing saved reports (use list_reports), checking anomalies (use get_anomalies), or viewing budgets (use list_budgets).
     Fields that are not populated will use their default values if needed.
     To limit the number of rows returned per group, set the \`limit.value\` field inside each \`config.group[]\` entry (maximum 25).
@@ -546,6 +552,7 @@ export interface CreateReportResponse {
 
 export const createReportTool = {
     name: "create_report",
+    coversEndpoint: { method: "post", path: "/analytics/v1/reports" },
     description:
         "Use this when the user wants to save a new Cloud Analytics report with a specific configuration. Ask the user to confirm the report parameters before executing. Do NOT use this for one-time queries without saving (use run_query).",
     inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
@@ -574,6 +581,7 @@ export const UpdateReportArgumentsSchema = z.object({
 
 export const updateReportTool = {
     name: "update_report",
+    coversEndpoint: { method: "patch", path: "/analytics/v1/reports/{id}" },
     description:
         "Use this when the user wants to modify an existing saved Cloud Analytics report. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for running ad-hoc queries (use run_query).",
     inputSchema: zodToMcpInputSchema(UpdateReportArgumentsSchema),
@@ -832,7 +840,10 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
                 method: "GET",
                 customerContext,
             });
-            const items = (listData?.reports ?? []).map((r) => ({ ...r, name: r.reportName }));
+            const items = (listData?.reports ?? []).map((r) => ({
+                ...r,
+                name: r.reportName,
+            }));
             const result = matchByName(items, parsed.name, "name");
             if ("error" in result) return createErrorResponse(result.error);
             // (multiple match case now handled as error by matchByName)

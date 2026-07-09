@@ -44,6 +44,7 @@ export const ListAlertsArgumentsSchema = z.object({
 // Tool metadata
 export const listAlertsTool = {
     name: "list_alerts",
+    coversEndpoint: { method: "get", path: "/analytics/v1/alerts" },
     description:
         "Use this when the user wants to see their cost alerts or check alert configurations. Returns a paginated list of alerts. Do NOT use this for anomaly detection (use get_anomalies) or budget tracking (use list_budgets).",
     inputSchema: {
@@ -95,10 +96,13 @@ export const GetAlertArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the alert when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
+    .refine((d) => d.id || d.name, {
+        message: "Either id or name must be provided.",
+    });
 
 export const getAlertTool = {
     name: "get_alert",
+    coversEndpoint: { method: "get", path: "/analytics/v1/alerts/{id}" },
     description:
         "Use this when the user wants to view the details of a specific cost alert. Accepts either the alert ID or a partial name (case-insensitive). Do NOT use this for listing all alerts (use list_alerts) or anomalies (use get_anomalies).",
     inputSchema: {
@@ -146,7 +150,10 @@ export async function handleGetAlertRequest(args: any, token: string) {
 
         const url = `${ALERTS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
         try {
-            const data = await makeDoitRequest<Alert>(url, token, { method: "GET", customerContext });
+            const data = await makeDoitRequest<Alert>(url, token, {
+                method: "GET",
+                customerContext,
+            });
             if (!data) {
                 return createErrorResponse("Failed to retrieve alert");
             }
@@ -192,7 +199,9 @@ export async function handleListAlertsRequest(args: any, token: string) {
             const alerts = alertsData.alerts || [];
 
             const responseData = {
-                ...(alertsData.pageToken !== undefined && { pageToken: alertsData.pageToken }),
+                ...(alertsData.pageToken !== undefined && {
+                    pageToken: alertsData.pageToken,
+                }),
                 rowCount: alertsData.rowCount || 0,
                 alerts,
             };
@@ -261,6 +270,7 @@ export const CreateAlertArgumentsSchema = z.object({
 
 export const createAlertTool = {
     name: "create_alert",
+    coversEndpoint: { method: "post", path: "/analytics/v1/alerts" },
     description:
         "Use this when the user wants to set up a new cost alert with thresholds and notification settings. Ask the user to confirm the alert parameters before executing. Do NOT use this for creating budgets (use create_budget) or viewing existing alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(CreateAlertArgumentsSchema),
@@ -314,6 +324,7 @@ export const UpdateAlertArgumentsSchema = z.object({
 
 export const updateAlertTool = {
     name: "update_alert",
+    coversEndpoint: { method: "patch", path: "/analytics/v1/alerts/{id}" },
     description:
         "Use this when the user wants to modify an existing cost alert. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateAlertArgumentsSchema),

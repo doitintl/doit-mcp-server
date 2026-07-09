@@ -50,6 +50,7 @@ export const ListAssetsArgumentsSchema = z.object({
 
 export const listAssetsTool = {
     name: "list_assets",
+    coversEndpoint: { method: "get", path: "/billing/v1/assets" },
     description:
         "Use this when the user wants to browse their cloud assets, subscriptions, or resources. Returns a paginated list of assets. Supports partial name filtering. Do NOT use this for cost analysis (use run_query) or checking invoices (use list_invoices).",
     inputSchema: zodToMcpInputSchema(ListAssetsArgumentsSchema),
@@ -114,10 +115,13 @@ export const GetAssetArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the asset when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
+    .refine((d) => d.id || d.name, {
+        message: "Either id or name must be provided.",
+    });
 
 export const getAssetTool = {
     name: "get_asset",
+    coversEndpoint: { method: "get", path: "/billing/v1/assets/{id}" },
     description:
         "Use this when the user wants to view details of a specific cloud asset. Accepts either the asset ID or a partial name (case-insensitive). Do NOT use this for listing all assets (use list_assets) or cost analysis (use run_query).",
     inputSchema: {
@@ -153,7 +157,10 @@ export async function handleGetAssetRequest(args: any, token: string) {
                 method: "GET",
                 customerContext,
             });
-            const items = ((listData as any)?.assets ?? []) as Array<{ id: string; name: string }>;
+            const items = ((listData as any)?.assets ?? []) as Array<{
+                id: string;
+                name: string;
+            }>;
             const result = matchByName(items, parsed.name);
             if ("error" in result) return createErrorResponse(result.error);
             // (multiple match case now handled as error by matchByName)
@@ -161,7 +168,10 @@ export async function handleGetAssetRequest(args: any, token: string) {
         }
 
         const url = `${ASSETS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<AssetDetailed>(url, token, { method: "GET", customerContext });
+        const data = await makeDoitRequest<AssetDetailed>(url, token, {
+            method: "GET",
+            customerContext,
+        });
         if (!data) {
             return createErrorResponse("Failed to retrieve asset");
         }

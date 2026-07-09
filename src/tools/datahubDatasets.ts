@@ -39,6 +39,7 @@ export const ListDatahubDatasetsArgumentsSchema = z.object({});
 
 export const listDatahubDatasetsTool = {
     name: "list_datahub_datasets",
+    coversEndpoint: { method: "get", path: "/datahub/v1/datasets" },
     description:
         "Use this when the user wants to see available DataHub datasets. Returns a list of datasets with metadata. Do NOT use this for billing data (use run_query) or assets (use list_assets).",
     inputSchema: zodToMcpInputSchema(ListDatahubDatasetsArgumentsSchema),
@@ -82,6 +83,7 @@ export const GetDatahubDatasetArgumentsSchema = z.object({
 
 export const getDatahubDatasetTool = {
     name: "get_datahub_dataset",
+    coversEndpoint: { method: "get", path: "/datahub/v1/datasets/{name}" },
     description:
         "Use this when the user wants to view details of a specific DataHub dataset by its ID. Returns full dataset metadata and schema. Do NOT use this for listing all datasets (use list_datahub_datasets) or cost queries (use run_query).",
     inputSchema: zodToMcpInputSchema(GetDatahubDatasetArgumentsSchema),
@@ -103,7 +105,10 @@ export async function handleGetDatahubDatasetRequest(args: any, token: string) {
         const { customerContext } = args;
         const url = `${DATAHUB_DATASETS_BASE_URL}/${encodeURIComponent(name)}`;
 
-        const data = await makeDoitRequest(url, token, { method: "GET", customerContext });
+        const data = await makeDoitRequest(url, token, {
+            method: "GET",
+            customerContext,
+        });
 
         if (!data) {
             return createErrorResponse("Failed to retrieve DataHub dataset");
@@ -126,6 +131,7 @@ export const CreateDatahubDatasetArgumentsSchema = z.object({
 
 export const createDatahubDatasetTool = {
     name: "create_datahub_dataset",
+    coversEndpoint: { method: "post", path: "/datahub/v1/datasets" },
     description:
         "Use this when the user wants to create a new DataHub dataset. Ask the user to confirm the dataset name and description before executing. Do NOT use this for viewing datasets (use list_datahub_datasets) or sending events (use send_datahub_events).",
     inputSchema: zodToMcpInputSchema(CreateDatahubDatasetArgumentsSchema),
@@ -184,6 +190,7 @@ export const UpdateDatahubDatasetArgumentsSchema = UpdateDatahubDatasetBaseSchem
 
 export const updateDatahubDatasetTool = {
     name: "update_datahub_dataset",
+    coversEndpoint: { method: "patch", path: "/datahub/v1/datasets/{name}" },
     description:
         "Use this when the user wants to modify an existing DataHub dataset's description. The dataset name is required to identify the dataset; only the description can be changed. Ask the user to confirm the changes before executing. Do NOT use this for creating datasets (use create_datahub_dataset) or listing datasets (use list_datahub_datasets).",
     inputSchema: zodToMcpInputSchema(UpdateDatahubDatasetArgumentsSchema),

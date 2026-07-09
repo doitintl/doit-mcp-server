@@ -63,6 +63,7 @@ export const ListBudgetsArgumentsSchema = z.object({
 
 export const listBudgetsTool = {
     name: "list_budgets",
+    coversEndpoint: { method: "get", path: "/analytics/v1/budgets" },
     description:
         "Use this when the user wants to see their cloud spending budgets or check budget status. Returns a paginated list of budgets with names, amounts, and utilization. Do NOT use this for cost analysis (use run_query) or spending alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(ListBudgetsArgumentsSchema),
@@ -86,10 +87,13 @@ export const GetBudgetArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the budget when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
+    .refine((d) => d.id || d.name, {
+        message: "Either id or name must be provided.",
+    });
 
 export const getBudgetTool = {
     name: "get_budget",
+    coversEndpoint: { method: "get", path: "/analytics/v1/budgets/{id}" },
     description:
         "Use this when the user wants to view the details and current utilization of a specific budget. Accepts either the budget ID or a partial name (case-insensitive). Do NOT use this for listing all budgets (use list_budgets) or cost analysis (use run_query).",
     inputSchema: zodToMcpInputSchema(GetBudgetArgumentsSchema),
@@ -239,6 +243,7 @@ export const CreateBudgetArgumentsSchema = createBudgetRefinements(CreateBudgetB
 
 export const createBudgetTool = {
     name: "create_budget",
+    coversEndpoint: { method: "post", path: "/analytics/v1/budgets" },
     description:
         "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires budget name, currency, type, and start period. Ask the user to confirm the budget parameters before executing. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateBudgetArgumentsSchema),
@@ -265,7 +270,10 @@ export async function handleGetBudgetRequest(args: any, token: string) {
                 method: "GET",
                 customerContext,
             });
-            const items = (listData?.budgets ?? []) as Array<{ id: string; budgetName: string }>;
+            const items = (listData?.budgets ?? []) as Array<{
+                id: string;
+                budgetName: string;
+            }>;
             const result = matchByName(
                 items.map((b) => ({ ...b, name: b.budgetName })),
                 parsed.name
@@ -276,7 +284,10 @@ export async function handleGetBudgetRequest(args: any, token: string) {
         }
 
         const url = `${BUDGETS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<BudgetDetails>(url, token, { method: "GET", customerContext });
+        const data = await makeDoitRequest<BudgetDetails>(url, token, {
+            method: "GET",
+            customerContext,
+        });
         if (!data) {
             return createErrorResponse("Failed to retrieve budget details");
         }
@@ -403,6 +414,7 @@ export const UpdateBudgetArgumentsSchema = updateBudgetRefinements(
 
 export const updateBudgetTool = {
     name: "update_budget",
+    coversEndpoint: { method: "patch", path: "/analytics/v1/budgets/{id}" },
     description:
         "Use this when the user wants to modify an existing budget. Supports partial updates. Ask the user to confirm the changes before executing. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateBudgetArgumentsSchema),

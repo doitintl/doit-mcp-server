@@ -12,7 +12,7 @@ function buildDocument(overrides: Partial<OpenAPIV3.Document> = {}): OpenAPIV3.D
 }
 
 describe("generateTools", () => {
-    it("skips operations already covered by a hand-written tool (blacklist)", () => {
+    it("skips operations already covered by a hand-written tool", () => {
         const document = buildDocument({
             paths: {
                 "/analytics/v1/alerts": {
@@ -21,7 +21,7 @@ describe("generateTools", () => {
             } as unknown as OpenAPIV3.Document["paths"],
         });
 
-        expect(generateTools(document)).toHaveLength(0);
+        expect(generateTools(document, new Set(["get:/analytics/v1/alerts"]))).toHaveLength(0);
     });
 
     it("generates a snake_case tool name from operationId with path/query params", () => {
@@ -52,7 +52,7 @@ describe("generateTools", () => {
             } as unknown as OpenAPIV3.Document["paths"],
         });
 
-        const tools = generateTools(document);
+        const tools = generateTools(document, new Set());
         expect(tools).toHaveLength(1);
         const [tool] = tools;
         expect(tool.name).toBe("get_widget");
@@ -87,7 +87,7 @@ describe("generateTools", () => {
             } as unknown as OpenAPIV3.Document["paths"],
         });
 
-        const tools = generateTools(document);
+        const tools = generateTools(document, new Set());
         expect(tools).toHaveLength(1);
         const [tool] = tools;
         expect(tool.name).toBe("post_widgets");
@@ -122,7 +122,7 @@ describe("generateTools", () => {
             } as unknown as OpenAPIV3.Document["paths"],
         });
 
-        const [tool] = generateTools(document);
+        const [tool] = generateTools(document, new Set());
         expect(tool.metadata.bodyEncoding).toBe("multipart");
         expect(tool.metadata.multipartFileFields).toEqual(["file"]);
     });

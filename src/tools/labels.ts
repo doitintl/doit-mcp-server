@@ -52,6 +52,7 @@ export const ListLabelsArgumentsSchema = z.object({
 
 export const listLabelsTool = {
     name: "list_labels",
+    coversEndpoint: { method: "get", path: "/analytics/v1/labels" },
     description:
         "Use this when the user wants to see their resource labels or label configurations. Returns a list of labels with their metadata. Do NOT use this for annotations (use list_annotations) or label assignments (use get_label_assignments).",
     inputSchema: zodToMcpInputSchema(ListLabelsArgumentsSchema),
@@ -111,10 +112,13 @@ export const GetLabelArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the label when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
+    .refine((d) => d.id || d.name, {
+        message: "Either id or name must be provided.",
+    });
 
 export const getLabelTool = {
     name: "get_label",
+    coversEndpoint: { method: "get", path: "/analytics/v1/labels/{id}" },
     description:
         "Use this when the user wants to view details of a specific label. Accepts either the label ID or a partial name (case-insensitive). Do NOT use this for listing all labels (use list_labels) or annotations (use list_annotations).",
     inputSchema: {
@@ -158,7 +162,10 @@ export async function handleGetLabelRequest(args: any, token: string) {
         }
 
         const url = `${LABELS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<Label>(url, token, { method: "GET", customerContext });
+        const data = await makeDoitRequest<Label>(url, token, {
+            method: "GET",
+            customerContext,
+        });
         if (!data) {
             return createErrorResponse("Failed to retrieve label");
         }
@@ -179,6 +186,7 @@ export const CreateLabelArgumentsSchema = z.object({
 
 export const createLabelTool = {
     name: "create_label",
+    coversEndpoint: { method: "post", path: "/analytics/v1/labels" },
     description:
         "Use this when the user wants to create a new resource label. Ask the user to confirm the label details before executing. Do NOT use this for viewing existing labels (use list_labels) or annotations (use create_annotation).",
     inputSchema: zodToMcpInputSchema(CreateLabelArgumentsSchema),
@@ -237,6 +245,7 @@ export const UpdateLabelArgumentsSchema = UpdateLabelBaseSchema.extend({
 
 export const updateLabelTool = {
     name: "update_label",
+    coversEndpoint: { method: "patch", path: "/analytics/v1/labels/{id}" },
     description:
         "Use this when the user wants to modify an existing label. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for creating new labels (use create_label) or annotations (use update_annotation).",
     inputSchema: zodToMcpInputSchema(UpdateLabelArgumentsSchema),
@@ -284,6 +293,10 @@ export const GetLabelAssignmentsArgumentsSchema = z.object({
 
 export const getLabelAssignmentsTool = {
     name: "get_label_assignments",
+    coversEndpoint: {
+        method: "get",
+        path: "/analytics/v1/labels/{id}/assignments",
+    },
     description:
         "Use this when the user wants to see which resources are assigned to a specific label. Returns a list of assigned objects. Do NOT use this for viewing label details (use get_label) or allocations (use list_allocations).",
     inputSchema: zodToMcpInputSchema(GetLabelAssignmentsArgumentsSchema),
@@ -352,6 +365,10 @@ export const AssignObjectsToLabelArgumentsSchema = z
 
 export const assignObjectsToLabelTool = {
     name: "assign_objects_to_label",
+    coversEndpoint: {
+        method: "post",
+        path: "/analytics/v1/labels/{id}/assignments",
+    },
     description:
         "Use this when the user wants to assign or unassign cloud resources to a label. Ask the user to confirm the assignments before executing. Do NOT use this for creating labels (use create_label) or viewing assignments (use get_label_assignments).",
     inputSchema: zodToMcpInputSchema(AssignObjectsToLabelArgumentsSchema),

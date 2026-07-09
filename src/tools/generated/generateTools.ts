@@ -1,7 +1,6 @@
 import type { OpenAPIV3 } from "openapi-types";
 import { type ZodRawShape, z } from "zod";
 
-import { isBlacklisted } from "./blacklist.js";
 import { type JsonSchema, schemaToZod } from "./schemaToZod.js";
 import { type GeneratedTool, HTTP_METHODS, type OperationMetadata } from "./types.js";
 
@@ -16,10 +15,11 @@ function toolNameFor(method: string, pathTemplate: string, operationId?: string)
 }
 
 /**
- * Builds one MCP tool per non-blacklisted OpenAPI operation. Endpoints already covered by a
- * hand-written tool elsewhere in src/tools/ are skipped — see blacklist.ts.
+ * Builds one MCP tool per OpenAPI operation not already covered by a hand-written tool.
+ * `coveredEndpoints` is derived from every hand-written tool's own `coversEndpoint` field
+ * (see src/tools/handWrittenTools.ts) — callers pass COVERED_ENDPOINTS from that module.
  */
-export function generateTools(document: OpenAPIV3.Document): GeneratedTool[] {
+export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Set<string>): GeneratedTool[] {
     const tagDescriptions = new Map((document.tags ?? []).map((tag) => [tag.name, tag.description] as const));
     const tools: GeneratedTool[] = [];
 
@@ -29,7 +29,7 @@ export function generateTools(document: OpenAPIV3.Document): GeneratedTool[] {
         for (const method of HTTP_METHODS) {
             const operation = pathItem[method];
             if (!operation) continue;
-            if (isBlacklisted(method, pathTemplate)) continue;
+            if (coveredEndpoints.has(`${method}:${pathTemplate}`)) continue;
 
             const parameters = (operation.parameters ?? []) as OpenAPIV3.ParameterObject[];
             const pathParams = parameters.filter((parameter) => parameter.in === "path");

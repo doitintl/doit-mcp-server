@@ -16,6 +16,7 @@ export const ListPlatformsArgumentsSchema = z.object({});
 
 export const listPlatformsTool = {
     name: "list_platforms",
+    coversEndpoint: { method: "get", path: "/support/v1/metadata/platforms" },
     description:
         "Use this when the user wants to see available cloud platforms in their DoiT account. Returns a list of platforms. Do NOT use this for cloud incidents (use get_cloud_incidents) or products (use list_products).",
     inputSchema: zodToMcpInputSchema(ListPlatformsArgumentsSchema),
@@ -52,7 +53,16 @@ export async function handleListPlatformsRequest(args: any, token: string) {
         }
 
         return createSuccessResponse(
-            JSON.stringify({ platforms: platforms.map((p) => ({ id: p.id, displayName: p.displayName })) }, null, 2)
+            JSON.stringify(
+                {
+                    platforms: platforms.map((p) => ({
+                        id: p.id,
+                        displayName: p.displayName,
+                    })),
+                },
+                null,
+                2
+            )
         );
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));

@@ -50,7 +50,9 @@ export const GetAllocationArgumentsSchema = z
             .optional()
             .describe("Partial name match (case-insensitive). Used to find the allocation when ID is unknown."),
     })
-    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
+    .refine((d) => d.id || d.name, {
+        message: "Either id or name must be provided.",
+    });
 
 // Zod schema for an allocation component (matches AllocationComponent interface)
 const AllocationComponentSchema = z.object({
@@ -180,6 +182,7 @@ export interface AllocationsResponse {
 // Tool metadata
 export const listAllocationsTool = {
     name: "list_allocations",
+    coversEndpoint: { method: "get", path: "/analytics/v1/allocations" },
     description:
         "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Supports partial name filtering. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
     inputSchema: {
@@ -210,6 +213,7 @@ export const listAllocationsTool = {
 
 export const getAllocationTool = {
     name: "get_allocation",
+    coversEndpoint: { method: "get", path: "/analytics/v1/allocations/{id}" },
     description:
         "Use this when the user wants to view details of a specific cost allocation. Accepts either the allocation ID or a partial name (case-insensitive). Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
     inputSchema: {
@@ -348,6 +352,7 @@ const createAllocationInputSchema = {
 
 export const createAllocationTool = {
     name: "create_allocation",
+    coversEndpoint: { method: "post", path: "/analytics/v1/allocations" },
     description:
         "Use this when the user wants to create a new cost allocation rule. Ask the user to confirm the allocation parameters before executing. Do NOT use this for viewing existing allocations (use list_allocations) or labels (use create_label).",
     inputSchema: createAllocationInputSchema,
@@ -377,6 +382,7 @@ const updateAllocationInputSchema = {
 
 export const updateAllocationTool = {
     name: "update_allocation",
+    coversEndpoint: { method: "patch", path: "/analytics/v1/allocations/{id}" },
     description:
         "Use this when the user wants to modify an existing cost allocation. Ask the user to confirm changes before executing. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
     inputSchema: updateAllocationInputSchema,

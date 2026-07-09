@@ -10,62 +10,36 @@ import {
     McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
-import { handleListAccountTeamRequest, listAccountTeamTool } from "./tools/accountTeam.js";
+import { handleListAccountTeamRequest } from "./tools/accountTeam.js";
 import {
-    createAlertTool,
-    getAlertTool,
     handleCreateAlertRequest,
     handleGetAlertRequest,
     handleListAlertsRequest,
     handleUpdateAlertRequest,
-    listAlertsTool,
-    updateAlertTool,
 } from "./tools/alerts.js";
 import {
-    createAllocationTool,
-    getAllocationTool,
     handleCreateAllocationRequest,
     handleGetAllocationRequest,
     handleListAllocationsRequest,
     handleUpdateAllocationRequest,
-    listAllocationsTool,
-    updateAllocationTool,
 } from "./tools/allocations.js";
 import {
-    createAnnotationTool,
-    getAnnotationTool,
     handleCreateAnnotationRequest,
     handleGetAnnotationRequest,
     handleListAnnotationsRequest,
     handleUpdateAnnotationRequest,
-    listAnnotationsTool,
-    updateAnnotationTool,
 } from "./tools/annotations.js";
-import { anomaliesTool, anomalyTool, handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
-import { getAssetTool, handleGetAssetRequest, handleListAssetsRequest, listAssetsTool } from "./tools/assets.js";
-import { askAvaSyncTool, handleAskAvaSyncRequest } from "./tools/ava.js";
+import { handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
+import { handleGetAssetRequest, handleListAssetsRequest } from "./tools/assets.js";
+import { handleAskAvaSyncRequest } from "./tools/ava.js";
+import { handleGetAwsAccountRequest, handleGetCloudConnectSupportedFeaturesRequest } from "./tools/awsAccounts.js";
 import {
-    getAwsAccountTool,
-    getCloudConnectSupportedFeaturesTool,
-    handleGetAwsAccountRequest,
-    handleGetCloudConnectSupportedFeaturesRequest,
-} from "./tools/awsAccounts.js";
-import {
-    createBudgetTool,
-    getBudgetTool,
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
     handleListBudgetsRequest,
     handleUpdateBudgetRequest,
-    listBudgetsTool,
-    updateBudgetTool,
 } from "./tools/budgets.js";
 import {
-    findCloudDiagramsTool,
-    getCloudDiagramComponentsTool,
-    getCloudDiagramCostSnapshotTool,
-    getCloudDiagramResourceRelationshipsTool,
-    getCloudDiagramsStatsTool,
     handleFindCloudDiagramsRequest,
     handleGetCloudDiagramComponentsRequest,
     handleGetCloudDiagramCostSnapshotRequest,
@@ -74,153 +48,84 @@ import {
     handleListCloudDiagramActivityGroupsRequest,
     handleListCloudDiagramNodeActivitiesRequest,
     handleSearchCloudDiagramsRequest,
-    listCloudDiagramActivityGroupsTool,
-    listCloudDiagramNodeActivitiesTool,
-    searchCloudDiagramsTool,
 } from "./tools/cloudDiagrams.js";
 import {
-    getCloudFlowConnectionTool,
-    getCloudFlowTemplateTool,
     handleGetCloudFlowConnectionRequest,
     handleGetCloudFlowTemplateRequest,
     handleListCloudFlowConnectionsRequest,
     handleListCloudFlowTemplatesRequest,
     handleRefineCloudflowRequest,
     handleTriggerCloudFlowRequest,
-    listCloudFlowConnectionsTool,
-    listCloudFlowsTool,
-    listCloudFlowTemplatesTool,
-    refineCloudflowTool,
-    triggerCloudFlowTool,
 } from "./tools/cloudflow.js";
-import {
-    cloudIncidentsTool,
-    cloudIncidentTool,
-    handleCloudIncidentRequest,
-    handleCloudIncidentsRequest,
-} from "./tools/cloudIncidents.js";
-import {
-    getCommitmentTool,
-    handleGetCommitmentRequest,
-    handleListCommitmentsRequest,
-    listCommitmentsTool,
-} from "./tools/commitmentManager.js";
+import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "./tools/cloudIncidents.js";
+import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "./tools/commitmentManager.js";
 // Re-enable alongside the WRITE_GATED_SUMMARIES entry in utils/toolsHandler.ts
-// and the registration on the tool list below.
+// and the registration in src/tools/handWrittenTools.ts.
 // import { confirmActionTool } from "./tools/confirmAction.js";
 import {
-    createDatahubDatasetTool,
-    getDatahubDatasetTool,
     handleCreateDatahubDatasetRequest,
     handleGetDatahubDatasetRequest,
     handleListDatahubDatasetsRequest,
     handleUpdateDatahubDatasetRequest,
-    listDatahubDatasetsTool,
-    updateDatahubDatasetTool,
 } from "./tools/datahubDatasets.js";
-import { handleSendDatahubEventsRequest, sendDatahubEventsTool } from "./tools/datahubEvents.js";
-import { dimensionTool, handleDimensionRequest } from "./tools/dimension.js";
-import { dimensionsTool, handleDimensionsRequest } from "./tools/dimensions.js";
+import { handleSendDatahubEventsRequest } from "./tools/datahubEvents.js";
+import { handleDimensionRequest } from "./tools/dimension.js";
+import { handleDimensionsRequest } from "./tools/dimensions.js";
 import {
-    createFolderTool,
-    getFolderTool,
     handleCreateFolderRequest,
     handleGetFolderRequest,
     handleListFoldersRequest,
     handleUpdateFolderRequest,
-    listFoldersTool,
-    updateFolderTool,
 } from "./tools/folders.js";
 import { generatedTools, generatedToolsByName } from "./tools/generated/registry.js";
-import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "./tools/insights.js";
+import { HAND_WRITTEN_TOOLS } from "./tools/handWrittenTools.js";
+import { handleGetInvoiceRequest, handleListInvoicesRequest } from "./tools/invoices.js";
 import {
-    getInvoiceTool,
-    handleGetInvoiceRequest,
-    handleListInvoicesRequest,
-    listInvoicesTool,
-} from "./tools/invoices.js";
-import {
-    assignObjectsToLabelTool,
-    createLabelTool,
-    getLabelAssignmentsTool,
-    getLabelTool,
     handleAssignObjectsToLabelRequest,
     handleCreateLabelRequest,
     handleGetLabelAssignmentsRequest,
     handleGetLabelRequest,
     handleListLabelsRequest,
     handleUpdateLabelRequest,
-    listLabelsTool,
-    updateLabelTool,
 } from "./tools/labels.js";
-import { handleListOrganizationsRequest, listOrganizationsTool } from "./tools/organizations.js";
-import { cloudOverviewTool } from "./tools/overview.js";
+import { handleListOrganizationsRequest } from "./tools/organizations.js";
+import { handleGetResourcePermissionsRequest, handleUpdateResourcePermissionsRequest } from "./tools/permissions.js";
+import { handleListPlatformsRequest } from "./tools/platforms.js";
+import { handleListProductsRequest } from "./tools/products.js";
 import {
-    getResourcePermissionsTool,
-    handleGetResourcePermissionsRequest,
-    handleUpdateResourcePermissionsRequest,
-    updateResourcePermissionsTool,
-} from "./tools/permissions.js";
-import { handleListPlatformsRequest, listPlatformsTool } from "./tools/platforms.js";
-import { handleListProductsRequest, listProductsTool } from "./tools/products.js";
-import { compareSpendTool, costBreakdownTool, costTrendTool } from "./tools/queryHelpers.js";
-import {
-    createReportTool,
-    getReportConfigTool,
-    getReportResultsTool,
     handleCreateReportRequest,
     handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
     handleUpdateReportRequest,
-    reportsTool,
-    runQueryTool,
-    updateReportTool,
 } from "./tools/reports.js";
-import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
-import { handleSearchCustomersRequest, searchCustomersTool } from "./tools/searchCustomers.js";
+import { handleListRolesRequest } from "./tools/roles.js";
+import { handleSearchCustomersRequest } from "./tools/searchCustomers.js";
 import {
-    getActiveThemeTool,
-    getThemeTool,
     handleGetActiveThemeRequest,
     handleGetThemeRequest,
     handleListThemesRequest,
     handleSetActiveThemeRequest,
     handleUpdateThemeRequest,
-    listThemesTool,
-    setActiveThemeTool,
-    updateThemeTool,
 } from "./tools/themes.js";
 import {
-    createTicketCommentTool,
-    createTicketTool,
-    getTicketTool,
     handleCreateTicketCommentRequest,
     handleCreateTicketRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
-    listTicketCommentsTool,
-    listTicketsTool,
 } from "./tools/tickets.js";
-import {
-    handleInviteUserRequest,
-    handleListUsersRequest,
-    handleUpdateUserRequest,
-    inviteUserTool,
-    listUsersTool,
-    updateUserTool,
-} from "./tools/users.js";
-import { handleValidateUserRequest, validateUserTool } from "./tools/validateUser.js";
+import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "./tools/users.js";
+import { handleValidateUserRequest } from "./tools/validateUser.js";
 import { MemoryApprovalStore } from "./utils/approval.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
 import { zodToMcpInputSchema } from "./utils/schemaHelpers.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError, type TrackingContext } from "./utils/util.js";
 
-// Raw stdio tool definitions for every non-blacklisted OpenAPI operation — see
-// src/tools/generated/blacklist.ts for what's excluded (already hand-covered elsewhere).
+// Raw stdio tool definitions for every OpenAPI operation not already covered by a
+// hand-written tool — see src/tools/handWrittenTools.ts (coversEndpoint).
 const generatedToolDefinitions = generatedTools.map((tool) => ({
     name: tool.name,
     description: tool.description,
@@ -256,103 +161,7 @@ export function createServer() {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
             tools: [
-                cloudOverviewTool,
-                cloudIncidentsTool,
-                cloudIncidentTool,
-                anomaliesTool,
-                anomalyTool,
-                reportsTool,
-                runQueryTool,
-                costBreakdownTool,
-                costTrendTool,
-                compareSpendTool,
-                listOptimizationRecommendationsTool,
-                getInsightResourcesTool,
-                getInsightTool,
-                getReportResultsTool,
-                getReportConfigTool,
-                createReportTool,
-                updateReportTool,
-                validateUserTool,
-                dimensionsTool,
-                dimensionTool,
-                listTicketsTool,
-                getTicketTool,
-                listTicketCommentsTool,
-                createTicketCommentTool,
-                createTicketTool,
-                listInvoicesTool,
-                getInvoiceTool,
-                listAllocationsTool,
-                getAllocationTool,
-                createAllocationTool,
-                updateAllocationTool,
-                listAssetsTool,
-                getAssetTool,
-                searchCustomersTool,
-                listAlertsTool,
-                getAlertTool,
-                createAlertTool,
-                updateAlertTool,
-
-                triggerCloudFlowTool,
-                listCloudFlowsTool,
-                listCloudFlowConnectionsTool,
-                getCloudFlowConnectionTool,
-                listCloudFlowTemplatesTool,
-                getCloudFlowTemplateTool,
-                refineCloudflowTool,
-                listOrganizationsTool,
-                listPlatformsTool,
-                listUsersTool,
-                updateUserTool,
-                inviteUserTool,
-                listRolesTool,
-                listProductsTool,
-                listLabelsTool,
-                getLabelTool,
-                createLabelTool,
-                updateLabelTool,
-                getLabelAssignmentsTool,
-                assignObjectsToLabelTool,
-                listFoldersTool,
-                getFolderTool,
-                createFolderTool,
-                updateFolderTool,
-                listThemesTool,
-                getThemeTool,
-                getActiveThemeTool,
-                setActiveThemeTool,
-                updateThemeTool,
-                getAwsAccountTool,
-                getCloudConnectSupportedFeaturesTool,
-                listDatahubDatasetsTool,
-                getDatahubDatasetTool,
-                createDatahubDatasetTool,
-                updateDatahubDatasetTool,
-                sendDatahubEventsTool,
-                findCloudDiagramsTool,
-                getCloudDiagramsStatsTool,
-                searchCloudDiagramsTool,
-                getCloudDiagramCostSnapshotTool,
-                getCloudDiagramResourceRelationshipsTool,
-                listCloudDiagramActivityGroupsTool,
-                listCloudDiagramNodeActivitiesTool,
-                getCloudDiagramComponentsTool,
-                listBudgetsTool,
-                getBudgetTool,
-                createBudgetTool,
-                updateBudgetTool,
-                listAnnotationsTool,
-                getAnnotationTool,
-                createAnnotationTool,
-                updateAnnotationTool,
-                listCommitmentsTool,
-                getCommitmentTool,
-                listAccountTeamTool,
-                getResourcePermissionsTool,
-                updateResourcePermissionsTool,
-                askAvaSyncTool,
+                ...HAND_WRITTEN_TOOLS,
                 // confirm_action is no longer exposed while the approval gate is
                 // disabled — without any write-gated tool minting tokens there is
                 // nothing for clients to confirm. Re-add when the gate returns.

@@ -29,6 +29,10 @@ export const GetResourcePermissionsArgumentsSchema = z.object({
 
 export const getResourcePermissionsTool = {
     name: "get_resource_permissions",
+    coversEndpoint: {
+        method: "get",
+        path: "/sharing/v1/{resourceType}/{resourceId}",
+    },
     description:
         "Use this when the user wants to see who a Cloud Analytics resource is shared with and at what access level. Returns the sharing settings (per-user roles and public visibility) for a specific alert, budget, report, or allocation. Requires resourceType (alerts, budgets, reports, or allocations) and resourceId. Do NOT use this to list the resources themselves (use list_alerts, list_budgets, list_reports, or list_allocations).",
     inputSchema: {
@@ -117,6 +121,10 @@ export const UpdateResourcePermissionsArgumentsSchema = z.object({
 
 export const updateResourcePermissionsTool = {
     name: "update_resource_permissions",
+    coversEndpoint: {
+        method: "put",
+        path: "/sharing/v1/{resourceType}/{resourceId}",
+    },
     description:
         "Use this when the user wants to change who a Cloud Analytics resource is shared with or update access levels. Updates the sharing settings (per-user roles and/or public visibility) for a specific alert, budget, report, or allocation. Requires resourceType and resourceId; at least one of permissions or public should be provided. Do NOT use this to view current permissions (use get_resource_permissions).",
     inputSchema: {

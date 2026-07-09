@@ -37,6 +37,7 @@ export const ListInvoicesArgumentsSchema = z.object({
 // Tool definition
 export const listInvoicesTool = {
     name: "list_invoices",
+    coversEndpoint: { method: "get", path: "/billing/v1/invoices" },
     description:
         "Use this when the user wants to see their invoices, check billing history, or review payment records. Returns a list of invoices with amounts, dates, and status. Do NOT use this for cost analysis (use run_query) or budget tracking (use list_budgets).",
     inputSchema: {
@@ -96,6 +97,7 @@ export const GetInvoiceArgumentsSchema = z.object({
 // Tool definition for getting a single invoice
 export const getInvoiceTool = {
     name: "get_invoice",
+    coversEndpoint: { method: "get", path: "/billing/v1/invoices/{id}" },
     description:
         "Use this when the user wants to view details of a specific invoice by its ID. Returns full invoice data including line items and status. Do NOT use this for listing all invoices (use list_invoices) or cost analysis (use run_query).",
     inputSchema: {

@@ -19,6 +19,10 @@ export const GetAwsAccountArgumentsSchema = z.object({
 
 export const getAwsAccountTool = {
     name: "get_aws_account",
+    coversEndpoint: {
+        method: "get",
+        path: "/core/v1/cloudconnect/aws/accounts/{accountID}",
+    },
     description:
         "Use this when the user wants the CloudConnect details of a specific connected AWS account, such as its IAM role ARN, billing S3 bucket, and which DoiT features are enabled or supported. Requires the 12-digit AWS account ID. Do NOT use this for Google Cloud or Azure accounts.",
     inputSchema: zodToMcpInputSchema(GetAwsAccountArgumentsSchema),
@@ -40,7 +44,10 @@ export async function handleGetAwsAccountRequest(args: any, token: string) {
         const { customerContext } = args;
 
         const url = `${CLOUDCONNECT_BASE_URL}/aws/accounts/${encodeURIComponent(accountID)}`;
-        const data = await makeDoitRequest<AwsAccount>(url, token, { method: "GET", customerContext });
+        const data = await makeDoitRequest<AwsAccount>(url, token, {
+            method: "GET",
+            customerContext,
+        });
 
         if (!data) {
             return createErrorResponse("Failed to retrieve AWS account");
@@ -64,6 +71,10 @@ export const GetCloudConnectSupportedFeaturesArgumentsSchema = z.object({
 
 export const getCloudConnectSupportedFeaturesTool = {
     name: "get_cloud_connect_supported_features",
+    coversEndpoint: {
+        method: "get",
+        path: "/core/v1/cloudconnect/supportedFeatures/{accountID}",
+    },
     description:
         "Use this when the user wants to know which DoiT CloudConnect features a connected cloud account supports and whether the account currently has the required permissions for each feature. Accepts an AWS account ID or Azure tenant ID. Returns the list of supported features with their permission status.",
     inputSchema: zodToMcpInputSchema(GetCloudConnectSupportedFeaturesArgumentsSchema),

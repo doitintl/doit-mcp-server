@@ -46,6 +46,7 @@ export const AskAvaSyncArgumentsSchema = z
 
 export const askAvaSyncTool = {
     name: "ask_ava_sync",
+    coversEndpoint: { method: "post", path: "/ava/v1/askSync" },
     description:
         "Ask DoiT AVA, the cloud cost and infrastructure expert, a question about the user's DoiT account, cloud spending, anomalies, or optimization opportunities. AVA has access to the customer's billing data, usage patterns, and DoiT-specific features. Use this for DoiT or cloud-specific questions only — not for general-purpose AI queries. Note: AVA can take a long time to respond for complex questions. If it does not respond in time, a clear error is returned with guidance to retry or simplify the question.",
     inputSchema: zodToMcpInputSchema(AskAvaSyncArgumentsSchema),

@@ -18,6 +18,7 @@ export const ListProductsArgumentsSchema = z.object({
 
 export const listProductsTool = {
     name: "list_products",
+    coversEndpoint: { method: "get", path: "/support/v1/metadata/products" },
     description:
         "Use this when the user wants to see available DoiT products or services. Returns a list of products. Do NOT use this for cloud incidents (use get_cloud_incidents) or platforms (use list_platforms).",
     inputSchema: zodToMcpInputSchema(ListProductsArgumentsSchema),

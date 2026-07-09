@@ -47,6 +47,7 @@ export const ListAnnotationsArgumentsSchema = z.object({
 
 export const listAnnotationsTool = {
     name: "list_annotations",
+    coversEndpoint: { method: "get", path: "/analytics/v1/annotations" },
     description:
         "Use this when the user wants to see calendar annotations or notes on cost data. Returns a list of annotations. Do NOT use this for labels (use list_labels) or alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(ListAnnotationsArgumentsSchema),
@@ -106,16 +107,22 @@ export const GetAnnotationArgumentsSchema = z
             .optional()
             .describe("Partial content match (case-insensitive). Used to find the annotation when ID is unknown."),
     })
-    .refine((d) => d.id || d.content, { message: "Either id or content must be provided." });
+    .refine((d) => d.id || d.content, {
+        message: "Either id or content must be provided.",
+    });
 
 export const getAnnotationTool = {
     name: "get_annotation",
+    coversEndpoint: { method: "get", path: "/analytics/v1/annotations/{id}" },
     description:
         "Use this when the user wants to view details of a specific annotation. Accepts either the annotation ID or a partial content match (case-insensitive). Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
     inputSchema: {
         type: "object",
         properties: {
-            id: { type: "string", description: "The ID of the annotation to retrieve." },
+            id: {
+                type: "string",
+                description: "The ID of the annotation to retrieve.",
+            },
             content: {
                 type: "string",
                 description:
@@ -147,7 +154,10 @@ export async function handleGetAnnotationRequest(args: any, token: string) {
                 token,
                 { method: "GET", customerContext }
             );
-            const items = (listData?.annotations ?? []).map((a: any) => ({ ...a, name: a.content }));
+            const items = (listData?.annotations ?? []).map((a: any) => ({
+                ...a,
+                name: a.content,
+            }));
             const result = matchByName(items, parsed.content, "name");
             if ("error" in result) return createErrorResponse(result.error);
             // (multiple match case now handled as error by matchByName)
@@ -155,7 +165,10 @@ export async function handleGetAnnotationRequest(args: any, token: string) {
         }
 
         const url = `${ANNOTATIONS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
-        const data = await makeDoitRequest<Annotation>(url, token, { method: "GET", customerContext });
+        const data = await makeDoitRequest<Annotation>(url, token, {
+            method: "GET",
+            customerContext,
+        });
         if (!data) {
             return createErrorResponse("Failed to retrieve annotation");
         }
@@ -172,7 +185,9 @@ export const CreateAnnotationArgumentsSchema = z.object({
     timestamp: z
         .string()
         .min(1, "Timestamp is required and cannot be empty.")
-        .datetime({ message: "Timestamp must be a valid ISO 8601 date-time string (e.g. 2026-01-15T00:00:00.000Z)." })
+        .datetime({
+            message: "Timestamp must be a valid ISO 8601 date-time string (e.g. 2026-01-15T00:00:00.000Z).",
+        })
         .describe("The date associated with the annotation in ISO 8601 date-time format (required)."),
     reports: z.array(z.string()).optional().describe("List of report IDs to associate with the annotation."),
     labels: z
@@ -183,6 +198,7 @@ export const CreateAnnotationArgumentsSchema = z.object({
 
 export const createAnnotationTool = {
     name: "create_annotation",
+    coversEndpoint: { method: "post", path: "/analytics/v1/annotations" },
     description:
         "Use this when the user wants to add a new annotation to mark a specific date or event in cost data. Ask the user to confirm the annotation details before executing. Do NOT use this for creating labels (use create_label) or alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateAnnotationArgumentsSchema),
@@ -259,6 +275,7 @@ export const UpdateAnnotationArgumentsSchema = z.object({
 
 export const updateAnnotationTool = {
     name: "update_annotation",
+    coversEndpoint: { method: "patch", path: "/analytics/v1/annotations/{id}" },
     description:
         "Use this when the user wants to modify an existing annotation. Ask the user to confirm changes before executing. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
     inputSchema: zodToMcpInputSchema(UpdateAnnotationArgumentsSchema),

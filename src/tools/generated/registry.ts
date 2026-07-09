@@ -1,3 +1,4 @@
+import { COVERED_ENDPOINTS } from "../handWrittenTools.js";
 import { generateTools } from "./generateTools.js";
 import { loadGeneratedToolsSpec } from "./loadSpec.js";
 import type { GeneratedTool } from "./types.js";
@@ -8,7 +9,7 @@ import type { GeneratedTool } from "./types.js";
  * Shared by src/server.ts (tool listing) and src/utils/toolsHandler.ts (dispatch)
  * so the spec is only parsed and walked once per process.
  */
-export const generatedTools: GeneratedTool[] = generateTools(loadGeneratedToolsSpec());
+export const generatedTools: GeneratedTool[] = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
 
 export const generatedToolsByName: Map<string, GeneratedTool> = new Map(
     generatedTools.map((tool) => [tool.name, tool])
