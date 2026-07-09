@@ -67,10 +67,20 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 method,
                 pathTemplate,
                 pathParams: pathParams.map((parameter) => parameter.name),
-                queryParams: queryParams.map((parameter) => parameter.name),
+                queryParams: [...queryParams.map((parameter) => parameter.name), "customerContext"],
                 bodyEncoding,
                 multipartFileFields,
             };
+
+            // Every operation supports scoping to a customer, but the OpenAPI spec itself has
+            // no notion of this (callOperation.ts reads it as a query param) — declare it here
+            // so it's visible to callers instead of only working if you already know about it.
+            shape.customerContext = z
+                .string()
+                .optional()
+                .describe(
+                    "Scope the request to a specific customer by ID. Required for DoiT employees (whose token isn't tied to a single customer); omit for direct customer users."
+                );
 
             const name = toolNameFor(method, pathTemplate, operation.operationId);
 
