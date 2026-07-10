@@ -75,13 +75,14 @@ import {
 import { inviteUserTool, listUsersTool, updateUserTool } from "./users.js";
 import { validateUserTool } from "./validateUser.js";
 
-type HandWrittenTool = { name: string; coversEndpoint?: string };
+type HandWrittenTool = { name: string; coversEndpoint: string | null };
 
 /**
  * Every hand-written tool exposed via stdio's ListTools response (see src/server.ts).
- * A tool that duplicates an OpenAPI operation declares `coversEndpoint` on itself so the
+ * A tool that duplicates an OpenAPI operation declares its `coversEndpoint` so the
  * generator (src/tools/generated/generateTools.ts) can skip that operation automatically —
- * see COVERED_ENDPOINTS below. No separate list to keep in sync.
+ * see COVERED_ENDPOINTS below. No separate list to keep in sync. Tools with no OpenAPI
+ * equivalent must still declare `coversEndpoint: null` so this is never accidentally omitted.
  */
 export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     cloudOverviewTool,

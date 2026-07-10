@@ -87,6 +87,7 @@ export const CostBreakdownArgumentsSchema = z.object({
 
 export const costBreakdownTool = {
     name: "cost_breakdown",
+    coversEndpoint: null,
     description:
         "Use this when the user wants a simple cost breakdown by service, project, or cloud provider " +
         "(e.g. 'What are my top services by cost?', 'Which projects cost the most?'). " +
@@ -180,6 +181,7 @@ export const CostTrendArgumentsSchema = z.object({
 
 export const costTrendTool = {
     name: "cost_trend",
+    coversEndpoint: null,
     description:
         "Use this when the user wants to see monthly spend over time " +
         "(e.g. 'Show me my cost trend', 'How has my spend changed over the last 6 months?'). " +
@@ -275,6 +277,7 @@ export const CompareSpendArgumentsSchema = z.object({
 
 export const compareSpendTool = {
     name: "compare_spend",
+    coversEndpoint: null,
     description:
         "Use this when the user wants to compare spend between two time periods " +
         "(e.g. 'Compare my costs this quarter vs last quarter', 'How did January compare to February?'). " +
