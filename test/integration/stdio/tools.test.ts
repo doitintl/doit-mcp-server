@@ -5,6 +5,8 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { delay, HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { generatedTools } from "../../../src/tools/generated/registry.js";
+import { HAND_WRITTEN_TOOLS } from "../../../src/tools/handWrittenTools.js";
 import { createTestClient, getTextContent } from "../helpers.js";
 import { mswServer } from "../setup.js";
 
@@ -28,107 +30,17 @@ describe("MCP Tools Integration", () => {
             const result = await client.listTools();
             const names = result.tools.map((t) => t.name).sort();
 
-            expect(names).toEqual(
-                [
-                    "ask_ava_sync",
-                    "assign_objects_to_label",
-                    "compare_spend",
-                    // "confirm_action", // disabled with the approval gate
-                    "cost_breakdown",
-                    "cost_trend",
-                    "create_alert",
-                    "create_allocation",
-                    "create_annotation",
-                    "create_budget",
-                    "create_datahub_dataset",
-                    "create_label",
-                    "create_report",
-                    "create_ticket",
-                    "create_ticket_comment",
-                    "find_cloud_diagrams",
-                    "get_alert",
-                    "get_cloud_diagrams_stats",
-                    "get_allocation",
-                    "get_annotation",
-                    "get_anomalies",
-                    "get_anomaly",
-                    "get_asset",
-                    "get_aws_account",
-                    "get_budget",
-                    "get_cloud_connect_supported_features",
-                    "get_cloud_diagram_cost_snapshot",
-                    "get_cloud_diagram_resource_relationships",
-                    "get_cloud_incident",
-                    "get_cloud_incidents",
-                    "get_cloud_overview",
-                    "get_commitment",
-                    "get_active_theme",
-                    "get_datahub_dataset",
-                    "get_dimension",
-                    "create_folder",
-                    "get_folder",
-                    "get_insight",
-                    "get_insight_resources",
-                    "get_invoice",
-                    "get_label",
-                    "get_label_assignments",
-                    "get_report_config",
-                    "get_report_results",
-                    "get_resource_permissions",
-                    "get_theme",
-                    "get_ticket",
-                    "invite_user",
-                    "list_account_team",
-                    "list_alerts",
-                    "list_allocations",
-                    "list_annotations",
-                    "list_assets",
-                    "list_budgets",
-                    "list_commitments",
-                    "list_datahub_datasets",
-                    "list_dimensions",
-                    "list_folders",
-                    "list_optimization_recommendations",
-                    "list_invoices",
-                    "list_labels",
-                    "list_organizations",
-                    "list_platforms",
-                    "list_products",
-                    "list_reports",
-                    "list_roles",
-                    "list_themes",
-                    "list_ticket_comments",
-                    "list_tickets",
-                    "list_users",
-                    "run_query",
-                    "list_cloud_diagram_activity_groups",
-                    "list_cloud_diagram_node_activities",
-                    "search_cloud_diagrams",
-                    "search_customers",
-                    "send_datahub_events",
-                    "refine_cloudflow",
-                    "trigger_cloud_flow",
-                    "list_cloudflows",
-                    "list_cloudflow_connections",
-                    "get_cloudflow_connection",
-                    "list_cloudflow_templates",
-                    "get_cloudflow_template",
-                    "update_alert",
-                    "update_allocation",
-                    "update_annotation",
-                    "update_budget",
-                    "update_datahub_dataset",
-                    "update_folder",
-                    "update_label",
-                    "update_report",
-                    "update_resource_permissions",
-                    "update_theme",
-                    "update_user",
-                    "get_cloud_diagram_components",
-                    "set_active_theme",
-                    "validate_user",
-                ].sort()
-            );
+            // Expected surface = every hand-written tool (see src/tools/handWrittenTools.ts)
+            // plus every auto-generated tool for OpenAPI operations they don't cover
+            // (see src/tools/generated/registry.ts). Deriving this from the same source
+            // modules server.ts uses — rather than a hardcoded list — avoids this test
+            // going stale every time an operation is added to the OpenAPI spec.
+            const expectedNames = [
+                ...HAND_WRITTEN_TOOLS.map((tool) => tool.name),
+                ...generatedTools.map((tool) => tool.name),
+            ].sort();
+
+            expect(names).toEqual(expectedNames);
         });
 
         it("each tool has a name, description, and inputSchema", async () => {
@@ -143,14 +55,19 @@ describe("MCP Tools Integration", () => {
     });
 
     describe("STDIO ↔ SSE tool registration sync", () => {
-        // Tools whose source-level references (import + commented-out registration)
-        // are intentionally retained for an easy re-enable, but which are NOT actually
-        // exposed to clients. The regex extractor matches on raw text, so commented-out
-        // identifiers like `// confirmActionTool,` in src/server.ts and
+        // Auto-generated tools (src/tools/generated/registry.ts) are registered on both
+        // transports from the same generateTools()/COVERED_ENDPOINTS call, so they can't
+        // drift between STDIO and SSE. Only hand-written tools are registered separately
+        // per transport (src/server.ts's HAND_WRITTEN_TOOLS vs. doit-mcp-server/src/index.ts's
+        // individual this.registerTool(xTool, ...) calls), so that's what needs a parity check.
+        //
+        // Tools whose source-level references (import + commented-out registration) are
+        // intentionally retained for an easy re-enable, but which are NOT actually exposed
+        // to clients. The regex extractor matches on raw text, so a commented-out
         // `// this.registerTool(confirmActionTool, ...)` in doit-mcp-server/src/index.ts
-        // would otherwise be counted as live. Filter them here so the parity check
-        // reflects the actual MCP tool surface; re-enabling a tool means uncommenting
-        // its source references AND removing its name from this set.
+        // would otherwise be counted as live. Filter them here so the parity check reflects
+        // the actual MCP tool surface; re-enabling a tool means uncommenting its source
+        // reference AND removing its name from this set.
         const DISABLED_TOOL_VARS = new Set(["confirmActionTool"]);
 
         function extractToolVarNames(source: string, pattern: RegExp): string[] {
@@ -161,13 +78,13 @@ describe("MCP Tools Integration", () => {
             return names;
         }
 
-        it("STDIO and SSE servers register the same tools with no duplicates", async () => {
+        it("STDIO and SSE servers register the same hand-written tools with no duplicates", async () => {
             const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-            // STDIO: extract tool variable names from the tools array in server.ts
-            const stdioSource = readFileSync(resolve(rootDir, "src/server.ts"), "utf-8");
-            const toolsArrayMatch = stdioSource.match(/tools:\s*\[([\s\S]*?)\]/);
-            if (!toolsArrayMatch) throw new Error("Could not find tools array in server.ts");
+            // STDIO: extract tool variable names from the HAND_WRITTEN_TOOLS array
+            const stdioSource = readFileSync(resolve(rootDir, "src/tools/handWrittenTools.ts"), "utf-8");
+            const toolsArrayMatch = stdioSource.match(/HAND_WRITTEN_TOOLS[\s\S]*?=\s*\[([\s\S]*?)\];/);
+            if (!toolsArrayMatch) throw new Error("Could not find HAND_WRITTEN_TOOLS array in handWrittenTools.ts");
             const stdioTools = extractToolVarNames(toolsArrayMatch[1], /(\w+Tool)\b/g);
 
             // SSE: extract tool variable names from registerTool() calls
@@ -186,9 +103,9 @@ describe("MCP Tools Integration", () => {
             expect(missingFromSse, `In STDIO but missing from SSE: ${missingFromSse.join(", ")}`).toEqual([]);
             expect(missingFromStdio, `In SSE but missing from STDIO: ${missingFromStdio.join(", ")}`).toEqual([]);
 
-            // Cross-check: STDIO variable count matches MCP client tool count
+            // Cross-check: hand-written + generated tool count matches MCP client tool count
             const result = await client.listTools();
-            expect(result.tools).toHaveLength(stdioTools.length);
+            expect(result.tools).toHaveLength(stdioTools.length + generatedTools.length);
         });
     });
 
