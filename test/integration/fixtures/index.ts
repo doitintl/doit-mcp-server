@@ -53,8 +53,10 @@ import {
     cloudDiagramsStatsFixture,
 } from "./cloudDiagrams.js";
 import {
+    cloudflowConnectionCreatedFixture,
     cloudflowConnectionFixture,
     cloudflowConnectionsFixture,
+    cloudflowConnectionUpdatedFixture,
     cloudflowTemplateFixture,
     cloudflowTemplatesFixture,
     cloudflowTriggerFixture,
@@ -153,6 +155,8 @@ export const fixtures = {
     cloudflowTrigger: cloudflowTriggerFixture,
     cloudflowConnections: cloudflowConnectionsFixture,
     cloudflowConnection: cloudflowConnectionFixture,
+    cloudflowConnectionCreated: cloudflowConnectionCreatedFixture,
+    cloudflowConnectionUpdated: cloudflowConnectionUpdatedFixture,
     cloudflowTemplates: cloudflowTemplatesFixture,
     cloudflowTemplate: cloudflowTemplateFixture,
 

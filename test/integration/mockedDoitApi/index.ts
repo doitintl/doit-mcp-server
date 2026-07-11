@@ -339,8 +339,17 @@ export const mockedDoitApiHandlers = [
         }
         return new HttpResponse(null, { status: 404 });
     }),
+    http.patch(`${API_BASE}/cloudflow/v1/connections/:connectionId`, ({ params }) => {
+        if (params.connectionId === "conn-1") {
+            return HttpResponse.json(fixtures.cloudflowConnectionUpdated);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/cloudflow/v1/connections`, () => {
         return HttpResponse.json(fixtures.cloudflowConnections);
+    }),
+    http.post(`${API_BASE}/cloudflow/v1/connections`, () => {
+        return HttpResponse.json(fixtures.cloudflowConnectionCreated, { status: 201 });
     }),
 
     // CloudFlow templates (register specific :templateId before the list route)
