@@ -131,6 +131,8 @@ import {
   changeCustomerTool,
 } from "../../src/tools/changeCustomer.js";
 import {
+  CreateCloudFlowConnectionArgumentsSchema,
+  createCloudFlowConnectionTool,
   GetCloudFlowConnectionArgumentsSchema,
   getCloudFlowConnectionTool,
   GetCloudFlowTemplateArgumentsSchema,
@@ -143,8 +145,10 @@ import {
   listCloudFlowsTool,
   RefineCloudflowArgumentsSchema,
   TriggerCloudFlowArgumentsSchema,
+  UpdateCloudFlowConnectionArgumentsSchema,
   refineCloudflowTool,
   triggerCloudFlowTool,
+  updateCloudFlowConnectionTool,
 } from "../../src/tools/cloudflow.js";
 // Re-enable alongside the WRITE_GATED_SUMMARIES entry in utils/toolsHandler.ts
 // and the registerTool() call further down.
@@ -1012,6 +1016,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(listCloudFlowsTool, ListCloudFlowsArgumentsSchema);
     this.registerTool(listCloudFlowConnectionsTool, ListCloudFlowConnectionsArgumentsSchema);
     this.registerTool(getCloudFlowConnectionTool, GetCloudFlowConnectionArgumentsSchema);
+    this.registerTool(createCloudFlowConnectionTool, CreateCloudFlowConnectionArgumentsSchema);
+    this.registerTool(updateCloudFlowConnectionTool, UpdateCloudFlowConnectionArgumentsSchema);
     this.registerTool(listCloudFlowTemplatesTool, ListCloudFlowTemplatesArgumentsSchema);
     this.registerTool(getCloudFlowTemplateTool, GetCloudFlowTemplateArgumentsSchema);
     this.registerTool(refineCloudflowTool, RefineCloudflowArgumentsSchema);

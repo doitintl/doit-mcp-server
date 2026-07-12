@@ -5,11 +5,13 @@ import {
     CLOUDFLOW_TEMPLATES_BASE_URL,
     CLOUDFLOW_TRIGGER_BASE_URL,
     getTriggerCloudFlowURL,
+    handleCreateCloudFlowConnectionRequest,
     handleGetCloudFlowConnectionRequest,
     handleGetCloudFlowTemplateRequest,
     handleListCloudFlowConnectionsRequest,
     handleListCloudFlowTemplatesRequest,
     handleTriggerCloudFlowRequest,
+    handleUpdateCloudFlowConnectionRequest,
 } from "../cloudflow.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -301,6 +303,196 @@ describe("cloudflow", () => {
 
             expect(response).toEqual({
                 content: [{ type: "text", text: expect.stringContaining("Failed to retrieve CloudFlow connection") }],
+                isError: true,
+            });
+        });
+    });
+
+    describe("handleCreateCloudFlowConnectionRequest", () => {
+        const mockToken = "fake-token";
+
+        const mockConnection = {
+            connectionId: "conn-new",
+            name: "New GCP Connection",
+            enabled: true,
+            status: "active",
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("POSTs the connection body when a single config is supplied", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockConnection);
+
+            const args = {
+                name: "New GCP Connection",
+                gcpConfig: { organizationId: "123456789", level: "organization" },
+            };
+            const response = await handleCreateCloudFlowConnectionRequest(args, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(CLOUDFLOW_CONNECTIONS_BASE_URL, mockToken, {
+                method: "POST",
+                body: {
+                    name: "New GCP Connection",
+                    gcpConfig: { organizationId: "123456789", level: "organization" },
+                },
+                customerContext: undefined,
+            });
+            expect(response).toEqual({
+                content: [{ type: "text", text: JSON.stringify(mockConnection, null, 2) }],
+            });
+        });
+
+        it("passes customerContext when provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockConnection);
+
+            await handleCreateCloudFlowConnectionRequest(
+                { name: "New GCP Connection", gcpConfig: { projectId: "p-1" }, customerContext: "customer-ctx" },
+                mockToken
+            );
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                CLOUDFLOW_CONNECTIONS_BASE_URL,
+                mockToken,
+                expect.objectContaining({ method: "POST", customerContext: "customer-ctx" })
+            );
+        });
+
+        it("rejects when both gcpConfig and awsConfig are supplied", async () => {
+            const response = await handleCreateCloudFlowConnectionRequest(
+                { name: "Both", gcpConfig: { projectId: "p-1" }, awsConfig: { roleName: "r" } },
+                mockToken
+            );
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response).toEqual({
+                content: [
+                    {
+                        type: "text",
+                        text: expect.stringContaining("Exactly one of gcpConfig or awsConfig must be supplied."),
+                    },
+                ],
+                isError: true,
+            });
+        });
+
+        it("rejects when neither gcpConfig nor awsConfig is supplied", async () => {
+            const response = await handleCreateCloudFlowConnectionRequest({ name: "Neither" }, mockToken);
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response).toEqual({
+                content: [
+                    {
+                        type: "text",
+                        text: expect.stringContaining("Exactly one of gcpConfig or awsConfig must be supplied."),
+                    },
+                ],
+                isError: true,
+            });
+        });
+
+        it("returns a formatted Zod error when name is missing", async () => {
+            const response = await handleCreateCloudFlowConnectionRequest(
+                { gcpConfig: { projectId: "p-1" } },
+                mockToken
+            );
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Invalid arguments:") }],
+                isError: true,
+            });
+        });
+
+        it("returns an error response when the API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            const response = await handleCreateCloudFlowConnectionRequest(
+                { name: "New GCP Connection", awsConfig: { roleName: "role" } },
+                mockToken
+            );
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to create CloudFlow connection") }],
+                isError: true,
+            });
+        });
+    });
+
+    describe("handleUpdateCloudFlowConnectionRequest", () => {
+        const mockToken = "fake-token";
+
+        const mockConnection = {
+            connectionId: "conn-1",
+            name: "Renamed Connection",
+            enabled: false,
+            status: "active",
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("PATCHes the connection with the encoded ID and body (id excluded)", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockConnection);
+
+            const response = await handleUpdateCloudFlowConnectionRequest(
+                { connectionId: "conn-1", name: "Renamed Connection", enabled: false },
+                mockToken
+            );
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDFLOW_CONNECTIONS_BASE_URL}/conn-1`, mockToken, {
+                method: "PATCH",
+                body: { name: "Renamed Connection", enabled: false },
+                customerContext: undefined,
+            });
+            expect(response).toEqual({
+                content: [{ type: "text", text: JSON.stringify(mockConnection, null, 2) }],
+            });
+        });
+
+        it("rejects when both gcpConfig and awsConfig are set", async () => {
+            const response = await handleUpdateCloudFlowConnectionRequest(
+                { connectionId: "conn-1", gcpConfig: { projectId: "p-1" }, awsConfig: { roleName: "r" } },
+                mockToken
+            );
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response).toEqual({
+                content: [
+                    {
+                        type: "text",
+                        text: expect.stringContaining("At most one of gcpConfig or awsConfig may be set per request."),
+                    },
+                ],
+                isError: true,
+            });
+        });
+
+        it("returns a formatted Zod error when connectionId is empty", async () => {
+            const response = await handleUpdateCloudFlowConnectionRequest(
+                { connectionId: "   ", name: "x" },
+                mockToken
+            );
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Invalid arguments:") }],
+                isError: true,
+            });
+        });
+
+        it("returns an error response when the API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            const response = await handleUpdateCloudFlowConnectionRequest(
+                { connectionId: "conn-1", name: "Renamed Connection" },
+                mockToken
+            );
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to update CloudFlow connection") }],
                 isError: true,
             });
         });

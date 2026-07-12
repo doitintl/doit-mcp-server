@@ -39,6 +39,37 @@ export const cloudflowConnectionsFixture = {
     nextPageToken: "next-page-token",
 };
 
+export const cloudflowConnectionCreatedFixture = {
+    connectionId: "conn-new",
+    name: "New GCP Connection",
+    description: "Created via API",
+    gcpConfig: {
+        projectId: "my-project",
+        level: "project",
+        serviceAccountName: "doit-connect@my-project.iam.gserviceaccount.com",
+        status: "pending",
+    },
+    enabled: true,
+    status: "pending",
+    createdAt: "2024-04-01T00:00:00Z",
+    updatedAt: "2024-04-01T00:00:00Z",
+};
+
+export const cloudflowConnectionUpdatedFixture = {
+    connectionId: "conn-1",
+    name: "Renamed Connection",
+    description: "Organization-level GCP connection",
+    gcpConfig: {
+        organizationId: "123456789",
+        level: "organization",
+        status: "healthy",
+    },
+    enabled: false,
+    status: "active",
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-05-01T00:00:00Z",
+};
+
 export const cloudflowTemplateFixture = {
     id: "tmpl-1",
     name: "Idle VM Cleanup",
