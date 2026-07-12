@@ -235,12 +235,16 @@ import {
   getCloudDiagramComponentsTool,
   GetCloudDiagramCostSnapshotArgumentsSchema,
   getCloudDiagramCostSnapshotTool,
+  GetCloudDiagramLayerSnapshotArgumentsSchema,
+  getCloudDiagramLayerSnapshotTool,
   GetCloudDiagramResourceRelationshipsArgumentsSchema,
   getCloudDiagramResourceRelationshipsTool,
   GetCloudDiagramsStatsArgumentsSchema,
   getCloudDiagramsStatsTool,
   ListCloudDiagramActivityGroupsArgumentsSchema,
   listCloudDiagramActivityGroupsTool,
+  ListCloudDiagramLayerSnapshotsArgumentsSchema,
+  listCloudDiagramLayerSnapshotsTool,
   ListCloudDiagramNodeActivitiesArgumentsSchema,
   listCloudDiagramNodeActivitiesTool,
   SearchCloudDiagramsArgumentsSchema,
@@ -1087,6 +1091,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(listCloudDiagramActivityGroupsTool, ListCloudDiagramActivityGroupsArgumentsSchema);
     this.registerTool(listCloudDiagramNodeActivitiesTool, ListCloudDiagramNodeActivitiesArgumentsSchema);
     this.registerTool(getCloudDiagramComponentsTool, GetCloudDiagramComponentsArgumentsSchema);
+    this.registerTool(listCloudDiagramLayerSnapshotsTool, ListCloudDiagramLayerSnapshotsArgumentsSchema);
+    this.registerTool(getCloudDiagramLayerSnapshotTool, GetCloudDiagramLayerSnapshotArgumentsSchema);
 
     // Budgets tools
     this.registerTool(listBudgetsTool, ListBudgetsArgumentsSchema);

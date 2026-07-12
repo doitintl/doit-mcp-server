@@ -32,9 +32,11 @@ import {
     handleFindCloudDiagramsRequest,
     handleGetCloudDiagramComponentsRequest,
     handleGetCloudDiagramCostSnapshotRequest,
+    handleGetCloudDiagramLayerSnapshotRequest,
     handleGetCloudDiagramResourceRelationshipsRequest,
     handleGetCloudDiagramsStatsRequest,
     handleListCloudDiagramActivityGroupsRequest,
+    handleListCloudDiagramLayerSnapshotsRequest,
     handleListCloudDiagramNodeActivitiesRequest,
     handleSearchCloudDiagramsRequest,
 } from "../tools/cloudDiagrams.js";
@@ -507,6 +509,12 @@ async function runOriginalDispatch(
             break;
         case "get_cloud_diagram_components":
             result = await handleGetCloudDiagramComponentsRequest(args, token);
+            break;
+        case "list_cloud_diagram_layer_snapshots":
+            result = await handleListCloudDiagramLayerSnapshotsRequest(args, token);
+            break;
+        case "get_cloud_diagram_layer_snapshot":
+            result = await handleGetCloudDiagramLayerSnapshotRequest(args, token);
             break;
         case "list_budgets":
             result = await handleListBudgetsRequest(args, token);

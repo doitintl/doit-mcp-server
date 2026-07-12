@@ -189,3 +189,13 @@ export type CloudDiagramScheme = {
 };
 
 export type GetCloudDiagramComponentsResponse = CloudDiagramScheme[];
+
+// Layer snapshots — GET /clouddiagrams/v1/statussheet/{id}/snapshots and /snapshot
+export type CloudDiagramLayerSnapshot = {
+    _id: string;
+    name?: string;
+    createdAt: string;
+    prevState?: string;
+};
+
+export type ListCloudDiagramLayerSnapshotsResponse = CloudDiagramLayerSnapshot[];

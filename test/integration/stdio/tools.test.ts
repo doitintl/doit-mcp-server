@@ -125,6 +125,8 @@ describe("MCP Tools Integration", () => {
                     "update_theme",
                     "update_user",
                     "get_cloud_diagram_components",
+                    "list_cloud_diagram_layer_snapshots",
+                    "get_cloud_diagram_layer_snapshot",
                     "set_active_theme",
                     "validate_user",
                 ].sort()
@@ -1559,6 +1561,51 @@ describe("MCP Tools Integration", () => {
             });
             expect(result.isError).toBe(true);
             expect(getTextContent(result)).toContain("YYYY-MM-DD");
+        });
+    });
+
+    describe("list_cloud_diagram_layer_snapshots", () => {
+        it("returns snapshots for a layer", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_layer_snapshots",
+                arguments: { layerId: "sheet-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("snap-2");
+            expect(parsed[0].prevState).toBe("snap-1");
+            expect(parsed[1]._id).toBe("snap-1");
+        });
+
+        it("returns a validation error when layerId is missing", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_layer_snapshots",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_cloud_diagram_layer_snapshot", () => {
+        it("returns a single snapshot for a layer", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_layer_snapshot",
+                arguments: { layerId: "sheet-1", snapshotId: "snap-2" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed._id).toBe("snap-2");
+            expect(parsed.name).toBe("After sync");
+            expect(parsed.prevState).toBe("snap-1");
+        });
+
+        it("returns a validation error when snapshotId is missing", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_layer_snapshot",
+                arguments: { layerId: "sheet-1" },
+            });
+            expect(result.isError).toBe(true);
         });
     });
 
