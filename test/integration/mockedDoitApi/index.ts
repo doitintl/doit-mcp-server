@@ -319,6 +319,13 @@ export const mockedDoitApiHandlers = [
     http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/costs`, () => {
         return HttpResponse.json(fixtures.cloudDiagramCostSnapshot);
     }),
+    // Layer snapshots — /snapshots (list) must be registered before /snapshot (get)
+    http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/snapshots`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramLayerSnapshots);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/snapshot`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramLayerSnapshot);
+    }),
     // Node activities must be registered before the catch-all /activity route
     http.get(`${API_BASE}/clouddiagrams/v1/activity/node-activities`, () => {
         return HttpResponse.json(fixtures.cloudDiagramNodeActivities);

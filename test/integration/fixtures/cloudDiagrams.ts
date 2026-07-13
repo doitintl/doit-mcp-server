@@ -148,6 +148,27 @@ export const cloudDiagramComponentsFixture = [
     },
 ];
 
+export const cloudDiagramLayerSnapshotsFixture = [
+    {
+        _id: "snap-2",
+        name: "After sync",
+        createdAt: "2026-04-28T12:00:00Z",
+        prevState: "snap-1",
+    },
+    {
+        _id: "snap-1",
+        name: "Initial",
+        createdAt: "2026-04-27T12:00:00Z",
+    },
+];
+
+export const cloudDiagramLayerSnapshotFixture = {
+    _id: "snap-2",
+    name: "After sync",
+    createdAt: "2026-04-28T12:00:00Z",
+    prevState: "snap-1",
+};
+
 export const cloudDiagramResourceRelationshipsFixture = {
     anchor: { id: "node-1", type: "node", name: "web-server", serviceType: "AWS::EC2::Instance" },
     direction: "both",

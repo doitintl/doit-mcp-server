@@ -46,6 +46,8 @@ import {
     cloudDiagramActivityGroupsFixture,
     cloudDiagramComponentsFixture,
     cloudDiagramCostSnapshotFixture,
+    cloudDiagramLayerSnapshotFixture,
+    cloudDiagramLayerSnapshotsFixture,
     cloudDiagramNodeActivitiesFixture,
     cloudDiagramResourceRelationshipsFixture,
     cloudDiagramsFixture,
@@ -145,6 +147,8 @@ export const fixtures = {
     cloudDiagramActivityGroups: cloudDiagramActivityGroupsFixture,
     cloudDiagramNodeActivities: cloudDiagramNodeActivitiesFixture,
     cloudDiagramComponents: cloudDiagramComponentsFixture,
+    cloudDiagramLayerSnapshots: cloudDiagramLayerSnapshotsFixture,
+    cloudDiagramLayerSnapshot: cloudDiagramLayerSnapshotFixture,
 
     datahubDatasets: datahubDatasetsFixture,
     datahubDataset: datahubDatasetFixture,
