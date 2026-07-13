@@ -125,6 +125,7 @@ describe("MCP Tools Integration", () => {
                     "update_report",
                     "update_resource_permissions",
                     "update_theme",
+                    "create_theme",
                     "update_user",
                     "get_cloud_diagram_components",
                     "set_active_theme",
@@ -315,6 +316,33 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             expect(text).toContain("newName");
+        });
+    });
+
+    describe("create_theme", () => {
+        it("creates a theme and returns the created theme", async () => {
+            const result = await client.callTool({
+                name: "create_theme",
+                arguments: {
+                    name: "Sunset",
+                    primaryColor: "#EA4335",
+                    colors: { light: ["#EA4335", "#FBBC04"], dark: ["#B31412", "#EA8600"] },
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("theme-3");
+            expect(parsed.name).toBe("Sunset");
+            expect(parsed.primaryColor).toBe("#EA4335");
+        });
+
+        it("returns a validation error when required fields are missing", async () => {
+            const result = await client.callTool({
+                name: "create_theme",
+                arguments: { name: "Sunset" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("primaryColor");
         });
     });
 

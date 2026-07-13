@@ -184,8 +184,10 @@ import {
 import { handleListRolesRequest, listRolesTool } from "./tools/roles.js";
 import { handleSearchCustomersRequest, searchCustomersTool } from "./tools/searchCustomers.js";
 import {
+    createThemeTool,
     getActiveThemeTool,
     getThemeTool,
+    handleCreateThemeRequest,
     handleGetActiveThemeRequest,
     handleGetThemeRequest,
     handleListThemesRequest,
@@ -318,6 +320,7 @@ export function createServer() {
                 getActiveThemeTool,
                 setActiveThemeTool,
                 updateThemeTool,
+                createThemeTool,
                 getAwsAccountTool,
                 getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,
@@ -467,6 +470,7 @@ export {
     handleCreateFolderRequest,
     handleCreateLabelRequest,
     handleCreateReportRequest,
+    handleCreateThemeRequest,
     handleCreateTicketCommentRequest,
     handleCreateTicketRequest,
     handleDimensionRequest,

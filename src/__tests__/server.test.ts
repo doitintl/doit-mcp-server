@@ -290,6 +290,7 @@ import {
 import { listRolesTool } from "../tools/roles.js";
 import { searchCustomersTool } from "../tools/searchCustomers.js";
 import {
+    createThemeTool,
     getActiveThemeTool,
     getThemeTool,
     listThemesTool,
@@ -426,6 +427,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getActiveThemeTool,
                 setActiveThemeTool,
                 updateThemeTool,
+                createThemeTool,
                 getAwsAccountTool,
                 getCloudConnectSupportedFeaturesTool,
                 listDatahubDatasetsTool,

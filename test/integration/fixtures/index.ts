@@ -17,6 +17,7 @@ import {
     createFolderFixture,
     createLabelFixture,
     createReportFixture,
+    createThemeFixture,
     dimensionFixture,
     dimensionsFixture,
     folderFixture,
@@ -187,6 +188,7 @@ export const fixtures = {
     activeTheme: activeThemeFixture,
     setActiveTheme: setActiveThemeFixture,
     updateTheme: updateThemeFixture,
+    createTheme: createThemeFixture,
     insight: insightFixture,
 
     avaAskSync: avaAskSyncFixture,
