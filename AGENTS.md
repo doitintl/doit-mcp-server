@@ -141,12 +141,24 @@ When adding a new MCP tool:
 1. Create tool file in `src/tools/`
 2. Define a Zod schema for runtime validation and a raw `inputSchema` object for MCP registration (both are needed — see example below)
 3. Implement handler function
-4. Register tool in `src/server.ts` (stdio transport)
+4. Register tool in `src/server.ts` (stdio transport) — via `src/tools/handWrittenTools.ts`'s `HAND_WRITTEN_TOOLS` array
 5. Register tool in `doit-mcp-server/src/index.ts` (HTTP/SSE transport)
-6. Add tests in `src/tools/__tests__/`
-7. Update README.md with tool documentation
+6. If the tool duplicates an OpenAPI operation from `src/tools/generated/openapi.json`, add `coversEndpoint: "method:path"` to the tool object itself (see `docs/generated-tools-coverage.md`) so the generator skips that operation automatically — no separate list to update
+7. Add tests in `src/tools/__tests__/`
+8. Update README.md with tool documentation
 
 **Note**: Tools must be registered in both transports to be available in all deployment modes.
+
+## Auto-generated tools (`src/tools/generated/`)
+
+Every OpenAPI operation not covered by a hand-written tool above is exposed automatically:
+
+- `openapi.json` — a pre-dereferenced (zero `$ref`) snapshot of the DoiT external API spec, checked in and statically imported by both transports (the Worker has no filesystem, so this can't be loaded at runtime). Refresh it manually with `yarn generate:refresh-spec` when the API spec changes.
+- `../handWrittenTools.ts` — `HAND_WRITTEN_TOOLS` (every hand-written tool registered via stdio) and `COVERED_ENDPOINTS` (a `Set<string>` of `"method:path"` keys derived from each tool's own `coversEndpoint` field). See `docs/generated-tools-coverage.md` for the full mechanism.
+- `generateTools.ts` — builds one tool per operation not in `coveredEndpoints` (snake_case name from `operationId`, Zod schema from the OpenAPI parameter/body schemas, `readOnlyHint`/`destructiveHint` from the HTTP method). Takes the covered-endpoints set as a parameter — both transports pass `COVERED_ENDPOINTS`.
+- `callOperation.ts` — generic request executor shared by both transports. Multipart file fields are base64-encoded content (not a local path) so the same tool contract works on stdio and the filesystem-less Worker.
+
+Both transports inject their own tool registry into `executeToolHandler`'s `generatedTools` option (see `ToolHandlerOptions` in `src/utils/toolsHandler.ts`) rather than importing a shared singleton — stdio loads the spec via `fs`, the Worker via a static import, and the dispatch code in `toolsHandler.ts` stays transport-agnostic.
 
 The project uses:
 - **TypeScript** for type safety

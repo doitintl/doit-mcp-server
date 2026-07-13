@@ -32,6 +32,7 @@ export const ListFoldersArgumentsSchema = z.object({
 
 export const listFoldersTool = {
     name: "list_folders",
+    coversEndpoint: "get:/analytics/v1/folders",
     description:
         "Use this when the user wants to see their Cloud Analytics folders, which organize reports and allocations into a hierarchy. Returns a list of folders with their metadata. Do NOT use this for listing reports (use list_reports) or labels (use list_labels).",
     inputSchema: zodToMcpInputSchema(ListFoldersArgumentsSchema),
@@ -92,6 +93,7 @@ export const GetFolderArgumentsSchema = z
 
 export const getFolderTool = {
     name: "get_folder",
+    coversEndpoint: "get:/analytics/v1/folders/{id}",
     description:
         "Use this when the user wants to view details of a specific Cloud Analytics folder. Accepts either the folder ID or a partial name (case-insensitive). Do NOT use this for listing all folders (use list_folders) or viewing reports (use get_report_config).",
     inputSchema: {
@@ -157,6 +159,7 @@ export const CreateFolderArgumentsSchema = z.object({
 
 export const createFolderTool = {
     name: "create_folder",
+    coversEndpoint: "post:/analytics/v1/folders",
     description:
         "Use this when the user wants to create a new Cloud Analytics folder to organize reports and allocations. Ask the user to confirm the folder details before executing. Do NOT use this for creating reports (use create_report) or labels (use create_label).",
     inputSchema: zodToMcpInputSchema(CreateFolderArgumentsSchema),
@@ -212,6 +215,7 @@ export const UpdateFolderArgumentsSchema = z.object({
 
 export const updateFolderTool = {
     name: "update_folder",
+    coversEndpoint: "patch:/analytics/v1/folders/{id}",
     description:
         "Use this when the user wants to rename, re-describe, or move (reparent) an existing Cloud Analytics folder. Ask the user to confirm changes before executing. Note: if a sibling folder at the target parent already has the same name, the folder will be auto-renamed by the API. Do NOT use this for creating new folders (use create_folder) or updating reports (use update_report).",
     inputSchema: zodToMcpInputSchema(UpdateFolderArgumentsSchema),

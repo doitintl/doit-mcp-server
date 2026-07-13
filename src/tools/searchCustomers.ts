@@ -90,6 +90,7 @@ export const SearchCustomersArgumentsSchema = z.object({
 
 export const searchCustomersTool = {
     name: "search_customers",
+    coversEndpoint: null,
     description:
         "DoiT-internal (doer) tool: search across ALL DoiT customers by what they have — classification/kind, customer type, segment, tier package, domains, cloud asset platforms (AWS, GCP, Google Workspace, Office 365, Azure), Flexsave, standalone (direct self-serve) cloud assets, monthly cloud spend, invoiced spend over a month range, and active contracts. All provided conditions are AND-combined; within a list field the match is any-of. Returns matching customers with a summary and a nextPageToken for paging. Requires DoiT employee access (non-doers get an authorization error). Use this to FIND customers across the base; use other tools to drill into a specific customer.",
     inputSchema: zodToMcpInputSchema(SearchCustomersArgumentsSchema),

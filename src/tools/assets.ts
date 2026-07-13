@@ -50,6 +50,7 @@ export const ListAssetsArgumentsSchema = z.object({
 
 export const listAssetsTool = {
     name: "list_assets",
+    coversEndpoint: "get:/billing/v1/assets",
     description:
         "Use this when the user wants to browse their cloud assets, subscriptions, or resources. Returns a paginated list of assets. Supports partial name filtering. Do NOT use this for cost analysis (use run_query) or checking invoices (use list_invoices).",
     inputSchema: zodToMcpInputSchema(ListAssetsArgumentsSchema),
@@ -118,6 +119,7 @@ export const GetAssetArgumentsSchema = z
 
 export const getAssetTool = {
     name: "get_asset",
+    coversEndpoint: "get:/billing/v1/assets/{id}",
     description:
         "Use this when the user wants to view details of a specific cloud asset. Accepts either the asset ID or a partial name (case-insensitive). Do NOT use this for listing all assets (use list_assets) or cost analysis (use run_query).",
     inputSchema: {

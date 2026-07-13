@@ -16,6 +16,7 @@ export const ListAccountTeamArgumentsSchema = z.object({});
 
 export const listAccountTeamTool = {
     name: "list_account_team",
+    coversEndpoint: "get:/customers/v1/accountTeam",
     description:
         "Use this when the user wants to know who their DoiT account team / account managers are. Returns the list of account managers assigned to the customer, including name, email, role, and Calendly scheduling link. Do NOT use this for listing platform users (use list_users) or organizations (use list_organizations).",
     inputSchema: zodToMcpInputSchema(ListAccountTeamArgumentsSchema),

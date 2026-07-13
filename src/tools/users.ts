@@ -19,6 +19,7 @@ export const ListUsersArgumentsSchema = z.object({});
 
 export const listUsersTool = {
     name: "list_users",
+    coversEndpoint: "get:/iam/v1/users",
     description:
         "Use this when the user wants to see users in their DoiT organization or check who has access. Returns a list of users with roles. Do NOT use this for listing roles (use list_roles) or validating the current user (use validate_user).",
     inputSchema: zodToMcpInputSchema(ListUsersArgumentsSchema),
@@ -99,6 +100,7 @@ export const UpdateUserArgumentsSchema = UpdateUserBaseSchema.refine(
 
 export const updateUserTool = {
     name: "update_user",
+    coversEndpoint: "patch:/iam/v1/users/{id}",
     description:
         "Use this when the user wants to update a user's information such as name, job function, phone, language, or role. Ask the user to confirm the changes before executing. Do NOT use this for inviting new users (use invite_user) or listing users (use list_users).",
     inputSchema: zodToMcpInputSchema(UpdateUserArgumentsSchema),
@@ -132,6 +134,7 @@ export const InviteUserArgumentsSchema = z.object({
 
 export const inviteUserTool = {
     name: "invite_user",
+    coversEndpoint: "post:/iam/v1/users/invite",
     description:
         "Use this when the user wants to invite a new person to the organization. Ask the user to confirm the email, role, and organization before executing. Do NOT use this for updating existing users (use update_user) or listing users (use list_users).",
     inputSchema: zodToMcpInputSchema(InviteUserArgumentsSchema),

@@ -263,6 +263,7 @@ import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { createFolderTool, getFolderTool, listFoldersTool, updateFolderTool } from "../tools/folders.js";
+import { generatedTools } from "../tools/generated/registry.js";
 import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import {
@@ -305,7 +306,16 @@ import {
 } from "../tools/tickets.js";
 import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import * as utilModule from "../utils/util.js";
+
+const generatedToolDefinitions = generatedTools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: zodToMcpInputSchema(tool.zodSchema),
+    annotations: tool.annotations,
+    securitySchemes: tool.securitySchemes,
+}));
 
 const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
 const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
@@ -456,8 +466,18 @@ describe("ListToolsRequestSchema handler", () => {
                 updateResourcePermissionsTool,
                 askAvaSyncTool,
                 // confirmActionTool, // disabled with the approval gate
+                ...generatedToolDefinitions,
             ],
         });
+    });
+
+    it("includes a generated tool for a non-blacklisted OpenAPI operation", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+
+        const response = await handler();
+
+        expect(generatedToolDefinitions.length).toBeGreaterThan(0);
+        expect(response.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "delete_alert" })]));
     });
 
     /** Mutating tools that previously lacked MCP hints: destructive annotations and ask-to-confirm copy in descriptions. */

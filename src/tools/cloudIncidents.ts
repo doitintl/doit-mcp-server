@@ -76,6 +76,7 @@ export interface CloudIncidentsResponse {
 // Tool metadata
 export const cloudIncidentsTool = {
     name: "get_cloud_incidents",
+    coversEndpoint: "get:/core/v1/cloudincidents",
     description:
         "Use this when the user wants to check for active cloud platform outages, service disruptions, or incidents from AWS, Google Cloud, or Azure. Do NOT use this for cost anomalies (use get_anomalies) or support tickets (use list_tickets).",
     inputSchema: {
@@ -111,6 +112,7 @@ export const cloudIncidentsTool = {
 
 export const cloudIncidentTool = {
     name: "get_cloud_incident",
+    coversEndpoint: "get:/core/v1/cloudincidents/{id}",
     description:
         "Use this when the user wants to view details of a specific cloud platform incident. Accepts either the incident ID or a partial title match (case-insensitive). Do NOT use this for listing all incidents (use get_cloud_incidents) or anomalies (use get_anomalies).",
     inputSchema: {

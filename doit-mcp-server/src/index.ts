@@ -290,6 +290,10 @@ import {
   SendDatahubEventsArgumentsSchema,
   sendDatahubEventsTool,
 } from "../../src/tools/datahubEvents.js";
+import { generateTools } from "../../src/tools/generated/generateTools.js";
+import generatedToolsOpenApiSpec from "../../src/tools/generated/openapi.json";
+import { COVERED_ENDPOINTS } from "../../src/tools/handWrittenTools.js";
+import type { OpenAPIV3 } from "openapi-types";
 
 import type { ApprovalStore } from "../../src/utils/approval.js";
 import { executeToolHandler } from "../../src/utils/toolsHandler.js";
@@ -335,6 +339,17 @@ import {
   type WidgetResourceContent,
   WIDGET_RESOURCE_MIME_TYPE,
 } from "./widgetResource.js";
+
+// Computed once per isolate from the bundled spec (esbuild inlines the JSON at build
+// time — the Worker has no filesystem, so unlike stdio's loadSpec.ts this can't read
+// openapi.json off disk). Shared by every DoitMCPAgent instance in this isolate.
+const generatedTools = generateTools(
+  generatedToolsOpenApiSpec as unknown as OpenAPIV3.Document,
+  COVERED_ENDPOINTS,
+);
+const generatedToolsByName = new Map(
+  generatedTools.map((tool) => [tool.name, tool]),
+);
 
 const KEEP_ALIVE_INTERVAL_MS = 120_000; // 2 minutes in milliseconds
 
@@ -757,6 +772,7 @@ export class DoitMCPAgent extends McpAgent {
             // be consumed across users even if a token somehow leaked.
             userKey: token,
             approvalStore: this.getApprovalStore(),
+            generatedTools: generatedToolsByName,
           }),
       );
       return result;
@@ -1112,6 +1128,19 @@ export class DoitMCPAgent extends McpAgent {
 
     // AVA tools
     this.registerTool(askAvaSyncTool, AskAvaSyncArgumentsSchema);
+
+    // Auto-generated tools — every OpenAPI operation not already hand-covered above.
+    // See src/tools/handWrittenTools.ts (coversEndpoint) for what's excluded.
+    for (const tool of generatedTools) {
+      this.registerTool(
+        {
+          name: tool.name,
+          description: tool.description,
+          annotations: tool.annotations,
+        },
+        tool.zodSchema,
+      );
+    }
 
     // Approval flow — exposed so the LLM can finalize destructive actions that
     // were previously staged by other tools. See src/tools/confirmAction.ts.

@@ -37,6 +37,7 @@ export interface DimensionsResponse {
 // Tool metadata
 export const dimensionsTool = {
     name: "list_dimensions",
+    coversEndpoint: "get:/analytics/v1/dimensions",
     description:
         "Use this when the user wants to see available dimensions for cost analysis queries. Returns a list of dimension types and values that can be used with run_query. Do NOT use this for running cost queries directly (use run_query) or viewing allocations (use list_allocations).",
     inputSchema: {

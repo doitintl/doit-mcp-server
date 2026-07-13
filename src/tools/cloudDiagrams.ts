@@ -36,6 +36,7 @@ export const FindCloudDiagramsArgumentsSchema = z.object({
 
 export const findCloudDiagramsTool = {
     name: "find_cloud_diagrams",
+    coversEndpoint: "post:/clouddiagrams/v1/scheme/find",
     description:
         "Use this when the user wants to find architecture diagrams or cloud infrastructure diagrams. Returns matching diagram files. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(FindCloudDiagramsArgumentsSchema),
@@ -88,6 +89,7 @@ export const GetCloudDiagramsStatsArgumentsSchema = z.object({
 
 export const getCloudDiagramsStatsTool = {
     name: "get_cloud_diagrams_stats",
+    coversEndpoint: "get:/clouddiagrams/v1/scheme/stats",
     description:
         "Use this when the user wants activity statistics for their cloud infrastructure diagrams over a time period — node create/update/delete change counts grouped by cloud service, plus each diagram's import/sync state. Useful for change auditing and drift detection. Requires a start and end RFC3339 date-time.",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramsStatsArgumentsSchema),
@@ -139,6 +141,7 @@ export const SearchCloudDiagramsArgumentsSchema = z.object({
 
 export const searchCloudDiagramsTool = {
     name: "search_cloud_diagrams",
+    coversEndpoint: "post:/clouddiagrams/v1/scheme/search",
     description:
         "Use this when the user wants to search their cloud infrastructure diagrams and components by name or property. Returns matching diagram layers (scheme), components, and components matched by property value (prop). Optionally scope to a single layer with ss_id and page with from/size. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(SearchCloudDiagramsArgumentsSchema),
@@ -204,6 +207,7 @@ export const GetCloudDiagramCostSnapshotArgumentsSchema = z.object({
 
 export const getCloudDiagramCostSnapshotTool = {
     name: "get_cloud_diagram_cost_snapshot",
+    coversEndpoint: "get:/clouddiagrams/v1/statussheet/{id}/costs",
     description:
         "Use this when the user wants a cost snapshot for a specific cloud infrastructure diagram layer over a time period — total spend, period-over-period trend percentage, the top resources and services by cost, and a cost trend over time. Requires the diagram layer ID and a startDate/endDate (YYYY-MM-DD). Do NOT use this for account-wide cost analysis (use run_query) or budgets (use list_budgets).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramCostSnapshotArgumentsSchema),
@@ -276,6 +280,7 @@ export const GetCloudDiagramResourceRelationshipsArgumentsSchema = z.object({
 
 export const getCloudDiagramResourceRelationshipsTool = {
     name: "get_cloud_diagram_resource_relationships",
+    coversEndpoint: "get:/clouddiagrams/v1/statussheet/{id}/resources/{rid}/relationships",
     description:
         "Use this when the user wants to understand how a specific resource in a cloud infrastructure diagram is connected to other resources — its upstream/downstream edges and group membership. Returns the anchor resource plus related resources with their relation type and hop distance. Requires the diagram layer ID and the resource ID. Do NOT use this for cost analysis (use get_cloud_diagram_cost_snapshot or run_query).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramResourceRelationshipsArgumentsSchema),
@@ -331,6 +336,7 @@ export const ListCloudDiagramActivityGroupsArgumentsSchema = z.object({
 
 export const listCloudDiagramActivityGroupsTool = {
     name: "list_cloud_diagram_activity_groups",
+    coversEndpoint: "get:/clouddiagrams/v1/activity",
     description:
         "Use this when the user wants the change history of a cloud diagram layer grouped by snapshot. Returns snapshot activity groups for the given layer (ss_id), ordered by timestamp descending; each group references a snapshot and contains the individual activity records (node/link/group/attachment create/update/delete) that belong to it. Page with offset/limit and filter with tags. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(ListCloudDiagramActivityGroupsArgumentsSchema),
@@ -386,6 +392,7 @@ export const ListCloudDiagramNodeActivitiesArgumentsSchema = z.object({
 
 export const listCloudDiagramNodeActivitiesTool = {
     name: "list_cloud_diagram_node_activities",
+    coversEndpoint: "get:/clouddiagrams/v1/activity/node-activities",
     description:
         "Use this when the user wants the change history of a single component node in a cloud diagram layer. Returns individual activity records (NODE_CREATE/NODE_UPDATE/NODE_DELETE) for the given node (ss_id + nodeId), ordered by timestamp descending, each including the user who made the change. Page with offset/limit. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(ListCloudDiagramNodeActivitiesArgumentsSchema),
@@ -447,6 +454,7 @@ export const GetCloudDiagramComponentsArgumentsSchema = z.object({
 
 export const getCloudDiagramComponentsTool = {
     name: "get_cloud_diagram_components",
+    coversEndpoint: "post:/clouddiagrams/v1/scheme/get",
     description:
         "Use this when the user wants to discover all cloud infrastructure diagrams and their layers (statussheets), or to look up layer IDs needed for other diagram endpoints. Returns all diagrams with their connected layers and optionally their component data. This is the primary discovery endpoint — use it before calling endpoints that require a layer ID. Optionally filter by diagram IDs (scheme_ids) or layer IDs (layer_ids), and set include_components=true to get full component lists. Do NOT use this for cost analysis (use run_query) or diagram search (use search_cloud_diagrams).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramComponentsArgumentsSchema),
