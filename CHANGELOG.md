@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.16.0 (2026-07-13)
+
+**Full diff:** [`v0.15.0...v0.16.0`](../../compare/v0.15.0...v0.16.0)
+
+### Features
+
+- feat: auto-generate MCP tools for OpenAPI operations not yet hand-covered (#208) (`7743978`)
+- feat(cloudflow): add create_cloudflow_connection and update_cloudflow_connection tools (`08577ce`)
+- feat(folders): add create_folder and update_folder tools (`4f6171e`)
+- feat(clouddiagrams,permissions): add get_cloud_diagram_components and update_resource_permissions tools (`6a83b2a`)
+
+### Bug Fixes
+
+- fix(permissions): set destructiveHint: true on update_resource_permissions (`f41218b`)
 ## v0.15.0 (2026-07-07)
 
 ### Features
