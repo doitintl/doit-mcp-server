@@ -240,6 +240,7 @@ import {
     searchCloudDiagramsTool,
 } from "../tools/cloudDiagrams.js";
 import {
+    createCloudFlowConnectionTool,
     getCloudFlowConnectionTool,
     getCloudFlowTemplateTool,
     listCloudFlowConnectionsTool,
@@ -247,6 +248,7 @@ import {
     listCloudFlowTemplatesTool,
     refineCloudflowTool,
     triggerCloudFlowTool,
+    updateCloudFlowConnectionTool,
 } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
@@ -407,6 +409,8 @@ describe("ListToolsRequestSchema handler", () => {
                 listCloudFlowsTool,
                 listCloudFlowConnectionsTool,
                 getCloudFlowConnectionTool,
+                createCloudFlowConnectionTool,
+                updateCloudFlowConnectionTool,
                 listCloudFlowTemplatesTool,
                 getCloudFlowTemplateTool,
                 refineCloudflowTool,

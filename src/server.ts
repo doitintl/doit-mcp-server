@@ -50,12 +50,14 @@ import {
     handleSearchCloudDiagramsRequest,
 } from "./tools/cloudDiagrams.js";
 import {
+    handleCreateCloudFlowConnectionRequest,
     handleGetCloudFlowConnectionRequest,
     handleGetCloudFlowTemplateRequest,
     handleListCloudFlowConnectionsRequest,
     handleListCloudFlowTemplatesRequest,
     handleRefineCloudflowRequest,
     handleTriggerCloudFlowRequest,
+    handleUpdateCloudFlowConnectionRequest,
 } from "./tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "./tools/cloudIncidents.js";
 import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "./tools/commitmentManager.js";
@@ -279,6 +281,7 @@ export {
     handleCreateAllocationRequest,
     handleCreateAnnotationRequest,
     handleCreateBudgetRequest,
+    handleCreateCloudFlowConnectionRequest,
     handleCreateDatahubDatasetRequest,
     handleCreateFolderRequest,
     handleCreateLabelRequest,
@@ -350,6 +353,7 @@ export {
     handleUpdateAllocationRequest,
     handleUpdateAnnotationRequest,
     handleUpdateBudgetRequest,
+    handleUpdateCloudFlowConnectionRequest,
     handleUpdateDatahubDatasetRequest,
     handleUpdateFolderRequest,
     handleUpdateLabelRequest,

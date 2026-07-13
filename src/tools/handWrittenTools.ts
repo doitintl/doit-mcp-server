@@ -18,6 +18,7 @@ import {
     searchCloudDiagramsTool,
 } from "./cloudDiagrams.js";
 import {
+    createCloudFlowConnectionTool,
     getCloudFlowConnectionTool,
     getCloudFlowTemplateTool,
     listCloudFlowConnectionsTool,
@@ -25,6 +26,7 @@ import {
     listCloudFlowTemplatesTool,
     refineCloudflowTool,
     triggerCloudFlowTool,
+    updateCloudFlowConnectionTool,
 } from "./cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "./cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "./commitmentManager.js";
@@ -127,6 +129,8 @@ export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     listCloudFlowsTool,
     listCloudFlowConnectionsTool,
     getCloudFlowConnectionTool,
+    createCloudFlowConnectionTool,
+    updateCloudFlowConnectionTool,
     listCloudFlowTemplatesTool,
     getCloudFlowTemplateTool,
     refineCloudflowTool,

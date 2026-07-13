@@ -1696,6 +1696,81 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("create_cloudflow_connection", () => {
+        it("returns the created connection from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_cloudflow_connection",
+                arguments: {
+                    name: "New GCP Connection",
+                    gcpConfig: { projectId: "my-project", level: "project" },
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connectionId).toBe("conn-new");
+            expect(parsed.name).toBe("New GCP Connection");
+            expect(parsed.gcpConfig.projectId).toBe("my-project");
+        });
+
+        it("rejects when name is missing", async () => {
+            const result = await client.callTool({
+                name: "create_cloudflow_connection",
+                arguments: { gcpConfig: { projectId: "my-project" } },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("rejects when both gcpConfig and awsConfig are supplied", async () => {
+            const result = await client.callTool({
+                name: "create_cloudflow_connection",
+                arguments: {
+                    name: "Both configs",
+                    gcpConfig: { projectId: "my-project" },
+                    awsConfig: { roleName: "role" },
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Exactly one of gcpConfig or awsConfig must be supplied.");
+        });
+    });
+
+    describe("update_cloudflow_connection", () => {
+        it("returns the updated connection from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_cloudflow_connection",
+                arguments: { connectionId: "conn-1", name: "Renamed Connection", enabled: false },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connectionId).toBe("conn-1");
+            expect(parsed.name).toBe("Renamed Connection");
+            expect(parsed.enabled).toBe(false);
+        });
+
+        it("rejects when connectionId is missing", async () => {
+            const result = await client.callTool({
+                name: "update_cloudflow_connection",
+                arguments: { name: "No id" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Required");
+        });
+
+        it("rejects when both gcpConfig and awsConfig are set", async () => {
+            const result = await client.callTool({
+                name: "update_cloudflow_connection",
+                arguments: {
+                    connectionId: "conn-1",
+                    gcpConfig: { projectId: "my-project" },
+                    awsConfig: { roleName: "role" },
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("At most one of gcpConfig or awsConfig may be set per request.");
+        });
+    });
+
     describe("list_cloudflow_templates", () => {
         it("returns CloudFlow templates from mock API", async () => {
             const result = await client.callTool({ name: "list_cloudflow_templates", arguments: {} });

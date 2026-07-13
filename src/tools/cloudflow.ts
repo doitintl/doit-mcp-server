@@ -333,6 +333,186 @@ export async function handleGetCloudFlowConnectionRequest(args: any, token: stri
     }
 }
 
+// Reusable sub-schemas for CloudFlow connection configuration (create/update)
+const CloudFlowCustomRoleSchema = z.object({
+    roleId: z.string().optional().describe("The ID of the custom role."),
+    permissions: z.array(z.string()).optional().describe("The list of permissions granted by the custom role."),
+});
+
+const CloudFlowGcpConfigSchema = z.object({
+    organizationId: z.string().optional().describe("The GCP organization ID."),
+    folderId: z.string().optional().describe("The GCP folder ID."),
+    projectId: z.string().optional().describe("The GCP project ID."),
+    level: z.enum(["organization", "folder", "project"]).optional().describe("The scope level of the GCP connection."),
+    serviceAccountName: z.string().optional().describe("The service account used for the connection."),
+    predefinedRoles: z.array(z.string()).optional().describe("Predefined GCP roles to grant."),
+    customRole: CloudFlowCustomRoleSchema.optional().describe("A custom role definition."),
+    infraManagerProject: z.string().optional().describe("The Infrastructure Manager project."),
+    infraManagerLocation: z.string().optional().describe("The Infrastructure Manager location."),
+    infraManagerServiceAccount: z.string().optional().describe("The Infrastructure Manager service account."),
+});
+
+const CloudFlowAwsContextSchema = z.object({
+    accountId: z.string().optional().describe("The AWS account ID."),
+    regions: z.array(z.string()).optional().describe("The AWS regions in scope for this account."),
+});
+
+const CloudFlowAwsConfigSchema = z.object({
+    context: z
+        .array(CloudFlowAwsContextSchema)
+        .optional()
+        .describe("Per-account AWS context (account ID and regions)."),
+    roleName: z.string().optional().describe("The AWS role name to assume."),
+    permissions: z.record(z.unknown()).optional().describe("The permissions map for the AWS connection."),
+    managementAccount: z.string().optional().describe("The AWS management (payer) account ID."),
+    organizationRootId: z.string().optional().describe("The AWS organization root ID."),
+    scopeTargetedOrganizationalUnitIds: z
+        .array(z.string())
+        .optional()
+        .describe("Organizational unit IDs to include in scope."),
+    scopeExplicitAccountIds: z.array(z.string()).optional().describe("Account IDs explicitly included in scope."),
+    scopeExcludedAccountIds: z.array(z.string()).optional().describe("Account IDs excluded from scope."),
+    scopeManagementAccountExplicitInScope: z
+        .boolean()
+        .optional()
+        .describe("Whether the management account is explicitly in scope."),
+});
+
+const CloudFlowCollaboratorSchema = z.object({
+    email: z.string().email().optional().describe("The collaborator's email address."),
+    role: z.enum(["owner", "editor", "user"]).optional().describe("The collaborator's role on the connection."),
+});
+
+// Schema and metadata for create a CloudFlow connection
+export const CreateCloudFlowConnectionArgumentsSchema = z.object({
+    name: z.string().min(1).describe("Human-readable connection name (required, non-empty)."),
+    description: z.string().optional().describe("Optional description of the connection."),
+    gcpConfig: CloudFlowGcpConfigSchema.optional().describe(
+        "GCP configuration. Exactly one of gcpConfig or awsConfig must be supplied."
+    ),
+    awsConfig: CloudFlowAwsConfigSchema.optional().describe(
+        "AWS configuration. Exactly one of gcpConfig or awsConfig must be supplied."
+    ),
+    collaborators: z
+        .array(CloudFlowCollaboratorSchema)
+        .optional()
+        .describe("List of collaborators and their roles on the connection."),
+    enabled: z.boolean().optional().describe("Whether the connection is enabled. Defaults to true."),
+});
+
+export const createCloudFlowConnectionTool = {
+    name: "create_cloudflow_connection",
+    description:
+        "Use this when the user wants to create a new CloudFlow cloud provider connection (a GCP or AWS account connected for automation). Exactly one of gcpConfig or awsConfig must be supplied. Ask the user to confirm the connection details before executing. Do NOT use this to update an existing connection (use update_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
+    coversEndpoint: "post:/cloudflow/v1/connections",
+    inputSchema: zodToMcpInputSchema(CreateCloudFlowConnectionArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating CloudFlow connection...",
+        "openai/toolInvocation/invoked": "CloudFlow connection created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export async function handleCreateCloudFlowConnectionRequest(args: any, token: string) {
+    try {
+        const parsed = CreateCloudFlowConnectionArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        if (Boolean(parsed.gcpConfig) === Boolean(parsed.awsConfig)) {
+            return createErrorResponse("Exactly one of gcpConfig or awsConfig must be supplied.");
+        }
+
+        const data = await makeDoitRequest<CloudFlowConnection>(CLOUDFLOW_CONNECTIONS_BASE_URL, token, {
+            method: "POST",
+            body: parsed,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to create CloudFlow connection");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create CloudFlow connection request");
+    }
+}
+
+// Schema and metadata for update a CloudFlow connection
+export const UpdateCloudFlowConnectionArgumentsSchema = z.object({
+    connectionId: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Connection ID is required and cannot be empty."))
+        .describe("The ID of the CloudFlow connection to update (required)."),
+    name: z.string().min(1).optional().describe("New connection name."),
+    description: z.string().optional().describe("New description for the connection."),
+    enabled: z.boolean().optional().describe("Set to false to disable the connection, true to re-enable it."),
+    gcpConfig: CloudFlowGcpConfigSchema.optional().describe(
+        "Updated GCP configuration. At most one of gcpConfig or awsConfig may be set per request."
+    ),
+    awsConfig: CloudFlowAwsConfigSchema.optional().describe(
+        "Updated AWS configuration. At most one of gcpConfig or awsConfig may be set per request."
+    ),
+    collaborators: z
+        .array(CloudFlowCollaboratorSchema)
+        .optional()
+        .describe("Updated list of collaborators and their roles on the connection."),
+});
+
+export const updateCloudFlowConnectionTool = {
+    name: "update_cloudflow_connection",
+    description:
+        "Use this when the user wants to update an existing CloudFlow cloud provider connection — rename it, change its description, enable/disable it, update its GCP/AWS configuration, or change collaborators. All fields except connectionId are optional; at most one of gcpConfig or awsConfig may be set per request. Ask the user to confirm the changes before executing. Do NOT use this to create a new connection (use create_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
+    coversEndpoint: "patch:/cloudflow/v1/connections/{connectionId}",
+    inputSchema: zodToMcpInputSchema(UpdateCloudFlowConnectionArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating CloudFlow connection...",
+        "openai/toolInvocation/invoked": "CloudFlow connection updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export async function handleUpdateCloudFlowConnectionRequest(args: any, token: string) {
+    try {
+        const parsed = UpdateCloudFlowConnectionArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const { connectionId, ...body } = parsed;
+
+        if (body.gcpConfig && body.awsConfig) {
+            return createErrorResponse("At most one of gcpConfig or awsConfig may be set per request.");
+        }
+
+        const url = `${CLOUDFLOW_CONNECTIONS_BASE_URL}/${encodeURIComponent(connectionId)}`;
+
+        const data = await makeDoitRequest<CloudFlowConnection>(url, token, {
+            method: "PATCH",
+            body,
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to update CloudFlow connection");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling update CloudFlow connection request");
+    }
+}
+
 // Schema and metadata for list CloudFlow templates
 export const ListCloudFlowTemplatesArgumentsSchema = z.object({
     maxResults: z
