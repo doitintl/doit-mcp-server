@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
     ACTIVE_THEME_URL,
+    createThemeTool,
     getActiveThemeTool,
     getThemeTool,
+    handleCreateThemeRequest,
     handleGetActiveThemeRequest,
     handleGetThemeRequest,
     handleListThemesRequest,
@@ -465,6 +467,96 @@ describe("update_theme", () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
 
         const response = await handleUpdateThemeRequest({ id: "theme-1", newName: "X" }, mockToken);
+
+        expect(response.isError).toBe(true);
+    });
+});
+
+describe("createThemeTool metadata", () => {
+    it("should be a write tool named create_theme requiring write scope", () => {
+        expect(createThemeTool.name).toBe("create_theme");
+        expect(createThemeTool.annotations.readOnlyHint).toBe(false);
+        expect(createThemeTool.annotations.destructiveHint).toBe(false);
+        expect(createThemeTool.securitySchemes[0].scopes).toContain("write_data");
+    });
+});
+
+describe("create_theme", () => {
+    const mockToken = "fake-token";
+    const mockCreatedTheme = {
+        id: "theme-3",
+        name: "Sunset",
+        primaryColor: "#EA4335",
+        colors: {
+            light: ["#EA4335", "#FBBC04"],
+            dark: ["#B31412", "#EA8600"],
+        },
+        createTime: "2026-04-01T00:00:00.000Z",
+        updateTime: "2026-04-01T00:00:00.000Z",
+    };
+
+    const validArgs = {
+        name: "Sunset",
+        primaryColor: "#EA4335",
+        colors: { light: ["#EA4335", "#FBBC04"], dark: ["#B31412", "#EA8600"] },
+    };
+
+    it("should create a theme and return the created theme", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreatedTheme);
+
+        const response = await handleCreateThemeRequest(validArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(THEMES_BASE_URL, mockToken, {
+            method: "POST",
+            body: {
+                name: "Sunset",
+                primaryColor: "#EA4335",
+                colors: { light: ["#EA4335", "#FBBC04"], dark: ["#B31412", "#EA8600"] },
+            },
+            customerContext: undefined,
+        });
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.id).toBe("theme-3");
+    });
+
+    it("should pass customerContext to makeDoitRequest", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockCreatedTheme);
+
+        await handleCreateThemeRequest({ ...validArgs, customerContext: "customer-123" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            THEMES_BASE_URL,
+            mockToken,
+            expect.objectContaining({ method: "POST", customerContext: "customer-123" })
+        );
+    });
+
+    it("should return a validation error when name is missing", async () => {
+        const response = await handleCreateThemeRequest(
+            { primaryColor: "#EA4335", colors: { light: ["#EA4335"], dark: ["#B31412"] } },
+            mockToken
+        );
+        expect(response.isError).toBe(true);
+    });
+
+    it("should return a validation error when colors are missing", async () => {
+        const response = await handleCreateThemeRequest({ name: "Sunset", primaryColor: "#EA4335" }, mockToken);
+        expect(response.isError).toBe(true);
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleCreateThemeRequest(validArgs, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("Failed to create theme");
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleCreateThemeRequest(validArgs, mockToken);
 
         expect(response.isError).toBe(true);
     });

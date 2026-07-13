@@ -302,3 +302,53 @@ export async function handleUpdateThemeRequest(args: any, token: string) {
         return handleGeneralError(error, "handling update theme request");
     }
 }
+
+// Schema and metadata for create theme
+export const CreateThemeArgumentsSchema = z.object({
+    name: z.string().trim().min(1).max(200).describe("Display name for the new theme (max 200 characters)."),
+    primaryColor: z
+        .string()
+        .describe("Primary hex color for the theme in #RGB, #RRGGBB, or #RRGGBBAA format (e.g. #1A73E8)."),
+    colors: ThemeColorsSchema.describe(
+        "Color palette for the theme. Provide both light and dark arrays (1-32 hex colors each)."
+    ),
+});
+
+export const createThemeTool = {
+    name: "create_theme",
+    description:
+        "Use this when the user wants to create a new custom color theme for their Cloud Analytics reports. Requires a name, a primary hex color, and light/dark color palettes. Requires Cloud Analytics Admin permission. Do NOT use this to modify an existing theme (use update_theme) or to change which theme is active (use set_active_theme).",
+    inputSchema: zodToMcpInputSchema(CreateThemeArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating theme...",
+        "openai/toolInvocation/invoked": "Theme created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export async function handleCreateThemeRequest(args: any, token: string) {
+    try {
+        const { name, primaryColor, colors } = CreateThemeArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const data = await makeDoitRequest<CustomTheme>(THEMES_BASE_URL, token, {
+            method: "POST",
+            body: { name, primaryColor, colors },
+            customerContext,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to create theme");
+        }
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling create theme request");
+    }
+}

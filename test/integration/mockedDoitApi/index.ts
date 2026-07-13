@@ -403,6 +403,9 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Themes (custom)
+    http.post(`${API_BASE}/analytics/v1/settings/themes`, () => {
+        return HttpResponse.json(fixtures.createTheme, { status: 201 });
+    }),
     http.patch(`${API_BASE}/analytics/v1/settings/themes/:id`, () => {
         return HttpResponse.json(fixtures.updateTheme);
     }),

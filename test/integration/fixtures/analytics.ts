@@ -520,6 +520,18 @@ export const updateThemeFixture = {
     updateTime: "2026-03-01T00:00:00.000Z",
 };
 
+export const createThemeFixture = {
+    id: "theme-3",
+    name: "Sunset",
+    primaryColor: "#EA4335",
+    colors: {
+        light: ["#EA4335", "#FBBC04"],
+        dark: ["#B31412", "#EA8600"],
+    },
+    createTime: "2026-05-01T00:00:00.000Z",
+    updateTime: "2026-05-01T00:00:00.000Z",
+};
+
 export const insightFixture = {
     key: "delete-ebs-volumes",
     source: "aws-cost-optimization-hub",

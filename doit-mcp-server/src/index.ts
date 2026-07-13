@@ -227,6 +227,8 @@ import {
   setActiveThemeTool,
   UpdateThemeArgumentsSchema,
   updateThemeTool,
+  CreateThemeArgumentsSchema,
+  createThemeTool,
 } from "../../src/tools/themes.js";
 import {
   ListProductsArgumentsSchema,
@@ -1072,6 +1074,7 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(getActiveThemeTool, GetActiveThemeArgumentsSchema);
     this.registerTool(setActiveThemeTool, SetActiveThemeArgumentsSchema);
     this.registerTool(updateThemeTool, UpdateThemeArgumentsSchema);
+    this.registerTool(createThemeTool, CreateThemeArgumentsSchema);
 
     // AWS Account Management tools
     this.registerTool(getAwsAccountTool, GetAwsAccountArgumentsSchema);
