@@ -93,3 +93,70 @@ export async function handleAskAvaSyncRequest(args: any, token: string) {
         return handleGeneralError(error, "handling ask AVA sync request");
     }
 }
+
+export const SubmitAvaFeedbackArgumentsSchema = z.object({
+    conversationId: z
+        .string()
+        .trim()
+        .min(1)
+        .describe(
+            "The conversation ID the feedback relates to. Obtained from a prior non-ephemeral ask_ava_sync response (call it with ephemeral: false)."
+        ),
+    answerId: z
+        .string()
+        .trim()
+        .min(1)
+        .describe("The specific answer ID within the conversation, from a prior non-ephemeral ask_ava_sync response."),
+    positive: z
+        .boolean()
+        .describe("Whether the feedback is positive (true = thumbs up) or negative (false = thumbs down)."),
+    text: z.string().optional().describe("Optional free-text providing additional feedback details."),
+});
+
+export const submitAvaFeedbackTool = {
+    name: "submit_ava_feedback",
+    coversEndpoint: "post:/ava/v1/feedback",
+    description:
+        "Submit feedback on a specific AVA answer (thumbs up/down with optional comment). Requires the conversationId and answerId returned by a prior non-ephemeral ask_ava_sync call (ephemeral: false). Use this only after the user expresses satisfaction or dissatisfaction with an AVA response — do not submit feedback automatically.",
+    inputSchema: zodToMcpInputSchema(SubmitAvaFeedbackArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Submitting feedback...",
+        "openai/toolInvocation/invoked": "Feedback submitted",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export async function handleSubmitAvaFeedbackRequest(args: any, token: string) {
+    try {
+        const { conversationId, answerId, positive, text } = SubmitAvaFeedbackArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const feedback: Record<string, unknown> = { positive };
+        if (text !== undefined) feedback.text = text;
+
+        // The endpoint returns an empty 200 body on success, so skip JSON parsing and
+        // treat a successful (non-throwing) request as confirmation.
+        const data = await makeDoitRequest(`${AVA_BASE_URL}/feedback`, token, {
+            method: "POST",
+            body: { conversationId, answerId, feedback },
+            customerContext,
+            parseResponse: false,
+        });
+
+        if (!data) {
+            return createErrorResponse("Failed to submit AVA feedback");
+        }
+
+        return createSuccessResponse("Successfully submitted AVA feedback.");
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return createErrorResponse(formatZodError(error));
+        }
+        return handleGeneralError(error, "handling submit AVA feedback request");
+    }
+}

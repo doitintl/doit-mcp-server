@@ -4,8 +4,8 @@ import { createAllocationTool, getAllocationTool, listAllocationsTool, updateAll
 import { createAnnotationTool, getAnnotationTool, listAnnotationsTool, updateAnnotationTool } from "./annotations.js";
 import { anomaliesTool, anomalyTool } from "./anomalies.js";
 import { getAssetTool, listAssetsTool } from "./assets.js";
-import { askAvaSyncTool } from "./ava.js";
-import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "./awsAccounts.js";
+import { askAvaSyncTool, submitAvaFeedbackTool } from "./ava.js";
+import { createAwsAccountRoleTool, getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "./awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "./budgets.js";
 import {
     findCloudDiagramsTool,
@@ -158,6 +158,7 @@ export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     updateThemeTool,
     getAwsAccountTool,
     getCloudConnectSupportedFeaturesTool,
+    createAwsAccountRoleTool,
     listDatahubDatasetsTool,
     getDatahubDatasetTool,
     createDatahubDatasetTool,
@@ -185,6 +186,7 @@ export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     getResourcePermissionsTool,
     updateResourcePermissionsTool,
     askAvaSyncTool,
+    submitAvaFeedbackTool,
 ];
 
 export const COVERED_ENDPOINTS: Set<string> = new Set(

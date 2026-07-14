@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
     CLOUDCONNECT_BASE_URL,
+    createAwsAccountRoleTool,
     getAwsAccountTool,
     getCloudConnectSupportedFeaturesTool,
+    handleCreateAwsAccountRoleRequest,
     handleGetAwsAccountRequest,
     handleGetCloudConnectSupportedFeaturesRequest,
 } from "../awsAccounts.js";
@@ -181,5 +183,142 @@ describe("get_cloud_connect_supported_features", () => {
         const response = await handleGetCloudConnectSupportedFeaturesRequest({}, mockToken);
 
         expect(response.isError).toBe(true);
+    });
+});
+
+describe("createAwsAccountRoleTool metadata", () => {
+    it("should be a write tool with the correct name", () => {
+        expect(createAwsAccountRoleTool.annotations.readOnlyHint).toBe(false);
+        expect(createAwsAccountRoleTool.annotations.destructiveHint).toBe(true);
+        expect(createAwsAccountRoleTool.name).toBe("create_aws_account_role");
+        expect(createAwsAccountRoleTool.coversEndpoint).toBe("post:/core/v1/cloudconnect/aws/accounts");
+    });
+});
+
+describe("create_aws_account_role", () => {
+    const mockToken = "fake-token";
+
+    const baseArgs = {
+        accountID: "123456789012",
+        roleArn: "arn:aws:iam::123456789012:role/DoiTRole",
+        enabledFeatures: ["core"],
+    };
+
+    const mockResponse = {
+        accountID: "123456789012",
+        roleArn: "arn:aws:iam::123456789012:role/DoiTRole",
+        enabledFeatures: ["core"],
+    };
+
+    it("should POST to the aws accounts endpoint with the body and return the response", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+        const response = await handleCreateAwsAccountRoleRequest(baseArgs, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDCONNECT_BASE_URL}/aws/accounts`, mockToken, {
+            method: "POST",
+            body: {
+                accountID: "123456789012",
+                roleArn: "arn:aws:iam::123456789012:role/DoiTRole",
+                enabledFeatures: ["core"],
+            },
+            customerContext: undefined,
+        });
+
+        const parsed = JSON.parse(response.content[0].text);
+        expect(parsed.accountID).toBe("123456789012");
+    });
+
+    it("should include s3Bucket and s3BucketRegion when real-time-data is enabled", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+        await handleCreateAwsAccountRoleRequest(
+            {
+                ...baseArgs,
+                enabledFeatures: ["real-time-data"],
+                s3Bucket: "doit-cloudtrail",
+                s3BucketRegion: "us-east-1",
+                customerContext: "customer-123",
+            },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDCONNECT_BASE_URL}/aws/accounts`, mockToken, {
+            method: "POST",
+            body: {
+                accountID: "123456789012",
+                roleArn: "arn:aws:iam::123456789012:role/DoiTRole",
+                enabledFeatures: ["real-time-data"],
+                s3Bucket: "doit-cloudtrail",
+                s3BucketRegion: "us-east-1",
+            },
+            customerContext: "customer-123",
+        });
+    });
+
+    it("should error when real-time-data is enabled but the S3 bucket is missing", async () => {
+        const response = await handleCreateAwsAccountRoleRequest(
+            { ...baseArgs, enabledFeatures: ["real-time-data"] },
+            mockToken
+        );
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("real-time-data");
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should error when the S3 bucket is provided without real-time-data", async () => {
+        const response = await handleCreateAwsAccountRoleRequest(
+            { ...baseArgs, s3Bucket: "doit-cloudtrail", s3BucketRegion: "us-east-1" },
+            mockToken
+        );
+
+        expect(response.isError).toBe(true);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should error when only one of s3Bucket / s3BucketRegion is provided", async () => {
+        const response = await handleCreateAwsAccountRoleRequest(
+            { ...baseArgs, enabledFeatures: ["real-time-data"], s3Bucket: "doit-cloudtrail" },
+            mockToken
+        );
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("together");
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should error when enabledFeatures is empty", async () => {
+        const response = await handleCreateAwsAccountRoleRequest({ ...baseArgs, enabledFeatures: [] }, mockToken);
+
+        expect(response.isError).toBe(true);
+    });
+
+    it("should error when accountID is missing", async () => {
+        const response = await handleCreateAwsAccountRoleRequest(
+            { roleArn: baseArgs.roleArn, enabledFeatures: ["core"] },
+            mockToken
+        );
+
+        expect(response.isError).toBe(true);
+    });
+
+    it("should return error response when API returns null", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const response = await handleCreateAwsAccountRoleRequest(baseArgs, mockToken);
+
+        expect(response.isError).toBe(true);
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleCreateAwsAccountRoleRequest(baseArgs, mockToken);
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
+            isError: true,
+        });
     });
 });
