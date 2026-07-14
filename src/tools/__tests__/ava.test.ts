@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
-import { AVA_BASE_URL, AVA_DEFAULT_TIMEOUT_MS, handleAskAvaSyncRequest } from "../ava.js";
+import {
+    AVA_BASE_URL,
+    AVA_DEFAULT_TIMEOUT_MS,
+    handleAskAvaSyncRequest,
+    handleSubmitAvaFeedbackRequest,
+    submitAvaFeedbackTool,
+} from "../ava.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
@@ -169,6 +175,80 @@ describe("handleAskAvaSyncRequest", () => {
         expect(makeDoitRequest).not.toHaveBeenCalled();
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("conversationId") }],
+            isError: true,
+        });
+    });
+});
+
+describe("submitAvaFeedbackTool metadata", () => {
+    it("should be a write tool with the correct name and endpoint", () => {
+        expect(submitAvaFeedbackTool.annotations.readOnlyHint).toBe(false);
+        expect(submitAvaFeedbackTool.annotations.destructiveHint).toBe(false);
+        expect(submitAvaFeedbackTool.name).toBe("submit_ava_feedback");
+        expect(submitAvaFeedbackTool.coversEndpoint).toBe("post:/ava/v1/feedback");
+    });
+});
+
+describe("handleSubmitAvaFeedbackRequest", () => {
+    it("should POST feedback (without parsing the empty response) and confirm success", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        const response = await handleSubmitAvaFeedbackRequest(
+            { conversationId: "conv-abc123", answerId: "ans-xyz456", positive: true, text: "Great answer" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${AVA_BASE_URL}/feedback`, mockToken, {
+            method: "POST",
+            body: {
+                conversationId: "conv-abc123",
+                answerId: "ans-xyz456",
+                feedback: { positive: true, text: "Great answer" },
+            },
+            customerContext: undefined,
+            parseResponse: false,
+        });
+        expect(response.content[0].text).toContain("Successfully submitted");
+        expect(response.isError).toBeUndefined();
+    });
+
+    it("should omit text from the feedback body when not provided and pass customerContext", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        await handleSubmitAvaFeedbackRequest(
+            { conversationId: "conv-abc123", answerId: "ans-xyz456", positive: false, customerContext: "customer-123" },
+            mockToken
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${AVA_BASE_URL}/feedback`, mockToken, {
+            method: "POST",
+            body: {
+                conversationId: "conv-abc123",
+                answerId: "ans-xyz456",
+                feedback: { positive: false },
+            },
+            customerContext: "customer-123",
+            parseResponse: false,
+        });
+    });
+
+    it("should return error when required arguments are missing", async () => {
+        const response = await handleSubmitAvaFeedbackRequest({ conversationId: "conv-abc123" }, mockToken);
+
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+        expect(response.isError).toBe(true);
+    });
+
+    it("should return error response when makeDoitRequest throws", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+        const response = await handleSubmitAvaFeedbackRequest(
+            { conversationId: "conv-abc123", answerId: "ans-xyz456", positive: true },
+            mockToken
+        );
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: expect.stringContaining("Network error") }],
             isError: true,
         });
     });

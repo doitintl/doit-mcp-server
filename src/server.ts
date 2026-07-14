@@ -31,8 +31,12 @@ import {
 } from "./tools/annotations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "./tools/anomalies.js";
 import { handleGetAssetRequest, handleListAssetsRequest } from "./tools/assets.js";
-import { handleAskAvaSyncRequest } from "./tools/ava.js";
-import { handleGetAwsAccountRequest, handleGetCloudConnectSupportedFeaturesRequest } from "./tools/awsAccounts.js";
+import { handleAskAvaSyncRequest, handleSubmitAvaFeedbackRequest } from "./tools/ava.js";
+import {
+    handleCreateAwsAccountRoleRequest,
+    handleGetAwsAccountRequest,
+    handleGetCloudConnectSupportedFeaturesRequest,
+} from "./tools/awsAccounts.js";
 import {
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
@@ -280,6 +284,7 @@ export {
     handleCreateAlertRequest,
     handleCreateAllocationRequest,
     handleCreateAnnotationRequest,
+    handleCreateAwsAccountRoleRequest,
     handleCreateBudgetRequest,
     handleCreateCloudFlowConnectionRequest,
     handleCreateDatahubDatasetRequest,
@@ -348,6 +353,7 @@ export {
     handleSearchCustomersRequest,
     handleSendDatahubEventsRequest,
     handleSetActiveThemeRequest,
+    handleSubmitAvaFeedbackRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAlertRequest,
     handleUpdateAllocationRequest,

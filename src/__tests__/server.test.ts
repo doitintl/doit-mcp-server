@@ -226,8 +226,12 @@ import {
 } from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
 import { getAssetTool, listAssetsTool } from "../tools/assets.js";
-import { askAvaSyncTool } from "../tools/ava.js";
-import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
+import { askAvaSyncTool, submitAvaFeedbackTool } from "../tools/ava.js";
+import {
+    createAwsAccountRoleTool,
+    getAwsAccountTool,
+    getCloudConnectSupportedFeaturesTool,
+} from "../tools/awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
 import {
     findCloudDiagramsTool,
@@ -438,6 +442,7 @@ describe("ListToolsRequestSchema handler", () => {
                 updateThemeTool,
                 getAwsAccountTool,
                 getCloudConnectSupportedFeaturesTool,
+                createAwsAccountRoleTool,
                 listDatahubDatasetsTool,
                 getDatahubDatasetTool,
                 createDatahubDatasetTool,
@@ -465,6 +470,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getResourcePermissionsTool,
                 updateResourcePermissionsTool,
                 askAvaSyncTool,
+                submitAvaFeedbackTool,
                 // confirmActionTool, // disabled with the approval gate
                 ...generatedToolDefinitions,
             ],

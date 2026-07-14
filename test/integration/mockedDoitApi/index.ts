@@ -423,4 +423,14 @@ export const mockedDoitApiHandlers = [
         }
         return HttpResponse.json(fixtures.avaAskSync);
     }),
+    // AVA feedback returns an empty 200 body on success
+    http.post(`${API_BASE}/ava/v1/feedback`, () => {
+        return new HttpResponse(null, { status: 200 });
+    }),
+
+    // CloudConnect — create/update AWS account role
+    http.post(`${API_BASE}/core/v1/cloudconnect/aws/accounts`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...fixtures.createAwsAccountRole, ...body });
+    }),
 ];

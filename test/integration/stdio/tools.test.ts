@@ -1910,6 +1910,88 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("create_aws_account_role", () => {
+        it("connects an AWS account and returns the created role from the mock API", async () => {
+            const result = await client.callTool({
+                name: "create_aws_account_role",
+                arguments: {
+                    accountID: "123456789012",
+                    roleArn: "arn:aws:iam::123456789012:role/DoiTRole",
+                    enabledFeatures: ["core"],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.accountID).toBe("123456789012");
+            expect(parsed.roleArn).toBe("arn:aws:iam::123456789012:role/DoiTRole");
+            expect(parsed.enabledFeatures).toEqual(["core"]);
+        });
+
+        it("accepts s3 bucket details when real-time-data is enabled", async () => {
+            const result = await client.callTool({
+                name: "create_aws_account_role",
+                arguments: {
+                    accountID: "123456789012",
+                    roleArn: "arn:aws:iam::123456789012:role/DoiTRole",
+                    enabledFeatures: ["real-time-data"],
+                    s3Bucket: "doit-cloudtrail",
+                    s3BucketRegion: "us-east-1",
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.s3Bucket).toBe("doit-cloudtrail");
+            expect(parsed.s3BucketRegion).toBe("us-east-1");
+        });
+
+        it("rejects real-time-data without an S3 bucket", async () => {
+            const result = await client.callTool({
+                name: "create_aws_account_role",
+                arguments: {
+                    accountID: "123456789012",
+                    roleArn: "arn:aws:iam::123456789012:role/DoiTRole",
+                    enabledFeatures: ["real-time-data"],
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("real-time-data");
+        });
+
+        it("rejects invalid arguments (missing accountID)", async () => {
+            const result = await client.callTool({
+                name: "create_aws_account_role",
+                arguments: { roleArn: "arn:aws:iam::123456789012:role/DoiTRole", enabledFeatures: ["core"] },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("submit_ava_feedback", () => {
+        it("submits feedback and returns a success confirmation", async () => {
+            const result = await client.callTool({
+                name: "submit_ava_feedback",
+                arguments: {
+                    conversationId: "conv-abc123",
+                    answerId: "ans-xyz456",
+                    positive: true,
+                    text: "Very helpful",
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Successfully submitted");
+        });
+
+        it("rejects invalid arguments (missing answerId)", async () => {
+            const result = await client.callTool({
+                name: "submit_ava_feedback",
+                arguments: { conversationId: "conv-abc123", positive: true },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
     describe("error handling", () => {
         it("returns error for unknown tool", async () => {
             const result = await client.callTool({ name: "nonexistent_tool", arguments: {} });

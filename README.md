@@ -187,6 +187,7 @@ This MCP server provides many tools including the following:
 - [`list_commitments`](https://developer.doit.com/reference/listcommitments): Returns a list of commitments (reserved capacity or spend agreements) with cloud providers
 - [`get_commitment`](https://developer.doit.com/reference/getcommitment): Returns details of a specific commitment by ID, including periods and attainment data
 - [`ask_ava_sync`](https://developer.doit.com/reference/askavasync): Ask DoiT AVA, the cloud cost and infrastructure expert, a question about the user's DoiT account, cloud spending, or optimization opportunities. Note: AVA can take a long time to respond for complex questions.
+- [`submit_ava_feedback`](https://developer.doit.com/reference/avafeedback): Submit feedback (thumbs up/down with an optional comment) on a specific AVA answer, using the conversationId and answerId returned by a prior non-ephemeral `ask_ava_sync` call
 - [`list_organizations`](https://developer.doit.com/reference/listorganizations): Returns a list of organizations accessible to the authenticated user
 - [`list_platforms`](https://developer.doit.com/reference/listplatforms): Returns a list of all available platforms
 - [`list_users`](https://developer.doit.com/reference/listusers): Returns a list of all users in the organization
@@ -219,6 +220,7 @@ This MCP server provides many tools including the following:
 - [`update_resource_permissions`](https://developer.doit.com/reference/updateresourcepermissions): Updates the sharing settings for a specific alert, budget, report, or allocation. Accepts an optional `permissions` array of per-user role entries (owner/editor/viewer) and an optional `public` visibility level (`"editor"`, `"viewer"`, or `null` for private)
 - [`get_aws_account`](https://developer.doit.com/reference/getawsaccount): Returns the CloudConnect details of a connected AWS account (role ARN, billing S3 bucket, enabled and supported features) by AWS account ID
 - [`get_cloud_connect_supported_features`](https://developer.doit.com/reference/getcloudconnectsupportedfeatures): Returns the DoiT CloudConnect features supported for a connected cloud account (AWS account ID or Azure tenant ID) and whether the required permissions are present
+- [`create_aws_account_role`](https://developer.doit.com/reference/createaccountrole): Connects an AWS account to DoiT CloudConnect (or updates an existing connection) by registering the IAM role ARN and the DoiT features to enable; when `real-time-data` is enabled, the CloudTrail S3 bucket name and region are required
 - [`get_insight`](https://developer.doit.com/reference/getinsightresult): Returns the metadata and aggregate summary (savings, risk counts, status) of a single optimization insight identified by its source and key
 
 
