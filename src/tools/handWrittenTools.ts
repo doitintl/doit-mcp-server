@@ -40,7 +40,13 @@ import { sendDatahubEventsTool } from "./datahubEvents.js";
 import { dimensionTool } from "./dimension.js";
 import { dimensionsTool } from "./dimensions.js";
 import { createFolderTool, getFolderTool, listFoldersTool, updateFolderTool } from "./folders.js";
-import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "./insights.js";
+import {
+    getInsightResourcesTool,
+    getInsightTool,
+    listOptimizationRecommendationsTool,
+    postInsightResultTool,
+    updateInsightStatusTool,
+} from "./insights.js";
 import { getInvoiceTool, listInvoicesTool } from "./invoices.js";
 import {
     assignObjectsToLabelTool,
@@ -100,6 +106,8 @@ export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     listOptimizationRecommendationsTool,
     getInsightResourcesTool,
     getInsightTool,
+    postInsightResultTool,
+    updateInsightStatusTool,
     getReportResultsTool,
     getReportConfigTool,
     createReportTool,

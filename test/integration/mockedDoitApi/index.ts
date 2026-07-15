@@ -415,6 +415,17 @@ export const mockedDoitApiHandlers = [
         return new HttpResponse(null, { status: 404 });
     }),
 
+    // Insights (update an insight's display status) — 204 No Content on success.
+    // Registered before the create/update handler because it is a more specific path.
+    http.put(`${API_BASE}/insights/v1/results/source/:source/insight/:key/status`, () => {
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    // Insights (create or update a single insight's metadata)
+    http.post(`${API_BASE}/insights/v1/results/source/:source/insight/:key`, () => {
+        return HttpResponse.json(fixtures.postInsightResult);
+    }),
+
     // AVA
     http.post(`${API_BASE}/ava/v1/askSync`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;

@@ -541,6 +541,19 @@ export const insightFixture = {
     tags: [],
 };
 
+// Response body returned by POST /insights/v1/results/source/{sourceID}/insight/{insightKey}
+// (create or update a single insight's metadata).
+export const postInsightResultFixture = {
+    source: "public-api",
+    key: "idle-ec2",
+    title: "Idle EC2 instances",
+    shortDescription: "Stop idle EC2 instances to save cost.",
+    displayStatus: "actionable",
+    cloudProvider: "aws",
+    categories: ["FinOps"],
+    lastUpdated: "2026-07-01T00:00:00.000Z",
+};
+
 export const folderFixture = {
     id: "folder-1",
     name: "Analytics",

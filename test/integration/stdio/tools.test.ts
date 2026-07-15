@@ -256,6 +256,56 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("post_insight_result", () => {
+        it("creates or updates an insight and returns the insight result", async () => {
+            const result = await client.callTool({
+                name: "post_insight_result",
+                arguments: {
+                    key: "idle-ec2",
+                    title: "Idle EC2 instances",
+                    shortDescription: "Stop idle EC2 instances to save cost.",
+                    cloudProvider: "aws",
+                    categories: ["FinOps"],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.key).toBe("idle-ec2");
+            expect(parsed.source).toBe("public-api");
+            expect(parsed.displayStatus).toBe("actionable");
+        });
+
+        it("returns a validation error when required fields are missing", async () => {
+            const result = await client.callTool({
+                name: "post_insight_result",
+                arguments: { key: "idle-ec2" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("update_insight_status", () => {
+        it("updates the status of an insight (204 No Content)", async () => {
+            const result = await client.callTool({
+                name: "update_insight_status",
+                arguments: { key: "idle-ec2", status: "acknowledged" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.success).toBe(true);
+            expect(parsed.status).toBe("acknowledged");
+            expect(parsed.key).toBe("idle-ec2");
+        });
+
+        it("returns a validation error for an invalid status", async () => {
+            const result = await client.callTool({
+                name: "update_insight_status",
+                arguments: { key: "idle-ec2", status: "bogus" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
     describe("list_users", () => {
         it("returns users from mock API", async () => {
             const result = await client.callTool({ name: "list_users", arguments: {} });

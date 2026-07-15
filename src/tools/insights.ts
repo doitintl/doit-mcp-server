@@ -129,6 +129,78 @@ export const GetInsightArgumentsSchema = z.object({
         ),
 });
 
+// Only insights created via the public API can be created/updated; the API accepts a single
+// source value ("public-api"). Kept as an enum with a default so callers rarely need to set it.
+const InsightSourceEnum = z.enum(["public-api"]);
+
+// Categories allowed when creating an insight via the public API (narrower than the read-side
+// InsightCategoryEnum used for filtering).
+const CreatableInsightCategoryEnum = z.enum(["FinOps", "Security"]);
+
+// The full set of display statuses the API accepts on writes.
+const InsightWriteStatusEnum = z.enum([
+    "actionable",
+    "acknowledged",
+    "optimized",
+    "dismissed",
+    "in progress",
+    "upgrade needed",
+    "permissions needed",
+]);
+
+const InsightDismissalDetailsSchema = z.object({
+    reason: z
+        .enum([
+            "not relevant",
+            "not enough information",
+            "not worth the effort",
+            "inaccurate optimization opportunities",
+        ])
+        .optional()
+        .describe("The reason the insight was dismissed."),
+    comment: z.string().optional().describe("An optional free-text comment providing additional context."),
+});
+
+export const PostInsightResultArgumentsSchema = z.object({
+    source: InsightSourceEnum.default("public-api").describe(
+        "The source that owns the insight. Only 'public-api' insights can be managed via this endpoint."
+    ),
+    key: z
+        .string()
+        .describe("A unique key identifying the insight within the source. Used as both the path key and body key."),
+    title: z.string().describe("The display title of the insight."),
+    shortDescription: z.string().describe("A brief summary of the insight."),
+    cloudProvider: z.string().describe("The cloud provider associated with the insight (e.g. 'aws', 'gcp', 'azure')."),
+    categories: z
+        .array(CreatableInsightCategoryEnum)
+        .min(1)
+        .describe("One or more categories this insight belongs to. Possible values: FinOps, Security."),
+    detailedDescriptionMdx: z.string().optional().describe("A detailed description of the insight in MDX format."),
+    reportUrl: z.string().optional().describe("URL to an external report related to this insight."),
+    cloudFlowTemplateId: z
+        .string()
+        .optional()
+        .describe("ID of a CloudFlow template that can automate the remediation of this insight."),
+    easyWinDescription: z.string().optional().describe("A description of why this insight is considered an easy win."),
+    status: InsightWriteStatusEnum.optional().describe("The display status of the insight."),
+    dismissalDetails: InsightDismissalDetailsSchema.optional().describe(
+        "Details for why the insight was dismissed (only relevant when status is 'dismissed')."
+    ),
+});
+
+export const UpdateInsightStatusArgumentsSchema = z.object({
+    source: InsightSourceEnum.default("public-api").describe(
+        "The source that owns the insight. Only 'public-api' insights can be managed via this endpoint."
+    ),
+    key: z.string().describe("The unique key identifying the insight to update."),
+    status: InsightWriteStatusEnum.describe(
+        "The new display status of the insight. Possible values: actionable, acknowledged, optimized, dismissed, in progress, upgrade needed, permissions needed."
+    ),
+    dismissalDetails: InsightDismissalDetailsSchema.optional().describe(
+        "Details for why the insight was dismissed (only relevant when status is 'dismissed')."
+    ),
+});
+
 // ── Tool metadata ───────────────────────────────────────────────────────────
 
 export const listOptimizationRecommendationsTool = {
@@ -194,6 +266,49 @@ export const getInsightTool = {
         "openai/toolInvocation/invoked": "Insight ready",
     },
     securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export const postInsightResultTool = {
+    name: "post_insight_result",
+    coversEndpoint: "post:/insights/v1/results/source/{sourceID}/insight/{insightKey}",
+    description:
+        "Use this when the user wants to create a new custom insight or update an existing one's metadata " +
+        "(title, description, categories, status, remediation links). Only insights owned by the " +
+        "'public-api' source can be managed. This manages the insight's metadata only — the individual " +
+        "affected resources are managed separately (post_insight_resource_results). Do NOT use this only to " +
+        "change an insight's status (use update_insight_status).",
+    inputSchema: zodToMcpInputSchema(PostInsightResultArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Saving insight...",
+        "openai/toolInvocation/invoked": "Insight saved",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+export const updateInsightStatusTool = {
+    name: "update_insight_status",
+    coversEndpoint: "put:/insights/v1/results/source/{sourceID}/insight/{insightKey}/status",
+    description:
+        "Use this when the user wants to change the display status of an existing insight (e.g. mark it " +
+        "acknowledged, in progress, optimized, or dismissed). Only insights owned by the 'public-api' " +
+        "source can be managed. When dismissing, an optional reason and comment can be supplied. Do NOT " +
+        "use this to edit an insight's title/description or create one (use post_insight_result).",
+    inputSchema: zodToMcpInputSchema(UpdateInsightStatusArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating insight status...",
+        "openai/toolInvocation/invoked": "Insight status updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 // ── Handlers ────────────────────────────────────────────────────────────────
@@ -342,5 +457,97 @@ export async function handleGetInsightRequest(args: any, token: string) {
             return createErrorResponse(formatZodError(error));
         }
         return handleGeneralError(error, "handling get_insight request");
+    }
+}
+
+export async function handlePostInsightResultRequest(args: any, token: string) {
+    try {
+        const {
+            source,
+            key,
+            title,
+            shortDescription,
+            cloudProvider,
+            categories,
+            detailedDescriptionMdx,
+            reportUrl,
+            cloudFlowTemplateId,
+            easyWinDescription,
+            status,
+            dismissalDetails,
+        } = PostInsightResultArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const insightUrl = `${INSIGHTS_BASE_URL}/results/source/${encodeURIComponent(source)}/insight/${encodeURIComponent(key)}`;
+
+        const body: Record<string, unknown> = {
+            key,
+            title,
+            shortDescription,
+            cloudProvider,
+            categories,
+        };
+        if (detailedDescriptionMdx !== undefined) body.detailedDescriptionMdx = detailedDescriptionMdx;
+        if (reportUrl !== undefined) body.reportUrl = reportUrl;
+        if (cloudFlowTemplateId !== undefined) body.cloudFlowTemplateId = cloudFlowTemplateId;
+        if (easyWinDescription !== undefined) body.easyWinDescription = easyWinDescription;
+        if (status !== undefined) body.status = status;
+        if (dismissalDetails !== undefined) body.dismissalDetails = dismissalDetails;
+
+        try {
+            const data = await makeDoitRequest<InsightResult>(insightUrl, token, {
+                method: "POST",
+                body,
+                customerContext,
+            });
+
+            if (!data) {
+                return createErrorResponse(`Failed to create or update insight ${key} (source: ${source})`);
+            }
+
+            return createSuccessResponse(JSON.stringify(data, null, 2));
+        } catch (error) {
+            return handleGeneralError(error, "making DoiT Insights API request");
+        }
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return createErrorResponse(formatZodError(error));
+        }
+        return handleGeneralError(error, "handling post_insight_result request");
+    }
+}
+
+export async function handleUpdateInsightStatusRequest(args: any, token: string) {
+    try {
+        const { source, key, status, dismissalDetails } = UpdateInsightStatusArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const statusUrl = `${INSIGHTS_BASE_URL}/results/source/${encodeURIComponent(source)}/insight/${encodeURIComponent(key)}/status`;
+
+        const body: Record<string, unknown> = { status };
+        if (dismissalDetails !== undefined) body.dismissalDetails = dismissalDetails;
+
+        try {
+            // The API returns 204 No Content on success, so there is no body to parse.
+            const data = await makeDoitRequest<Record<string, never>>(statusUrl, token, {
+                method: "PUT",
+                body,
+                customerContext,
+                parseResponse: false,
+            });
+
+            if (!data) {
+                return createErrorResponse(`Failed to update status for insight ${key} (source: ${source})`);
+            }
+
+            return createSuccessResponse(JSON.stringify({ success: true, source, key, status }, null, 2));
+        } catch (error) {
+            return handleGeneralError(error, "making DoiT Insights API request");
+        }
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return createErrorResponse(formatZodError(error));
+        }
+        return handleGeneralError(error, "handling update_insight_status request");
     }
 }
