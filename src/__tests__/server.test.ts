@@ -264,7 +264,13 @@ import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
 import { createFolderTool, getFolderTool, listFoldersTool, updateFolderTool } from "../tools/folders.js";
 import { generatedTools } from "../tools/generated/registry.js";
-import { getInsightResourcesTool, getInsightTool, listOptimizationRecommendationsTool } from "../tools/insights.js";
+import {
+    getInsightResourcesTool,
+    getInsightTool,
+    listOptimizationRecommendationsTool,
+    postInsightResultTool,
+    updateInsightStatusTool,
+} from "../tools/insights.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
 import {
     assignObjectsToLabelTool,
@@ -379,6 +385,8 @@ describe("ListToolsRequestSchema handler", () => {
                 listOptimizationRecommendationsTool,
                 getInsightResourcesTool,
                 getInsightTool,
+                postInsightResultTool,
+                updateInsightStatusTool,
                 getReportResultsTool,
                 getReportConfigTool,
                 createReportTool,

@@ -62,9 +62,13 @@ import {
   ListInsightsArgumentsSchema,
   GetInsightResourcesArgumentsSchema,
   GetInsightArgumentsSchema,
+  PostInsightResultArgumentsSchema,
+  UpdateInsightStatusArgumentsSchema,
   listOptimizationRecommendationsTool,
   getInsightResourcesTool,
   getInsightTool,
+  postInsightResultTool,
+  updateInsightStatusTool,
 } from "../../src/tools/insights.js";
 import {
   ValidateUserArgumentsSchema,
@@ -993,6 +997,8 @@ export class DoitMCPAgent extends McpAgent {
     this.registerTool(listOptimizationRecommendationsTool, ListInsightsArgumentsSchema);
     this.registerTool(getInsightResourcesTool, GetInsightResourcesArgumentsSchema);
     this.registerTool(getInsightTool, GetInsightArgumentsSchema);
+    this.registerTool(postInsightResultTool, PostInsightResultArgumentsSchema);
+    this.registerTool(updateInsightStatusTool, UpdateInsightStatusArgumentsSchema);
     this.registerTool(getReportResultsTool, GetReportResultsArgumentsSchema);
     this.registerTool(getReportConfigTool, GetReportConfigArgumentsSchema);
     this.registerTool(createReportTool, CreateReportArgumentsSchema);

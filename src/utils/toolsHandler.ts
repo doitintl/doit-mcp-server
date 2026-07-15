@@ -73,6 +73,8 @@ import {
     handleGetInsightRequest,
     handleGetInsightResourcesRequest,
     handleListInsightsRequest,
+    handlePostInsightResultRequest,
+    handleUpdateInsightStatusRequest,
 } from "../tools/insights.js";
 import { handleGetInvoiceRequest, handleListInvoicesRequest } from "../tools/invoices.js";
 import {
@@ -311,6 +313,12 @@ async function runOriginalDispatch(
             break;
         case "get_insight":
             result = await handleGetInsightRequest(args, token);
+            break;
+        case "post_insight_result":
+            result = await handlePostInsightResultRequest(args, token);
+            break;
+        case "update_insight_status":
+            result = await handleUpdateInsightStatusRequest(args, token);
             break;
         case "get_report_results":
             result = await handleGetReportResultsRequest(args, token);

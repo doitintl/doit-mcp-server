@@ -25,6 +25,7 @@ import {
     labelAssignmentsFixture,
     labelFixture,
     labelsFixture,
+    postInsightResultFixture,
     queryResultFixture,
     reportConfigFixture,
     reportResultsFixture,
@@ -188,6 +189,7 @@ export const fixtures = {
     setActiveTheme: setActiveThemeFixture,
     updateTheme: updateThemeFixture,
     insight: insightFixture,
+    postInsightResult: postInsightResultFixture,
 
     avaAskSync: avaAskSyncFixture,
     avaAskSyncWithConversation: avaAskSyncWithConversationFixture,

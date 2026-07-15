@@ -220,6 +220,8 @@ This MCP server provides many tools including the following:
 - [`get_aws_account`](https://developer.doit.com/reference/getawsaccount): Returns the CloudConnect details of a connected AWS account (role ARN, billing S3 bucket, enabled and supported features) by AWS account ID
 - [`get_cloud_connect_supported_features`](https://developer.doit.com/reference/getcloudconnectsupportedfeatures): Returns the DoiT CloudConnect features supported for a connected cloud account (AWS account ID or Azure tenant ID) and whether the required permissions are present
 - [`get_insight`](https://developer.doit.com/reference/getinsightresult): Returns the metadata and aggregate summary (savings, risk counts, status) of a single optimization insight identified by its source and key
+- [`post_insight_result`](https://developer.doit.com/reference/postinsightresult): Creates or updates the metadata of a single custom insight (title, description, categories, status, remediation links). Only insights owned by the `public-api` source can be managed; supported categories are `FinOps` and `Security`
+- [`update_insight_status`](https://developer.doit.com/reference/updateinsightstatus): Updates the display status of an existing `public-api` insight (e.g. `acknowledged`, `in progress`, `optimized`, `dismissed`), with optional dismissal reason and comment
 
 
 ## Usage Examples
