@@ -196,6 +196,7 @@ export async function handleCreateTicketRequest(args: any, token: string) {
             method: "POST",
             body: { ticket: parsed.ticket },
             customerContext,
+            timeoutMs: 60_000,
         });
         if (!response) {
             return createErrorResponse("Failed to create ticket: No data returned");

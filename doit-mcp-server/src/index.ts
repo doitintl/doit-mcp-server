@@ -468,6 +468,17 @@ export class ContextStorage extends DurableObject {
 // and getToken() reads it in preference to props.credential. See applyOAuthSession.
 const LIVE_CREDENTIAL_STORAGE_KEY = "mcp:liveCredential";
 
+// Decode the `exp` claim from a JWT without signature verification.
+// Returns undefined if the token is opaque or malformed.
+function getJwtExp(token: string): number | undefined {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof payload.exp === "number" ? payload.exp : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export class DoitMCPAgent extends McpAgent {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -562,6 +573,20 @@ export class DoitMCPAgent extends McpAgent {
         now,
       });
       return this.upstreamTokenCache.upstreamAccessToken;
+    }
+
+    // Guard against timing races where the MCP token expires in transit to the auth-service.
+    // The auth-service uses zero clock tolerance, so even a 1-second-old token is rejected.
+    // Failing early here lets the client refresh the token rather than hitting a cryptic auth error.
+    const MCP_TOKEN_EXPIRY_GRACE_SECONDS = 30;
+    const tokenExp = getJwtExp(token);
+    if (tokenExp !== undefined && tokenExp < now + MCP_TOKEN_EXPIRY_GRACE_SECONDS) {
+      console.warn("[mcp] MCP access token near expiry, rejecting before exchange", {
+        exp: tokenExp,
+        now,
+        grace: MCP_TOKEN_EXPIRY_GRACE_SECONDS,
+      });
+      throw new Error("MCP access token has expired or is near expiry; please re-authenticate");
     }
 
     console.info(
@@ -816,11 +841,13 @@ export class DoitMCPAgent extends McpAgent {
   // Both "ui/resourceUri" (flat key) and "ui.resourceUri" (nested) are set to match what
   // registerAppTool() from @modelcontextprotocol/ext-apps normalises.
   private registerTool(tool: any, schema: any) {
+    // ZodEffects (produced by .refine()) has no .shape — unwrap to the inner ZodObject.
+    const rawSchema = schema?._def?.schema ?? schema;
     (this.server as any).registerTool(
       tool.name,
       {
         description: tool.description,
-        inputSchema: schema.shape,
+        inputSchema: rawSchema.shape,
         annotations: tool.annotations,
         _meta: {
           ...tool._meta,

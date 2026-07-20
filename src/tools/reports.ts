@@ -741,14 +741,19 @@ export async function handleRunQueryRequest(args: any, token: string) {
                 body: { config },
                 appendParams: true,
                 customerContext,
+                timeoutMs: 120_000,
             });
 
             if (!queryResponse?.result || queryResponse?.error) {
+                const isCustomRange = rawConfig?.timeRange?.mode === "custom";
+                const customRangeHint = isCustomRange
+                    ? "\n  4. For custom time ranges, ensure customTimeRange has 'from' and 'to' in ISO 8601 format (e.g. '2026-01-01T00:00:00Z')."
+                    : "";
                 return createErrorResponse(
                     `Failed to run query. Try one of the following:
   1. Use 'list_dimensions' with a filter like 'filter:type:fixed' to get relevant dimensions or 'list_allocations' to get relevant allocations
   2. Check the specific error from the API: ${queryResponse?.error || "Unknown error"}
-  3. For a cost report, you need at least: metric, timeRange, and dataSource fields`
+  3. For a cost report, you need at least: metric, timeRange, and dataSource fields${customRangeHint}`
                 );
             }
 
@@ -852,6 +857,7 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
             const reportData = await makeDoitRequest<GetReportResultsResponse>(reportUrl, token, {
                 method: "GET",
                 customerContext,
+                timeoutMs: 120_000,
             });
 
             if (!reportData) {
