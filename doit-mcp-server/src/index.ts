@@ -472,6 +472,7 @@ export class ContextStorage extends DurableObject {
 // and getToken() reads it in preference to props.credential. See applyOAuthSession.
 const LIVE_CREDENTIAL_STORAGE_KEY = "mcp:liveCredential";
 
+
 export class DoitMCPAgent extends McpAgent {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -566,6 +567,20 @@ export class DoitMCPAgent extends McpAgent {
         now,
       });
       return this.upstreamTokenCache.upstreamAccessToken;
+    }
+
+    // Guard against timing races where the MCP token expires in transit to the auth-service.
+    // The auth-service uses zero clock tolerance, so even a 1-second-old token is rejected.
+    // Failing early here lets the client refresh the token rather than hitting a cryptic auth error.
+    const MCP_TOKEN_EXPIRY_GRACE_SECONDS = 30;
+    const tokenExp = decodeSessionClaims(token)?.exp;
+    if (tokenExp !== undefined && tokenExp < now + MCP_TOKEN_EXPIRY_GRACE_SECONDS) {
+      console.warn("[mcp] MCP access token near expiry, rejecting before exchange", {
+        exp: tokenExp,
+        now,
+        grace: MCP_TOKEN_EXPIRY_GRACE_SECONDS,
+      });
+      throw new Error("MCP access token has expired or is near expiry; please re-authenticate");
     }
 
     console.info(
@@ -820,11 +835,13 @@ export class DoitMCPAgent extends McpAgent {
   // Both "ui/resourceUri" (flat key) and "ui.resourceUri" (nested) are set to match what
   // registerAppTool() from @modelcontextprotocol/ext-apps normalises.
   private registerTool(tool: any, schema: any) {
+    // ZodEffects (produced by .refine()) has no .shape — unwrap to the inner ZodObject.
+    const rawSchema = typeof schema?.innerType === "function" ? schema.innerType() : schema;
     (this.server as any).registerTool(
       tool.name,
       {
         description: tool.description,
-        inputSchema: schema.shape,
+        inputSchema: rawSchema.shape,
         annotations: tool.annotations,
         _meta: {
           ...tool._meta,
@@ -1514,6 +1531,7 @@ function decodeSessionClaims(token: string): {
   cid: string;
   flowId: string;
   isDoitUser: string;
+  exp?: number;
 } | null {
   try {
     const segment = token.split(".")[1];
@@ -1528,6 +1546,7 @@ function decodeSessionClaims(token: string): {
       cid: typeof c.cid === "string" ? c.cid : "",
       flowId: typeof c.flow_id === "string" ? c.flow_id : "",
       isDoitUser: c.doit_employee === true ? "true" : "false",
+      exp: typeof c.exp === "number" ? c.exp : undefined,
     };
   } catch {
     return null;
