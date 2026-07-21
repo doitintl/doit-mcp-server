@@ -418,7 +418,7 @@ Cloud Storage,50`;
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 "https://api.doit.com/analytics/v1/reports/report-123",
                 mockToken,
-                { method: "GET" }
+                { method: "GET", timeoutMs: 120_000 }
             );
             expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("reportName"));
             expect(response).toEqual({
@@ -435,7 +435,7 @@ Cloud Storage,50`;
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 "https://api.doit.com/analytics/v1/reports/report-123",
                 mockToken,
-                { method: "GET" }
+                { method: "GET", timeoutMs: 120_000 }
             );
             expect(response).toEqual({
                 content: [
