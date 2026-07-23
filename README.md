@@ -134,7 +134,7 @@ Applications that provide their own MCP transport can reuse the published,
 transport-independent implementation:
 
 ```bash
-npm install @doitintl/doit-mcp-server
+npm install @doitintl/doit-mcp-server@latest
 ```
 
 ```ts
