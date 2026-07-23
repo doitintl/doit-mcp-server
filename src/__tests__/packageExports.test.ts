@@ -16,6 +16,7 @@ describe("package exports", () => {
                 import: "./dist/core.js",
             },
         });
+        expect(packageJson.files).toEqual(["dist"]);
         expect(packageJson.scripts.prepare).toBeUndefined();
         expect(packageJson.scripts.deploy).toBe("yarn build && npm publish --access public");
     });
