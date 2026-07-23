@@ -128,6 +128,30 @@ yarn build
 node dist/index.js
 ```
 
+## Core package API
+
+Applications that provide their own MCP transport can reuse the published,
+transport-independent implementation:
+
+```bash
+npm install @doitintl/doit-mcp-server@latest
+```
+
+```ts
+import {
+    COVERED_ENDPOINTS,
+    executeToolHandler,
+    generateTools,
+    generatedToolsOpenApiSpec,
+    HAND_WRITTEN_TOOLS,
+} from "@doitintl/doit-mcp-server/core";
+```
+
+The `/core` entry includes the tool and prompt definitions, generated-tool
+utilities, request handling, and shared configuration APIs. It does not initialize
+the stdio transport or include the Cloudflare Worker, OAuth, Durable Objects, or
+widget implementation.
+
 ## Tools
 
 This MCP server provides many tools including the following:
