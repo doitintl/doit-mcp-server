@@ -61,7 +61,11 @@ export {
     UpdateBudgetArgumentsSchema,
     updateBudgetTool,
 } from "./tools/budgets.js";
-export { ChangeCustomerArgumentsSchema, changeCustomerTool } from "./tools/changeCustomer.js";
+export {
+    ChangeCustomerArgumentsSchema,
+    changeCustomerTool,
+    handleChangeCustomerRequest,
+} from "./tools/changeCustomer.js";
 export {
     FindCloudDiagramsArgumentsSchema,
     findCloudDiagramsTool,
@@ -236,7 +240,12 @@ export {
     UpdateUserArgumentsSchema,
     updateUserTool,
 } from "./tools/users.js";
-export { ValidateUserArgumentsSchema, validateUserTool } from "./tools/validateUser.js";
+export {
+    handleValidateUserRequest,
+    parseValidatedUserResponse,
+    ValidateUserArgumentsSchema,
+    validateUserTool,
+} from "./tools/validateUser.js";
 export * from "./utils/approval.js";
 export { SERVER_NAME, SERVER_NAME_WEB, SERVER_VERSION } from "./utils/consts.js";
 export { DEMO_TOKEN } from "./utils/demoData.js";
