@@ -12,6 +12,7 @@ export const DIMENSION_TYPE_VALUES = [
     "allocation_rule",
     "gke",
     "gke_label",
+    "organization_tag",
 ] as const;
 
 export const FILTER_MODE_VALUES = ["is", "starts_with", "ends_with", "contains", "regexp"] as const;
@@ -109,5 +110,6 @@ export const ORIGIN_TYPE_VALUES = [
     "attribution_group",
     "gke",
     "gke_label",
+    "organization_tag",
     "unallocated",
 ] as const;

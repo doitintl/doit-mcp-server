@@ -133,6 +133,33 @@ Type: datetime`;
             });
         });
 
+        it("should accept organization_tag dimension type", async () => {
+            const mockArgs = { type: "organization_tag", id: "aws-org/customer" };
+            const mockApiResponse = {
+                id: "aws-org/customer",
+                label: "Customer",
+                type: "organization_tag",
+                values: [{ value: "Acme Corp" }],
+            };
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+
+            const response = await handleDimensionRequest(mockArgs, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/dimension?type=organization_tag&id=aws-org%2Fcustomer",
+                mockToken,
+                { appendParams: true, method: "GET" }
+            );
+            expect(response).toEqual({
+                content: [
+                    {
+                        type: "text",
+                        text: expect.stringContaining("aws-org/customer"),
+                    },
+                ],
+            });
+        });
+
         it("should handle ZodError for invalid arguments", async () => {
             const mockArgs = { type: "invalid-type", id: "service_description" }; // Invalid type enum
             const response = await handleDimensionRequest(mockArgs, mockToken);

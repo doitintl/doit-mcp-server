@@ -17,6 +17,7 @@ export const ALERT_SCOPE_TYPE_VALUES = [
     "allocation_rule",
     "gke",
     "gke_label",
+    "organization_tag",
 ] as const;
 export const ALERT_SCOPE_MODE_VALUES = ["is", "starts_with", "ends_with", "contains", "regexp"] as const;
 
@@ -38,7 +39,8 @@ export type AlertScopeType =
     | "allocation"
     | "allocation_rule"
     | "gke"
-    | "gke_label";
+    | "gke_label"
+    | "organization_tag";
 
 export type AlertScopeMode = "is" | "starts_with" | "ends_with" | "contains" | "regexp";
 

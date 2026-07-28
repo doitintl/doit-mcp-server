@@ -25,6 +25,7 @@ export const DimensionArgumentsSchema = z.object({
             "attribution_group",
             "gke",
             "gke_label",
+            "organization_tag",
         ])
         .describe("Dimension type"),
     id: z.string().describe("Dimension id"),
@@ -65,6 +66,7 @@ export const dimensionTool = {
                     "attribution_group",
                     "gke",
                     "gke_label",
+                    "organization_tag",
                 ],
                 description: "Dimension type",
             },
