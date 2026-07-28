@@ -20,8 +20,12 @@ import {
 } from "../tools/annotations.js";
 import { handleAnomaliesRequest, handleAnomalyRequest } from "../tools/anomalies.js";
 import { handleGetAssetRequest, handleListAssetsRequest } from "../tools/assets.js";
-import { handleAskAvaSyncRequest } from "../tools/ava.js";
-import { handleGetAwsAccountRequest, handleGetCloudConnectSupportedFeaturesRequest } from "../tools/awsAccounts.js";
+import { handleAskAvaSyncRequest, handleSubmitAvaFeedbackRequest } from "../tools/ava.js";
+import {
+    handleCreateAwsAccountRoleRequest,
+    handleGetAwsAccountRequest,
+    handleGetCloudConnectSupportedFeaturesRequest,
+} from "../tools/awsAccounts.js";
 import {
     handleCreateBudgetRequest,
     handleGetBudgetRequest,
@@ -483,6 +487,9 @@ async function runOriginalDispatch(
         case "get_cloud_connect_supported_features":
             result = await handleGetCloudConnectSupportedFeaturesRequest(args, token);
             break;
+        case "create_aws_account_role":
+            result = await handleCreateAwsAccountRoleRequest(args, token);
+            break;
         case "list_themes":
             result = await handleListThemesRequest(args, token);
             break;
@@ -569,6 +576,9 @@ async function runOriginalDispatch(
             break;
         case "ask_ava_sync":
             result = await handleAskAvaSyncRequest(args, token);
+            break;
+        case "submit_ava_feedback":
+            result = await handleSubmitAvaFeedbackRequest(args, token);
             break;
         case "list_account_team":
             result = await handleListAccountTeamRequest(args, token);

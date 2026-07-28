@@ -35,6 +35,8 @@ import {
 import {
   AskAvaSyncArgumentsSchema,
   askAvaSyncTool,
+  SubmitAvaFeedbackArgumentsSchema,
+  submitAvaFeedbackTool,
 } from "../../src/tools/ava.js";
 import {
   CreateReportArgumentsSchema,
@@ -215,6 +217,8 @@ import {
   updateFolderTool,
 } from "../../src/tools/folders.js";
 import {
+  CreateAwsAccountRoleArgumentsSchema,
+  createAwsAccountRoleTool,
   GetAwsAccountArgumentsSchema,
   getAwsAccountTool,
   GetCloudConnectSupportedFeaturesArgumentsSchema,
@@ -1115,6 +1119,7 @@ export class DoitMCPAgent extends McpAgent {
     // AWS Account Management tools
     this.registerTool(getAwsAccountTool, GetAwsAccountArgumentsSchema);
     this.registerTool(getCloudConnectSupportedFeaturesTool, GetCloudConnectSupportedFeaturesArgumentsSchema);
+    this.registerTool(createAwsAccountRoleTool, CreateAwsAccountRoleArgumentsSchema);
 
     // DataHub Datasets tools
     this.registerTool(listDatahubDatasetsTool, ListDatahubDatasetsArgumentsSchema);
@@ -1151,6 +1156,7 @@ export class DoitMCPAgent extends McpAgent {
 
     // AVA tools
     this.registerTool(askAvaSyncTool, AskAvaSyncArgumentsSchema);
+    this.registerTool(submitAvaFeedbackTool, SubmitAvaFeedbackArgumentsSchema);
 
     // Auto-generated tools — every OpenAPI operation not already hand-covered above.
     // See src/tools/handWrittenTools.ts (coversEndpoint) for what's excluded.
