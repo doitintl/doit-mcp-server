@@ -168,7 +168,7 @@ export interface ToolHandlerOptions {
     userKey?: string;
     /**
      * Persistence for staged write-gated actions. See `src/utils/approval.ts` for the
-     * `MemoryApprovalStore` (stdio) and `doit-mcp-server/src/durableObjectApprovalStore.ts`
+     * `MemoryApprovalStore` (stdio) and the remote Worker's `DurableObjectApprovalStore`
      * (HTTP/SSE) implementations. Omit only in tests that call non-gated tools.
      */
     approvalStore?: ApprovalStore;

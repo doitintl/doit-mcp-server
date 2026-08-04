@@ -12,20 +12,16 @@ yarn install
 
 DoiT MCP Server is a Model Context Protocol (MCP) server that provides LLMs with access to the DoiT API.
 
-The project consists of two main packages:
+This repo is the stdio MCP server plus a transport-independent core package:
 
-1. **Main Package (`src/`)** - Core MCP server implementation using stdio transport
+1. **stdio server (`src/`)** - Core MCP server implementation using stdio transport
    - Published as `@doitintl/doit-mcp-server` on npm
    - Runs locally via `npx` or stdio connection
    - Entry point: `src/index.ts`
 
-2. **HTTP/SSE Package (`doit-mcp-server/`)** - Cloudflare Workers deployment
-   - Exposes the MCP server over HTTP/SSE protocol
-   - Deployed at `https://mcp.doit.com/sse`
-   - Includes OAuth authentication flow
-   - Uses Cloudflare Durable Objects for session persistence
-   - Entry point: `doit-mcp-server/src/index.ts`
-   - Imports and wraps tools from the main package (`../../src/tools/`)
+2. **Core export (`src/core.ts`)** - Transport-independent tools, prompts, and utilities
+   - Published as the `@doitintl/doit-mcp-server/core` subpath
+   - Consumed by the remote Cloudflare Worker (served at `https://mcp.doit.com`), which lives in the separate `doiteng/doit-mcp-server-remote` repo
 
 ## Project Structure
 
@@ -46,19 +42,8 @@ src/
 └── __tests__/            # Server-level tests
 ```
 
-### HTTP/SSE Package (`doit-mcp-server/`)
-```
-doit-mcp-server/
-├── src/
-│   ├── index.ts          # Cloudflare Worker entry point
-│   ├── app.ts            # Hono app for OAuth UI
-│   └── utils.ts          # Worker-specific utilities
-└── package.json          # Separate dependencies for Worker
-```
-
-The HTTP/SSE package imports tools and utilities from the main package and wraps them with:
-- OAuth authentication flow
-- HTTP/SSE transport layer
+The remote HTTP/SSE Worker (OAuth, Durable Objects, Streamable HTTP/SSE transport) lives in the
+separate `doiteng/doit-mcp-server-remote` repo and consumes this package's `/core` export.
 
 ## Development Commands
 
@@ -142,12 +127,12 @@ When adding a new MCP tool:
 2. Define a Zod schema for runtime validation and a raw `inputSchema` object for MCP registration (both are needed — see example below)
 3. Implement handler function
 4. Register tool in `src/server.ts` (stdio transport) — via `src/tools/handWrittenTools.ts`'s `HAND_WRITTEN_TOOLS` array
-5. Register tool in `doit-mcp-server/src/index.ts` (HTTP/SSE transport)
+5. Export the tool and its schema from `src/core.ts` so the remote Worker (separate `doit-mcp-server-remote` repo) can register it
 6. If the tool duplicates an OpenAPI operation from `src/tools/generated/openapi.json`, add `coversEndpoint: "method:path"` to the tool object itself (see `docs/generated-tools-coverage.md`) so the generator skips that operation automatically — no separate list to update
 7. Add tests in `src/tools/__tests__/`
 8. Update README.md with tool documentation
 
-**Note**: Tools must be registered in both transports to be available in all deployment modes.
+**Note**: Tools must be registered for stdio *and* exported from `src/core.ts` to be available in all deployment modes.
 
 ## Auto-generated tools (`src/tools/generated/`)
 
