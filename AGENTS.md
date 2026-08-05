@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## Public Repo
+
+This repo is public. Do not commit or write into PR titles/descriptions: internal Jira issue keys
+(e.g. `CMP-1234`), names of private/internal repos, or other internal-only details. Keep references
+generic (e.g. "a separate private repo") instead.
+
 ## Environment Setup
 
 Requires Node.js `>=18`. Install dependencies before running any commands:
