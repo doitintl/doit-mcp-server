@@ -26,7 +26,7 @@
   ],
   "scripts": {
     "compile": "tsc",
-    "build": "cd widget && npm install --prefer-offline --no-audit && npm run build && cd .. && node scripts/inline-widget.mjs && tsc && shx cp src/tools/generated/openapi.json dist/tools/generated/openapi.json && shx chmod +x dist/*.js",
+    "build": "tsc && shx cp src/tools/generated/openapi.json dist/tools/generated/openapi.json && shx chmod +x dist/*.js",
     "watch": "tsc --watch",
     "test": "vitest run",
     "deploy": "yarn build && npm publish --access public",

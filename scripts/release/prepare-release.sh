@@ -90,7 +90,6 @@ check_node() {
     warn "node not found in PATH — package.json files will NOT be updated automatically."
     warn "you will need to manually set \"version\": \"${1}\" in:"
     warn "  package.json"
-    warn "  doit-mcp-server/package.json"
     warn "  test/integration/package.json"
     return 1
   fi
@@ -204,12 +203,10 @@ main() {
 
   if $has_node; then
     update_package_json_version "${REPO_ROOT}/package.json" "$version"
-    update_package_json_version "${REPO_ROOT}/doit-mcp-server/package.json" "$version"
     update_package_json_version "${REPO_ROOT}/test/integration/package.json" "$version"
   else
     warn "skipping package.json updates — update these manually to \"${version}\":"
     warn "  package.json"
-    warn "  doit-mcp-server/package.json"
     warn "  test/integration/package.json"
   fi
   update_consts_version "${REPO_ROOT}/src/utils/consts.ts" "$version"
@@ -231,7 +228,6 @@ main() {
   if ! $has_node; then
     echo "  *** ACTION REQUIRED: manually set \"version\": \"${version}\" in:"
     echo "        package.json"
-    echo "        doit-mcp-server/package.json"
     echo "        test/integration/package.json"
     echo ""
   fi
@@ -240,7 +236,7 @@ main() {
   echo "  1. Review and edit the changelog entry in CHANGELOG.md if needed."
   echo ""
   echo "  2. Commit the release preparation:"
-  echo "       git add package.json doit-mcp-server/package.json test/integration/package.json src/utils/consts.ts CHANGELOG.md"
+  echo "       git add package.json test/integration/package.json src/utils/consts.ts CHANGELOG.md"
   echo "       git commit -m \"chore: prepare release ${tag}\""
   echo ""
   echo "  3. Tag the release:"

@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { delay, HttpResponse, http } from "msw";
@@ -51,61 +48,6 @@ describe("MCP Tools Integration", () => {
                 expect(tool.inputSchema).toBeDefined();
                 expect(tool.inputSchema.type).toBe("object");
             }
-        });
-    });
-
-    describe("STDIO ↔ SSE tool registration sync", () => {
-        // Auto-generated tools (src/tools/generated/registry.ts) are registered on both
-        // transports from the same generateTools()/COVERED_ENDPOINTS call, so they can't
-        // drift between STDIO and SSE. Only hand-written tools are registered separately
-        // per transport (src/server.ts's HAND_WRITTEN_TOOLS vs. doit-mcp-server/src/index.ts's
-        // individual this.registerTool(xTool, ...) calls), so that's what needs a parity check.
-        //
-        // Tools whose source-level references (import + commented-out registration) are
-        // intentionally retained for an easy re-enable, but which are NOT actually exposed
-        // to clients. The regex extractor matches on raw text, so a commented-out
-        // `// this.registerTool(confirmActionTool, ...)` in doit-mcp-server/src/index.ts
-        // would otherwise be counted as live. Filter them here so the parity check reflects
-        // the actual MCP tool surface; re-enabling a tool means uncommenting its source
-        // reference AND removing its name from this set.
-        const DISABLED_TOOL_VARS = new Set(["confirmActionTool"]);
-
-        function extractToolVarNames(source: string, pattern: RegExp): string[] {
-            const names: string[] = [];
-            for (const m of source.matchAll(pattern)) {
-                if (!DISABLED_TOOL_VARS.has(m[1])) names.push(m[1]);
-            }
-            return names;
-        }
-
-        it("STDIO and SSE servers register the same hand-written tools with no duplicates", async () => {
-            const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-
-            // STDIO: extract tool variable names from the HAND_WRITTEN_TOOLS array
-            const stdioSource = readFileSync(resolve(rootDir, "src/tools/handWrittenTools.ts"), "utf-8");
-            const toolsArrayMatch = stdioSource.match(/HAND_WRITTEN_TOOLS[\s\S]*?=\s*\[([\s\S]*?)\];/);
-            if (!toolsArrayMatch) throw new Error("Could not find HAND_WRITTEN_TOOLS array in handWrittenTools.ts");
-            const stdioTools = extractToolVarNames(toolsArrayMatch[1], /(\w+Tool)\b/g);
-
-            // SSE: extract tool variable names from registerTool() calls
-            const sseSource = readFileSync(resolve(rootDir, "doit-mcp-server/src/index.ts"), "utf-8");
-            const sseTools = extractToolVarNames(sseSource, /this\.registerTool\((\w+Tool)\b/g);
-
-            // No duplicates
-            const stdioDups = stdioTools.filter((t, i) => stdioTools.indexOf(t) !== i);
-            const sseDups = sseTools.filter((t, i) => sseTools.indexOf(t) !== i);
-            expect(stdioDups, `Duplicate tools in STDIO: ${stdioDups.join(", ")}`).toEqual([]);
-            expect(sseDups, `Duplicate tools in SSE: ${sseDups.join(", ")}`).toEqual([]);
-
-            // Same tools in both
-            const missingFromSse = stdioTools.filter((t) => !sseTools.includes(t));
-            const missingFromStdio = sseTools.filter((t) => !stdioTools.includes(t));
-            expect(missingFromSse, `In STDIO but missing from SSE: ${missingFromSse.join(", ")}`).toEqual([]);
-            expect(missingFromStdio, `In SSE but missing from STDIO: ${missingFromStdio.join(", ")}`).toEqual([]);
-
-            // Cross-check: hand-written + generated tool count matches MCP client tool count
-            const result = await client.listTools();
-            expect(result.tools).toHaveLength(stdioTools.length + generatedTools.length);
         });
     });
 
