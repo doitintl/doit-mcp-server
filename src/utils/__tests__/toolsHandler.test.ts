@@ -104,7 +104,7 @@ describe("executeToolHandler approval gate", () => {
 
     it("confirm_action called by a stale client returns a clean error (no throw)", async () => {
         // `confirm_action` is no longer advertised in the tool list (see src/server.ts
-        // and the remote Worker in the doit-mcp-server-remote repo), but a misbehaving client with cached
+        // and the remote Worker in the separate private repo), but a misbehaving client with cached
         // metadata could still send the call. Verify it returns the canonical
         // "Approval token unknown or expired" error instead of throwing, and never
         // reaches the DoiT API.

@@ -143,7 +143,7 @@ export function createServer() {
 
     // stdio is single-process and single-user, so a stable string is sufficient as the
     // identity the approval flow is bound to. The Worker transport binds to the
-    // OAuth-derived api key instead — see the remote Worker in the doit-mcp-server-remote repo.
+    // OAuth-derived api key instead — see the remote Worker in the separate private repo.
     const approvalStore = new MemoryApprovalStore();
     const userKey = "stdio-local";
     const server = new Server(

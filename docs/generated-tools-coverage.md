@@ -38,7 +38,7 @@ export const COVERED_ENDPOINTS: Set<string> = new Set(/* "method:path" for every
 whose `${method}:${pathTemplate}` key is present. Both transports pass `COVERED_ENDPOINTS`:
 
 - stdio: `src/tools/generated/registry.ts`
-- Worker (HTTP/SSE): registered in the separate `doiteng/doit-mcp-server-remote` repo via this package's `/core` export
+- Worker (HTTP/SSE): registered in a separate private repo via this package's `/core` export
 
 ## What to do when adding a hand-written tool
 

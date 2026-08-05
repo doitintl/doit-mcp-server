@@ -9,7 +9,7 @@ const specPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "ope
 /**
  * Loads the pre-dereferenced (zero $ref) OpenAPI spec bundled at build time. Node-only —
  * the Cloudflare Worker has no filesystem, so it statically imports openapi.json directly
- * instead (see the remote Worker in the doit-mcp-server-remote repo).
+ * instead (see the remote Worker in the separate private repo).
  */
 export function loadGeneratedToolsSpec(): OpenAPIV3.Document {
     return JSON.parse(readFileSync(specPath, "utf8")) as OpenAPIV3.Document;

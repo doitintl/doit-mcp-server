@@ -21,7 +21,7 @@ This repo is the stdio MCP server plus a transport-independent core package:
 
 2. **Core export (`src/core.ts`)** - Transport-independent tools, prompts, and utilities
    - Published as the `@doitintl/doit-mcp-server/core` subpath
-   - Consumed by the remote Cloudflare Worker (served at `https://mcp.doit.com`), which lives in the separate `doiteng/doit-mcp-server-remote` repo
+   - Consumed by a remote Cloudflare Worker that lives in a separate private repo
 
 ## Project Structure
 
@@ -42,8 +42,8 @@ src/
 └── __tests__/            # Server-level tests
 ```
 
-The remote HTTP/SSE Worker (OAuth, Durable Objects, Streamable HTTP/SSE transport) lives in the
-separate `doiteng/doit-mcp-server-remote` repo and consumes this package's `/core` export.
+The remote HTTP/SSE Worker (OAuth, Durable Objects, Streamable HTTP/SSE transport) lives in a
+separate private repo and consumes this package's `/core` export.
 
 ## Development Commands
 
@@ -127,7 +127,7 @@ When adding a new MCP tool:
 2. Define a Zod schema for runtime validation and a raw `inputSchema` object for MCP registration (both are needed — see example below)
 3. Implement handler function
 4. Register tool in `src/server.ts` (stdio transport) — via `src/tools/handWrittenTools.ts`'s `HAND_WRITTEN_TOOLS` array
-5. Export the tool and its schema from `src/core.ts` so the remote Worker (separate `doit-mcp-server-remote` repo) can register it
+5. Export the tool and its schema from `src/core.ts` so the remote Worker (separate private repo) can register it
 6. If the tool duplicates an OpenAPI operation from `src/tools/generated/openapi.json`, add `coversEndpoint: "method:path"` to the tool object itself (see `docs/generated-tools-coverage.md`) so the generator skips that operation automatically — no separate list to update
 7. Add tests in `src/tools/__tests__/`
 8. Update README.md with tool documentation
