@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.19.0 (2026-08-17)
+
+**Full diff:** [`v0.16.0...v0.19.0`](../../compare/v0.16.0...v0.19.0)
+
+### Features
+
+- feat: publish to npm on release tag via trusted publishing (CMP-47733) (`1d2201b`)
+- feat: scheduled OpenAPI snapshot refresh honoring an exclusion policy — snapshot refreshed 130 → 170 operations, adding 31 generated tools (`c1eb459`)
+- feat: expose remote runtime helpers from core (#217) (`3d23ff0`)
+- feat: add transport-independent core API (`4acc4ba`)
+- feat: expose core package subpath (`31b89b9`)
+- feat(insights): add post_insight_result and update_insight_status tools (`d37309c`)
+
+### Bug Fixes
+
+- fix: address MCP reliability issues (CMP-47539) (#215) (`67f6d3b`)
+
+### Other Changes
+
+- docs: add MCP vs public API and CLI coverage research (`b7c9d25`)
+- Remove Cloudflare Worker subdirectory after repo split (#218) (`27721b1`)
+- docs: clarify released core package install (`8d5e328`)
+- test: assert published core artifact boundary (`76dd966`)
+
 ## v0.16.0 (2026-07-13)
 
 **Full diff:** [`v0.15.0...v0.16.0`](../../compare/v0.15.0...v0.16.0)
