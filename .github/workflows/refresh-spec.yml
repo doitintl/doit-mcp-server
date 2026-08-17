@@ -1,0 +1,82 @@
+name: Refresh OpenAPI snapshot
+
+# Keeps src/tools/generated/openapi.json in sync with the live external API spec.
+# Runs weekly, on manual dispatch, and on repository_dispatch (type
+# "openapi-spec-updated") so the API repo can trigger a refresh when
+# services/external-api/openapi.yaml changes. Opens/updates a PR instead of
+# pushing directly; the PR body lists new operations split into "exposed as MCP
+# tools" vs "excluded by policy" (src/tools/generated/excludedOperations.json).
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "OpenAPI spec source (URL or path)"
+        required: false
+        default: "https://api.doit.com/openapi.yaml"
+  repository_dispatch:
+    types: [openapi-spec-updated]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: refresh-spec
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh generated spec snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Keep previous snapshot for the diff report
+        run: cp src/tools/generated/openapi.json /tmp/openapi.previous.json
+
+      - name: Regenerate snapshot from live spec
+        run: node scripts/refresh-generated-spec.mjs "${{ github.event.inputs.source || 'https://api.doit.com/openapi.yaml' }}"
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet -- src/tools/generated/openapi.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Snapshot already up to date."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build PR body from operation diff
+        if: steps.diff.outputs.changed == 'true'
+        run: node scripts/report-spec-diff.mjs /tmp/openapi.previous.json src/tools/generated/openapi.json > /tmp/pr-body.md
+
+      - name: Validate refreshed snapshot (lint, tests, build)
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          yarn check:ci
+          yarn test
+          yarn build
+
+      - name: Create or update pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/refresh-generated-openapi-spec
+          title: "chore: refresh generated OpenAPI spec snapshot"
+          commit-message: "chore: refresh generated OpenAPI spec snapshot"
+          body-path: /tmp/pr-body.md
+          labels: automated,spec-refresh
+          delete-branch: true

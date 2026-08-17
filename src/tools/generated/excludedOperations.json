@@ -1,0 +1,42 @@
+{
+  "note": "Operations intentionally NOT exposed as MCP tools. Endpoint format is 'method:/path/template' lowercased — the same normalization as COVERED_ENDPOINTS in src/tools/handWrittenTools.ts. Every entry must match an operation in the bundled spec and must not collide with a hand-written tool; src/tools/generated/__tests__/excludedOperations.test.ts enforces both. The scheduled refresh-spec workflow lists excluded operations in its PR body instead of exposing them. Remove an entry (and refresh the snapshot if needed) to expose the operation.",
+  "excludedTags": [],
+  "excludedEndpoints": [
+    {
+      "endpoint": "post:/billingtransfer/v1/resellerhandshakes",
+      "reason": "Partner-grade batch onboarding write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    },
+    {
+      "endpoint": "post:/billingtransfer/v1/end-customer-mappings",
+      "reason": "Partner-grade batch onboarding write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    },
+    {
+      "endpoint": "post:/customers/{customerID}/contracts",
+      "reason": "Admin-grade contract write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    },
+    {
+      "endpoint": "post:/customers/{customerID}/contracts/{contractID}",
+      "reason": "Admin-grade contract write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    },
+    {
+      "endpoint": "post:/customers/{customerID}/contracts/{contractID}/activate",
+      "reason": "Admin-grade contract write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    },
+    {
+      "endpoint": "post:/customers/{customerID}/contracts/{contractID}/cancel",
+      "reason": "Admin-grade contract write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    },
+    {
+      "endpoint": "post:/billing/v1/contract-templates",
+      "reason": "Admin-grade contract-template write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    },
+    {
+      "endpoint": "put:/billing/v1/contract-templates/{templateID}",
+      "reason": "Admin-grade contract-template write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    },
+    {
+      "endpoint": "delete:/billing/v1/contract-templates/{templateID}",
+      "reason": "Admin-grade contract-template archive — proposed exclusion pending product decision (MCP coverage research 2026-08)"
+    }
+  ]
+}

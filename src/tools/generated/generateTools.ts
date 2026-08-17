@@ -1,6 +1,7 @@
 import type { OpenAPIV3 } from "openapi-types";
 import { type ZodRawShape, z } from "zod";
 
+import { isExcludedOperation } from "./excludedOperations.js";
 import { type JsonSchema, schemaToZod } from "./schemaToZod.js";
 import { type GeneratedTool, HTTP_METHODS, type OperationMetadata } from "./types.js";
 
@@ -30,6 +31,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             const operation = pathItem[method];
             if (!operation) continue;
             if (coveredEndpoints.has(`${method}:${pathTemplate}`.toLowerCase())) continue;
+            if (isExcludedOperation(method, pathTemplate, operation.tags)) continue;
 
             const parameters = (operation.parameters ?? []) as OpenAPIV3.ParameterObject[];
             const pathParams = parameters.filter((parameter) => parameter.in === "path");
