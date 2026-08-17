@@ -169,6 +169,105 @@ describe("generateTools", () => {
 
         const [tool] = generateTools(document, new Set());
         expect(tool.metadata.bodyEncoding).toBe("multipart");
+        expect(tool.metadata.contentType).toBe("multipart/form-data");
         expect(tool.metadata.multipartFileFields).toEqual(["file"]);
+    });
+
+    it("picks up path-level parameters shared by every operation under the path", () => {
+        const document = buildDocument({
+            paths: {
+                "/core/v1/cloudconnect/aws/accounts/{accountID}": {
+                    parameters: [
+                        {
+                            name: "accountID",
+                            in: "path",
+                            required: true,
+                            schema: { type: "string" },
+                        },
+                    ],
+                    delete: { operationId: "deleteAccountRole" },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const [tool] = generateTools(document, new Set());
+        expect(tool.metadata.pathParams).toEqual(["accountID"]);
+        expect(tool.zodSchema.shape.accountID).toBeDefined();
+    });
+
+    it("lets an operation-level parameter override a path-level one with the same name and location", () => {
+        const document = buildDocument({
+            paths: {
+                "/widgets/{id}": {
+                    parameters: [
+                        {
+                            name: "id",
+                            in: "path",
+                            required: true,
+                            schema: { type: "string" },
+                        },
+                    ],
+                    get: {
+                        operationId: "getWidget",
+                        parameters: [
+                            {
+                                name: "id",
+                                in: "path",
+                                required: true,
+                                schema: { type: "number" },
+                            },
+                        ],
+                    },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const [tool] = generateTools(document, new Set());
+        expect(tool.metadata.pathParams).toEqual(["id"]);
+        expect(tool.zodSchema.shape.id.safeParse(1).success).toBe(true);
+        expect(tool.zodSchema.shape.id.safeParse("one").success).toBe(false);
+    });
+
+    it("throws when a URL placeholder has no declared path parameter", () => {
+        const document = buildDocument({
+            paths: {
+                "/widgets/{id}": {
+                    get: { operationId: "getWidget" },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        expect(() => generateTools(document, new Set())).toThrow(/no declared path parameter: id/);
+    });
+
+    it("treats application/*+json request bodies as JSON and preserves the declared content type", () => {
+        const document = buildDocument({
+            paths: {
+                "/customers/v1/customers": {
+                    patch: {
+                        operationId: "updateCustomer",
+                        requestBody: {
+                            content: {
+                                "application/merge-patch+json": {
+                                    schema: {
+                                        type: "object",
+                                        properties: {
+                                            currency: { type: "string" },
+                                            urlSlug: { type: "string" },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const [tool] = generateTools(document, new Set());
+        expect(tool.metadata.bodyEncoding).toBe("json");
+        expect(tool.metadata.contentType).toBe("application/merge-patch+json");
+        expect(tool.zodSchema.shape.currency).toBeDefined();
+        expect(tool.zodSchema.shape.urlSlug).toBeDefined();
     });
 });

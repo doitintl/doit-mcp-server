@@ -16,6 +16,43 @@ function toolNameFor(method: string, pathTemplate: string, operationId?: string)
 }
 
 /**
+ * OpenAPI lets a parameter be declared once on the path item and shared by every operation
+ * under it. Per the spec, an operation-level parameter overrides a path-level one with the
+ * same (name, in) pair.
+ */
+function mergeParameters(
+    pathLevel: OpenAPIV3.ParameterObject[],
+    operationLevel: OpenAPIV3.ParameterObject[]
+): OpenAPIV3.ParameterObject[] {
+    const merged = new Map<string, OpenAPIV3.ParameterObject>();
+    for (const parameter of [...pathLevel, ...operationLevel]) {
+        merged.set(`${parameter.in}:${parameter.name}`, parameter);
+    }
+    return [...merged.values()];
+}
+
+/**
+ * A placeholder with no matching path parameter would silently ship a tool whose request URL
+ * still contains the literal `{name}` — fail generation instead of serving a broken tool.
+ */
+function assertAllPlaceholdersDeclared(pathTemplate: string, pathParams: string[]): void {
+    const placeholders = [...pathTemplate.matchAll(/{([^}]+)}/g)].map(([, name]) => name);
+    const missing = placeholders.filter((name) => !pathParams.includes(name));
+    if (missing.length > 0) {
+        throw new Error(
+            `OpenAPI path ${pathTemplate} has URL placeholders with no declared path parameter: ${missing.join(", ")}`
+        );
+    }
+}
+
+/** Content types the API describes with a JSON body, e.g. `application/merge-patch+json`. */
+function findJsonContent(
+    content: Record<string, OpenAPIV3.MediaTypeObject> | undefined
+): [string, OpenAPIV3.MediaTypeObject] | undefined {
+    return Object.entries(content ?? {}).find(([contentType]) => /^application\/([\w.-]+\+)?json$/.test(contentType));
+}
+
+/**
  * Builds one MCP tool per OpenAPI operation not already covered by a hand-written tool.
  * `coveredEndpoints` is derived from every hand-written tool's own `coversEndpoint` field
  * (see src/tools/handWrittenTools.ts) — callers pass COVERED_ENDPOINTS from that module.
@@ -33,7 +70,10 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             if (coveredEndpoints.has(`${method}:${pathTemplate}`.toLowerCase())) continue;
             if (isExcludedOperation(method, pathTemplate, operation.tags)) continue;
 
-            const parameters = (operation.parameters ?? []) as OpenAPIV3.ParameterObject[];
+            const parameters = mergeParameters(
+                (pathItem.parameters ?? []) as OpenAPIV3.ParameterObject[],
+                (operation.parameters ?? []) as OpenAPIV3.ParameterObject[]
+            );
             const pathParams = parameters.filter((parameter) => parameter.in === "path");
             const queryParams = parameters.filter((parameter) => parameter.in === "query");
             const headerParams = parameters.filter((parameter) => parameter.in === "header");
@@ -45,14 +85,14 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             }
 
             const requestBodyContent = (operation.requestBody as OpenAPIV3.RequestBodyObject | undefined)?.content;
-            const jsonBodySchema = requestBodyContent?.["application/json"]?.schema as unknown as
-                | JsonSchema
-                | undefined;
+            const [jsonContentType, jsonMediaType] = findJsonContent(requestBodyContent) ?? [];
+            const jsonBodySchema = jsonMediaType?.schema as unknown as JsonSchema | undefined;
             const multipartBodySchema = requestBodyContent?.["multipart/form-data"]?.schema as unknown as
                 | JsonSchema
                 | undefined;
 
-            const bodyEncoding: OperationMetadata["bodyEncoding"] = jsonBodySchema ? "json" : "multipart";
+            const bodyEncoding: OperationMetadata["bodyEncoding"] = jsonContentType ? "json" : "multipart";
+            const contentType = jsonContentType ?? "multipart/form-data";
             const requestBodySchema = jsonBodySchema ?? multipartBodySchema;
             const multipartFileFields: string[] = [];
 
@@ -73,8 +113,11 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 queryParams: [...queryParams.map((parameter) => parameter.name), "customerContext"],
                 headerParams: headerParams.map((parameter) => parameter.name),
                 bodyEncoding,
+                contentType,
                 multipartFileFields,
             };
+
+            assertAllPlaceholdersDeclared(pathTemplate, metadata.pathParams);
 
             // Every operation supports scoping to a customer, but the OpenAPI spec itself has
             // no notion of this (callOperation.ts reads it as a query param) — declare it here
