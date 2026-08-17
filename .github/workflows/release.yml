@@ -53,11 +53,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Update npm (trusted publishing needs npm >= 11.5.1)
-        run: npm install -g npm@latest
+      # Trusted publishing needs npm >= 11.5.1. Pinned to major 11 because
+      # npm@latest can require a newer Node than this job runs (npm@12 needs
+      # Node >= 22.22, which broke the first publish attempt on Node 20).
+      - name: Update npm
+        run: npm install -g npm@11
 
       - name: Verify tag matches package.json version
         run: |
