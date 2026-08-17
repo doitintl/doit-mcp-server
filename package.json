@@ -8,9 +8,19 @@
     "mcp-server"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doitintl/doit-mcp-server.git"
+  },
+  "homepage": "https://github.com/doitintl/doit-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/doitintl/doit-mcp-server/issues"
+  },
   "author": "",
   "type": "module",
-  "bin": "dist/index.js",
+  "bin": {
+    "doit-mcp-server": "dist/index.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
