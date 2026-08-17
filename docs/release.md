@@ -45,4 +45,20 @@ git tag v0.10.0
 git push origin v0.10.0
 ```
 
-6. Pushing the tag triggers the [Release workflow](../.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md` and creates a GitHub Release automatically.
+6. Pushing the tag triggers the [Release workflow](../.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md`, creates a GitHub Release, and then publishes the package to npm automatically (the `publish-npm` job re-runs tests and the build, verifies the tag matches `package.json`, and publishes). `yarn deploy` from a laptop is no longer part of the release flow.
+
+## npm publishing (Trusted Publishing / OIDC)
+
+The `publish-npm` job authenticates via [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) — GitHub Actions proves its identity to npm with an OIDC token, so **no `NPM_TOKEN` secret exists or needs rotating**. Publishes made this way also carry provenance attestations.
+
+One-time setup (any `@doitintl/doit-mcp-server` maintainer):
+
+1. On npmjs.com → package **Settings** → **Trusted Publisher**, select GitHub Actions.
+2. Set organization `doitintl`, repository `doit-mcp-server`, workflow filename `release.yml` (leave environment empty).
+3. Save. From then on, tag pushes publish without any credentials.
+
+Until that setup is done, the `publish-npm` job fails at the `npm publish` step with an auth error — everything before it (release creation) still works.
+
+## Cloudflare Worker (mcp.doit.com)
+
+Publishing to npm does **not** update the hosted Worker — it consumes this package's `/core` export from its own (private) repo and must bump the dependency and redeploy there. Automating that half is tracked in [CMP-47733](https://doitintl.atlassian.net/browse/CMP-47733).

@@ -116,7 +116,7 @@ Computed as (operations in the live spec) minus (operations in the MCP snapshot)
 | Live spec → CLI commands | ✅ Yes (runtime) | restish loads the spec per invocation/cache; zero-lag coverage. |
 | Live spec → MCP snapshot (`openapi.json`) | ❌ Manual at research time | Was `yarn generate:refresh-spec` run by a maintainer (last run 2026-07-13, no CI cron, no drift check). Now automated by `.github/workflows/refresh-spec.yml` (PR #219): weekly cron + `repository_dispatch`, opens a review PR. |
 | Snapshot → MCP tools | ✅ Yes (build/load time) | `generateTools.ts` emits a tool per uncovered operation; hand-written coverage tracked via `coversEndpoint` so nothing double-registers. |
-| MCP release → npm | ❌ Manual | `yarn deploy` (build + `npm publish`); GitHub release workflow only creates the release on tag push. |
+| MCP release → npm | ✅ Yes (on tag) | `release.yml`'s `publish-npm` job publishes via npm Trusted Publishing (OIDC, no token) after verifying the tag matches `package.json`. |
 | npm → hosted worker (`mcp.doit.com`) | ❌ Manual / separate repo | Worker imports `@doitintl/doit-mcp-server/core`; redeploy cadence not visible from the public repo. |
 | MCP docs (help.doit.com tool list) | ❌ Manual | The docs list a curated subset and lag the generated tools. |
 
@@ -127,7 +127,7 @@ Computed as (operations in the live spec) minus (operations in the MCP snapshot)
 1. **Automate the snapshot refresh** — ✅ implemented in PR #219: `.github/workflows/refresh-spec.yml` runs `scripts/refresh-generated-spec.mjs` weekly (plus `workflow_dispatch` and `repository_dispatch` type `openapi-spec-updated`) and opens a review PR when `openapi.json` changes.
 2. **Add a drift alarm** — ✅ covered by the same workflow: the weekly run surfaces divergence as a PR instead of letting it accumulate silently.
 3. **CI hook in omni**: a post-merge step when `services/external-api/openapi.yaml` changes that fires the `repository_dispatch` at this repo (e.g. `gh api repos/doitintl/doit-mcp-server/dispatches -f event_type=openapi-spec-updated`). Not yet implemented.
-4. **Automate npm publish on tag** (the release workflow already validates semver tags) so a refreshed snapshot reaches the stdio users and the worker dependency bump without a maintainer's laptop. Not yet implemented.
+4. **Automate npm publish on tag** — ✅ implemented (CMP-47733): `release.yml` publishes to npm via Trusted Publishing on every semver tag; see `docs/release.md`.
 5. **Docs**: generate the help.doit.com MCP tool list from the same snapshot (or mark it explicitly as a curated highlights list) to avoid a third manually-synced surface. Not yet implemented.
 6. **Decide intentional exclusions explicitly** — ✅ mechanism implemented in PR #219 (`src/tools/generated/excludedOperations.json`, enforced by `generateTools.ts` and guarded by `src/tools/generated/__tests__/excludedOperations.test.ts`). The nine seeded entries (Billing Transfer batch writes, Contracts writes, Contract Templates writes) are **proposals pending a product decision** — delete an entry to expose that operation.
 
