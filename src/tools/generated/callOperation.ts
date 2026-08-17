@@ -89,10 +89,10 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
               : bodyFields;
 
         // The operation's declared content type may not be plain application/json (e.g.
-        // application/merge-patch+json), and makeDoitRequest defaults to application/json —
-        // send the declared one. Multipart is left unset so fetch adds its own boundary.
+        // application/merge-patch+json), and makeDoitRequest defaults to application/json.
+        // Multipart is left unset so fetch adds its own boundary.
         if (hasBody && metadata.bodyEncoding === "json") {
-            headers["Content-Type"] = metadata.contentType;
+            headers["Content-Type"] = metadata.contentType ?? "application/json";
         }
 
         const data = await makeDoitRequest<string>(url, token, {

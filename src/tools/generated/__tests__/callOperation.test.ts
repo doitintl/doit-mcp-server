@@ -32,7 +32,6 @@ function buildTool(overrides: Partial<GeneratedTool> = {}): GeneratedTool {
             queryParams: ["pageToken"],
             headerParams: [],
             bodyEncoding: "json",
-            contentType: "application/json",
             multipartFileFields: [],
         },
         annotations: {
@@ -87,7 +86,6 @@ describe("handleGeneratedOperationRequest", () => {
                 queryParams: [],
                 headerParams: [],
                 bodyEncoding: "json",
-                contentType: "application/json",
                 multipartFileFields: [],
             },
             zodSchema: z.object({ name: z.string() }),
@@ -138,7 +136,6 @@ describe("handleGeneratedOperationRequest", () => {
                 queryParams: [],
                 headerParams: ["Idempotency-Key"],
                 bodyEncoding: "json",
-                contentType: "application/json",
                 multipartFileFields: [],
             },
         });
@@ -161,7 +158,6 @@ describe("handleGeneratedOperationRequest", () => {
                 queryParams: [],
                 headerParams: [],
                 bodyEncoding: "multipart",
-                contentType: "multipart/form-data",
                 multipartFileFields: ["file"],
             },
         });

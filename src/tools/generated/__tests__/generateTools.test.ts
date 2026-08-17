@@ -1,6 +1,8 @@
 import type { OpenAPIV3 } from "openapi-types";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { COVERED_ENDPOINTS } from "../../handWrittenTools.js";
 import { generateTools } from "../generateTools.js";
+import { loadGeneratedToolsSpec } from "../loadSpec.js";
 
 function buildDocument(overrides: Partial<OpenAPIV3.Document> = {}): OpenAPIV3.Document {
     return {
@@ -169,7 +171,7 @@ describe("generateTools", () => {
 
         const [tool] = generateTools(document, new Set());
         expect(tool.metadata.bodyEncoding).toBe("multipart");
-        expect(tool.metadata.contentType).toBe("multipart/form-data");
+        expect(tool.metadata.contentType).toBeUndefined();
         expect(tool.metadata.multipartFileFields).toEqual(["file"]);
     });
 
@@ -228,16 +230,23 @@ describe("generateTools", () => {
         expect(tool.zodSchema.shape.id.safeParse("one").success).toBe(false);
     });
 
-    it("throws when a URL placeholder has no declared path parameter", () => {
+    it("skips the operation when a URL placeholder has no declared path parameter, leaving other tools intact", () => {
+        const warn = vi.spyOn(console, "error").mockImplementation(() => {});
         const document = buildDocument({
             paths: {
                 "/widgets/{id}": {
                     get: { operationId: "getWidget" },
                 },
+                "/gadgets": {
+                    get: { operationId: "listGadgets" },
+                },
             } as unknown as OpenAPIV3.Document["paths"],
         });
 
-        expect(() => generateTools(document, new Set())).toThrow(/no declared path parameter: id/);
+        const tools = generateTools(document, new Set());
+        expect(tools.map((tool) => tool.name)).toEqual(["list_gadgets"]);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining("no declared path parameter: id"));
+        warn.mockRestore();
     });
 
     it("treats application/*+json request bodies as JSON and preserves the declared content type", () => {
@@ -269,5 +278,14 @@ describe("generateTools", () => {
         expect(tool.metadata.contentType).toBe("application/merge-patch+json");
         expect(tool.zodSchema.shape.currency).toBeDefined();
         expect(tool.zodSchema.shape.urlSlug).toBeDefined();
+    });
+
+    it("skips nothing in the bundled spec — every templated path declares its placeholders", () => {
+        const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
     });
 });

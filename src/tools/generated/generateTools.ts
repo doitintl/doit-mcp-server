@@ -17,8 +17,7 @@ function toolNameFor(method: string, pathTemplate: string, operationId?: string)
 
 /**
  * OpenAPI lets a parameter be declared once on the path item and shared by every operation
- * under it. Per the spec, an operation-level parameter overrides a path-level one with the
- * same (name, in) pair.
+ * under it.
  */
 function mergeParameters(
     pathLevel: OpenAPIV3.ParameterObject[],
@@ -32,20 +31,14 @@ function mergeParameters(
 }
 
 /**
- * A placeholder with no matching path parameter would silently ship a tool whose request URL
- * still contains the literal `{name}` — fail generation instead of serving a broken tool.
+ * A placeholder with no matching path parameter would ship a tool whose request URL still
+ * contains the literal `{name}`, so callers get a 404 instead of a result.
  */
-function assertAllPlaceholdersDeclared(pathTemplate: string, pathParams: string[]): void {
+function findUndeclaredPlaceholders(pathTemplate: string, pathParams: string[]): string[] {
     const placeholders = [...pathTemplate.matchAll(/{([^}]+)}/g)].map(([, name]) => name);
-    const missing = placeholders.filter((name) => !pathParams.includes(name));
-    if (missing.length > 0) {
-        throw new Error(
-            `OpenAPI path ${pathTemplate} has URL placeholders with no declared path parameter: ${missing.join(", ")}`
-        );
-    }
+    return placeholders.filter((name) => !pathParams.includes(name));
 }
 
-/** Content types the API describes with a JSON body, e.g. `application/merge-patch+json`. */
 function findJsonContent(
     content: Record<string, OpenAPIV3.MediaTypeObject> | undefined
 ): [string, OpenAPIV3.MediaTypeObject] | undefined {
@@ -91,8 +84,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 | JsonSchema
                 | undefined;
 
-            const bodyEncoding: OperationMetadata["bodyEncoding"] = jsonContentType ? "json" : "multipart";
-            const contentType = jsonContentType ?? "multipart/form-data";
+            const bodyEncoding: OperationMetadata["bodyEncoding"] = jsonBodySchema ? "json" : "multipart";
             const requestBodySchema = jsonBodySchema ?? multipartBodySchema;
             const multipartFileFields: string[] = [];
 
@@ -113,11 +105,20 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 queryParams: [...queryParams.map((parameter) => parameter.name), "customerContext"],
                 headerParams: headerParams.map((parameter) => parameter.name),
                 bodyEncoding,
-                contentType,
+                contentType: jsonContentType,
                 multipartFileFields,
             };
 
-            assertAllPlaceholdersDeclared(pathTemplate, metadata.pathParams);
+            // Dropping just this operation rather than throwing: generateTools runs at module load
+            // (see registry.ts), so a single malformed upstream path must not take down the server
+            // and every other tool with it. The bundled spec is asserted clean in the tests.
+            const undeclared = findUndeclaredPlaceholders(pathTemplate, metadata.pathParams);
+            if (undeclared.length > 0) {
+                console.error(
+                    `Skipping generated tool for ${method.toUpperCase()} ${pathTemplate}: URL placeholders with no declared path parameter: ${undeclared.join(", ")}`
+                );
+                continue;
+            }
 
             // Every operation supports scoping to a customer, but the OpenAPI spec itself has
             // no notion of this (callOperation.ts reads it as a query param) — declare it here

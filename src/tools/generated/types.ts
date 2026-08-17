@@ -9,7 +9,7 @@ export type OperationMetadata = {
     queryParams: string[];
     headerParams: string[];
     bodyEncoding: "json" | "multipart";
-    contentType: string;
+    contentType?: string;
     multipartFileFields: string[];
 };
 
