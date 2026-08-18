@@ -114,7 +114,7 @@ Computed as (operations in the live spec) minus (operations in the MCP snapshot)
 |---|---|---|
 | Spec (omni) → live `api.doit.com/openapi.yaml` | ✅ Yes | Deployed with the external API; verified identical. Schemathesis validates spec↔deployment. |
 | Live spec → CLI commands | ✅ Yes (runtime) | restish loads the spec per invocation/cache; zero-lag coverage. |
-| Live spec → MCP snapshot (`openapi.json`) | ❌ Manual at research time | Was `yarn generate:refresh-spec` run by a maintainer (last run 2026-07-13, no CI cron, no drift check). Now automated by `.github/workflows/refresh-spec.yml` (PR #219): weekly cron + `repository_dispatch`, opens a review PR. |
+| Live spec → MCP snapshot (`openapi.json`) | ❌ Manual at research time | Was `yarn generate:refresh-spec` run by a maintainer (last run 2026-07-13, no CI cron, no drift check). Now automated by `.github/workflows/refresh-spec.yml` (PR #219): daily cron + `repository_dispatch`, opens a review PR. |
 | Snapshot → MCP tools | ✅ Yes (build/load time) | `generateTools.ts` emits a tool per uncovered operation; hand-written coverage tracked via `coversEndpoint` so nothing double-registers. |
 | MCP release → npm | ✅ Yes (on tag) | `release.yml`'s `publish-npm` job publishes via npm Trusted Publishing (OIDC, no token) after verifying the tag matches `package.json`. |
 | npm → hosted worker (`mcp.doit.com`) | ❌ Manual / separate repo | Worker imports `@doitintl/doit-mcp-server/core`; redeploy cadence not visible from the public repo. |
@@ -124,8 +124,8 @@ Computed as (operations in the live spec) minus (operations in the MCP snapshot)
 
 ## Recommendations
 
-1. **Automate the snapshot refresh** — ✅ implemented in PR #219: `.github/workflows/refresh-spec.yml` runs `scripts/refresh-generated-spec.mjs` weekly (plus `workflow_dispatch` and `repository_dispatch` type `openapi-spec-updated`) and opens a review PR when `openapi.json` changes.
-2. **Add a drift alarm** — ✅ covered by the same workflow: the weekly run surfaces divergence as a PR instead of letting it accumulate silently.
+1. **Automate the snapshot refresh** — ✅ implemented in PR #219: `.github/workflows/refresh-spec.yml` runs `scripts/refresh-generated-spec.mjs` daily (plus `workflow_dispatch` and `repository_dispatch` type `openapi-spec-updated`) and opens a review PR when `openapi.json` changes. Daily polling was chosen over a cross-org push trigger: the omni-side dispatch would need a credential that can reach this repo, and the org's shared cross-repo GitHub App is deliberately read-only.
+2. **Add a drift alarm** — ✅ covered by the same workflow: the daily run surfaces divergence as a PR instead of letting it accumulate silently.
 3. **CI hook in omni**: a post-merge step when `services/external-api/openapi.yaml` changes that fires the `repository_dispatch` at this repo (e.g. `gh api repos/doitintl/doit-mcp-server/dispatches -f event_type=openapi-spec-updated`). Not yet implemented.
 4. **Automate npm publish on tag** — ✅ implemented (CMP-47733): `release.yml` publishes to npm via Trusted Publishing on every semver tag; see `docs/release.md`.
 5. **Docs**: generate the help.doit.com MCP tool list from the same snapshot (or mark it explicitly as a curated highlights list) to avoid a third manually-synced surface. Not yet implemented.
