@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.19.1 (2026-08-18)
+
+**Full diff:** [`v0.19.0...v0.19.1`](../../compare/v0.19.0...v0.19.1)
+
+### Bug Fixes
+
+- fix(generated-tools): merge path-level params and honor +json content types (#225) (`040e63c`)
 ## v0.19.0 (2026-08-17)
 
 **Full diff:** [`v0.16.0...v0.19.0`](../../compare/v0.16.0...v0.19.0)
