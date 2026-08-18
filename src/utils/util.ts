@@ -233,6 +233,10 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * re-throws a `DOMException` with `name === "TimeoutError"` instead of returning null.
  * Callers that pass `timeoutMs` must handle this case explicitly.
  *
+ * Exception: when `throwOnError` is set, every error is re-thrown instead of returning null,
+ * so the caller can surface the API's own message (see `throwHttpError`) rather than a
+ * generic failure string. Callers that pass it must handle the throw.
+ *
  * @param url The API endpoint URL
  * @param token The authentication token
  * @param options Additional request options
@@ -240,6 +244,7 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options.body Request body for POST/PUT requests
  * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
  * @param options.timeoutMs If set, aborts the request after this many milliseconds and throws TimeoutError
+ * @param options.throwOnError If set, re-throws errors instead of returning null
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
