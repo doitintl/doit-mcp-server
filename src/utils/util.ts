@@ -381,6 +381,13 @@ function appendTrackingParams(url: string): string {
     return out;
 }
 
+/**
+ * An upstream error body is not always the short JSON message we hope for — a proxy or load
+ * balancer can return a full HTML page — and this string is surfaced to the MCP client, so it
+ * is capped rather than forwarded whole.
+ */
+const MAX_ERROR_DETAIL_CHARS = 2000;
+
 // throwHttpError reads a non-OK response body, extracts the most specific message available,
 // and throws an Error carrying the HTTP status.
 async function throwHttpError(response: Response): Promise<never> {
@@ -396,7 +403,11 @@ async function throwHttpError(response: Response): Promise<never> {
         // use bodyText as-is
     }
 
-    throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+    const message = detail || response.statusText;
+    if (message.length > MAX_ERROR_DETAIL_CHARS) {
+        throw new Error(`HTTP ${response.status}: ${message.slice(0, MAX_ERROR_DETAIL_CHARS)}… (truncated)`);
+    }
+    throw new Error(`HTTP ${response.status}: ${message}`);
 }
 
 function resolveConsoleBase(): { baseUrl: string; doFetch: typeof fetch } {

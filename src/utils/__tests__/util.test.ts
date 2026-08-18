@@ -247,6 +247,22 @@ describe("makeDoitRequest timeout", () => {
         expect(result).toBeNull();
     });
 
+    it("should cap an oversized upstream error body instead of forwarding it whole", async () => {
+        const htmlErrorPage = `<html>${"x".repeat(5000)}</html>`;
+        vi.stubGlobal("fetch", () =>
+            Promise.resolve({
+                ok: false,
+                status: 502,
+                statusText: "Bad Gateway",
+                text: () => Promise.resolve(htmlErrorPage),
+            })
+        );
+
+        await expect(
+            makeDoitRequest("https://api.doit.com/test", "test-token", { throwOnError: true })
+        ).rejects.toThrow(/… \(truncated\)$/);
+    });
+
     it("should throw the API's error detail when throwOnError is set", async () => {
         vi.stubGlobal("fetch", () =>
             Promise.resolve({
