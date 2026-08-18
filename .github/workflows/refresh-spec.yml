@@ -1,7 +1,7 @@
 name: Refresh OpenAPI snapshot
 
 # Keeps src/tools/generated/openapi.json in sync with the live external API spec.
-# Runs weekly, on manual dispatch, and on repository_dispatch (type
+# Runs daily, on manual dispatch, and on repository_dispatch (type
 # "openapi-spec-updated") so the API repo can trigger a refresh when
 # services/external-api/openapi.yaml changes. Opens/updates a PR instead of
 # pushing directly; the PR body lists new operations split into "exposed as MCP
@@ -9,7 +9,7 @@ name: Refresh OpenAPI snapshot
 
 on:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "0 6 * * *"
   workflow_dispatch:
     inputs:
       source:
