@@ -1,6 +1,8 @@
 import type { OpenAPIV3 } from "openapi-types";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { COVERED_ENDPOINTS } from "../../handWrittenTools.js";
 import { generateTools } from "../generateTools.js";
+import { loadGeneratedToolsSpec } from "../loadSpec.js";
 
 function buildDocument(overrides: Partial<OpenAPIV3.Document> = {}): OpenAPIV3.Document {
     return {
@@ -169,6 +171,121 @@ describe("generateTools", () => {
 
         const [tool] = generateTools(document, new Set());
         expect(tool.metadata.bodyEncoding).toBe("multipart");
+        expect(tool.metadata.contentType).toBeUndefined();
         expect(tool.metadata.multipartFileFields).toEqual(["file"]);
+    });
+
+    it("picks up path-level parameters shared by every operation under the path", () => {
+        const document = buildDocument({
+            paths: {
+                "/core/v1/cloudconnect/aws/accounts/{accountID}": {
+                    parameters: [
+                        {
+                            name: "accountID",
+                            in: "path",
+                            required: true,
+                            schema: { type: "string" },
+                        },
+                    ],
+                    delete: { operationId: "deleteAccountRole" },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const [tool] = generateTools(document, new Set());
+        expect(tool.metadata.pathParams).toEqual(["accountID"]);
+        expect(tool.zodSchema.shape.accountID).toBeDefined();
+    });
+
+    it("lets an operation-level parameter override a path-level one with the same name and location", () => {
+        const document = buildDocument({
+            paths: {
+                "/widgets/{id}": {
+                    parameters: [
+                        {
+                            name: "id",
+                            in: "path",
+                            required: true,
+                            schema: { type: "string" },
+                        },
+                    ],
+                    get: {
+                        operationId: "getWidget",
+                        parameters: [
+                            {
+                                name: "id",
+                                in: "path",
+                                required: true,
+                                schema: { type: "number" },
+                            },
+                        ],
+                    },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const [tool] = generateTools(document, new Set());
+        expect(tool.metadata.pathParams).toEqual(["id"]);
+        expect(tool.zodSchema.shape.id.safeParse(1).success).toBe(true);
+        expect(tool.zodSchema.shape.id.safeParse("one").success).toBe(false);
+    });
+
+    it("skips the operation when a URL placeholder has no declared path parameter, leaving other tools intact", () => {
+        const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+        const document = buildDocument({
+            paths: {
+                "/widgets/{id}": {
+                    get: { operationId: "getWidget" },
+                },
+                "/gadgets": {
+                    get: { operationId: "listGadgets" },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const tools = generateTools(document, new Set());
+        expect(tools.map((tool) => tool.name)).toEqual(["list_gadgets"]);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining("no declared path parameter: id"));
+        warn.mockRestore();
+    });
+
+    it("treats application/*+json request bodies as JSON and preserves the declared content type", () => {
+        const document = buildDocument({
+            paths: {
+                "/customers/v1/customers": {
+                    patch: {
+                        operationId: "updateCustomer",
+                        requestBody: {
+                            content: {
+                                "application/merge-patch+json": {
+                                    schema: {
+                                        type: "object",
+                                        properties: {
+                                            currency: { type: "string" },
+                                            urlSlug: { type: "string" },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const [tool] = generateTools(document, new Set());
+        expect(tool.metadata.bodyEncoding).toBe("json");
+        expect(tool.metadata.contentType).toBe("application/merge-patch+json");
+        expect(tool.zodSchema.shape.currency).toBeDefined();
+        expect(tool.zodSchema.shape.urlSlug).toBeDefined();
+    });
+
+    it("skips nothing in the bundled spec — every templated path declares its placeholders", () => {
+        const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
     });
 });

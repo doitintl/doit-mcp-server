@@ -88,6 +88,13 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
               ? buildMultipartBody(bodyFields, metadata.multipartFileFields)
               : bodyFields;
 
+        // The operation's declared content type may not be plain application/json (e.g.
+        // application/merge-patch+json), and makeDoitRequest defaults to application/json.
+        // Multipart is left unset so fetch adds its own boundary.
+        if (hasBody && metadata.bodyEncoding === "json") {
+            headers["Content-Type"] = metadata.contentType ?? "application/json";
+        }
+
         const data = await makeDoitRequest<string>(url, token, {
             method: metadata.method.toUpperCase(),
             body,

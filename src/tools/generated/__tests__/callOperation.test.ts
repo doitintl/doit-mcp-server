@@ -100,6 +100,31 @@ describe("handleGeneratedOperationRequest", () => {
         );
     });
 
+    it("sends the operation's declared content type for a non-plain JSON body", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+        const tool = buildTool({
+            metadata: {
+                method: "patch",
+                pathTemplate: "/customers/v1/customers",
+                pathParams: [],
+                queryParams: [],
+                headerParams: [],
+                bodyEncoding: "json",
+                contentType: "application/merge-patch+json",
+                multipartFileFields: [],
+            },
+            zodSchema: z.object({ currency: z.string().optional() }),
+        });
+
+        await handleGeneratedOperationRequest(tool, { currency: "USD" }, mockToken);
+
+        const [, , options] = (makeDoitRequest as vi.Mock).mock.calls[0];
+        expect(options.body).toEqual({ currency: "USD" });
+        expect(options.headers).toEqual({
+            "Content-Type": "application/merge-patch+json",
+        });
+    });
+
     it("sends header params as request headers and excludes them from the body", async () => {
         (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
         const tool = buildTool({
