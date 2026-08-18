@@ -102,6 +102,7 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
             parseAs: "text",
             timeoutMs: GENERATED_REQUEST_TIMEOUT_MS,
             headers: Object.keys(headers).length > 0 ? headers : undefined,
+            throwOnError: true,
         });
 
         if (data === null) {

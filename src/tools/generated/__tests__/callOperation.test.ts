@@ -186,4 +186,36 @@ describe("handleGeneratedOperationRequest", () => {
 
         expect(response.isError).toBe(true);
     });
+
+    it("asks makeDoitRequest to throw so the API's error reaches the caller", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+
+        await handleGeneratedOperationRequest(buildTool(), { id: "abc" }, mockToken);
+
+        const [, , options] = (makeDoitRequest as vi.Mock).mock.calls[0];
+        expect(options.throwOnError).toBe(true);
+    });
+
+    it("surfaces the API's error message instead of a generic failure", async () => {
+        (makeDoitRequest as vi.Mock).mockRejectedValue(
+            new Error("HTTP 403: user is missing required permission: Settings")
+        );
+
+        const response = await handleGeneratedOperationRequest(buildTool(), { id: "abc" }, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toBe("HTTP 403: user is missing required permission: Settings");
+    });
+
+    it("carries the re-auth challenge on a 401 the way hand-written tools do", async () => {
+        (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("HTTP 401: your session has expired"));
+
+        const response = await handleGeneratedOperationRequest(buildTool(), { id: "abc" }, mockToken);
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toBe("HTTP 401: your session has expired");
+        expect((response as { _meta?: Record<string, string> })._meta?.["mcp/www_authenticate"]).toContain(
+            "invalid_token"
+        );
+    });
 });

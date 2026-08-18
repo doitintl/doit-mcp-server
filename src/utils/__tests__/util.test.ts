@@ -231,4 +231,34 @@ describe("makeDoitRequest timeout", () => {
 
         expect(result).toBeNull();
     });
+
+    it("should return null on an HTTP error when throwOnError is not set", async () => {
+        vi.stubGlobal("fetch", () =>
+            Promise.resolve({
+                ok: false,
+                status: 403,
+                statusText: "Forbidden",
+                text: () => Promise.resolve(JSON.stringify({ error: "user is missing required permission: Settings" })),
+            })
+        );
+
+        const result = await makeDoitRequest("https://api.doit.com/test", "test-token");
+
+        expect(result).toBeNull();
+    });
+
+    it("should throw the API's error detail when throwOnError is set", async () => {
+        vi.stubGlobal("fetch", () =>
+            Promise.resolve({
+                ok: false,
+                status: 403,
+                statusText: "Forbidden",
+                text: () => Promise.resolve(JSON.stringify({ error: "user is missing required permission: Settings" })),
+            })
+        );
+
+        await expect(
+            makeDoitRequest("https://api.doit.com/test", "test-token", { throwOnError: true })
+        ).rejects.toThrow("HTTP 403: user is missing required permission: Settings");
+    });
 });

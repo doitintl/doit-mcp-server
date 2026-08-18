@@ -260,6 +260,7 @@ export async function makeDoitRequest<T>(
         /** Extra headers to send alongside the default Authorization/Accept/Content-Type
          *  headers (e.g. an OpenAPI operation's required header parameters). */
         headers?: Record<string, string>;
+        throwOnError?: boolean;
     } = {}
 ): Promise<T | null> {
     const {
@@ -271,6 +272,7 @@ export async function makeDoitRequest<T>(
         timeoutMs,
         parseAs = "json",
         headers: extraHeaders,
+        throwOnError = false,
     } = options;
 
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
@@ -341,6 +343,9 @@ export async function makeDoitRequest<T>(
     } catch (error) {
         if (error instanceof DOMException && error.name === "TimeoutError") {
             console.error(`DoiT API ${method} request timed out after ${timeoutMs}ms`);
+            throw error;
+        }
+        if (throwOnError) {
             throw error;
         }
         console.error(`Error making DoiT API ${method} request to ${requestUrl}:`, error);
