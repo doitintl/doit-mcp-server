@@ -4,6 +4,7 @@ import {
     CLOUDFLOW_CONNECTIONS_BASE_URL,
     CLOUDFLOW_TEMPLATES_BASE_URL,
     CLOUDFLOW_TRIGGER_BASE_URL,
+    extractCloudFlowId,
     getTriggerCloudFlowURL,
     handleCreateCloudFlowConnectionRequest,
     handleGetCloudFlowConnectionRequest,
@@ -28,6 +29,94 @@ afterEach(() => {
 });
 
 describe("cloudflow", () => {
+    describe("extractCloudFlowId", () => {
+        it("returns a plain ID unchanged", () => {
+            expect(extractCloudFlowId("6OuBBTBsFROSyvdIOAWZ")).toBe("6OuBBTBsFROSyvdIOAWZ");
+        });
+
+        it("trims surrounding whitespace from a plain ID", () => {
+            expect(extractCloudFlowId("  6OuBBTBsFROSyvdIOAWZ  ")).toBe("6OuBBTBsFROSyvdIOAWZ");
+        });
+
+        it("returns null for a plain ID containing a literal space", () => {
+            expect(extractCloudFlowId("abc 123")).toBeNull();
+        });
+
+        it("returns null for a plain ID containing a percent character", () => {
+            expect(extractCloudFlowId("abc%20123")).toBeNull();
+        });
+
+        it("returns null for a plain ID containing an invalid percent-escape", () => {
+            expect(extractCloudFlowId("abc%zz")).toBeNull();
+        });
+
+        it("extracts the last path segment from a production trigger URL", () => {
+            const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ";
+            expect(extractCloudFlowId(fullUrl)).toBe("6OuBBTBsFROSyvdIOAWZ");
+        });
+
+        it("extracts the ID regardless of host as long as the path matches the trigger endpoint shape", () => {
+            const untrustedUrl = "https://somethingelse.example.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ";
+            const result = extractCloudFlowId(untrustedUrl);
+            expect(result).toBe("6OuBBTBsFROSyvdIOAWZ");
+            expect(result).not.toContain("somethingelse");
+        });
+
+        it("ignores a trailing slash", () => {
+            const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ/";
+            expect(extractCloudFlowId(fullUrl)).toBe("6OuBBTBsFROSyvdIOAWZ");
+        });
+
+        it("ignores a query string", () => {
+            const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ?foo=bar";
+            expect(extractCloudFlowId(fullUrl)).toBe("6OuBBTBsFROSyvdIOAWZ");
+        });
+
+        it("returns null when the last segment of a URL contains a percent-encoded space", () => {
+            const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/abc%20123";
+            expect(extractCloudFlowId(fullUrl)).toBeNull();
+        });
+
+        it("returns null when the last segment of a URL contains an invalid percent-escape", () => {
+            const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/abc%zz";
+            expect(extractCloudFlowId(fullUrl)).toBeNull();
+        });
+
+        it("returns null for an ID longer than the maximum allowed length", () => {
+            const tooLong = "a".repeat(1501);
+            expect(extractCloudFlowId(tooLong)).toBeNull();
+        });
+
+        it("accepts an ID at the maximum allowed length", () => {
+            const maxLength = "a".repeat(1500);
+            expect(extractCloudFlowId(maxLength)).toBe(maxLength);
+        });
+
+        it("trims surrounding whitespace from a URL before extracting the ID", () => {
+            const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ";
+            expect(extractCloudFlowId(`  ${fullUrl}  `)).toBe("6OuBBTBsFROSyvdIOAWZ");
+        });
+
+        it("returns null for a URL whose path does not match the trigger endpoint shape", () => {
+            // e.g. an execution history link, not a trigger URL
+            const historyUrl = "https://example.com/customers/customer-id/cloudflow/history/execution-id";
+            expect(extractCloudFlowId(historyUrl)).toBeNull();
+        });
+
+        it("returns null for a trigger-shaped URL with extra trailing path segments", () => {
+            const editUrl = "https://api.doit.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ/nodes";
+            expect(extractCloudFlowId(editUrl)).toBeNull();
+        });
+
+        it("returns null for a host-only URL with no path segments", () => {
+            expect(extractCloudFlowId("https://somethingelse.example.com")).toBeNull();
+        });
+
+        it("returns null for an empty string", () => {
+            expect(extractCloudFlowId("   ")).toBeNull();
+        });
+    });
+
     describe("getTriggerCloudFlowURL", () => {
         it("returns a plain ID prefixed with the trigger base URL", () => {
             expect(getTriggerCloudFlowURL("6OuBBTBsFROSyvdIOAWZ")).toBe(
@@ -35,9 +124,20 @@ describe("cloudflow", () => {
             );
         });
 
-        it("returns a production trigger URL as-is", () => {
+        it("extracts the flow ID from a production trigger URL instead of using it as-is", () => {
             const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ";
-            expect(getTriggerCloudFlowURL(fullUrl)).toBe(fullUrl);
+            expect(getTriggerCloudFlowURL(fullUrl)).toBe(`${CLOUDFLOW_TRIGGER_BASE_URL}/6OuBBTBsFROSyvdIOAWZ`);
+        });
+
+        it("discards an untrusted host while keeping a trigger-shaped path's ID segment", () => {
+            const untrustedHost = "somethingelse.example.com";
+            const untrustedUrl = `https://${untrustedHost}/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ`;
+
+            const result = getTriggerCloudFlowURL(untrustedUrl);
+
+            expect(result).toBe(`${CLOUDFLOW_TRIGGER_BASE_URL}/6OuBBTBsFROSyvdIOAWZ`);
+            expect(result).not.toContain(untrustedHost);
+            expect(new URL(result as string).host).not.toBe(untrustedHost);
         });
 
         it("trims surrounding whitespace before prefixing a plain ID", () => {
@@ -46,9 +146,38 @@ describe("cloudflow", () => {
             );
         });
 
-        it("trims surrounding whitespace from a URL and returns it as-is", () => {
+        it("trims surrounding whitespace from a URL and still extracts the ID", () => {
             const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ";
-            expect(getTriggerCloudFlowURL(`  ${fullUrl}  `)).toBe(fullUrl);
+            expect(getTriggerCloudFlowURL(`  ${fullUrl}  `)).toBe(`${CLOUDFLOW_TRIGGER_BASE_URL}/6OuBBTBsFROSyvdIOAWZ`);
+        });
+
+        it("returns null when the URL's last segment contains a percent-encoded character", () => {
+            const fullUrl = "https://api.doit.com/cloudflow/v1/trigger/abc%20123";
+            expect(getTriggerCloudFlowURL(fullUrl)).toBeNull();
+        });
+
+        it("returns null for a pre-encoded plain ID instead of double-encoding it", () => {
+            expect(getTriggerCloudFlowURL("abc%20123")).toBeNull();
+        });
+
+        it("returns null for a URL that doesn't match the trigger endpoint shape", () => {
+            const historyUrl = "https://example.com/customers/customer-id/cloudflow/history/execution-id";
+            expect(getTriggerCloudFlowURL(historyUrl)).toBeNull();
+        });
+
+        it("never resolves to a host other than the project's own trigger base URL host", () => {
+            const untrustedHost = "somethingelse.example.com";
+            const inputs = [
+                "6OuBBTBsFROSyvdIOAWZ",
+                `https://${untrustedHost}/cloudflow/v1/trigger/6OuBBTBsFROSyvdIOAWZ`,
+            ];
+
+            const trustedHost = new URL(CLOUDFLOW_TRIGGER_BASE_URL).host;
+            for (const input of inputs) {
+                const result = getTriggerCloudFlowURL(input);
+                expect(result).not.toBeNull();
+                expect(new URL(result as string).host).toBe(trustedHost);
+            }
         });
     });
 
@@ -60,7 +189,7 @@ describe("cloudflow", () => {
         });
 
         const mockResponse = {
-            executionLink: "https://app.doit.com/customers/EE8CtpzYiKp0dVAESVrB/cloudflow/history/AB3WMRLqVlgjXc1kBmTo",
+            executionLink: "https://example.com/customers/customer-id/cloudflow/history/execution-id",
         };
 
         const flowID = "6OuBBTBsFROSyvdIOAWZ";
@@ -91,13 +220,29 @@ describe("cloudflow", () => {
             });
         });
 
-        it("should use the URL as-is when a full trigger URL is passed as flowID", async () => {
-            const triggerUrl = `https://api.doit.com/cloudflow/v1/trigger/${flowID}`;
+        it("should extract the flow ID and call the project's own trigger URL when a trigger-shaped URL is passed as flowID", async () => {
+            const untrustedHost = "somethingelse.example.com";
+            const untrustedUrl = `https://${untrustedHost}/cloudflow/v1/trigger/${flowID}`;
             (makeDoitRequest as vi.Mock).mockResolvedValue(mockResponse);
 
-            await handleTriggerCloudFlowRequest({ flowID: triggerUrl }, mockToken);
+            await handleTriggerCloudFlowRequest({ flowID: untrustedUrl }, mockToken);
 
-            expect(makeDoitRequest).toHaveBeenCalledWith(triggerUrl, mockToken, expect.any(Object));
+            expect(makeDoitRequest).toHaveBeenCalledWith(expectedUrl, mockToken, expect.any(Object));
+            const calledUrl = (makeDoitRequest as vi.Mock).mock.calls[0][0] as string;
+            expect(calledUrl).not.toContain(untrustedHost);
+            expect(new URL(calledUrl).host).not.toBe(untrustedHost);
+        });
+
+        it("should return an error and not call makeDoitRequest when flowID is a URL that isn't a trigger endpoint", async () => {
+            const historyUrl = "https://example.com/customers/customer-id/cloudflow/history/execution-id";
+
+            const response = await handleTriggerCloudFlowRequest({ flowID: historyUrl }, mockToken);
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("flowID") }],
+                isError: true,
+            });
         });
 
         it("should call makeDoitRequest with requestBodyJson as body when provided", async () => {
