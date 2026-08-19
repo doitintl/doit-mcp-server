@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.19.2 (2026-08-19)
+
+**Full diff:** [`v0.19.1...v0.19.2`](../../compare/v0.19.1...v0.19.2)
+
+### Features
+
+- feat: run the spec refresh daily instead of weekly (`f468465`)
+
+### Bug Fixes
+
+- fix(cloudflow): ensure cloud flow trigger URL is restricted (`dda10c6`)
 ## v0.19.1 (2026-08-18)
 
 **Full diff:** [`v0.19.0...v0.19.1`](../../compare/v0.19.0...v0.19.1)
