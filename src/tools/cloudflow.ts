@@ -35,17 +35,47 @@ export const TriggerCloudFlowArgumentsSchema = z.object({
         .describe("Optional JSON object to pass as the request body to the flow if the flow requires it"),
 });
 
+const CLOUDFLOW_TRIGGER_PATH = new URL(CLOUDFLOW_TRIGGER_BASE_URL).pathname.replace(/\/+$/, "");
+
+const CLOUDFLOW_ID_PATTERN = /^[^\s%/]{1,1500}$/;
+
 /**
- * Returns the full trigger URL for a CloudFlow.
- * If value is a valid URL, it is returned as-is, otherwise expected to be a flow ID.
+ * Extracts a CloudFlow flow ID from either a plain ID or a CloudFlow trigger URL.
+ * A URL is only accepted when its path matches the trigger endpoint shape
+ * (".../cloudflow/v1/trigger/<flowId>") — any other URL (e.g. an execution
+ * history link) is rejected rather than having an
+ * unrelated path segment mistaken for a flow ID.
+ * only the path shape and trailing ID segment matter
  */
-export function getTriggerCloudFlowURL(value: string): string {
+export function extractCloudFlowId(value: string): string | null {
     const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    let parsed: URL;
     try {
-        new URL(trimmed);
-        return trimmed;
-    } catch {}
-    return `${CLOUDFLOW_TRIGGER_BASE_URL}/${trimmed}`;
+        parsed = new URL(trimmed);
+    } catch {
+        return CLOUDFLOW_ID_PATTERN.test(trimmed) ? trimmed : null;
+    }
+
+    const pathname = parsed.pathname.replace(/\/+$/, "");
+    const prefix = `${CLOUDFLOW_TRIGGER_PATH}/`;
+    if (!pathname.startsWith(prefix)) return null;
+
+    const remainder = pathname.slice(prefix.length);
+    return CLOUDFLOW_ID_PATTERN.test(remainder) ? remainder : null;
+}
+
+/**
+ * Returns the full trigger URL for a CloudFlow, always built from this
+ * project's own CLOUDFLOW_TRIGGER_BASE_URL so the request target can never
+ * be redirected by caller-supplied input. Returns null when the value isn't
+ * a plain flow ID or a recognizable CloudFlow trigger URL.
+ */
+export function getTriggerCloudFlowURL(value: string): string | null {
+    const flowId = extractCloudFlowId(value);
+    if (!flowId) return null;
+    return `${CLOUDFLOW_TRIGGER_BASE_URL}/${encodeURIComponent(flowId)}`;
 }
 
 export const triggerCloudFlowTool = {
@@ -200,6 +230,11 @@ export async function handleTriggerCloudFlowRequest(args: any, token: string) {
             );
         }
         const url = getTriggerCloudFlowURL(flowID);
+        if (!url) {
+            return createErrorResponse(
+                "The flowID must be a plain CloudFlow flow ID or a CloudFlow trigger URL (e.g. https://api.doit.com/cloudflow/v1/trigger/<flowId>)"
+            );
+        }
 
         try {
             const data = await makeDoitRequest<Record<string, unknown>>(url, token, {
