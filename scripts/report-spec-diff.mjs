@@ -39,6 +39,7 @@ function operations(specPath) {
             out.set(`${method}:${pathTemplate}`.toLowerCase(), {
                 method,
                 pathTemplate,
+                operationId: operation.operationId,
                 summary: operation.summary ?? operation.operationId ?? "",
                 tags: operation.tags ?? [],
             });
@@ -53,6 +54,18 @@ function isExcluded(key, op) {
     return tag ? `tag "${tag}" is excluded` : null;
 }
 
+// Mirrors toolNameFor in src/tools/generated/generateTools.ts so the report
+// shows the exact tool names agents see.
+function toolNameFor(method, pathTemplate, operationId) {
+    const id = operationId || `${method}_${pathTemplate.replace(/[{}/]/g, "_")}`;
+    return id
+        .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+        .replace(/[^a-zA-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .toLowerCase();
+}
+
 const oldOps = operations(oldPath);
 const newOps = operations(newPath);
 
@@ -60,6 +73,12 @@ const added = [...newOps.entries()].filter(([key]) => !oldOps.has(key));
 const removed = [...oldOps.entries()].filter(([key]) => !newOps.has(key));
 const exposed = added.filter(([key, op]) => !isExcluded(key, op));
 const excluded = added.filter(([key, op]) => isExcluded(key, op));
+// Same method+path in both snapshots but a different operationId: the
+// operation didn't move, its generated tool name did. Invisible to the
+// added/removed sets, and a breaking change for anyone calling the old name.
+const renamed = [...newOps.entries()].filter(
+    ([key, op]) => oldOps.has(key) && oldOps.get(key).operationId !== op.operationId,
+);
 
 const line = ([, op]) => `- \`${op.method.toUpperCase()} ${op.pathTemplate}\` — ${op.summary}`;
 
@@ -85,6 +104,25 @@ console.log(`### Removed operations (${removed.length})`);
 console.log();
 console.log(removed.length ? removed.map(line).join("\n") : "_None._");
 console.log();
+console.log(`### Renamed operationIds — same endpoint, new generated tool name (${renamed.length})`);
+console.log();
+if (renamed.length) {
+    console.log(
+        "_Applies to auto-generated tools; endpoints covered by a hand-written tool keep their curated name._",
+    );
+    console.log();
+}
 console.log(
-    "> Review checklist: new **exposed** operations become MCP tools on the next release — confirm none of them should instead be added to `src/tools/generated/excludedOperations.json`. Removed operations disappear as tools; hand-written tools covering them will start failing and need cleanup.",
+    renamed.length
+        ? renamed
+              .map(([key, op]) => {
+                  const old = oldOps.get(key);
+                  return `- \`${toolNameFor(old.method, old.pathTemplate, old.operationId)}\` → \`${toolNameFor(op.method, op.pathTemplate, op.operationId)}\` (\`${op.method.toUpperCase()} ${op.pathTemplate}\`)`;
+              })
+              .join("\n")
+        : "_None._",
+);
+console.log();
+console.log(
+    "> Review checklist: new **exposed** operations become MCP tools on the next release — confirm none of them should instead be added to `src/tools/generated/excludedOperations.json`. Removed operations disappear as tools; hand-written tools covering them will start failing and need cleanup. Renamed tools are breaking for anyone calling the old name — flag them in the release notes.",
 );
