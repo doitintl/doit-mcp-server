@@ -7694,7 +7694,7 @@
           "Budgets"
         ],
         "summary": "List budgets",
-        "description": "Returns a list of budgets that your account has access to. Budgets are listed in reverse chronological order by default.",
+        "description": "Returns a list of budgets that your account has access to. Budgets are listed in reverse chronological order by default.\nEach budget includes a server-computed `riskStatus` (`atRisk`, `onTrack`, or `unknown`), and the response includes a `riskAggregations` summary of risk counts across the full filtered result set (all pages, not just the current page).",
         "operationId": "listBudgets",
         "parameters": [
           {
@@ -7718,8 +7718,8 @@
           {
             "name": "filter",
             "in": "query",
-            "description": "An expression for filtering the results of the request. The syntax is \"key:[<value>]\".\nAvailable keys: owner, budgetName, lastModified in ms (>lasModified). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in \"AND,\" while using the same key multiple times in the same filter results in \"OR\".",
-            "example": "budgetName:My Monthly Budget",
+            "description": "An expression for filtering the results of the request. The syntax is \"key:[<value>]\".\nAvailable keys: owner, budgetName, lastModified in ms (>lasModified), riskStatus (one of \"atRisk\", \"onTrack\", \"unknown\"). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in \"AND,\" while using the same key multiple times in the same filter results in \"OR\" (except riskStatus, where only the first occurrence is honored).\nA budget is \"atRisk\" when it has already exceeded its configured amount, or its forecast projects it will exceed the configured amount before the current period ends. Budgets with no forecast data yet, a fixed budget whose period has already expired, or that are invalid/draft are classified \"unknown\". Filtering to riskStatus:atRisk sorts results by earliest projected breach date (day granularity) ascending instead of the default order; budgets that tie on breach day, including every already-breached budget, resolve to a fixed, repeatable order across requests rather than an arbitrary one.\nBecause riskStatus is computed from live, periodically-refreshed budget data, paginated results filtered by riskStatus may shift between page requests if budget data refreshes mid-pagination.",
+            "example": "riskStatus:atRisk",
             "schema": {
               "type": "string"
             }
@@ -7813,6 +7813,15 @@
                           },
                           "owner": {
                             "type": "string"
+                          },
+                          "riskStatus": {
+                            "type": "string",
+                            "description": "Server-computed risk classification, based on current utilization and forecasted breach date relative to the configured amount and current period end.\n\"atRisk\" - the budget has already exceeded its configured amount, or its forecast projects it will before the current period ends.\n\"onTrack\" - the budget has forecast data and is neither over budget nor projected to breach.\n\"unknown\" - no forecast data is available yet, the budget is a fixed budget whose period has already expired, or the budget is invalid/draft.",
+                            "enum": [
+                              "atRisk",
+                              "onTrack",
+                              "unknown"
+                            ]
                           },
                           "scope": {
                             "type": "array",
@@ -7946,6 +7955,34 @@
                       "type": "integer",
                       "description": "Budgets rows count",
                       "format": "int64"
+                    },
+                    "riskAggregations": {
+                      "type": "object",
+                      "description": "Aggregate counts of risk statuses across the full filtered result set (all pages), not just the current page.",
+                      "required": [
+                        "total",
+                        "atRisk",
+                        "onTrack",
+                        "unknown"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "format": "int64"
+                        },
+                        "atRisk": {
+                          "type": "integer",
+                          "format": "int64"
+                        },
+                        "onTrack": {
+                          "type": "integer",
+                          "format": "int64"
+                        },
+                        "unknown": {
+                          "type": "integer",
+                          "format": "int64"
+                        }
+                      }
                     }
                   }
                 }
@@ -21288,37 +21325,66 @@
           "Anomalies"
         ],
         "summary": "List anomalies",
-        "description": "Returns a list of detected anomalies.\nAnomalies are returned in reverse chronological order by default.\nThe `notifications` array is always present on each anomaly item; it is empty unless `includeNotifications=true` is supplied.",
+        "description": "Returns a list of detected anomalies.\nAnomalies can be sorted by `startTime`, `severityLevel`, or `costOfAnomaly` using `sortBy` and `sortOrder`. By default they are sorted by `startTime` in descending order (most recent first).\nThe sort order is total and reproducible: ties on the selected field are broken by `startTime` descending and then by anomaly `id` ascending, so the same result set always paginates in the same order.\nThe `notifications` array is always present on each anomaly item; it is empty unless `includeNotifications=true` is supplied.\n**Pagination stability**: `sortBy`, `sortOrder`, `filter`, `minCreationTime`, and `maxCreationTime` must be held constant across a pagination sequence. A `pageToken` presented with any of them changed is rejected with `400`.",
         "operationId": "listAnomalies",
         "parameters": [
           {
             "name": "minCreationTime",
             "in": "query",
-            "description": "Min value for the anomaly detection time",
+            "description": "Inclusive lower bound on the anomaly's usage start time, in milliseconds since the POSIX epoch. Despite the name, this filters the anomaly's usage start time, not the time the anomaly document was created.",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int64"
             }
           },
           {
             "name": "maxCreationTime",
             "in": "query",
-            "description": "Max value for the anomaly detection time",
+            "description": "Inclusive upper bound on the anomaly's usage start time, in milliseconds since the POSIX epoch. Despite the name, this filters the anomaly's usage start time, not the time the anomaly document was created.",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int64"
             }
           },
           {
             "name": "filter",
             "in": "query",
-            "description": "An expression for filtering the results of the request",
+            "description": "An expression for filtering the results. The syntax is `key:value`. Multiple criteria can be combined using a pipe |. See [Filters](https://developer.doit.com/docs/filters).\nAvailable filter keys: **serviceName**, **billingAccount**, **platform**, **severityLevel**. `severityLevel` values must be lowercase: `information`, `warning`, `critical`. An unrecognised key, or a segment that is not `key:value`, is rejected with `400` rather than ignored.",
+            "example": "severityLevel:critical",
             "schema": {
               "type": "string"
             }
           },
           {
+            "name": "sortBy",
+            "in": "query",
+            "description": "A field by which the results will be sorted. Defaults to `startTime`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "startTime",
+                "severityLevel",
+                "costOfAnomaly"
+              ],
+              "default": "startTime"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Sort order can be ascending or descending.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
             "name": "maxResults",
             "in": "query",
-            "description": "The maximum number of results to return in a single page",
+            "description": "The maximum number of results to return in a single page. If omitted, all anomalies matching the filters and time window are returned in a single page.",
             "schema": {
               "type": "integer",
               "format": "int64"
@@ -21350,9 +21416,18 @@
                 "schema": {
                   "type": "object",
                   "description": "List of detected cloud cost anomalies.",
+                  "required": [
+                    "anomalies",
+                    "rowCount",
+                    "truncated",
+                    "totalCount",
+                    "totalCountExact",
+                    "anomalySummary"
+                  ],
                   "properties": {
                     "anomalies": {
                       "type": "array",
+                      "description": "Anomalies in this page. Always an array; empty (`[]`) when there are no matching anomalies.",
                       "items": {
                         "required": [
                           "attribution",
@@ -21412,7 +21487,7 @@
                           },
                           "severityLevel": {
                             "type": "string",
-                            "description": "Severity level: Information, Warning or Critical"
+                            "description": "Severity level: `information`, `warning`, or `critical`."
                           },
                           "startTime": {
                             "type": "integer",
@@ -21557,11 +21632,64 @@
                       }
                     },
                     "pageToken": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Opaque token for the next page. Omitted when there is no next page."
                     },
                     "rowCount": {
                       "type": "integer",
-                      "format": "int64"
+                      "format": "int64",
+                      "description": "Number of items in this page (`anomalies.length`). This is not the total count across all pages; the total across the full filtered result set is `totalCount`."
+                    },
+                    "truncated": {
+                      "type": "boolean",
+                      "description": "`true` when filtered anomalies remain beyond this page. Derived from the same \"rows remain after the last returned row\" check as `pageToken`, so the two are never contradictory: `pageToken` is present if and only if `truncated` is `true`."
+                    },
+                    "totalCount": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Total number of anomalies matching the filters and time window, across all pages. This is a per-request snapshot: under concurrent writes, the value can differ between pages fetched during the same pagination sequence."
+                    },
+                    "totalCountExact": {
+                      "type": "boolean",
+                      "description": "Whether `totalCount` is exact. Always `true` for this operation, because `totalCount` is computed over the fully materialised filtered result set."
+                    },
+                    "anomalySummary": {
+                      "type": "object",
+                      "description": "Anomaly-specific summary. `countBySeverity` and `totalCostOfAnomaly` cover the complete filtered result set across all pages, not the returned page. Anomalies whose severity cannot be determined (legacy documents) are counted in `totalCount` and `totalCostOfAnomaly` but in none of the three severity buckets in `countBySeverity`, so the three values can sum to less than `totalCount`. Computed as of this request; under concurrent writes, values may differ between pages fetched during the same pagination sequence.",
+                      "required": [
+                        "countBySeverity",
+                        "totalCostOfAnomaly"
+                      ],
+                      "properties": {
+                        "countBySeverity": {
+                          "type": "object",
+                          "description": "Count of matching anomalies per severity level. All three keys are always present, with zero counts included.",
+                          "required": [
+                            "information",
+                            "warning",
+                            "critical"
+                          ],
+                          "properties": {
+                            "information": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "warning": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "critical": {
+                              "type": "integer",
+                              "format": "int64"
+                            }
+                          }
+                        },
+                        "totalCostOfAnomaly": {
+                          "type": "number",
+                          "format": "double",
+                          "description": "Sum of `costOfAnomaly` across all matching anomalies, in USD, rounded to cents."
+                        }
+                      }
                     }
                   }
                 }
@@ -21718,7 +21846,7 @@
                     },
                     "severityLevel": {
                       "type": "string",
-                      "description": "Severity level: Information, Warning or Critical"
+                      "description": "Severity level: `information`, `warning`, or `critical`."
                     },
                     "startTime": {
                       "type": "integer",
@@ -22825,6 +22953,10 @@
         "summary": "Ingest CSV file",
         "description": "Sends a batch of events to DataHub using a CSV file, either uncompressed or compressed in ZIP or GZ format. It may take up to 15 minutes for the data to become available in the DoiT console.",
         "operationId": "datahubEventsCSVFile",
+        "x-cli-name": "ingest-datahub-events-csv",
+        "x-cli-aliases": [
+          "datahub-events-csv-file"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -22949,6 +23081,10 @@
         "summary": "Ingest JSON",
         "description": "Sends a batch of events to DataHub.",
         "operationId": "datahubEvents",
+        "x-cli-name": "ingest-datahub-events",
+        "x-cli-aliases": [
+          "datahub-events"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -30753,6 +30889,10 @@
         "summary": "List cloud incidents",
         "description": "Returns a list of all the active and historical cloud incidents for Google Cloud and Amazon Web Services.\nIncidents are returned in reverse chronological order by default.",
         "operationId": "listKnownIssues",
+        "x-cli-name": "list-cloud-incidents",
+        "x-cli-aliases": [
+          "list-known-issues"
+        ],
         "parameters": [
           {
             "name": "maxResults",
@@ -30942,6 +31082,10 @@
         "summary": "Retrieve a cloud incident",
         "description": "Returns the specified cloud incident.",
         "operationId": "getKnownIssue",
+        "x-cli-name": "get-cloud-incident",
+        "x-cli-aliases": [
+          "get-known-issue"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -32724,15 +32868,39 @@
                     },
                     "settings": {
                       "type": "object",
+                      "description": "Customer settings. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.\n\n`currency` accepts only the listed codes; any other value is rejected with `400`. Unlike `urlSlug` and `allowedInviteDomains` it cannot be cleared - no value unsets it.",
                       "properties": {
                         "currency": {
+                          "description": "Currency code for monetary values.",
                           "type": "string",
-                          "description": "Billing currency code (e.g. `USD`, `EUR`).",
-                          "x-doit-confidentiality": "customer-data"
+                          "enum": [
+                            "USD",
+                            "ILS",
+                            "EUR",
+                            "AUD",
+                            "CAD",
+                            "GBP",
+                            "DKK",
+                            "NOK",
+                            "SEK",
+                            "BRL",
+                            "SGD",
+                            "MXN",
+                            "CHF",
+                            "MYR",
+                            "TWD",
+                            "EGP",
+                            "ZAR",
+                            "JPY",
+                            "IDR",
+                            "AED",
+                            "THB",
+                            "COP"
+                          ]
                         },
                         "allowedInviteDomains": {
                           "type": "array",
-                          "description": "Email domains allowed to self-invite into the customer.",
+                          "description": "Email domains allowed to self-invite into the customer. Updating this field requires the `UsersManager` permission in addition to `Settings`. An empty array clears the list.",
                           "items": {
                             "type": "string"
                           },
@@ -32743,6 +32911,7 @@
                     },
                     "contact": {
                       "type": "object",
+                      "description": "Customer point-of-contact details. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.",
                       "properties": {
                         "emails": {
                           "type": "array",
@@ -32853,7 +33022,7 @@
           "Customers"
         ],
         "summary": "Update customer general settings",
-        "description": "Partially updates the general settings of the customer scoped to the authenticated tenant (from the bearer token). Requires the `Settings` permission and DoiT API access (`platform:externalApi`); updating `allowedInviteDomains` additionally requires the `UsersManager` permission.\n\nThe request body must use `application/merge-patch+json` (RFC 7396): an omitted field leaves the current value unchanged, and an explicit `null` also leaves it unchanged, except for `urlSlug`, where an explicit empty string removes the customer's active URL slug rather than leaving it unchanged.",
+        "description": "Partially updates the general settings of the customer scoped to the authenticated tenant (from the bearer token). Requires the `Settings` permission and DoiT API access (`platform:externalApi`); updating `allowedInviteDomains` additionally requires the `UsersManager` permission.\n\nThe request body must use `application/merge-patch+json` (RFC 7396): an omitted field leaves the current value unchanged, and an explicit `null` also leaves it unchanged, except for `urlSlug`, where an explicit empty string removes the customer's active URL slug rather than leaving it unchanged.\n\nFields are nested exactly as `getCustomer` returns them - `currency` and `allowedInviteDomains` under `settings`, `emails` under `contact` - so every value is read and written at the same path. `settings.currency` accepts only the codes listed in the schema and cannot be cleared; `allowedInviteDomains` and `contact.emails` are cleared with an empty array.",
         "operationId": "updateCustomer",
         "parameters": [
           {
@@ -32873,36 +33042,71 @@
             "application/merge-patch+json": {
               "schema": {
                 "type": "object",
-                "description": "Partial update to a customer's general settings. Every field is optional; only fields present in the request body are changed. See the operation description for `urlSlug`'s null-vs-absent semantics, which differ from every other field.",
+                "description": "Partial update to a customer's general settings. Every field is optional; only fields present in the request body are changed. Fields are nested exactly as the `getCustomer` response nests them. See the operation description for `urlSlug`'s null-vs-absent semantics, which differ from every other field.",
                 "properties": {
-                  "currency": {
-                    "type": "string",
-                    "description": "Billing currency code (e.g. `USD`, `EUR`).",
-                    "x-doit-confidentiality": "customer-data"
-                  },
-                  "emails": {
-                    "type": "array",
-                    "description": "Point-of-contact email addresses for the customer.",
-                    "items": {
-                      "type": "string",
-                      "format": "email"
-                    },
-                    "x-doit-pii": true,
-                    "x-doit-confidentiality": "customer-data"
-                  },
                   "urlSlug": {
                     "type": "string",
                     "description": "The customer's URL display name. An explicit empty string removes the active slug; a non-empty value must be 3-12 characters of lowercase letters, digits, or dashes, starting and ending with a letter or digit, and must be unique across all customers.",
                     "x-doit-confidentiality": "customer-data"
                   },
-                  "allowedInviteDomains": {
-                    "type": "array",
-                    "description": "Email domains allowed to self-invite into the customer. Requires the `UsersManager` permission in addition to `Settings`.",
-                    "items": {
-                      "type": "string"
-                    },
-                    "x-doit-pii": true,
-                    "x-doit-confidentiality": "customer-data"
+                  "settings": {
+                    "type": "object",
+                    "description": "Customer settings. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.\n\n`currency` accepts only the listed codes; any other value is rejected with `400`. Unlike `urlSlug` and `allowedInviteDomains` it cannot be cleared - no value unsets it.",
+                    "properties": {
+                      "currency": {
+                        "description": "Currency code for monetary values.",
+                        "type": "string",
+                        "enum": [
+                          "USD",
+                          "ILS",
+                          "EUR",
+                          "AUD",
+                          "CAD",
+                          "GBP",
+                          "DKK",
+                          "NOK",
+                          "SEK",
+                          "BRL",
+                          "SGD",
+                          "MXN",
+                          "CHF",
+                          "MYR",
+                          "TWD",
+                          "EGP",
+                          "ZAR",
+                          "JPY",
+                          "IDR",
+                          "AED",
+                          "THB",
+                          "COP"
+                        ]
+                      },
+                      "allowedInviteDomains": {
+                        "type": "array",
+                        "description": "Email domains allowed to self-invite into the customer. Updating this field requires the `UsersManager` permission in addition to `Settings`. An empty array clears the list.",
+                        "items": {
+                          "type": "string"
+                        },
+                        "x-doit-pii": true,
+                        "x-doit-confidentiality": "customer-data"
+                      }
+                    }
+                  },
+                  "contact": {
+                    "type": "object",
+                    "description": "Customer point-of-contact details. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.",
+                    "properties": {
+                      "emails": {
+                        "type": "array",
+                        "description": "Point-of-contact email addresses for the customer.",
+                        "items": {
+                          "type": "string",
+                          "format": "email"
+                        },
+                        "x-doit-pii": true,
+                        "x-doit-confidentiality": "customer-data"
+                      }
+                    }
                   }
                 }
               }
@@ -35707,7 +35911,7 @@
         ],
         "summary": "List requests",
         "description": "Returns a list of all historical requests that your account has access to.\nTickets are returned in reverse chronological order by default.",
-        "operationId": "idOfTickets",
+        "operationId": "listTickets",
         "x-cli-name": "list-tickets",
         "x-cli-aliases": [
           "id-of-tickets"
@@ -35960,7 +36164,7 @@
         ],
         "summary": "Create a request",
         "description": "Creates a new support request",
-        "operationId": "idOfTicketsPost",
+        "operationId": "createTicket",
         "x-cli-name": "create-ticket",
         "x-cli-aliases": [
           "id-of-tickets-post"
@@ -36183,7 +36387,7 @@
         ],
         "summary": "Get a request",
         "description": "Returns the details of a single support request by its ID.",
-        "operationId": "idOfTicketGet",
+        "operationId": "getTicket",
         "x-cli-name": "get-ticket",
         "x-cli-aliases": [
           "id-of-ticket-get"
@@ -36399,7 +36603,7 @@
         ],
         "summary": "Update a request",
         "description": "Partially updates a support request. Supports setting the request\n`status` and/or `assignee`. DoiT employees may set any of `open`,\n`pending`, `hold`, or `solved` and may set the `assignee`; customers may\nset only `solved` (parity with the console \"mark as resolved\" action)\nand may not set an assignee. `closed` is not settable via the API\n(Zendesk auto-closes from `solved`). The `assignee` is a DoiT-employee\nemail, resolved server-side to a Zendesk agent; an email that does not\nresolve to an active agent returns `400`. At least one mutable field\nmust be present. The response echoes the fields that were applied.",
-        "operationId": "idOfTicketUpdate",
+        "operationId": "updateTicket",
         "x-cli-name": "update-ticket",
         "x-cli-aliases": [
           "id-of-ticket-update"
@@ -36545,7 +36749,7 @@
         ],
         "summary": "List request comments",
         "description": "Returns all comments on a support request. For customers, only public\ncomments are returned. For DoiT employees, both public and private\ncomments are returned. All comments are returned in a single response\n(no pagination).",
-        "operationId": "idOfTicketCommentsList",
+        "operationId": "listTicketComments",
         "x-cli-name": "list-ticket-comments",
         "x-cli-aliases": [
           "id-of-ticket-comments-list"
@@ -36715,7 +36919,7 @@
         ],
         "summary": "Add a comment",
         "description": "Adds a comment to an existing support request. For customers, comments\nare always public. For DoiT employees, comments can be marked as\nprivate (internal notes) by setting the `private` field to `true`.",
-        "operationId": "idOfTicketCommentsPost",
+        "operationId": "createTicketComment",
         "x-cli-name": "create-ticket-comment",
         "x-cli-aliases": [
           "id-of-ticket-comments-post"
@@ -36996,7 +37200,7 @@
         ],
         "summary": "Add tags to a support request",
         "description": "Adds one or more tags to an existing support request. The operation is\nsurgical — only the tags listed in the request are added; existing tags\non the ticket are preserved. Re-adding a tag that is already present is\na successful no-op.\n\nAll submitted tags are normalized (trim + lowercase) before storage. For\ncustomers, the system additionally applies a `customer_tag/` namespace\nprefix to prevent collisions with internal DoiT process tags. The\nresponse echoes the actual stored strings so callers can verify the\ntransform.",
-        "operationId": "idOfTicketTagsAdd",
+        "operationId": "addTicketTags",
         "x-cli-name": "add-ticket-tags",
         "x-cli-aliases": [
           "id-of-ticket-tags-add"
@@ -37137,7 +37341,7 @@
         ],
         "summary": "Remove tags from a support request",
         "description": "Removes one or more tags from an existing support request. The operation\nis surgical — only the tags listed in the request are removed; tags not\nlisted are preserved. Removing a tag that is not present is a successful\nno-op.\n\nFor customers, the system applies the same `customer_tag/` namespace\nmapping as on add, so a customer who added `my_tag` (stored as\n`customer_tag/my_tag`) can remove it by sending `my_tag`.",
-        "operationId": "idOfTicketTagsRemove",
+        "operationId": "removeTicketTags",
         "x-cli-name": "remove-ticket-tags",
         "x-cli-aliases": [
           "id-of-ticket-tags-remove"
@@ -42735,6 +42939,10 @@
         "summary": "Submit feedback",
         "description": "Submit feedback on an Ava answer to help improve response quality.",
         "operationId": "avaFeedback",
+        "x-cli-name": "submit-ava-feedback",
+        "x-cli-aliases": [
+          "ava-feedback"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -42953,6 +43161,10 @@
         "summary": "List insights",
         "description": "Returns a paginated list of insights with their aggregate summaries (savings, risk counts).\nUse query parameters to filter by status, category, provider, or priority.\nDoes not include individual resource-level results — use the resource-results endpoint for those.\n",
         "operationId": "getInsightResults",
+        "x-cli-name": "list-insights",
+        "x-cli-aliases": [
+          "get-insight-results"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -43382,6 +43594,10 @@
         "summary": "Create insights (batch)",
         "description": "Creates or updates multiple insights in a single batch request.\nEach insight in the batch includes its metadata and resource results inline.\nFor granular control over insight metadata and resource results independently,\nuse the single-insight and resource-results endpoints instead.\n",
         "operationId": "postInsightResults",
+        "x-cli-name": "create-insights",
+        "x-cli-aliases": [
+          "post-insight-results"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -43690,6 +43906,10 @@
         "summary": "Delete insights (batch)",
         "description": "Deletes all insights matching the specified key from the batch source.\nThis removes the insight and all its associated resource results.\nFor single-insight deletion, use `DELETE /source/{sourceID}/insight/{insightKey}` instead.\n",
         "operationId": "deleteInsightResults",
+        "x-cli-name": "delete-insights",
+        "x-cli-aliases": [
+          "delete-insight-results"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -43767,6 +43987,10 @@
         "summary": "Retrieve an insight",
         "description": "Returns the metadata and aggregate summary for a single insight identified by source and key.\nDoes not include individual resource-level results — use the resource-results endpoint for those.\n",
         "operationId": "getInsightResult",
+        "x-cli-name": "get-insight",
+        "x-cli-aliases": [
+          "get-insight-result"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -44049,6 +44273,10 @@
         "summary": "Create or update an insight",
         "description": "Creates or updates a single insight for the given source and key.\nIf an insight with the same key already exists for the source, it will be updated.\nResource results are managed separately via the resource-results endpoint.\n",
         "operationId": "postInsightResult",
+        "x-cli-name": "create-insight",
+        "x-cli-aliases": [
+          "post-insight-result"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -44417,6 +44645,10 @@
         "summary": "Delete an insight",
         "description": "Permanently deletes a single insight and all its associated resource results.\nOnly insights created via the public API can be deleted.\n",
         "operationId": "deleteInsightResult",
+        "x-cli-name": "delete-insight",
+        "x-cli-aliases": [
+          "delete-insight-result"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -44679,6 +44911,10 @@
         "summary": "List resource results for an insight",
         "description": "Returns a paginated list of individual resource-level results for a specific insight.\nEach resource result represents a single cloud resource (e.g. an EC2 instance, a GCS bucket)\naffected by the insight, along with its risk scores or potential savings.\n",
         "operationId": "getInsightResourceResults",
+        "x-cli-name": "list-insight-resource-results",
+        "x-cli-aliases": [
+          "get-insight-resource-results"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -44970,6 +45206,10 @@
         "summary": "Replace resource results for an insight",
         "description": "Replaces all resource results for the specified insight. Any existing unresolved resource results not present in the new set will be removed. The response includes server-computed fields (severity, resolved, enhancement) for each resource result. To delete all resource results, send an empty array.\n",
         "operationId": "postInsightResourceResults",
+        "x-cli-name": "replace-insight-resource-results",
+        "x-cli-aliases": [
+          "post-insight-resource-results"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -64797,15 +65037,39 @@
           },
           "settings": {
             "type": "object",
+            "description": "Customer settings. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.\n\n`currency` accepts only the listed codes; any other value is rejected with `400`. Unlike `urlSlug` and `allowedInviteDomains` it cannot be cleared - no value unsets it.",
             "properties": {
               "currency": {
+                "description": "Currency code for monetary values.",
                 "type": "string",
-                "description": "Billing currency code (e.g. `USD`, `EUR`).",
-                "x-doit-confidentiality": "customer-data"
+                "enum": [
+                  "USD",
+                  "ILS",
+                  "EUR",
+                  "AUD",
+                  "CAD",
+                  "GBP",
+                  "DKK",
+                  "NOK",
+                  "SEK",
+                  "BRL",
+                  "SGD",
+                  "MXN",
+                  "CHF",
+                  "MYR",
+                  "TWD",
+                  "EGP",
+                  "ZAR",
+                  "JPY",
+                  "IDR",
+                  "AED",
+                  "THB",
+                  "COP"
+                ]
               },
               "allowedInviteDomains": {
                 "type": "array",
-                "description": "Email domains allowed to self-invite into the customer.",
+                "description": "Email domains allowed to self-invite into the customer. Updating this field requires the `UsersManager` permission in addition to `Settings`. An empty array clears the list.",
                 "items": {
                   "type": "string"
                 },
@@ -64816,6 +65080,7 @@
           },
           "contact": {
             "type": "object",
+            "description": "Customer point-of-contact details. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.",
             "properties": {
               "emails": {
                 "type": "array",
@@ -64831,15 +65096,53 @@
           }
         }
       },
-      "CustomerUpdate": {
+      "CustomerSettings": {
         "type": "object",
-        "description": "Partial update to a customer's general settings. Every field is optional; only fields present in the request body are changed. See the operation description for `urlSlug`'s null-vs-absent semantics, which differ from every other field.",
+        "description": "Customer settings. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.\n\n`currency` accepts only the listed codes; any other value is rejected with `400`. Unlike `urlSlug` and `allowedInviteDomains` it cannot be cleared - no value unsets it.",
         "properties": {
           "currency": {
+            "description": "Currency code for monetary values.",
             "type": "string",
-            "description": "Billing currency code (e.g. `USD`, `EUR`).",
-            "x-doit-confidentiality": "customer-data"
+            "enum": [
+              "USD",
+              "ILS",
+              "EUR",
+              "AUD",
+              "CAD",
+              "GBP",
+              "DKK",
+              "NOK",
+              "SEK",
+              "BRL",
+              "SGD",
+              "MXN",
+              "CHF",
+              "MYR",
+              "TWD",
+              "EGP",
+              "ZAR",
+              "JPY",
+              "IDR",
+              "AED",
+              "THB",
+              "COP"
+            ]
           },
+          "allowedInviteDomains": {
+            "type": "array",
+            "description": "Email domains allowed to self-invite into the customer. Updating this field requires the `UsersManager` permission in addition to `Settings`. An empty array clears the list.",
+            "items": {
+              "type": "string"
+            },
+            "x-doit-pii": true,
+            "x-doit-confidentiality": "customer-data"
+          }
+        }
+      },
+      "CustomerContact": {
+        "type": "object",
+        "description": "Customer point-of-contact details. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.",
+        "properties": {
           "emails": {
             "type": "array",
             "description": "Point-of-contact email addresses for the customer.",
@@ -64849,20 +65152,76 @@
             },
             "x-doit-pii": true,
             "x-doit-confidentiality": "customer-data"
-          },
+          }
+        }
+      },
+      "CustomerUpdate": {
+        "type": "object",
+        "description": "Partial update to a customer's general settings. Every field is optional; only fields present in the request body are changed. Fields are nested exactly as the `getCustomer` response nests them. See the operation description for `urlSlug`'s null-vs-absent semantics, which differ from every other field.",
+        "properties": {
           "urlSlug": {
             "type": "string",
             "description": "The customer's URL display name. An explicit empty string removes the active slug; a non-empty value must be 3-12 characters of lowercase letters, digits, or dashes, starting and ending with a letter or digit, and must be unique across all customers.",
             "x-doit-confidentiality": "customer-data"
           },
-          "allowedInviteDomains": {
-            "type": "array",
-            "description": "Email domains allowed to self-invite into the customer. Requires the `UsersManager` permission in addition to `Settings`.",
-            "items": {
-              "type": "string"
-            },
-            "x-doit-pii": true,
-            "x-doit-confidentiality": "customer-data"
+          "settings": {
+            "type": "object",
+            "description": "Customer settings. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.\n\n`currency` accepts only the listed codes; any other value is rejected with `400`. Unlike `urlSlug` and `allowedInviteDomains` it cannot be cleared - no value unsets it.",
+            "properties": {
+              "currency": {
+                "description": "Currency code for monetary values.",
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "ILS",
+                  "EUR",
+                  "AUD",
+                  "CAD",
+                  "GBP",
+                  "DKK",
+                  "NOK",
+                  "SEK",
+                  "BRL",
+                  "SGD",
+                  "MXN",
+                  "CHF",
+                  "MYR",
+                  "TWD",
+                  "EGP",
+                  "ZAR",
+                  "JPY",
+                  "IDR",
+                  "AED",
+                  "THB",
+                  "COP"
+                ]
+              },
+              "allowedInviteDomains": {
+                "type": "array",
+                "description": "Email domains allowed to self-invite into the customer. Updating this field requires the `UsersManager` permission in addition to `Settings`. An empty array clears the list.",
+                "items": {
+                  "type": "string"
+                },
+                "x-doit-pii": true,
+                "x-doit-confidentiality": "customer-data"
+              }
+            }
+          },
+          "contact": {
+            "type": "object",
+            "description": "Customer point-of-contact details. Shared by the `getCustomer` response and the `updateCustomer` request body so a value is always read and written at the same path.",
+            "properties": {
+              "emails": {
+                "type": "array",
+                "description": "Point-of-contact email addresses for the customer.",
+                "items": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "x-doit-pii": true,
+                "x-doit-confidentiality": "customer-data"
+              }
+            }
           }
         }
       },
@@ -67879,9 +68238,18 @@
       "AnomaliesResponse": {
         "type": "object",
         "description": "List of detected cloud cost anomalies.",
+        "required": [
+          "anomalies",
+          "rowCount",
+          "truncated",
+          "totalCount",
+          "totalCountExact",
+          "anomalySummary"
+        ],
         "properties": {
           "anomalies": {
             "type": "array",
+            "description": "Anomalies in this page. Always an array; empty (`[]`) when there are no matching anomalies.",
             "items": {
               "required": [
                 "attribution",
@@ -67941,7 +68309,7 @@
                 },
                 "severityLevel": {
                   "type": "string",
-                  "description": "Severity level: Information, Warning or Critical"
+                  "description": "Severity level: `information`, `warning`, or `critical`."
                 },
                 "startTime": {
                   "type": "integer",
@@ -68086,11 +68454,64 @@
             }
           },
           "pageToken": {
-            "type": "string"
+            "type": "string",
+            "description": "Opaque token for the next page. Omitted when there is no next page."
           },
           "rowCount": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Number of items in this page (`anomalies.length`). This is not the total count across all pages; the total across the full filtered result set is `totalCount`."
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "`true` when filtered anomalies remain beyond this page. Derived from the same \"rows remain after the last returned row\" check as `pageToken`, so the two are never contradictory: `pageToken` is present if and only if `truncated` is `true`."
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of anomalies matching the filters and time window, across all pages. This is a per-request snapshot: under concurrent writes, the value can differ between pages fetched during the same pagination sequence."
+          },
+          "totalCountExact": {
+            "type": "boolean",
+            "description": "Whether `totalCount` is exact. Always `true` for this operation, because `totalCount` is computed over the fully materialised filtered result set."
+          },
+          "anomalySummary": {
+            "type": "object",
+            "description": "Anomaly-specific summary. `countBySeverity` and `totalCostOfAnomaly` cover the complete filtered result set across all pages, not the returned page. Anomalies whose severity cannot be determined (legacy documents) are counted in `totalCount` and `totalCostOfAnomaly` but in none of the three severity buckets in `countBySeverity`, so the three values can sum to less than `totalCount`. Computed as of this request; under concurrent writes, values may differ between pages fetched during the same pagination sequence.",
+            "required": [
+              "countBySeverity",
+              "totalCostOfAnomaly"
+            ],
+            "properties": {
+              "countBySeverity": {
+                "type": "object",
+                "description": "Count of matching anomalies per severity level. All three keys are always present, with zero counts included.",
+                "required": [
+                  "information",
+                  "warning",
+                  "critical"
+                ],
+                "properties": {
+                  "information": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "warning": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "critical": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              },
+              "totalCostOfAnomaly": {
+                "type": "number",
+                "format": "double",
+                "description": "Sum of `costOfAnomaly` across all matching anomalies, in USD, rounded to cents."
+              }
+            }
           }
         }
       },
@@ -68153,7 +68574,7 @@
           },
           "severityLevel": {
             "type": "string",
-            "description": "Severity level: Information, Warning or Critical"
+            "description": "Severity level: `information`, `warning`, or `critical`."
           },
           "startTime": {
             "type": "integer",
@@ -69758,6 +70179,15 @@
           "owner": {
             "type": "string"
           },
+          "riskStatus": {
+            "type": "string",
+            "description": "Server-computed risk classification, based on current utilization and forecasted breach date relative to the configured amount and current period end.\n\"atRisk\" - the budget has already exceeded its configured amount, or its forecast projects it will before the current period ends.\n\"onTrack\" - the budget has forecast data and is neither over budget nor projected to breach.\n\"unknown\" - no forecast data is available yet, the budget is a fixed budget whose period has already expired, or the budget is invalid/draft.",
+            "enum": [
+              "atRisk",
+              "onTrack",
+              "unknown"
+            ]
+          },
           "scope": {
             "type": "array",
             "description": "List of allocations that define the budget scope.",
@@ -69878,6 +70308,34 @@
           },
           "url": {
             "type": "string"
+          }
+        }
+      },
+      "RiskAggregations": {
+        "type": "object",
+        "description": "Aggregate counts of risk statuses across the full filtered result set (all pages), not just the current page.",
+        "required": [
+          "total",
+          "atRisk",
+          "onTrack",
+          "unknown"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "atRisk": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "onTrack": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unknown": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -100699,9 +101157,18 @@
                 "Report": {
                   "type": "object",
                   "description": "List of detected cloud cost anomalies.",
+                  "required": [
+                    "anomalies",
+                    "rowCount",
+                    "truncated",
+                    "totalCount",
+                    "totalCountExact",
+                    "anomalySummary"
+                  ],
                   "properties": {
                     "anomalies": {
                       "type": "array",
+                      "description": "Anomalies in this page. Always an array; empty (`[]`) when there are no matching anomalies.",
                       "items": {
                         "required": [
                           "attribution",
@@ -100761,7 +101228,7 @@
                           },
                           "severityLevel": {
                             "type": "string",
-                            "description": "Severity level: Information, Warning or Critical"
+                            "description": "Severity level: `information`, `warning`, or `critical`."
                           },
                           "startTime": {
                             "type": "integer",
@@ -100906,11 +101373,64 @@
                       }
                     },
                     "pageToken": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Opaque token for the next page. Omitted when there is no next page."
                     },
                     "rowCount": {
                       "type": "integer",
-                      "format": "int64"
+                      "format": "int64",
+                      "description": "Number of items in this page (`anomalies.length`). This is not the total count across all pages; the total across the full filtered result set is `totalCount`."
+                    },
+                    "truncated": {
+                      "type": "boolean",
+                      "description": "`true` when filtered anomalies remain beyond this page. Derived from the same \"rows remain after the last returned row\" check as `pageToken`, so the two are never contradictory: `pageToken` is present if and only if `truncated` is `true`."
+                    },
+                    "totalCount": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Total number of anomalies matching the filters and time window, across all pages. This is a per-request snapshot: under concurrent writes, the value can differ between pages fetched during the same pagination sequence."
+                    },
+                    "totalCountExact": {
+                      "type": "boolean",
+                      "description": "Whether `totalCount` is exact. Always `true` for this operation, because `totalCount` is computed over the fully materialised filtered result set."
+                    },
+                    "anomalySummary": {
+                      "type": "object",
+                      "description": "Anomaly-specific summary. `countBySeverity` and `totalCostOfAnomaly` cover the complete filtered result set across all pages, not the returned page. Anomalies whose severity cannot be determined (legacy documents) are counted in `totalCount` and `totalCostOfAnomaly` but in none of the three severity buckets in `countBySeverity`, so the three values can sum to less than `totalCount`. Computed as of this request; under concurrent writes, values may differ between pages fetched during the same pagination sequence.",
+                      "required": [
+                        "countBySeverity",
+                        "totalCostOfAnomaly"
+                      ],
+                      "properties": {
+                        "countBySeverity": {
+                          "type": "object",
+                          "description": "Count of matching anomalies per severity level. All three keys are always present, with zero counts included.",
+                          "required": [
+                            "information",
+                            "warning",
+                            "critical"
+                          ],
+                          "properties": {
+                            "information": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "warning": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "critical": {
+                              "type": "integer",
+                              "format": "int64"
+                            }
+                          }
+                        },
+                        "totalCostOfAnomaly": {
+                          "type": "number",
+                          "format": "double",
+                          "description": "Sum of `costOfAnomaly` across all matching anomalies, in USD, rounded to cents."
+                        }
+                      }
                     }
                   }
                 }
@@ -100965,7 +101485,7 @@
                 },
                 "severityLevel": {
                   "type": "string",
-                  "description": "Severity level: Information, Warning or Critical"
+                  "description": "Severity level: `information`, `warning`, or `critical`."
                 },
                 "startTime": {
                   "type": "integer",
