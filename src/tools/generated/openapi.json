@@ -25771,7 +25771,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -28241,7 +28241,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -32804,34 +32804,33 @@
         }
       }
     },
-    "/customers/v1/customers": {
+    "/customers/v1/customers/{customerId}": {
       "get": {
         "tags": [
           "Customers"
         ],
-        "summary": "Get customer general settings",
-        "description": "Returns the general settings of the customer scoped to the authenticated tenant (from the bearer token). Requires the `Settings` permission and DoiT API access (`platform:externalApi`).",
+        "summary": "Get customer",
+        "description": "Returns the customer, including its general settings and contact info, scoped to `{customerId}`. `{customerId}` must match the customer resolved from the bearer token; a token scoped to a different customer gets `403`, even if that customer would otherwise be reachable through a reseller/MTS relationship. Requires the `Settings` permission and DoiT API access (`platform:externalApi`).",
         "operationId": "getCustomer",
         "parameters": [
           {
-            "in": "header",
-            "name": "X-Tenant-Id",
-            "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "description": "Customer ID. Must match the customer resolved from the bearer token - a token scoped to a different customer gets `403`.",
             "schema": {
-              "type": "string",
-              "example": "Kp2mN8qL4vR0sT1wX3yZ"
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK - Customer general settings returned.",
+            "description": "OK - Customer returned.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "Customer general settings, scoped to the authenticated tenant.",
+                  "description": "Customer scoped to the authenticated tenant, including its settings and contact info.",
                   "required": [
                     "id"
                   ],
@@ -32905,6 +32904,11 @@
                             "type": "string"
                           },
                           "x-doit-pii": true,
+                          "x-doit-confidentiality": "customer-data"
+                        },
+                        "mfaRequired": {
+                          "type": "boolean",
+                          "description": "Whether users of this customer are required to enroll in multi-factor authentication. A missing value is treated as `true`. Disabling this does not remove MFA enrollments existing users already have.",
                           "x-doit-confidentiality": "customer-data"
                         }
                       }
@@ -33021,18 +33025,17 @@
         "tags": [
           "Customers"
         ],
-        "summary": "Update customer general settings",
-        "description": "Partially updates the general settings of the customer scoped to the authenticated tenant (from the bearer token). Requires the `Settings` permission and DoiT API access (`platform:externalApi`); updating `allowedInviteDomains` additionally requires the `UsersManager` permission.\n\nThe request body must use `application/merge-patch+json` (RFC 7396): an omitted field leaves the current value unchanged, and an explicit `null` also leaves it unchanged, except for `urlSlug`, where an explicit empty string removes the customer's active URL slug rather than leaving it unchanged.\n\nFields are nested exactly as `getCustomer` returns them - `currency` and `allowedInviteDomains` under `settings`, `emails` under `contact` - so every value is read and written at the same path. `settings.currency` accepts only the codes listed in the schema and cannot be cleared; `allowedInviteDomains` and `contact.emails` are cleared with an empty array.",
+        "summary": "Update customer",
+        "description": "Partially updates the general settings and contact info of the customer identified by `{customerId}`. `{customerId}` must match the customer resolved from the bearer token; a token scoped to a different customer gets `403`, even if that customer would otherwise be reachable through a reseller/MTS relationship. Requires the `Settings` permission and DoiT API access (`platform:externalApi`); updating `allowedInviteDomains` additionally requires the `UsersManager` permission.\n\nThe request body must use `application/merge-patch+json` (RFC 7396): an omitted field leaves the current value unchanged, and an explicit `null` also leaves it unchanged, except for `urlSlug`, where an explicit empty string removes the customer's active URL slug rather than leaving it unchanged.\n\nFields are nested exactly as `getCustomer` returns them - `currency` and `allowedInviteDomains` under `settings`, `emails` under `contact` - so every value is read and written at the same path. `settings.currency` accepts only the codes listed in the schema and cannot be cleared; `allowedInviteDomains` and `contact.emails` are cleared with an empty array.",
         "operationId": "updateCustomer",
         "parameters": [
           {
-            "in": "header",
-            "name": "X-Tenant-Id",
-            "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "description": "Customer ID. Must match the customer resolved from the bearer token - a token scoped to a different customer gets `403`.",
             "schema": {
-              "type": "string",
-              "example": "Kp2mN8qL4vR0sT1wX3yZ"
+              "type": "string"
             }
           }
         ],
@@ -33089,6 +33092,11 @@
                         },
                         "x-doit-pii": true,
                         "x-doit-confidentiality": "customer-data"
+                      },
+                      "mfaRequired": {
+                        "type": "boolean",
+                        "description": "Whether users of this customer are required to enroll in multi-factor authentication. A missing value is treated as `true`. Disabling this does not remove MFA enrollments existing users already have.",
+                        "x-doit-confidentiality": "customer-data"
                       }
                     }
                   },
@@ -33115,7 +33123,7 @@
         },
         "responses": {
           "200": {
-            "description": "OK - Customer general settings updated."
+            "description": "OK - Customer updated."
           },
           "400": {
             "description": "Bad Request - The server cannot process the request, often due to a malformed request.",
@@ -48661,7 +48669,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -49707,7 +49715,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -51232,7 +51240,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -52206,7 +52214,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -53679,7 +53687,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -54710,7 +54718,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -56161,7 +56169,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -57023,7 +57031,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -57908,7 +57916,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -58998,7 +59006,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -59824,7 +59832,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -60319,7 +60327,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -60619,7 +60627,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -60992,7 +61000,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -61160,7 +61168,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -61505,7 +61513,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -61841,7 +61849,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -62071,7 +62079,7 @@
             "in": "header",
             "name": "X-Tenant-Id",
             "required": false,
-            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+            "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
             "schema": {
               "type": "string",
               "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -65000,7 +65008,7 @@
       },
       "Customer": {
         "type": "object",
-        "description": "Customer general settings, scoped to the authenticated tenant.",
+        "description": "Customer scoped to the authenticated tenant, including its settings and contact info.",
         "required": [
           "id"
         ],
@@ -65075,6 +65083,11 @@
                 },
                 "x-doit-pii": true,
                 "x-doit-confidentiality": "customer-data"
+              },
+              "mfaRequired": {
+                "type": "boolean",
+                "description": "Whether users of this customer are required to enroll in multi-factor authentication. A missing value is treated as `true`. Disabling this does not remove MFA enrollments existing users already have.",
+                "x-doit-confidentiality": "customer-data"
               }
             }
           },
@@ -65135,6 +65148,11 @@
               "type": "string"
             },
             "x-doit-pii": true,
+            "x-doit-confidentiality": "customer-data"
+          },
+          "mfaRequired": {
+            "type": "boolean",
+            "description": "Whether users of this customer are required to enroll in multi-factor authentication. A missing value is treated as `true`. Disabling this does not remove MFA enrollments existing users already have.",
             "x-doit-confidentiality": "customer-data"
           }
         }
@@ -65203,6 +65221,11 @@
                   "type": "string"
                 },
                 "x-doit-pii": true,
+                "x-doit-confidentiality": "customer-data"
+              },
+              "mfaRequired": {
+                "type": "boolean",
+                "description": "Whether users of this customer are required to enroll in multi-factor authentication. A missing value is treated as `true`. Disabling this does not remove MFA enrollments existing users already have.",
                 "x-doit-confidentiality": "customer-data"
               }
             }
@@ -102470,6 +102493,15 @@
           "type": "string"
         }
       },
+      "customerId": {
+        "name": "customerId",
+        "in": "path",
+        "required": true,
+        "description": "Customer ID. Must match the customer resolved from the bearer token - a token scoped to a different customer gets `403`.",
+        "schema": {
+          "type": "string"
+        }
+      },
       "billingExplainerInvoiceMonth": {
         "name": "invoiceMonth",
         "in": "path",
@@ -102485,7 +102517,7 @@
         "in": "header",
         "name": "X-Tenant-Id",
         "required": false,
-        "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15).\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
+        "description": "Tenant (customer) identifier that conveys the tenant scope for the request\n(DoiT API Design Standards §15). Accepts the customer ID or the customer's\nURL display name as shown in DoiT Console URLs (e.g. `omni`), which the\nserver resolves to the customer ID. Endpoint groups that validate the\ntenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nResolution when the header is absent:\n- A key scoped to exactly one tenant resolves to that tenant automatically; the header is\n  optional.\n- A principal that can access more than one tenant (e.g. DoiT-employee keys) must supply the\n  header. Without it the request is rejected with `400` and code `tenant_id_required` — the\n  server does not guess across tenant scopes.\n\nWhen the header is present but conflicts with the tenant the key is scoped to, the request is\nrejected with `400` and code `tenant_id_mismatch`.\n",
         "schema": {
           "type": "string",
           "example": "Kp2mN8qL4vR0sT1wX3yZ"
@@ -102587,7 +102619,7 @@
       "tenantId": {
         "type": "apiKey",
         "name": "X-Tenant-Id",
-        "description": "Tenant (customer) ID that sets the request's customer context.\n\nRequired when the credential can access more than one tenant; omit when the\ncredential is scoped to exactly one tenant (the server resolves that tenant\nautomatically). If omitted for a multi-tenant credential, the request fails\nwith `400` and code `tenant_id_required`. If the value conflicts with the\ncredential's tenant scope, the request fails with `400` and code\n`tenant_id_mismatch`.\n\nUse this header over the legacy `customerContext` query parameter, which\nonly applies to legacy API keys and is ignored by personal and service-account\nAPI tokens.\n",
+        "description": "Tenant (customer) ID that sets the request's customer context. Also accepts\nthe customer's URL display name as shown in DoiT Console URLs (e.g. `omni`),\nwhich the server resolves to the customer ID. Endpoint groups that validate\nthe tenant in their own middleware (e.g. CloudFlow) currently require the\nliteral customer ID.\n\nRequired when the credential can access more than one tenant; omit when the\ncredential is scoped to exactly one tenant (the server resolves that tenant\nautomatically). If omitted for a multi-tenant credential, the request fails\nwith `400` and code `tenant_id_required`. If the value conflicts with the\ncredential's tenant scope, the request fails with `400` and code\n`tenant_id_mismatch`.\n\nUse this header over the legacy `customerContext` query parameter, which\nonly applies to legacy API keys and is ignored by personal and service-account\nAPI tokens.\n",
         "in": "header"
       },
       "oauth2": {
