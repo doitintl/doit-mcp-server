@@ -8198,7 +8198,10 @@
                     "description": "List of Slack channels to notify when reaching alert threshold.",
                     "items": {
                       "type": "object",
-                      "description": "Information of a Slack channel for notifications.",
+                      "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+                      "required": [
+                        "id"
+                      ],
                       "properties": {
                         "customerId": {
                           "type": "string"
@@ -8538,7 +8541,10 @@
                       "description": "List of Slack channels to notify when reaching alert threshold.",
                       "items": {
                         "type": "object",
-                        "description": "Information of a Slack channel for notifications.",
+                        "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+                        "required": [
+                          "id"
+                        ],
                         "properties": {
                           "customerId": {
                             "type": "string"
@@ -8968,7 +8974,10 @@
                       "description": "List of Slack channels to notify when reaching alert threshold.",
                       "items": {
                         "type": "object",
-                        "description": "Information of a Slack channel for notifications.",
+                        "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+                        "required": [
+                          "id"
+                        ],
                         "properties": {
                           "customerId": {
                             "type": "string"
@@ -9445,7 +9454,10 @@
                     "description": "List of Slack channels to notify when reaching alert threshold.",
                     "items": {
                       "type": "object",
-                      "description": "Information of a Slack channel for notifications.",
+                      "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+                      "required": [
+                        "id"
+                      ],
                       "properties": {
                         "customerId": {
                           "type": "string"
@@ -9761,7 +9773,10 @@
                       "description": "List of Slack channels to notify when reaching alert threshold.",
                       "items": {
                         "type": "object",
-                        "description": "Information of a Slack channel for notifications.",
+                        "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+                        "required": [
+                          "id"
+                        ],
                         "properties": {
                           "customerId": {
                             "type": "string"
@@ -70192,7 +70207,10 @@
             "description": "List of slack channels to notify when reaching alert threshold.",
             "items": {
               "type": "object",
-              "description": "Information of a Slack channel for notifications.",
+              "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+              "required": [
+                "id"
+              ],
               "properties": {
                 "customerId": {
                   "type": "string"
@@ -70399,7 +70417,10 @@
             "description": "List of Slack channels to notify when reaching alert threshold.",
             "items": {
               "type": "object",
-              "description": "Information of a Slack channel for notifications.",
+              "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+              "required": [
+                "id"
+              ],
               "properties": {
                 "customerId": {
                   "type": "string"
@@ -70905,7 +70926,10 @@
             "description": "List of Slack channels to notify when reaching alert threshold.",
             "items": {
               "type": "object",
-              "description": "Information of a Slack channel for notifications.",
+              "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+              "required": [
+                "id"
+              ],
               "properties": {
                 "customerId": {
                   "type": "string"
@@ -77342,7 +77366,10 @@
       },
       "SlackChannel": {
         "type": "object",
-        "description": "Information of a Slack channel for notifications.",
+        "description": "Information of a Slack channel for notifications. `customerId` and `workspace` are required unless `shared` is true.",
+        "required": [
+          "id"
+        ],
         "properties": {
           "customerId": {
             "type": "string"
