@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.19.3 (2026-08-25)
+
+### Bug Fixes
+
+- fix: report operationId renames in the spec-refresh diff (`6c012b9`)
+- fix: improve budget tool input validation for slack channels
+
 ## v0.19.2 (2026-08-19)
 
 **Full diff:** [`v0.19.1...v0.19.2`](../../compare/v0.19.1...v0.19.2)
