@@ -204,7 +204,7 @@
           {
             "name": "sortOrder",
             "in": "query",
-            "description": "Sort order can be ascending or descending.",
+            "description": "Specifies the sort direction; accepts asc for ascending (lowest to highest) or desc for descending (highest to lowest).",
             "schema": {
               "type": "string",
               "enum": [
@@ -2505,7 +2505,7 @@
           {
             "name": "sortOrder",
             "in": "query",
-            "description": "Sort order can be ascending or descending.",
+            "description": "Specifies the sort direction; accepts asc for ascending (lowest to highest) or desc for descending (highest to lowest).",
             "schema": {
               "type": "string",
               "enum": [
@@ -4567,7 +4567,7 @@
           {
             "name": "sortOrder",
             "in": "query",
-            "description": "Sort order can be ascending or descending.",
+            "description": "Specifies the sort direction; accepts asc for ascending (lowest to highest) or desc for descending (highest to lowest).",
             "schema": {
               "type": "string",
               "enum": [
@@ -5485,7 +5485,7 @@
           {
             "name": "sortOrder",
             "in": "query",
-            "description": "Sort order can be ascending or descending.",
+            "description": "Specifies the sort direction; accepts asc for ascending (lowest to highest) or desc for descending (highest to lowest).",
             "schema": {
               "type": "string",
               "enum": [
@@ -11464,7 +11464,7 @@
           {
             "name": "sortOrder",
             "in": "query",
-            "description": "Sort order can be ascending or descending.",
+            "description": "Specifies the sort direction; accepts asc for ascending (lowest to highest) or desc for descending (highest to lowest).",
             "schema": {
               "type": "string",
               "enum": [
@@ -20391,6 +20391,10 @@
                           "fixed"
                         ]
                       },
+                      "doitInvoicingEnabled": {
+                        "type": "boolean",
+                        "description": "Whether DoiT generates invoices for this contract."
+                      },
                       "currentVersionNumber": {
                         "type": "integer",
                         "nullable": true,
@@ -20471,10 +20475,7 @@
                 "required": [
                   "name",
                   "startDate",
-                  "renewalPolicy",
-                  "invoicesEmail",
-                  "contractUpdatesEmail",
-                  "billingProfile"
+                  "renewalPolicy"
                 ],
                 "properties": {
                   "name": {
@@ -20497,17 +20498,24 @@
                       "fixed"
                     ]
                   },
+                  "doitInvoicingEnabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether DoiT generates invoices for this contract. Disabling suppresses invoice generation from that point forward while billing calculations and pipeline outputs continue. Omitting the field leaves invoicing enabled."
+                  },
                   "invoicesEmail": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "description": "Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
                   },
                   "contractUpdatesEmail": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "description": "Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
                   },
                   "billingProfile": {
                     "type": "object",
-                    "description": "The billing profile (name, country, state, city, address, zip)."
+                    "description": "The billing profile (name, country, state, city, address, zip). Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
                   },
                   "managementAccounts": {
                     "type": "array",
@@ -20709,6 +20717,10 @@
                             "fixed"
                           ]
                         },
+                        "doitInvoicingEnabled": {
+                          "type": "boolean",
+                          "description": "Whether DoiT generates invoices for this contract."
+                        },
                         "currentVersionNumber": {
                           "type": "integer",
                           "nullable": true,
@@ -20776,6 +20788,10 @@
                               "contractUpdatesEmail": {
                                 "type": "string",
                                 "format": "email"
+                              },
+                              "doitInvoicingEnabled": {
+                                "type": "boolean",
+                                "description": "Whether DoiT generates invoices for this contract."
                               },
                               "managementAccounts": {
                                 "type": "array",
@@ -20899,10 +20915,7 @@
                 "required": [
                   "name",
                   "startDate",
-                  "renewalPolicy",
-                  "invoicesEmail",
-                  "contractUpdatesEmail",
-                  "billingProfile"
+                  "renewalPolicy"
                 ],
                 "properties": {
                   "name": {
@@ -20925,17 +20938,24 @@
                       "fixed"
                     ]
                   },
+                  "doitInvoicingEnabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether DoiT generates invoices for this contract. Disabling suppresses invoice generation from that point forward while billing calculations and pipeline outputs continue. Omitting the field leaves invoicing enabled."
+                  },
                   "invoicesEmail": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "description": "Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
                   },
                   "contractUpdatesEmail": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "description": "Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
                   },
                   "billingProfile": {
                     "type": "object",
-                    "description": "The billing profile (name, country, state, city, address, zip)."
+                    "description": "The billing profile (name, country, state, city, address, zip). Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
                   },
                   "managementAccounts": {
                     "type": "array",
@@ -21387,7 +21407,7 @@
           {
             "name": "sortOrder",
             "in": "query",
-            "description": "Sort order can be ascending or descending.",
+            "description": "Specifies the sort direction; accepts asc for ascending (lowest to highest) or desc for descending (highest to lowest).",
             "schema": {
               "type": "string",
               "enum": [
@@ -42235,7 +42255,7 @@
           {
             "name": "sortOrder",
             "in": "query",
-            "description": "Sort order can be ascending or descending.",
+            "description": "Specifies the sort direction; accepts asc for ascending (lowest to highest) or desc for descending (highest to lowest).",
             "schema": {
               "type": "string",
               "enum": [
@@ -48671,6 +48691,2207 @@
         }
       }
     },
+    "/cloudflow/v1/flows/{flowId}/export": {
+      "get": {
+        "tags": [
+          "CloudFlow"
+        ],
+        "summary": "Export a flow as a portable bundle",
+        "description": "Serializes the flow — plus every flow it references through subflow nodes — into a\ntenant-neutral, credential-free JSON bundle that can be imported into any tenant with\nthe import operation. Tenant-scoped references (connections, Datastore tables, global\nvariables) are declared as named requirements and rebound at import time; policy and\nSlack-channel references cannot travel and are recorded as unsupported references.\nThe bundle never contains credentials, tenant identifiers, schedules, or execution state.",
+        "operationId": "exportCloudflowFlow",
+        "parameters": [
+          {
+            "name": "flowId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the flow to export.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeVariableValues",
+            "in": "query",
+            "required": false,
+            "description": "When `false`, local and global variable values are stripped from the bundle; names,\ntypes, and required-ness always travel. Connection-typed variable values are\nreferences, not values, and always travel as requirement tokens.",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The flow bundle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Portable, tenant-neutral export of one or more flows. Contains no credentials, tenant identifiers, schedules, or execution state; tenant-scoped references are declared under `requirements` and appear inside node parameters as `$req:<section>/<key>` tokens (subflow references as `$bundle:flows/<flowKey>`).",
+                  "required": [
+                    "kind",
+                    "schemaVersion",
+                    "rootFlow",
+                    "flows"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "cloudflow.doit.com/FlowBundle"
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "description": "Bundle format version. The server exports the newest version and accepts every version it has ever shipped.",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "exportedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "description": "Informational export timestamp; ignored on import."
+                    },
+                    "rootFlow": {
+                      "type": "string",
+                      "description": "Key (into `flows`) of the flow that was exported; the rest are its subflows."
+                    },
+                    "flows": {
+                      "type": "array",
+                      "maxItems": 20,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "name",
+                          "firstNode",
+                          "nodes"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "Bundle-local flow key. Opaque — the server generates new IDs at import."
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "tags": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "triggerType": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "firstNode": {
+                            "type": "string",
+                            "description": "Key of this flow's entry node."
+                          },
+                          "nodes": {
+                            "type": "array",
+                            "maxItems": 150,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "key",
+                                "name",
+                                "type"
+                              ],
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "description": "Node type (e.g. `triggerNode`, `actionNode`, `datastoreNode`). Validated against the supported node-type set at import."
+                                },
+                                "parameters": {
+                                  "type": "object",
+                                  "additionalProperties": true,
+                                  "description": "Node parameters with tenant-scoped scalar references replaced by `$req:`/`$bundle:` tokens."
+                                },
+                                "approval": {
+                                  "type": "object",
+                                  "description": "Approval configuration without recipients (recipients are tenant-scoped and removed at export).",
+                                  "properties": {
+                                    "required": {
+                                      "type": "boolean"
+                                    },
+                                    "message": {},
+                                    "rejectApprovalAfterTime": {
+                                      "type": "boolean"
+                                    },
+                                    "rejectTimeValue": {
+                                      "type": "integer"
+                                    },
+                                    "rejectTimeUnit": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "transitions": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "required": [
+                                      "target"
+                                    ],
+                                    "properties": {
+                                      "target": {
+                                        "type": "string",
+                                        "description": "Key of the node this transition points at."
+                                      },
+                                      "label": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "pathId": {
+                                        "type": "string",
+                                        "nullable": true
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "localVariables": {
+                            "type": "array",
+                            "maxItems": 50,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "key",
+                                "name",
+                                "type"
+                              ],
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string"
+                                },
+                                "elementType": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "description": "Present unless the export stripped variable values. Connection-typed values are `$req:connections/<key>` tokens."
+                                }
+                              }
+                            }
+                          },
+                          "unsupportedReferences": {
+                            "type": "array",
+                            "description": "Tenant-scoped references removed at export (policy IDs, Slack channels); import flags the affected nodes incomplete.",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "nodeKey",
+                                "kind"
+                              ],
+                              "properties": {
+                                "nodeKey": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "policy",
+                                    "slackChannel"
+                                  ]
+                                },
+                                "detail": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "requirements": {
+                      "type": "object",
+                      "description": "Tenant-scoped resources the bundle needs; each is bound to a target-tenant resource at import.",
+                      "properties": {
+                        "connections": {
+                          "type": "array",
+                          "maxItems": 50,
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "key",
+                              "provider",
+                              "name"
+                            ],
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "provider": {
+                                "type": "string",
+                                "description": "Cloud provider the bound connection must have (e.g. `amazon-web-services`)."
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "The source connection's display name, as a matching hint."
+                              },
+                              "usedByNodes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "datastoreTables": {
+                          "type": "array",
+                          "maxItems": 50,
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "key",
+                              "name",
+                              "fields"
+                            ],
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "name",
+                                    "dataType"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "dataType": {
+                                      "type": "string"
+                                    },
+                                    "isUnique": {
+                                      "type": "boolean"
+                                    },
+                                    "description": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "usedByNodes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "globalVariables": {
+                          "type": "array",
+                          "maxItems": 50,
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "key",
+                              "name",
+                              "type"
+                            ],
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string"
+                              },
+                              "elementType": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Present unless the export stripped variable values."
+                              },
+                              "usedByNodes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Syntactically malformed request, missing required parameter, or unsupported parameter value.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "validationFailed": {
+                    "summary": "Missing or invalid parameter",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/validation_failed",
+                      "title": "Validation failed",
+                      "status": 400,
+                      "detail": "The request is missing a required parameter or contains an invalid value.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "validation_failed",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdRequired": {
+                    "summary": "Tenant scope not resolvable",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_required",
+                      "title": "Tenant ID required",
+                      "status": 400,
+                      "detail": "X-Tenant-Id header is required when the credential can access more than one tenant.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_required",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdMismatch": {
+                    "summary": "Header conflicts with the key's tenant",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_mismatch",
+                      "title": "Tenant ID mismatch",
+                      "status": 400,
+                      "detail": "X-Tenant-Id does not match the tenant the credential is scoped to.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_mismatch",
+                      "retryable": false
+                    }
+                  },
+                  "gcpServiceRequired": {
+                    "summary": "GCP region filter without commitment type",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/gcp_service_required",
+                      "title": "GCP service required",
+                      "status": 400,
+                      "detail": "The region query parameter requires gcp_service.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "gcp_service_required",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenInvalid": {
+                    "summary": "Structurally invalid pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_invalid",
+                      "title": "Invalid pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is structurally invalid (decode failure or tampering).",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_invalid",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenExpired": {
+                    "summary": "Expired pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_expired",
+                      "title": "Expired pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is no longer valid; restart pagination from the beginning.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_expired",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "Bearer challenge per RFC 6750.",
+                "schema": {
+                  "type": "string",
+                  "example": "Bearer realm=\"api.doit.com\""
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/unauthorized",
+                  "title": "Unauthorized",
+                  "status": 401,
+                  "detail": "missing or invalid bearer token",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "unauthorized",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated but not authorized to access this customer's PerfectScale for Commitments resources.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/forbidden",
+                  "title": "Forbidden",
+                  "status": 403,
+                  "detail": "caller does not have permission to access this customer's commitments",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "forbidden",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity - The request is well-formed but semantically invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cloudflow/v1/flows/actions/import": {
+      "post": {
+        "tags": [
+          "CloudFlow"
+        ],
+        "summary": "Import a flow bundle",
+        "description": "Creates every flow of a previously exported bundle in the authenticated tenant.\nImports are create-only: each call creates new draft flows with new IDs — nothing is\npublished and no schedule is activated until the target tenant publishes.\n\nRequirements declared by the bundle are resolved through `bindings` (requirement key →\ntarget-tenant resource ID). Unbound connections and Datastore tables leave the\nreferencing nodes flagged incomplete; unbound global variables are auto-created. Pass\n`options.createMissingTables: true` to create missing Datastore tables from the schemas\nembedded in the bundle (structure only, never row data).\n\n**Dry-run**: pass `?dryRun=true` to validate without writing. The response is an import\nplan: per-requirement resolutions with candidate bindings in the target tenant, the\nflows that would be created, and every validation issue at once.",
+        "operationId": "importCloudflowFlow",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Client-generated idempotency key (UUID v4 or ULID recommended, max 255 characters).\nRe-submitting the same key with the same request returns the cached response without\nre-executing side effects. The server retains the key for at least 24 hours.\n",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "dryRun",
+            "in": "query",
+            "required": false,
+            "description": "If `true`, validates the bundle and resolves its requirements against the tenant\nwithout committing changes, returning the import plan.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "bundle"
+                ],
+                "properties": {
+                  "bundle": {
+                    "type": "object",
+                    "description": "Portable, tenant-neutral export of one or more flows. Contains no credentials, tenant identifiers, schedules, or execution state; tenant-scoped references are declared under `requirements` and appear inside node parameters as `$req:<section>/<key>` tokens (subflow references as `$bundle:flows/<flowKey>`).",
+                    "required": [
+                      "kind",
+                      "schemaVersion",
+                      "rootFlow",
+                      "flows"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "cloudflow.doit.com/FlowBundle"
+                        ]
+                      },
+                      "schemaVersion": {
+                        "type": "integer",
+                        "description": "Bundle format version. The server exports the newest version and accepts every version it has ever shipped.",
+                        "enum": [
+                          1
+                        ]
+                      },
+                      "exportedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "Informational export timestamp; ignored on import."
+                      },
+                      "rootFlow": {
+                        "type": "string",
+                        "description": "Key (into `flows`) of the flow that was exported; the rest are its subflows."
+                      },
+                      "flows": {
+                        "type": "array",
+                        "maxItems": 20,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "key",
+                            "name",
+                            "firstNode",
+                            "nodes"
+                          ],
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "description": "Bundle-local flow key. Opaque — the server generates new IDs at import."
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "tags": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "triggerType": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "firstNode": {
+                              "type": "string",
+                              "description": "Key of this flow's entry node."
+                            },
+                            "nodes": {
+                              "type": "array",
+                              "maxItems": 150,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "key",
+                                  "name",
+                                  "type"
+                                ],
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "description": "Node type (e.g. `triggerNode`, `actionNode`, `datastoreNode`). Validated against the supported node-type set at import."
+                                  },
+                                  "parameters": {
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "description": "Node parameters with tenant-scoped scalar references replaced by `$req:`/`$bundle:` tokens."
+                                  },
+                                  "approval": {
+                                    "type": "object",
+                                    "description": "Approval configuration without recipients (recipients are tenant-scoped and removed at export).",
+                                    "properties": {
+                                      "required": {
+                                        "type": "boolean"
+                                      },
+                                      "message": {},
+                                      "rejectApprovalAfterTime": {
+                                        "type": "boolean"
+                                      },
+                                      "rejectTimeValue": {
+                                        "type": "integer"
+                                      },
+                                      "rejectTimeUnit": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "transitions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "required": [
+                                        "target"
+                                      ],
+                                      "properties": {
+                                        "target": {
+                                          "type": "string",
+                                          "description": "Key of the node this transition points at."
+                                        },
+                                        "label": {
+                                          "type": "string",
+                                          "nullable": true
+                                        },
+                                        "pathId": {
+                                          "type": "string",
+                                          "nullable": true
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "localVariables": {
+                              "type": "array",
+                              "maxItems": 50,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "key",
+                                  "name",
+                                  "type"
+                                ],
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "required": {
+                                    "type": "boolean"
+                                  },
+                                  "type": {
+                                    "type": "string"
+                                  },
+                                  "elementType": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "description": "Present unless the export stripped variable values. Connection-typed values are `$req:connections/<key>` tokens."
+                                  }
+                                }
+                              }
+                            },
+                            "unsupportedReferences": {
+                              "type": "array",
+                              "description": "Tenant-scoped references removed at export (policy IDs, Slack channels); import flags the affected nodes incomplete.",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "nodeKey",
+                                  "kind"
+                                ],
+                                "properties": {
+                                  "nodeKey": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "policy",
+                                      "slackChannel"
+                                    ]
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "requirements": {
+                        "type": "object",
+                        "description": "Tenant-scoped resources the bundle needs; each is bound to a target-tenant resource at import.",
+                        "properties": {
+                          "connections": {
+                            "type": "array",
+                            "maxItems": 50,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "key",
+                                "provider",
+                                "name"
+                              ],
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "provider": {
+                                  "type": "string",
+                                  "description": "Cloud provider the bound connection must have (e.g. `amazon-web-services`)."
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "description": "The source connection's display name, as a matching hint."
+                                },
+                                "usedByNodes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "datastoreTables": {
+                            "type": "array",
+                            "maxItems": 50,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "key",
+                                "name",
+                                "fields"
+                              ],
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "fields": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "required": [
+                                      "name",
+                                      "dataType"
+                                    ],
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "dataType": {
+                                        "type": "string"
+                                      },
+                                      "isUnique": {
+                                        "type": "boolean"
+                                      },
+                                      "description": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                },
+                                "usedByNodes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "globalVariables": {
+                            "type": "array",
+                            "maxItems": 50,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "key",
+                                "name",
+                                "type"
+                              ],
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string"
+                                },
+                                "elementType": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "description": "Present unless the export stripped variable values."
+                                },
+                                "usedByNodes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "bindings": {
+                    "type": "object",
+                    "description": "Requirement key → target-tenant resource ID. Keys must be declared in the bundle's requirements. Run with `?dryRun=true` first to list required keys and candidate IDs.",
+                    "properties": {
+                      "connections": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "datastoreTables": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "globalVariables": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "options": {
+                    "type": "object",
+                    "properties": {
+                      "createMissingTables": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Create unbound Datastore tables from the schemas embedded in the bundle (structure only, never row data). A same-named existing table with an incompatible schema is a validation error."
+                      },
+                      "namePrefix": {
+                        "type": "string",
+                        "description": "Optional prefix for every created flow's name."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dry-run import plan (no writes performed).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Dry-run result — what an import of this request would do, with every validation issue reported at once.",
+                  "required": [
+                    "valid",
+                    "requirements",
+                    "flowsToCreate",
+                    "errors"
+                  ],
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "section",
+                          "key",
+                          "resolution"
+                        ],
+                        "properties": {
+                          "section": {
+                            "type": "string",
+                            "enum": [
+                              "connections",
+                              "datastoreTables",
+                              "globalVariables"
+                            ]
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "resolution": {
+                            "type": "string",
+                            "enum": [
+                              "bound",
+                              "suggested",
+                              "willCreate",
+                              "unbound"
+                            ]
+                          },
+                          "boundTo": {
+                            "type": "string"
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "provider": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "consequenceIfUnbound": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "flowsToCreate": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "nodeCount": {
+                            "type": "integer"
+                          },
+                          "incompleteNodeCount": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "bundle_schema_invalid",
+                              "bundle_version_unsupported",
+                              "bundle_limits_exceeded",
+                              "binding_not_found",
+                              "binding_provider_mismatch",
+                              "table_schema_incompatible",
+                              "global_variable_type_conflict",
+                              "internal_field_rejected"
+                            ]
+                          },
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Every flow in the bundle was created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "flows"
+                  ],
+                  "properties": {
+                    "flows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "id",
+                          "name",
+                          "status"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "The created flow's ID in the target tenant."
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "draft"
+                            ]
+                          },
+                          "incompleteNodes": {
+                            "type": "array",
+                            "description": "Nodes whose tenant-scoped references could not be bound; fix them in the builder before publishing.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string",
+                                  "enum": [
+                                    "connection_cleared",
+                                    "datastore_table_cleared",
+                                    "policy_cleared",
+                                    "slack_channel_cleared"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "createdTables": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "id"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "createdGlobalVariables": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "id"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "orphanedResources": {
+                      "type": "array",
+                      "description": "Side resources created before a failed import that best-effort rollback could not remove.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "id"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Syntactically malformed request, missing required parameter, or unsupported parameter value.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "validationFailed": {
+                    "summary": "Missing or invalid parameter",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/validation_failed",
+                      "title": "Validation failed",
+                      "status": 400,
+                      "detail": "The request is missing a required parameter or contains an invalid value.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "validation_failed",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdRequired": {
+                    "summary": "Tenant scope not resolvable",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_required",
+                      "title": "Tenant ID required",
+                      "status": 400,
+                      "detail": "X-Tenant-Id header is required when the credential can access more than one tenant.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_required",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdMismatch": {
+                    "summary": "Header conflicts with the key's tenant",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_mismatch",
+                      "title": "Tenant ID mismatch",
+                      "status": 400,
+                      "detail": "X-Tenant-Id does not match the tenant the credential is scoped to.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_mismatch",
+                      "retryable": false
+                    }
+                  },
+                  "gcpServiceRequired": {
+                    "summary": "GCP region filter without commitment type",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/gcp_service_required",
+                      "title": "GCP service required",
+                      "status": 400,
+                      "detail": "The region query parameter requires gcp_service.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "gcp_service_required",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenInvalid": {
+                    "summary": "Structurally invalid pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_invalid",
+                      "title": "Invalid pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is structurally invalid (decode failure or tampering).",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_invalid",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenExpired": {
+                    "summary": "Expired pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_expired",
+                      "title": "Expired pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is no longer valid; restart pagination from the beginning.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_expired",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "Bearer challenge per RFC 6750.",
+                "schema": {
+                  "type": "string",
+                  "example": "Bearer realm=\"api.doit.com\""
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/unauthorized",
+                  "title": "Unauthorized",
+                  "status": 401,
+                  "detail": "missing or invalid bearer token",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "unauthorized",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated but not authorized to access this customer's PerfectScale for Commitments resources.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/forbidden",
+                  "title": "Forbidden",
+                  "status": 403,
+                  "detail": "caller does not have permission to access this customer's commitments",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "forbidden",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity - The request is well-formed but semantically invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ps4commitments/v1/aws/organizations": {
       "get": {
         "operationId": "listAwsOrganizations",
@@ -48678,7 +50899,7 @@
           "PerfectScale for Commitments AWS"
         ],
         "summary": "List AWS organizations",
-        "description": "Returns all AWS organizations (accounts) accessible to the authenticated tenant. Use as the entry point to discover AWS organization account IDs, and organization-level onboarding status of the available commitment types and savings metrics. \n\nEach item includes metadata, trailing 30-day aggregate statistics, precomputed YTD/lifetime savings totals per Savings Plan (SP) type, and estimated monthly potential savings (`monthlyPotentialSavings`) per SP type from the latest projection. Sum across items for customer-level totals.",
+        "description": "Returns all AWS organizations (accounts) accessible to the authenticated tenant. Use as the entry point to discover AWS organization account IDs, and organization-level onboarding status of the available commitment types and savings metrics.\n\nEach item includes metadata, trailing 30-day aggregate statistics, precomputed YTD/lifetime savings totals per Savings Plan (SP) type, and estimated monthly potential savings (`monthlyPotentialSavings`) per SP type from the latest projection. Sum across items for customer-level totals.",
         "parameters": [
           {
             "in": "header",
@@ -59389,7 +61610,7 @@
           "PerfectScale for Commitments AWS"
         ],
         "summary": "List account and commitment settings per AWS organization",
-        "description": "Returns one item per onboarded AWS organization. Each item includes that AWS organization's commitments purchasing account (`purchaseAccountId`) and commitment settings for each commitment type activated on that AWS organization (`compute`, `database`). \n\nCommitment settings cover recommendation and automation preferences (policy, term, payment option, automation mode, commitment limits, and related fields). They are stored at the customer level per commitment type and therefore have the same values on every AWS organization item. Only `purchaseAccountId` and which commitment types appear differ per AWS organization. \n\nIn the DoiT Console, commitment settings are edited on an account's Settings tab but apply across all AWS organizations for that commitment type; the purchasing account is set per AWS organization on Accounts Settings.",
+        "description": "Returns one item per onboarded AWS organization. Each item includes that AWS organization's commitments purchasing account (`purchaseAccountId`) and commitment settings for each commitment type activated on that AWS organization (`compute`, `database`).\n\nCommitment settings cover recommendation and automation preferences (policy, term, payment option, automation mode, commitment limits, and related fields). They are stored at the customer level per commitment type and therefore have the same values on every AWS organization item. Only `purchaseAccountId` and which commitment types appear differ per AWS organization.\n\nIn the DoiT Console, commitment settings are edited on an account's Settings tab but apply across all AWS organizations for that commitment type; the purchasing account is set per AWS organization on Accounts Settings.",
         "parameters": [
           {
             "in": "header",
@@ -63613,6 +65834,1421 @@
             "type": "integer",
             "nullable": true,
             "description": "Always `null`. Row count is not computed for this endpoint."
+          }
+        }
+      },
+      "CloudflowFlowBundle": {
+        "type": "object",
+        "description": "Portable, tenant-neutral export of one or more flows. Contains no credentials, tenant identifiers, schedules, or execution state; tenant-scoped references are declared under `requirements` and appear inside node parameters as `$req:<section>/<key>` tokens (subflow references as `$bundle:flows/<flowKey>`).",
+        "required": [
+          "kind",
+          "schemaVersion",
+          "rootFlow",
+          "flows"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "cloudflow.doit.com/FlowBundle"
+            ]
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "description": "Bundle format version. The server exports the newest version and accepts every version it has ever shipped.",
+            "enum": [
+              1
+            ]
+          },
+          "exportedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Informational export timestamp; ignored on import."
+          },
+          "rootFlow": {
+            "type": "string",
+            "description": "Key (into `flows`) of the flow that was exported; the rest are its subflows."
+          },
+          "flows": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "name",
+                "firstNode",
+                "nodes"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Bundle-local flow key. Opaque — the server generates new IDs at import."
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "triggerType": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "firstNode": {
+                  "type": "string",
+                  "description": "Key of this flow's entry node."
+                },
+                "nodes": {
+                  "type": "array",
+                  "maxItems": 150,
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "key",
+                      "name",
+                      "type"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "description": "Node type (e.g. `triggerNode`, `actionNode`, `datastoreNode`). Validated against the supported node-type set at import."
+                      },
+                      "parameters": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "description": "Node parameters with tenant-scoped scalar references replaced by `$req:`/`$bundle:` tokens."
+                      },
+                      "approval": {
+                        "type": "object",
+                        "description": "Approval configuration without recipients (recipients are tenant-scoped and removed at export).",
+                        "properties": {
+                          "required": {
+                            "type": "boolean"
+                          },
+                          "message": {},
+                          "rejectApprovalAfterTime": {
+                            "type": "boolean"
+                          },
+                          "rejectTimeValue": {
+                            "type": "integer"
+                          },
+                          "rejectTimeUnit": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "transitions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "target"
+                          ],
+                          "properties": {
+                            "target": {
+                              "type": "string",
+                              "description": "Key of the node this transition points at."
+                            },
+                            "label": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "pathId": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "localVariables": {
+                  "type": "array",
+                  "maxItems": 50,
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "key",
+                      "name",
+                      "type"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "elementType": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "description": "Present unless the export stripped variable values. Connection-typed values are `$req:connections/<key>` tokens."
+                      }
+                    }
+                  }
+                },
+                "unsupportedReferences": {
+                  "type": "array",
+                  "description": "Tenant-scoped references removed at export (policy IDs, Slack channels); import flags the affected nodes incomplete.",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "nodeKey",
+                      "kind"
+                    ],
+                    "properties": {
+                      "nodeKey": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "policy",
+                          "slackChannel"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "requirements": {
+            "type": "object",
+            "description": "Tenant-scoped resources the bundle needs; each is bound to a target-tenant resource at import.",
+            "properties": {
+              "connections": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "provider",
+                    "name"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "provider": {
+                      "type": "string",
+                      "description": "Cloud provider the bound connection must have (e.g. `amazon-web-services`)."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The source connection's display name, as a matching hint."
+                    },
+                    "usedByNodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "datastoreTables": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "name",
+                    "fields"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "dataType"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "dataType": {
+                            "type": "string"
+                          },
+                          "isUnique": {
+                            "type": "boolean"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "usedByNodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "globalVariables": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "name",
+                    "type"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "elementType": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "description": "Present unless the export stripped variable values."
+                    },
+                    "usedByNodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CloudflowBundleFlow": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "firstNode",
+          "nodes"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Bundle-local flow key. Opaque — the server generates new IDs at import."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "triggerType": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstNode": {
+            "type": "string",
+            "description": "Key of this flow's entry node."
+          },
+          "nodes": {
+            "type": "array",
+            "maxItems": 150,
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "name",
+                "type"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Node type (e.g. `triggerNode`, `actionNode`, `datastoreNode`). Validated against the supported node-type set at import."
+                },
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "Node parameters with tenant-scoped scalar references replaced by `$req:`/`$bundle:` tokens."
+                },
+                "approval": {
+                  "type": "object",
+                  "description": "Approval configuration without recipients (recipients are tenant-scoped and removed at export).",
+                  "properties": {
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "message": {},
+                    "rejectApprovalAfterTime": {
+                      "type": "boolean"
+                    },
+                    "rejectTimeValue": {
+                      "type": "integer"
+                    },
+                    "rejectTimeUnit": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "transitions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "target"
+                    ],
+                    "properties": {
+                      "target": {
+                        "type": "string",
+                        "description": "Key of the node this transition points at."
+                      },
+                      "label": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "pathId": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "localVariables": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "name",
+                "type"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "elementType": {
+                  "type": "string"
+                },
+                "value": {
+                  "description": "Present unless the export stripped variable values. Connection-typed values are `$req:connections/<key>` tokens."
+                }
+              }
+            }
+          },
+          "unsupportedReferences": {
+            "type": "array",
+            "description": "Tenant-scoped references removed at export (policy IDs, Slack channels); import flags the affected nodes incomplete.",
+            "items": {
+              "type": "object",
+              "required": [
+                "nodeKey",
+                "kind"
+              ],
+              "properties": {
+                "nodeKey": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "policy",
+                    "slackChannel"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CloudflowBundleNode": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "type"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "Node type (e.g. `triggerNode`, `actionNode`, `datastoreNode`). Validated against the supported node-type set at import."
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Node parameters with tenant-scoped scalar references replaced by `$req:`/`$bundle:` tokens."
+          },
+          "approval": {
+            "type": "object",
+            "description": "Approval configuration without recipients (recipients are tenant-scoped and removed at export).",
+            "properties": {
+              "required": {
+                "type": "boolean"
+              },
+              "message": {},
+              "rejectApprovalAfterTime": {
+                "type": "boolean"
+              },
+              "rejectTimeValue": {
+                "type": "integer"
+              },
+              "rejectTimeUnit": {
+                "type": "string"
+              }
+            }
+          },
+          "transitions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "target"
+              ],
+              "properties": {
+                "target": {
+                  "type": "string",
+                  "description": "Key of the node this transition points at."
+                },
+                "label": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "pathId": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "CloudflowBundleVariable": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "type"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          },
+          "elementType": {
+            "type": "string"
+          },
+          "value": {
+            "description": "Present unless the export stripped variable values. Connection-typed values are `$req:connections/<key>` tokens."
+          }
+        }
+      },
+      "CloudflowBundleRequirements": {
+        "type": "object",
+        "description": "Tenant-scoped resources the bundle needs; each is bound to a target-tenant resource at import.",
+        "properties": {
+          "connections": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "provider",
+                "name"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string",
+                  "description": "Cloud provider the bound connection must have (e.g. `amazon-web-services`)."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The source connection's display name, as a matching hint."
+                },
+                "usedByNodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "datastoreTables": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "name",
+                "fields"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "name",
+                      "dataType"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "dataType": {
+                        "type": "string"
+                      },
+                      "isUnique": {
+                        "type": "boolean"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "usedByNodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "globalVariables": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "name",
+                "type"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "elementType": {
+                  "type": "string"
+                },
+                "value": {
+                  "description": "Present unless the export stripped variable values."
+                },
+                "usedByNodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CloudflowBundleTableField": {
+        "type": "object",
+        "required": [
+          "name",
+          "dataType"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "dataType": {
+            "type": "string"
+          },
+          "isUnique": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "CloudflowImportFlowsRequest": {
+        "type": "object",
+        "required": [
+          "bundle"
+        ],
+        "properties": {
+          "bundle": {
+            "type": "object",
+            "description": "Portable, tenant-neutral export of one or more flows. Contains no credentials, tenant identifiers, schedules, or execution state; tenant-scoped references are declared under `requirements` and appear inside node parameters as `$req:<section>/<key>` tokens (subflow references as `$bundle:flows/<flowKey>`).",
+            "required": [
+              "kind",
+              "schemaVersion",
+              "rootFlow",
+              "flows"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "cloudflow.doit.com/FlowBundle"
+                ]
+              },
+              "schemaVersion": {
+                "type": "integer",
+                "description": "Bundle format version. The server exports the newest version and accepts every version it has ever shipped.",
+                "enum": [
+                  1
+                ]
+              },
+              "exportedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "Informational export timestamp; ignored on import."
+              },
+              "rootFlow": {
+                "type": "string",
+                "description": "Key (into `flows`) of the flow that was exported; the rest are its subflows."
+              },
+              "flows": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "name",
+                    "firstNode",
+                    "nodes"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Bundle-local flow key. Opaque — the server generates new IDs at import."
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "triggerType": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "firstNode": {
+                      "type": "string",
+                      "description": "Key of this flow's entry node."
+                    },
+                    "nodes": {
+                      "type": "array",
+                      "maxItems": 150,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "name",
+                          "type"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "Node type (e.g. `triggerNode`, `actionNode`, `datastoreNode`). Validated against the supported node-type set at import."
+                          },
+                          "parameters": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "Node parameters with tenant-scoped scalar references replaced by `$req:`/`$bundle:` tokens."
+                          },
+                          "approval": {
+                            "type": "object",
+                            "description": "Approval configuration without recipients (recipients are tenant-scoped and removed at export).",
+                            "properties": {
+                              "required": {
+                                "type": "boolean"
+                              },
+                              "message": {},
+                              "rejectApprovalAfterTime": {
+                                "type": "boolean"
+                              },
+                              "rejectTimeValue": {
+                                "type": "integer"
+                              },
+                              "rejectTimeUnit": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "transitions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "target"
+                              ],
+                              "properties": {
+                                "target": {
+                                  "type": "string",
+                                  "description": "Key of the node this transition points at."
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "pathId": {
+                                  "type": "string",
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "localVariables": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "name",
+                          "type"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "elementType": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Present unless the export stripped variable values. Connection-typed values are `$req:connections/<key>` tokens."
+                          }
+                        }
+                      }
+                    },
+                    "unsupportedReferences": {
+                      "type": "array",
+                      "description": "Tenant-scoped references removed at export (policy IDs, Slack channels); import flags the affected nodes incomplete.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "nodeKey",
+                          "kind"
+                        ],
+                        "properties": {
+                          "nodeKey": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "policy",
+                              "slackChannel"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "requirements": {
+                "type": "object",
+                "description": "Tenant-scoped resources the bundle needs; each is bound to a target-tenant resource at import.",
+                "properties": {
+                  "connections": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key",
+                        "provider",
+                        "name"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "provider": {
+                          "type": "string",
+                          "description": "Cloud provider the bound connection must have (e.g. `amazon-web-services`)."
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "The source connection's display name, as a matching hint."
+                        },
+                        "usedByNodes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "datastoreTables": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key",
+                        "name",
+                        "fields"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "name",
+                              "dataType"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "dataType": {
+                                "type": "string"
+                              },
+                              "isUnique": {
+                                "type": "boolean"
+                              },
+                              "description": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "usedByNodes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "globalVariables": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key",
+                        "name",
+                        "type"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "elementType": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "description": "Present unless the export stripped variable values."
+                        },
+                        "usedByNodes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "bindings": {
+            "type": "object",
+            "description": "Requirement key → target-tenant resource ID. Keys must be declared in the bundle's requirements. Run with `?dryRun=true` first to list required keys and candidate IDs.",
+            "properties": {
+              "connections": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "datastoreTables": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "globalVariables": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "createMissingTables": {
+                "type": "boolean",
+                "default": false,
+                "description": "Create unbound Datastore tables from the schemas embedded in the bundle (structure only, never row data). A same-named existing table with an incompatible schema is a validation error."
+              },
+              "namePrefix": {
+                "type": "string",
+                "description": "Optional prefix for every created flow's name."
+              }
+            }
+          }
+        }
+      },
+      "CloudflowImportPlan": {
+        "type": "object",
+        "description": "Dry-run result — what an import of this request would do, with every validation issue reported at once.",
+        "required": [
+          "valid",
+          "requirements",
+          "flowsToCreate",
+          "errors"
+        ],
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "section",
+                "key",
+                "resolution"
+              ],
+              "properties": {
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "connections",
+                    "datastoreTables",
+                    "globalVariables"
+                  ]
+                },
+                "key": {
+                  "type": "string"
+                },
+                "resolution": {
+                  "type": "string",
+                  "enum": [
+                    "bound",
+                    "suggested",
+                    "willCreate",
+                    "unbound"
+                  ]
+                },
+                "boundTo": {
+                  "type": "string"
+                },
+                "candidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "provider": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "consequenceIfUnbound": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "flowsToCreate": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "nodeCount": {
+                  "type": "integer"
+                },
+                "incompleteNodeCount": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "message"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "bundle_schema_invalid",
+                    "bundle_version_unsupported",
+                    "bundle_limits_exceeded",
+                    "binding_not_found",
+                    "binding_provider_mismatch",
+                    "table_schema_incompatible",
+                    "global_variable_type_conflict",
+                    "internal_field_rejected"
+                  ]
+                },
+                "field": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CloudflowImportFlowsResult": {
+        "type": "object",
+        "required": [
+          "flows"
+        ],
+        "properties": {
+          "flows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "id",
+                "name",
+                "status"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string",
+                  "description": "The created flow's ID in the target tenant."
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "draft"
+                  ]
+                },
+                "incompleteNodes": {
+                  "type": "array",
+                  "description": "Nodes whose tenant-scoped references could not be bound; fix them in the builder before publishing.",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "enum": [
+                          "connection_cleared",
+                          "datastore_table_cleared",
+                          "policy_cleared",
+                          "slack_channel_cleared"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "createdTables": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "id"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "createdGlobalVariables": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "id"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "orphanedResources": {
+            "type": "array",
+            "description": "Side resources created before a failed import that best-effort rollback could not remove.",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "id"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CloudflowImportCreatedResource": {
+        "type": "object",
+        "required": [
+          "key",
+          "id"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           }
         }
       },
@@ -84911,6 +88547,10 @@
               "fixed"
             ]
           },
+          "doitInvoicingEnabled": {
+            "type": "boolean",
+            "description": "Whether DoiT generates invoices for this contract."
+          },
           "currentVersionNumber": {
             "type": "integer",
             "nullable": true,
@@ -84978,6 +88618,10 @@
                   "manual",
                   "fixed"
                 ]
+              },
+              "doitInvoicingEnabled": {
+                "type": "boolean",
+                "description": "Whether DoiT generates invoices for this contract."
               },
               "currentVersionNumber": {
                 "type": "integer",
@@ -85047,6 +88691,10 @@
                       "type": "string",
                       "format": "email"
                     },
+                    "doitInvoicingEnabled": {
+                      "type": "boolean",
+                      "description": "Whether DoiT generates invoices for this contract."
+                    },
                     "managementAccounts": {
                       "type": "array",
                       "items": {
@@ -85084,10 +88732,7 @@
         "required": [
           "name",
           "startDate",
-          "renewalPolicy",
-          "invoicesEmail",
-          "contractUpdatesEmail",
-          "billingProfile"
+          "renewalPolicy"
         ],
         "properties": {
           "name": {
@@ -85110,17 +88755,24 @@
               "fixed"
             ]
           },
+          "doitInvoicingEnabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether DoiT generates invoices for this contract. Disabling suppresses invoice generation from that point forward while billing calculations and pipeline outputs continue. Omitting the field leaves invoicing enabled."
+          },
           "invoicesEmail": {
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "description": "Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
           },
           "contractUpdatesEmail": {
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "description": "Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
           },
           "billingProfile": {
             "type": "object",
-            "description": "The billing profile (name, country, state, city, address, zip)."
+            "description": "The billing profile (name, country, state, city, address, zip). Required for an end-customer contract with doitInvoicingEnabled set to true; optional otherwise."
           },
           "managementAccounts": {
             "type": "array",
@@ -101771,6 +105423,23 @@
           }
         }
       },
+      "422": {
+        "description": "Unprocessable Entity - The request is well-formed but semantically invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "description": "Standard error response structure.",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "Detailed error message."
+                }
+              }
+            }
+          }
+        }
+      },
       "429": {
         "description": "Too Many Requests.",
         "content": {
@@ -103378,7 +107047,7 @@
       "sortOrder": {
         "name": "sortOrder",
         "in": "query",
-        "description": "Sort order can be ascending or descending.",
+        "description": "Specifies the sort direction; accepts asc for ascending (lowest to highest) or desc for descending (highest to lowest).",
         "schema": {
           "type": "string",
           "enum": [
