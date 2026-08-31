@@ -23,18 +23,14 @@ Your DoiT plan must include API access. Tools follow the same permissions as the
 
 Add a remote / HTTP MCP server with URL `https://mcp.doit.com/mcp`. When you connect, complete DoiT sign-in in the browser and select **Allow access**. Field names vary by client (`url`, `httpUrl`, or **Remote MCP server URL**).
 
-### Claude Desktop App
+### Claude (Desktop / web)
 
-Add a custom connector and set the remote MCP server URL to `https://mcp.doit.com/mcp`, or:
+Add a custom connector (in Claude: **+ → Add connector → Add custom connector**). Set the remote MCP server URL to `https://mcp.doit.com/mcp`, then complete DoiT sign-in when prompted. Do not use `npx` or `mcp-remote` for this path.
 
-```json
-{
-  "mcpServers": {
-    "doit_mcp_server": {
-      "url": "https://mcp.doit.com/mcp"
-    }
-  }
-}
+### Claude Code
+
+```bash
+claude mcp add --transport http doit-mcp-server https://mcp.doit.com/mcp
 ```
 
 ### Cursor / VS Code
