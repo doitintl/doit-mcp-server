@@ -12,8 +12,8 @@ How you authenticate depends on the connection method:
 
 | Method | URL / command | Auth |
 | --- | --- | --- |
-| Remote (Streamable HTTP) | `https://mcp.doit.com/mcp` | OAuth — your client opens a DoiT sign-in and consent page. No API key. |
-| Local (stdio) | `npx -y @doitintl/doit-mcp-server@latest` | Personal API token via `DOIT_API_KEY`. No browser OAuth. |
+| Remote (Streamable HTTP) | `https://mcp.doit.com/mcp` | OAuth — your client opens a DoiT sign-in and consent page. |
+| Local (stdio) | `npx -y @doitintl/doit-mcp-server@latest` | Personal API token via `DOIT_API_KEY`. |
 
 The legacy SSE endpoint (`https://mcp.doit.com/sse`) is deprecated and should not be used for new setups.
 
@@ -47,7 +47,7 @@ claude mcp add --transport http doit-mcp-server https://mcp.doit.com/mcp
 
 ### Amazon Q CLI
 
-Add the server with `type: "http"` and no API key. Amazon Q starts the OAuth flow when you load the server (`/mcp` in a Q chat session).
+Add the server with `type: "http"`. Amazon Q starts the OAuth flow when you load the server (`/mcp` in a Q chat session).
 
 ```json
 {
@@ -186,7 +186,7 @@ These examples demonstrate basic usage patterns. You can combine and modify thes
 
 ## Environment Variables
 
-Used by the local stdio server only. Remote `/mcp` connections authenticate with OAuth and do not use these variables.
+Used by the local stdio server. Remote `/mcp` connections authenticate with OAuth.
 
 - `DOIT_API_KEY`: Your DoiT API token (required for stdio)
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
