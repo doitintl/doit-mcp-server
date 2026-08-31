@@ -25,7 +25,7 @@ Add a remote / HTTP MCP server with URL `https://mcp.doit.com/mcp`. When you con
 
 ### Claude (Desktop / web)
 
-Add a custom connector (in Claude: **+ → Add connector → Add custom connector**). Set the remote MCP server URL to `https://mcp.doit.com/mcp`, then complete DoiT sign-in when prompted. Do not use `npx` or `mcp-remote` for this path.
+Add a custom connector (in Claude: **+ → Add connector → Add custom connector**). Set the remote MCP server URL to `https://mcp.doit.com/mcp`, then complete DoiT sign-in when prompted.
 
 ### Claude Code
 
