@@ -21,52 +21,13 @@ Your DoiT plan must include API access. Tools follow the same permissions as the
 
 ## Remote (Streamable HTTP)
 
-Add a remote / HTTP MCP server with URL `https://mcp.doit.com/mcp`. When you connect, complete DoiT sign-in in the browser and select **Allow access**. Field names vary by client (`url`, `httpUrl`, or **Remote MCP server URL**).
-
-### Claude (Desktop / web)
-
-Add a custom connector (in Claude: **+ → Add connector → Add custom connector**). Set the remote MCP server URL to `https://mcp.doit.com/mcp`, then complete DoiT sign-in when prompted.
-
-### Claude Code
-
-```bash
-claude mcp add --transport http doit-mcp-server https://mcp.doit.com/mcp
-```
-
-### Cursor / VS Code
-
-```json
-{
-  "mcpServers": {
-    "doit_mcp_server": {
-      "url": "https://mcp.doit.com/mcp"
-    }
-  }
-}
-```
-
-### Amazon Q CLI
-
-Add the server with `type: "http"`. Amazon Q starts the OAuth flow when you load the server (`/mcp` in a Q chat session).
-
-```json
-{
-  "mcpServers": {
-    "doit_mcp_server": {
-      "type": "http",
-      "url": "https://mcp.doit.com/mcp"
-    }
-  }
-}
-```
+In Claude Desktop, add a custom connector (**+ → Add connector → Add custom connector**) and set the remote MCP server URL to `https://mcp.doit.com/mcp`. Complete DoiT sign-in when prompted.
 
 ## Local (stdio)
 
 Requires Node.js v18 or higher and a personal API token as `DOIT_API_KEY`. Create a token from the [Personal API tokens](https://help.doit.com/docs/general/profile/api-tokens) page in the DoiT console.
 
-### Claude Desktop App
-
-Add the following to `claude_desktop_config.json` or through Settings as described [here](https://modelcontextprotocol.io/quickstart/user#2-add-the-filesystem-mcp-server):
+Add the following to Claude Desktop's `claude_desktop_config.json` (or Settings), then [restart Claude](https://modelcontextprotocol.io/quickstart/user#3-restart-claude):
 
 ```json
 {
@@ -84,26 +45,6 @@ Add the following to `claude_desktop_config.json` or through Settings as describ
 
 - `DOIT_API_KEY`: Your DoiT API token (required)
 - `CUSTOMER_CONTEXT`: Customer context identifier (optional) — required for Do’ers
-
-[Restart Claude for Desktop](https://modelcontextprotocol.io/quickstart/user#3-restart-claude) after changing the config.
-
-### Cursor
-
-Create an `mcp.json` file in your project root (Cursor v0.47+):
-
-```json
-{
-  "mcpServers": {
-    "doit_mcp_server": {
-      "command": "npx",
-      "args": ["-y", "@doitintl/doit-mcp-server@latest"],
-      "env": {
-        "DOIT_API_KEY": "your_doit_api_key"
-      }
-    }
-  }
-}
-```
 
 ### Clone to Local Repository
 
