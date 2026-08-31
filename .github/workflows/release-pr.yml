@@ -60,19 +60,22 @@ jobs:
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: ./scripts/release/prepare-release.sh --tag "$RELEASE_TAG" --yes
 
-      # Pull requests opened by GITHUB_TOKEN do not trigger the Test workflow,
-      # so the same checks run here before the PR is opened.
-      - name: Validate the prepared release (lint, tests, build)
+      # The PR is opened with a GitHub App token instead of GITHUB_TOKEN —
+      # events created by GITHUB_TOKEN do not trigger other workflows, so the
+      # PR's CI checks (Test, Commit Messages) would never run.
+      - name: Mint a GitHub App token
         if: steps.version.outputs.tag != ''
-        run: |
-          yarn check:ci
-          yarn test
-          yarn build
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Create or update pull request
         if: steps.version.outputs.tag != ''
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ steps.app-token.outputs.token }}
           branch: chore/release
           title: "chore: prepare release ${{ steps.version.outputs.tag }}"
           commit-message: "chore: prepare release ${{ steps.version.outputs.tag }}"
