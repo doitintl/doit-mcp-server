@@ -2,6 +2,27 @@
 
 Project uses semantic versioning, and the CHANGELOG.md is used as a source of truth for release notes.
 
+## Releasing (the normal way)
+
+Releases are cut by merging a pull request. Nothing needs to run on a laptop.
+
+1. Whenever unreleased commits land on `main`, the [Release PR workflow](../.github/workflows/release-pr.yml) opens or updates a **`chore: prepare release vX.Y.Z`** pull request on the `chore/release` branch. It holds the same version bumps and drafted changelog entry that `prepare-release.sh` produces locally, and it is regenerated on every push to `main`.
+2. The version is derived from the Conventional Commit subjects since the latest tag by [`next-version.sh`](../scripts/release/next-version.sh): a breaking change bumps the minor while the version is `0.x` (major once it is `1.0.0` or later), a `feat` bumps the minor, anything else bumps the patch.
+3. **Review the PR** — mainly the changelog entry, since it becomes the GitHub Release notes. Edit it on the branch if needed, but note that new commits landing on `main` regenerate the branch and overwrite hand-edits.
+4. **Merge the PR.** The [Release workflow](../.github/workflows/release.yml) sees a `package.json` version with no matching tag, tags the merge commit, creates the GitHub Release from the changelog entry, and publishes to npm.
+
+Because a tag pushed with `GITHUB_TOKEN` does not start another workflow run, the tagging happens inside the same Release run rather than triggering it. Pushing a `vX.Y.Z` tag by hand still works and takes the same path.
+
+No release PR appears when there is nothing to release, or when a prepared release has not been tagged yet (`package.json` ahead of the latest tag). To check what would be proposed:
+
+```bash
+./scripts/release/next-version.sh HEAD
+```
+
+## Releasing by hand
+
+Still supported, and the fallback if the automation is unavailable.
+
 Use the prepare-release script to prepare the release, which updates all version strings and drafts the changelog. Follow the steps suggested by the script, and make sure to review the generated changelog entry before committing it.
 
 ```bash
@@ -45,7 +66,7 @@ git tag v0.10.0
 git push origin v0.10.0
 ```
 
-6. Pushing the tag triggers the [Release workflow](../.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md`, creates a GitHub Release, and then publishes the package to npm automatically (the `publish-npm` job re-runs tests and the build, verifies the tag matches `package.json`, and publishes). `yarn deploy` from a laptop is no longer part of the release flow.
+6. Pushing the tag runs the [Release workflow](../.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md`, creates a GitHub Release, and then publishes the package to npm automatically (the `publish-npm` job re-runs tests and the build, verifies the tag matches `package.json`, and publishes). `yarn deploy` from a laptop is no longer part of the release flow.
 
 ## npm publishing (Trusted Publishing / OIDC)
 
