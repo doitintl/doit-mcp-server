@@ -1,38 +1,97 @@
 name: Release
 
+# Two ways in, one release path:
+#
+#   * merging the release PR opened by release-pr.yml — this workflow tags the
+#     merge commit with the version already in package.json, then releases it
+#   * pushing a vX.Y.Z tag by hand — the original flow, still supported
+#
+# The branch trigger exists because a tag pushed with GITHUB_TOKEN does not
+# start another workflow run: the tagging has to happen inside this run for the
+# release to follow. npm Trusted Publishing is bound to this workflow's
+# filename, so publishing works the same either way. See docs/release.md.
+
 on:
   push:
     tags:
       - "v[0-9]*"
+    branches:
+      - main
 
 jobs:
-  release:
-    name: Create GitHub Release
+  version:
+    name: Resolve release tag
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      release: ${{ steps.resolve.outputs.release }}
     steps:
-      - name: Validate semver tag
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve the tag to release
+        id: resolve
         run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Tag '$GITHUB_REF_NAME' is not a valid semver tag (expected vX.Y.Z)"
-            exit 1
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Tag '$GITHUB_REF_NAME' is not a valid semver tag (expected vX.Y.Z)"
+              exit 1
+            fi
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          # Branch push: release only when package.json names a version that is
+          # both untagged and described in CHANGELOG.md. Merging a release PR
+          # satisfies both; a version bumped by hand in some unrelated PR
+          # satisfies neither, and must not tag or publish anything.
+          TAG="v$(node -p "require('./package.json').version")"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "${TAG} is already tagged — nothing to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! bash scripts/release/extract-changelog.sh --tag "$TAG" >/dev/null 2>&1; then
+            echo "${TAG} has no CHANGELOG.md entry — not a prepared release, nothing to do."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Tagging $GITHUB_SHA as ${TAG}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "release=true" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.version.outputs.tag }}
+    steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Extract release notes from CHANGELOG.md
         run: |
           chmod +x scripts/release/extract-changelog.sh
-          ./scripts/release/extract-changelog.sh --tag "$GITHUB_REF_NAME" > /tmp/release-notes.md
+          ./scripts/release/extract-changelog.sh --tag "$RELEASE_TAG" > /tmp/release-notes.md
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TAG" \
             --notes-file /tmp/release-notes.md
 
   # Publishes via npm Trusted Publishing (OIDC) — no NPM_TOKEN secret involved.
@@ -42,10 +101,12 @@ jobs:
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
-    needs: release
+    needs: [version, release]
     permissions:
       contents: read
       id-token: write
+    env:
+      RELEASE_TAG: ${{ needs.version.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,8 +126,8 @@ jobs:
       - name: Verify tag matches package.json version
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "v$PKG_VERSION" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag '$GITHUB_REF_NAME' does not match package.json version '$PKG_VERSION' — run scripts/release/prepare-release.sh before tagging"
+          if [ "v$PKG_VERSION" != "$RELEASE_TAG" ]; then
+            echo "::error::Tag '$RELEASE_TAG' does not match package.json version '$PKG_VERSION' — run scripts/release/prepare-release.sh before tagging"
             exit 1
           fi
 

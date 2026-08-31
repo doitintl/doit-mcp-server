@@ -8,12 +8,13 @@ readonly REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 readonly USAGE="Prepare a release: update versions and draft the changelog.
 
 Usage:
-  ${SCRIPT_NAME} -t <version> [-n] [-h]
-  ${SCRIPT_NAME} --tag <version> [--dry-run] [--help]
+  ${SCRIPT_NAME} -t <version> [-n] [-y] [-h]
+  ${SCRIPT_NAME} --tag <version> [--dry-run] [--yes] [--help]
 
 Options:
   -t, --tag TAG   New version tag (e.g. v0.9.0, required)
   -n, --dry-run   Run preflight checks and preview versions + changelog (no writes)
+  -y, --yes       Assume 'yes' for every confirmation prompt (for CI, no tty)
   -h, --help      Show this help message
 
 Examples:
@@ -41,10 +42,18 @@ warn() {
   echo "${SCRIPT_NAME}: warning: $*" >&2
 }
 
+# Set by --yes: skip every confirmation prompt (there is no tty in CI).
+assume_yes=false
+
 # Prompt user to confirm after a warning. Exits unless user answers 'y' (case-insensitive).
 confirm_or_exit() {
   local prompt="${1:-Continue anyway?}"
   local answer
+
+  if $assume_yes; then
+    info "${prompt} [assuming yes]"
+    return 0
+  fi
   # Read directly from /dev/tty so it works even when stdin is piped
   read -r -p "${prompt} [y/N] " answer </dev/tty
   if [[ ! "$(echo "$answer" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
@@ -155,6 +164,7 @@ main() {
     case "$1" in
       -t|--tag)      tag="$2"; shift 2 ;;
       -n|--dry-run)  dry_run=true; shift ;;
+      -y|--yes)      assume_yes=true; shift ;;
       -h|--help)     usage; exit 0 ;;
       *)             die "unknown option: $1" ;;
     esac
