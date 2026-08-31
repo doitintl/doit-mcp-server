@@ -136,7 +136,6 @@ When adding a new MCP tool:
 5. Export the tool and its schema from `src/core.ts` so the remote Worker (separate private repo) can register it
 6. If the tool duplicates an OpenAPI operation from `src/tools/generated/openapi.json`, add `coversEndpoint: "method:path"` to the tool object itself (see `docs/generated-tools-coverage.md`) so the generator skips that operation automatically — no separate list to update
 7. Add tests in `src/tools/__tests__/`
-8. Update README.md with tool documentation
 
 **Note**: Tools must be registered for stdio *and* exported from `src/core.ts` to be available in all deployment modes.
 
