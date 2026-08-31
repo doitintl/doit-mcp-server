@@ -17,17 +17,19 @@ How you authenticate depends on the connection method:
 
 The legacy SSE endpoint (`https://mcp.doit.com/sse`) is deprecated and should not be used for new setups.
 
-Your DoiT plan must include API access. Tools follow the same permissions as the [DoiT API](https://developer.doit.com/). See the [Connections](https://help.doit.com/docs/mcp/connections) guide for client-specific walkthroughs.
+Your DoiT plan must include API access. Tools follow the same permissions as the [DoiT API](https://developer.doit.com/).
+
+The Claude Desktop steps below are examples, not the only supported clients. Cursor, VS Code, Amazon Q, Claude Code, and others are covered in the [Connections](https://help.doit.com/docs/mcp/connections) guide.
 
 ## Remote (Streamable HTTP)
 
-In Claude Desktop, add a custom connector (**+ → Add connector → Add custom connector**) and set the remote MCP server URL to `https://mcp.doit.com/mcp`. Complete DoiT sign-in when prompted.
+Example with Claude Desktop: add a custom connector (**+ → Add connector → Add custom connector**) and set the remote MCP server URL to `https://mcp.doit.com/mcp`. Complete DoiT sign-in when prompted.
 
 ## Local (stdio)
 
 Requires Node.js v18 or higher and a personal API token as `DOIT_API_KEY`. Create a token from the [Personal API tokens](https://help.doit.com/docs/general/profile/api-tokens) page in the DoiT console.
 
-Add the following to Claude Desktop's `claude_desktop_config.json` (or Settings), then [restart Claude](https://modelcontextprotocol.io/quickstart/user#3-restart-claude):
+Example with Claude Desktop — add the following to `claude_desktop_config.json` (or Settings), then [restart Claude](https://modelcontextprotocol.io/quickstart/user#3-restart-claude):
 
 ```json
 {
