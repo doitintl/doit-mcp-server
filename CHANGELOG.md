@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.21.0 (2026-08-31)
+
+**Full diff:** [`v0.20.0...v0.21.0`](../../compare/v0.20.0...v0.21.0)
+
+### Features
+
+- feat(ci): open a release PR automatically when unreleased commits land on main (`7ac8be5`)
+
+### Bug Fixes
+
+- fix(ci): require a changelog entry before the release workflow tags a commit (`e6de650`)
 ## v0.20.0 (2026-08-26)
 
 **Full diff:** [`v0.19.3...v0.20.0`](../../compare/v0.19.3...v0.20.0)
