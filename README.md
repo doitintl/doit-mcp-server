@@ -19,7 +19,9 @@ There are several ways to install and configure the MCP server:
 
 ### DoiT MCP URL
 
-The DoiT MCP server is available at: https://mcp.doit.com/sse
+The DoiT MCP server is available at: https://mcp.doit.com/mcp
+
+Use the `/mcp` path (Streamable HTTP) for new connections. The legacy SSE endpoint (`https://mcp.doit.com/sse`) is deprecated and should not be used for new setups.
 
 ### Claude Desktop App
 
@@ -28,7 +30,7 @@ The DoiT MCP server is available at: https://mcp.doit.com/sse
   "mcpServers": {
     "doit_mcp_server": {
       "command": "npx",
-      "args": ["mcp-remote", "https://mcp.doit.com/sse"]
+      "args": ["mcp-remote", "https://mcp.doit.com/mcp"]
     }
   }
 }
@@ -41,7 +43,7 @@ The DoiT MCP server is available at: https://mcp.doit.com/sse
 3. Run the following command:
 
 ```bash
-q mcp-server create --name doit-mcp-server --url https://mcp.doit.com/sse --api-key your_doit_api_key
+q mcp-server create --name doit-mcp-server --url https://mcp.doit.com/mcp --api-key your_doit_api_key
 ```
 
 4. Start q chat by running this command:
