@@ -66,9 +66,9 @@ jobs:
       - name: Mint a GitHub App token
         if: steps.version.outputs.tag != ''
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.APP_CLIENT_ID }}
+          client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Create or update pull request
