@@ -46,7 +46,7 @@ Example with Claude Desktop — add the following to `claude_desktop_config.json
 ```
 
 - `DOIT_API_KEY`: Your DoiT API token (required)
-- `CUSTOMER_CONTEXT`: Customer context identifier (optional) — required for Do’ers
+- `CUSTOMER_CONTEXT`: Customer context identifier (optional)
 
 ### Clone to Local Repository
 
