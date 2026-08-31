@@ -56,7 +56,9 @@ jobs:
 
       - name: Prepare the release
         if: steps.version.outputs.tag != ''
-        run: ./scripts/release/prepare-release.sh --tag "${{ steps.version.outputs.tag }}" --yes
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: ./scripts/release/prepare-release.sh --tag "$RELEASE_TAG" --yes
 
       # Pull requests opened by GITHUB_TOKEN do not trigger the Test workflow,
       # so the same checks run here before the PR is opened.

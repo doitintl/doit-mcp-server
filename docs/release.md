@@ -9,7 +9,7 @@ Releases are cut by merging a pull request. Nothing needs to run on a laptop.
 1. Whenever unreleased commits land on `main`, the [Release PR workflow](../.github/workflows/release-pr.yml) opens or updates a **`chore: prepare release vX.Y.Z`** pull request on the `chore/release` branch. It holds the same version bumps and drafted changelog entry that `prepare-release.sh` produces locally, and it is regenerated on every push to `main`.
 2. The version is derived from the Conventional Commit subjects since the latest tag by [`next-version.sh`](../scripts/release/next-version.sh): a breaking change bumps the minor while the version is `0.x` (major once it is `1.0.0` or later), a `feat` bumps the minor, anything else bumps the patch.
 3. **Review the PR** — mainly the changelog entry, since it becomes the GitHub Release notes. Edit it on the branch if needed, but note that new commits landing on `main` regenerate the branch and overwrite hand-edits.
-4. **Merge the PR.** The [Release workflow](../.github/workflows/release.yml) sees a `package.json` version with no matching tag, tags the merge commit, creates the GitHub Release from the changelog entry, and publishes to npm.
+4. **Merge the PR.** The [Release workflow](../.github/workflows/release.yml) sees a `package.json` version that is both untagged and described in `CHANGELOG.md`, tags the merge commit, creates the GitHub Release from the changelog entry, and publishes to npm. A version bumped by hand in an unrelated PR meets neither condition, so it tags and publishes nothing.
 
 Because a tag pushed with `GITHUB_TOKEN` does not start another workflow run, the tagging happens inside the same Release run rather than triggering it. Pushing a `vX.Y.Z` tag by hand still works and takes the same path.
 

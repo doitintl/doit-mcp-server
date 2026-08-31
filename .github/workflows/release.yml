@@ -46,11 +46,18 @@ jobs:
             exit 0
           fi
 
-          # Branch push: release only when package.json names a version that has
-          # not been tagged yet, which is exactly what merging a release PR does.
+          # Branch push: release only when package.json names a version that is
+          # both untagged and described in CHANGELOG.md. Merging a release PR
+          # satisfies both; a version bumped by hand in some unrelated PR
+          # satisfies neither, and must not tag or publish anything.
           TAG="v$(node -p "require('./package.json').version")"
           if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
             echo "${TAG} is already tagged — nothing to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! bash scripts/release/extract-changelog.sh --tag "$TAG" >/dev/null 2>&1; then
+            echo "${TAG} has no CHANGELOG.md entry — not a prepared release, nothing to do."
             echo "release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
