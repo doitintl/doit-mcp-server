@@ -62,7 +62,7 @@ Add the server with `type: "http"`. Amazon Q starts the OAuth flow when you load
 
 ## Local (stdio)
 
-Requires Node.js v18 or higher and a [personal API token](https://help.doit.com/docs/general/profile/api-tokens) as `DOIT_API_KEY`.
+Requires Node.js v18 or higher and a personal API token as `DOIT_API_KEY`. Create a token from the [Personal API tokens](https://help.doit.com/docs/general/profile/api-tokens) page in the DoiT console.
 
 ### Claude Desktop App
 
@@ -188,5 +188,5 @@ These examples demonstrate basic usage patterns. You can combine and modify thes
 
 Used by the local stdio server. Remote `/mcp` connections authenticate with OAuth.
 
-- `DOIT_API_KEY`: Your DoiT API token (required for stdio)
+- `DOIT_API_KEY`: Your DoiT [personal API token](https://help.doit.com/docs/general/profile/api-tokens) (required for stdio)
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
