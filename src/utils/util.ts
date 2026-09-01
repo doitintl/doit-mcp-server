@@ -233,6 +233,10 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * re-throws a `DOMException` with `name === "TimeoutError"` instead of returning null.
  * Callers that pass `timeoutMs` must handle this case explicitly.
  *
+ * Exception: when `throwOnError` is set, every error is re-thrown instead of returning null,
+ * so the caller can surface the API's own message (see `throwHttpError`) rather than a
+ * generic failure string. Callers that pass it must handle the throw.
+ *
  * @param url The API endpoint URL
  * @param token The authentication token
  * @param options Additional request options
@@ -240,6 +244,7 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options.body Request body for POST/PUT requests
  * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
  * @param options.timeoutMs If set, aborts the request after this many milliseconds and throws TimeoutError
+ * @param options.throwOnError If set, re-throws errors instead of returning null
  * @returns The parsed JSON response or null on error
  */
 export async function makeDoitRequest<T>(
@@ -260,6 +265,7 @@ export async function makeDoitRequest<T>(
         /** Extra headers to send alongside the default Authorization/Accept/Content-Type
          *  headers (e.g. an OpenAPI operation's required header parameters). */
         headers?: Record<string, string>;
+        throwOnError?: boolean;
     } = {}
 ): Promise<T | null> {
     const {
@@ -271,6 +277,7 @@ export async function makeDoitRequest<T>(
         timeoutMs,
         parseAs = "json",
         headers: extraHeaders,
+        throwOnError = false,
     } = options;
 
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
@@ -343,6 +350,9 @@ export async function makeDoitRequest<T>(
             console.error(`DoiT API ${method} request timed out after ${timeoutMs}ms`);
             throw error;
         }
+        if (throwOnError) {
+            throw error;
+        }
         console.error(`Error making DoiT API ${method} request to ${requestUrl}:`, error);
         return null;
     }
@@ -371,6 +381,13 @@ function appendTrackingParams(url: string): string {
     return out;
 }
 
+/**
+ * An upstream error body is not always the short JSON message we hope for — a proxy or load
+ * balancer can return a full HTML page — and this string is surfaced to the MCP client, so it
+ * is capped rather than forwarded whole.
+ */
+const MAX_ERROR_DETAIL_CHARS = 2000;
+
 // throwHttpError reads a non-OK response body, extracts the most specific message available,
 // and throws an Error carrying the HTTP status.
 async function throwHttpError(response: Response): Promise<never> {
@@ -386,7 +403,11 @@ async function throwHttpError(response: Response): Promise<never> {
         // use bodyText as-is
     }
 
-    throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+    const message = detail || response.statusText;
+    if (message.length > MAX_ERROR_DETAIL_CHARS) {
+        throw new Error(`HTTP ${response.status}: ${message.slice(0, MAX_ERROR_DETAIL_CHARS)}… (truncated)`);
+    }
+    throw new Error(`HTTP ${response.status}: ${message}`);
 }
 
 function resolveConsoleBase(): { baseUrl: string; doFetch: typeof fetch } {
