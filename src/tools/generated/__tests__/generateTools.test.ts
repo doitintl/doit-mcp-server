@@ -144,6 +144,47 @@ describe("generateTools", () => {
         expect(tool.zodSchema.shape.name).toBeDefined();
     });
 
+    it("attaches an approval summary to DELETE operations only", () => {
+        const document = buildDocument({
+            paths: {
+                "/widgets/{id}": {
+                    delete: {
+                        operationId: "deleteWidget",
+                        summary: "Delete a widget",
+                        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+                    },
+                    put: {
+                        operationId: "updateWidget",
+                        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+                    },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const tools = generateTools(document, new Set());
+        const deleteTool = tools.find((tool) => tool.name === "delete_widget");
+        const updateTool = tools.find((tool) => tool.name === "update_widget");
+
+        expect(updateTool?.summary).toBeUndefined();
+        expect(deleteTool?.summary).toBeDefined();
+        expect(deleteTool?.summary?.({ id: "w-1", customerContext: "cust-9" })).toBe(
+            'Delete a widget (id="w-1") for customer cust-9. This cannot be undone: DELETE /widgets/{id}.'
+        );
+        expect(deleteTool?.summary?.({ id: "w-1" })).toBe(
+            'Delete a widget (id="w-1"). This cannot be undone: DELETE /widgets/{id}.'
+        );
+    });
+
+    it("every DELETE operation in the bundled spec is write-gated", () => {
+        const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+        const deletes = tools.filter((tool) => tool.metadata.method === "delete");
+        expect(deletes.length).toBeGreaterThan(0);
+        for (const tool of deletes) expect(tool.summary, tool.name).toBeDefined();
+        for (const tool of tools.filter((tool) => tool.metadata.method !== "delete")) {
+            expect(tool.summary, tool.name).toBeUndefined();
+        }
+    });
+
     it("detects multipart binary fields", () => {
         const document = buildDocument({
             paths: {

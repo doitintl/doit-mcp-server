@@ -26,6 +26,7 @@ export const ConfirmActionArgumentsSchema = z.object({
  */
 export const confirmActionTool = {
     name: "confirm_action",
+    coversEndpoint: null,
     description:
         "Finalizes a pending write action (e.g. creating, updating, or deleting a resource) " +
         "that was previously staged by another tool. Only call this after the user has " +

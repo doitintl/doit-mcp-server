@@ -132,23 +132,24 @@ import {
 } from "./util.js";
 
 /**
- * Registry of write-gated tools that go through the two-phase approval flow.
+ * Registry of hand-written tools that go through the two-phase approval flow
+ * (`approval_required` envelope → user confirms → `confirm_action`).
  *
- * "Write-gated" — not "destructive" — because the gate covers any state-changing call
+ * "Write-gated" — not "destructive" — because the gate can cover any state-changing call
  * that warrants explicit user confirmation, including pure creates like `create_ticket`.
  * (The MCP-spec `destructiveHint` annotation has a narrower meaning — irreversible
- * updates — and is set per-tool independently of this registry.)
+ * updates — is advisory only, and is set per-tool independently of this registry.)
  *
- * POC scope: only `create_ticket` is gated so the demo surface stays small. The mechanism
- * itself (`confirm_action`, {@link ApprovalStore}, single-use tokens) is generic —
- * extending approval to another tool is just (a) adding a `summary(args)` on that tool's
- * definition and (b) adding an entry below. Removing approval enforcement is the inverse.
- * No tool handler code needs to change.
+ * Generated tools are not listed here: every generated DELETE operation carries its own
+ * `summary` (see src/tools/generated/generateTools.ts) and is gated automatically. To gate
+ * a hand-written tool, add a `summary(args)` to its definition and an entry below. No tool
+ * handler code needs to change.
+ *
+ * Hand-written creates/updates are currently left ungated: they are reversible, and MCP
+ * clients already prompt on `destructiveHint`. `create_ticket` was gated during the POC
+ * and deliberately un-gated to avoid a double confirmation on every ticket.
  */
 const WRITE_GATED_SUMMARIES: Record<string, (args: any) => string> = {
-    // Approval-token gating for create_ticket is disabled — we rely on the
-    // tool's `destructiveHint: true` annotation to surface a client-side
-    // confirmation dialog instead. Re-enable by uncommenting the line below.
     // [createTicketTool.name]: createTicketTool.summary,
 };
 
@@ -230,7 +231,7 @@ export async function executeToolHandler(
                     return confirmed;
                 }
 
-                const summaryFn = WRITE_GATED_SUMMARIES[toolName];
+                const summaryFn = WRITE_GATED_SUMMARIES[toolName] ?? generatedTools?.get(toolName)?.summary;
                 if (summaryFn) {
                     const approvalToken = mintApprovalToken();
                     await approvalStore.stash(approvalToken, {

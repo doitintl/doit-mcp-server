@@ -252,7 +252,7 @@ import {
 } from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
-// import { confirmActionTool } from "../tools/confirmAction.js"; // disabled with the approval gate
+import { confirmActionTool } from "../tools/confirmAction.js";
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -473,7 +473,7 @@ describe("ListToolsRequestSchema handler", () => {
                 getResourcePermissionsTool,
                 updateResourcePermissionsTool,
                 askAvaSyncTool,
-                // confirmActionTool, // disabled with the approval gate
+                confirmActionTool,
                 ...generatedToolDefinitions,
             ],
         });
@@ -909,14 +909,10 @@ describe("CallToolRequestSchema handler", () => {
         ["ask_ava_sync", "ask_ava_sync", { question: "What is my spend?" }, handleAskAvaSyncRequest],
     ];
 
-    // Tools gated by the server-side approval flow (confirm_action two-phase commit).
-    // POC scope keeps the gated set minimal; see WRITE_GATED_SUMMARIES in toolsHandler.ts.
-    // Approval gating for create_ticket is currently disabled — we rely on the tool's
-    // `destructiveHint: true` annotation instead. Re-add "create_ticket" here when the
-    // WRITE_GATED_SUMMARIES entry is uncommented.
-    const WRITE_GATED_TOOL_NAMES = new Set<string>([
-        /* "create_ticket" */
-    ]);
+    // Hand-written tools gated by the server-side approval flow (confirm_action two-phase
+    // commit) — see WRITE_GATED_SUMMARIES in toolsHandler.ts. Generated DELETE tools are
+    // gated too; that path is covered in toolsHandler.test.ts rather than routed here.
+    const WRITE_GATED_TOOL_NAMES = new Set<string>([]);
 
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
         const first = await getCallToolHandler()(mockRequest(toolName, args));

@@ -24,4 +24,10 @@ export type GeneratedTool = {
         openWorldHint: boolean;
     };
     securitySchemes: [{ type: "oauth2"; scopes: string[] }];
+    /**
+     * Set only on write-gated operations (every DELETE). Produces the human-readable
+     * summary the user is asked to confirm before `confirm_action` runs the call — the
+     * generated counterpart of WRITE_GATED_SUMMARIES in src/utils/toolsHandler.ts.
+     */
+    summary?: (args: Record<string, unknown>) => string;
 };
