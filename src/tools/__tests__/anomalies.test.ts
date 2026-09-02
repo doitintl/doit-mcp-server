@@ -253,6 +253,18 @@ Top SKUs:
             });
         });
 
+        it("encodes reserved characters in the anomaly id so it stays a single path segment", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue({ id: "x" });
+
+            await handleAnomalyRequest({ id: "../cloudincidents/v1?x=1#frag" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/anomalies/v1/..%2Fcloudincidents%2Fv1%3Fx%3D1%23frag",
+                mockToken,
+                { appendParams: true, method: "GET" }
+            );
+        });
+
         it("should handle API request failure", async () => {
             const mockArgs = { id: "anomaly-123" };
             (makeDoitRequest as vi.Mock).mockResolvedValue(null);

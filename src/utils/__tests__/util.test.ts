@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+    appendUrlParameters,
     DebugLevel,
     debugLog,
     formatEnumValues,
@@ -199,6 +200,37 @@ describe("runWithTracking / AsyncLocalStorage propagation", () => {
         });
         // After the call completes, we are back outside any ALS scope
         expect(getTrackingContext()).toBeUndefined();
+    });
+});
+
+describe("appendUrlParameters", () => {
+    const originalCustomerContext = process.env.CUSTOMER_CONTEXT;
+
+    afterEach(() => {
+        if (originalCustomerContext === undefined) delete process.env.CUSTOMER_CONTEXT;
+        else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
+    });
+
+    it("appends maxResults and an encoded customerContext", () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        expect(appendUrlParameters("https://api.doit.com/x", "cust-1")).toBe(
+            "https://api.doit.com/x?maxResults=40&customerContext=cust-1"
+        );
+    });
+
+    it("encodes reserved characters so customerContext cannot inject extra query parameters", () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        const url = appendUrlParameters("https://api.doit.com/x", "abc&maxResults=1000&other=1");
+        expect(url).toBe("https://api.doit.com/x?maxResults=40&customerContext=abc%26maxResults%3D1000%26other%3D1");
+        expect(new URL(url).searchParams.get("customerContext")).toBe("abc&maxResults=1000&other=1");
+        expect(new URL(url).searchParams.get("other")).toBeNull();
+    });
+
+    it("encodes the CUSTOMER_CONTEXT env fallback the same way", () => {
+        process.env.CUSTOMER_CONTEXT = "a/b?c=d";
+        expect(appendUrlParameters("https://api.doit.com/x?maxResults=5")).toBe(
+            "https://api.doit.com/x?maxResults=5&customerContext=a%2Fb%3Fc%3Dd"
+        );
     });
 });
 
