@@ -46,6 +46,20 @@ function findJsonContent(
 }
 
 /**
+ * DELETE operations are irreversible, so they go through the server-side two-phase approval
+ * flow (`approval_required` → `confirm_action`) rather than relying on the client honouring
+ * `destructiveHint`, which is advisory only. The summary is the text the user confirms.
+ */
+function buildDeleteSummary(operationSummary: string | undefined, pathTemplate: string, pathParams: string[]) {
+    return (args: Record<string, unknown>) => {
+        const target = pathParams.map((name) => `${name}=${JSON.stringify(String(args?.[name] ?? ""))}`).join(", ");
+        const scope = args?.customerContext ? ` for customer ${String(args.customerContext)}` : "";
+        const label = operationSummary ?? `Delete ${pathTemplate}`;
+        return `${label}${target ? ` (${target})` : ""}${scope}. This cannot be undone: DELETE ${pathTemplate}.`;
+    };
+}
+
+/**
  * Builds one MCP tool per OpenAPI operation not already covered by a hand-written tool.
  * `coveredEndpoints` is derived from every hand-written tool's own `coversEndpoint` field
  * (see src/tools/handWrittenTools.ts) — callers pass COVERED_ENDPOINTS from that module.
@@ -159,6 +173,9 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                         scopes: isReadOnly ? ["read_data"] : ["read_data", "write_data"],
                     },
                 ],
+                ...(method === "delete"
+                    ? { summary: buildDeleteSummary(operation.summary, pathTemplate, metadata.pathParams) }
+                    : {}),
             });
         }
     }

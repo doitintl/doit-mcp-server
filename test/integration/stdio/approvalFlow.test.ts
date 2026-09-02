@@ -1,31 +1,26 @@
+import { HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestClient, getTextContent } from "../helpers.js";
+import { mswServer } from "../setup.js";
 
 // This suite intentionally uses `rawClient` to bypass the test helper's
 // auto-confirm wrapper, so we can observe the two-phase approval envelope
-// emitted by the server directly.
-//
-// Skipped: server-enforced approval gating for `create_ticket` is currently
-// disabled (see WRITE_GATED_SUMMARIES in src/utils/toolsHandler.ts). All five
-// tests below assert behavior of that gate. Remove `.skip` once the registry
-// entry is uncommented.
-describe.skip("Write-gated tool approval flow (stdio)", () => {
+// emitted by the server directly. `delete_alert` is a generated DELETE tool;
+// every generated DELETE operation is write-gated (see generateTools.ts).
+describe("Write-gated tool approval flow (stdio)", () => {
     let rawClient: { callTool: (p: { name: string; arguments: Record<string, unknown> }) => Promise<any> };
     let cleanup: () => Promise<void>;
-
-    const ticketArgs = {
-        ticket: {
-            body: "Need help with billing.",
-            created: "2026-04-22T00:00:00Z",
-            platform: "amazon_web_services",
-            product: "billing",
-            severity: "high",
-            subject: "Gated Ticket",
-        },
-    };
+    let deleteCalls: string[];
 
     beforeEach(async () => {
         vi.spyOn(console, "error").mockImplementation(() => {});
+        deleteCalls = [];
+        mswServer.use(
+            http.delete("https://api.doit.com/analytics/v1/alerts/:id", ({ params }) => {
+                deleteCalls.push(String(params.id));
+                return new HttpResponse(null, { status: 204 });
+            })
+        );
         ({ rawClient, cleanup } = await createTestClient());
     });
 
@@ -34,31 +29,34 @@ describe.skip("Write-gated tool approval flow (stdio)", () => {
         vi.restoreAllMocks();
     });
 
-    it("emits an approval_required envelope on the first call to a write-gated tool", async () => {
-        const result = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
+    it("emits an approval_required envelope on the first call and does not hit the API", async () => {
+        const result = await rawClient.callTool({ name: "delete_alert", arguments: { id: "alert-1" } });
         const body = JSON.parse(getTextContent(result));
 
         expect(body.status).toBe("approval_required");
         expect(body.approvalToken).toMatch(/^[0-9a-f-]{36}$/i);
-        expect(body.summary).toContain("Create support ticket");
+        expect(body.summary).toBe(
+            'Delete an alert (id="alert-1"). This cannot be undone: DELETE /analytics/v1/alerts/{id}.'
+        );
         expect(body.next).toContain("confirm_action");
+        expect(deleteCalls).toEqual([]);
     });
 
-    it("confirm_action with the minted token executes the original write-gated call", async () => {
-        const first = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
+    it("confirm_action with the minted token executes the staged DELETE", async () => {
+        const first = await rawClient.callTool({ name: "delete_alert", arguments: { id: "alert-1" } });
         const { approvalToken } = JSON.parse(getTextContent(first));
 
         const second = await rawClient.callTool({
             name: "confirm_action",
             arguments: { token: approvalToken },
         });
-        const parsed = JSON.parse(getTextContent(second));
-        expect(parsed.id).toBe(99999);
-        expect(parsed.status).toBe("created");
+
+        expect(second.isError).not.toBe(true);
+        expect(deleteCalls).toEqual(["alert-1"]);
     });
 
     it("approval tokens are single-use — replaying a consumed token errors out", async () => {
-        const first = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
+        const first = await rawClient.callTool({ name: "delete_alert", arguments: { id: "alert-1" } });
         const { approvalToken } = JSON.parse(getTextContent(first));
 
         await rawClient.callTool({ name: "confirm_action", arguments: { token: approvalToken } });
@@ -68,6 +66,7 @@ describe.skip("Write-gated tool approval flow (stdio)", () => {
         });
 
         expect(getTextContent(replay)).toContain("Approval token unknown or expired");
+        expect(deleteCalls).toEqual(["alert-1"]);
     });
 
     it("confirm_action with an unknown token returns the canonical error", async () => {
@@ -79,11 +78,23 @@ describe.skip("Write-gated tool approval flow (stdio)", () => {
     });
 
     it("calling a write-gated tool twice mints two distinct tokens (idempotent on LLM misbehavior)", async () => {
-        const r1 = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
-        const r2 = await rawClient.callTool({ name: "create_ticket", arguments: ticketArgs });
+        const r1 = await rawClient.callTool({ name: "delete_alert", arguments: { id: "alert-1" } });
+        const r2 = await rawClient.callTool({ name: "delete_alert", arguments: { id: "alert-1" } });
 
         const t1 = JSON.parse(getTextContent(r1)).approvalToken;
         const t2 = JSON.parse(getTextContent(r2)).approvalToken;
         expect(t1).not.toBe(t2);
+        expect(deleteCalls).toEqual([]);
+    });
+
+    it("the auto-confirm test helper transparently completes a gated DELETE", async () => {
+        const { client, cleanup: cleanupWrapped } = await createTestClient();
+        try {
+            const result = await client.callTool({ name: "delete_alert", arguments: { id: "alert-2" } });
+            expect(result.isError).not.toBe(true);
+            expect(deleteCalls).toEqual(["alert-2"]);
+        } finally {
+            await cleanupWrapped();
+        }
     });
 });

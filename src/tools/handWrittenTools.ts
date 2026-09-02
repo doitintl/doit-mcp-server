@@ -30,6 +30,7 @@ import {
 } from "./cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "./cloudIncidents.js";
 import { getCommitmentTool, listCommitmentsTool } from "./commitmentManager.js";
+import { confirmActionTool } from "./confirmAction.js";
 import {
     createDatahubDatasetTool,
     getDatahubDatasetTool,
@@ -193,6 +194,7 @@ export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     getResourcePermissionsTool,
     updateResourcePermissionsTool,
     askAvaSyncTool,
+    confirmActionTool,
 ];
 
 export const COVERED_ENDPOINTS: Set<string> = new Set(

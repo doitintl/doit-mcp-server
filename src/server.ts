@@ -61,9 +61,6 @@ import {
 } from "./tools/cloudflow.js";
 import { handleCloudIncidentRequest, handleCloudIncidentsRequest } from "./tools/cloudIncidents.js";
 import { handleGetCommitmentRequest, handleListCommitmentsRequest } from "./tools/commitmentManager.js";
-// Re-enable alongside the WRITE_GATED_SUMMARIES entry in utils/toolsHandler.ts
-// and the registration in src/tools/handWrittenTools.ts.
-// import { confirmActionTool } from "./tools/confirmAction.js";
 import {
     handleCreateDatahubDatasetRequest,
     handleGetDatahubDatasetRequest,
@@ -162,14 +159,7 @@ export function createServer() {
 
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
-            tools: [
-                ...HAND_WRITTEN_TOOLS,
-                // confirm_action is no longer exposed while the approval gate is
-                // disabled — without any write-gated tool minting tokens there is
-                // nothing for clients to confirm. Re-add when the gate returns.
-                // confirmActionTool,
-                ...generatedToolDefinitions,
-            ],
+            tools: [...HAND_WRITTEN_TOOLS, ...generatedToolDefinitions],
         };
     });
 
