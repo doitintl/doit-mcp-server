@@ -208,7 +208,7 @@ export async function handleAnomalyRequest(args: any, token: string) {
     try {
         const { id } = AnomalyArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const anomalyUrl = `${ANOMALIES_BASE_URL}/${id}`;
+        const anomalyUrl = `${ANOMALIES_BASE_URL}/${encodeURIComponent(id)}`;
 
         try {
             // Explicitly set appendParams to true to ensure URL parameters are added

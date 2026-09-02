@@ -219,7 +219,7 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
 
     if (customerContext) {
         // Use & as separator since we know the URL now has parameters
-        url += `&customerContext=${customerContext}`;
+        url += `&customerContext=${encodeURIComponent(customerContext)}`;
     }
 
     return url;
