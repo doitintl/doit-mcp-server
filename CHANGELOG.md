@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.22.0 (2026-09-02)
+
+**Full diff:** [`v0.21.0...v0.22.0`](../../compare/v0.21.0...v0.22.0)
+
+### Features
+
+- feat: require server-side approval for every generated DELETE tool (`ddf5dba`)
+
+### Bug Fixes
+
+- fix: encode customerContext and anomaly id before building request URLs (`24e5c30`)
+- fix(ci): use the APP_ID variable the repo actually defines (`deb40e4`)
+- fix(ci): mint the app token from a client ID via create-github-app-token v3 (`59981e1`)
+
+### Chores
+
+- chore: drop accidentally committed node_modules symlink (`dae4a13`)
+
+### Other Changes
+
+- docs: add SECURITY.md with vulnerability reporting policy (`41e67d5`)
+- docs: refresh README auth, /mcp path, and connection examples (#244) (`ff7f21e`)
+- ci: open the release PR with a GitHub App token so its checks run (`cb67fbc`)
 ## v0.21.0 (2026-08-31)
 
 **Full diff:** [`v0.20.0...v0.21.0`](../../compare/v0.20.0...v0.21.0)
