@@ -12,7 +12,7 @@ How you authenticate depends on the connection method:
 
 | Method | URL / command | Auth |
 | --- | --- | --- |
-| Remote (Streamable HTTP) | `https://mcp.doit.com/mcp` | OAuth — your client opens a DoiT sign-in and consent page. |
+| Remote (Streamable HTTP) | `https://mcp.doit.com/mcp` | OAuth — your client opens a DoiT sign-in and consent page. Headless clients can instead send a customer personal API token as `Authorization: Bearer`. |
 | Local (stdio) | `npx -y @doitintl/doit-mcp-server@latest` | Personal API token via `DOIT_API_KEY`. |
 
 The legacy SSE endpoint (`https://mcp.doit.com/sse`) is deprecated and should not be used for new setups.
@@ -24,6 +24,26 @@ The Claude Desktop steps below are examples, not the only supported clients. Cur
 ## Remote (Streamable HTTP)
 
 Example with Claude Desktop: add a custom connector (**+ → Add connector → Add custom connector**) and set the remote MCP server URL to `https://mcp.doit.com/mcp`. Complete DoiT sign-in when prompted.
+
+### Headless clients (API token)
+
+Agents that cannot open a browser (for example HolmesGPT on a cluster, CI jobs, cron workers) can authenticate to the same endpoint with a customer [personal API token](https://help.doit.com/docs/general/profile/api-tokens) sent as a bearer header. Tools run with that token's permissions, exactly as on stdio. DoiT employee tokens are not accepted on the remote endpoint; employees use OAuth or the local server.
+
+Example with HolmesGPT:
+
+```yaml
+mcp_servers:
+  doit:
+    description: "DoiT Cloud Intelligence"
+    config:
+      url: "https://mcp.doit.com/mcp"
+      mode: streamable-http
+      headers:
+        Authorization: "Bearer {{ env.DOIT_API_KEY }}"
+      health_check_tool: "validate_user"
+```
+
+Keep the token in a secret store and rotate it on a schedule. Design notes: [docs/remote-api-key-bearer-auth.md](docs/remote-api-key-bearer-auth.md).
 
 ## Local (stdio)
 
