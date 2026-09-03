@@ -39,6 +39,7 @@ import {
     handleSearchCloudDiagramsRequest,
 } from "../tools/cloudDiagrams.js";
 import {
+    handleBuildCloudflowRequest,
     handleCreateCloudFlowConnectionRequest,
     handleGetCloudFlowConnectionRequest,
     handleGetCloudFlowTemplateRequest,
@@ -407,6 +408,9 @@ async function runOriginalDispatch(
             break;
         case "get_cloudflow_template":
             result = await handleGetCloudFlowTemplateRequest(args, token);
+            break;
+        case "build_cloud_flow":
+            result = await handleBuildCloudflowRequest(args, token, options?.onProgress);
             break;
         case "refine_cloudflow":
             result = await handleRefineCloudflowRequest(args, token, options?.onProgress);
