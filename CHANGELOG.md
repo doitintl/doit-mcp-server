@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.22.1 (2026-09-03)
+
+**Full diff:** [`v0.22.0...v0.22.1`](../../compare/v0.22.0...v0.22.1)
+
+### Chores
+
+- chore: refresh generated OpenAPI spec snapshot (`d3ae911`)
 ## v0.22.0 (2026-09-02)
 
 **Full diff:** [`v0.21.0...v0.22.0`](../../compare/v0.21.0...v0.22.0)
