@@ -201,6 +201,40 @@ export function handleGeneralError(error: any, context: string): ReturnType<type
 }
 
 /**
+ * Header the DoiT API reads the customer (tenant) scope from. It is sent in addition to the
+ * `customerContext` query parameter — the API accepts either, and newer endpoints only read
+ * the header.
+ */
+export const TENANT_ID_HEADER = "X-Tenant-Id";
+
+/**
+ * Resolves the customer context for a request: the explicitly passed value first, then the
+ * CUSTOMER_CONTEXT env var (how the stdio server persists a selected customer).
+ */
+export function resolveCustomerContext(customerContextId?: string): string | undefined {
+    return customerContextId || process.env.CUSTOMER_CONTEXT || undefined;
+}
+
+/**
+ * Sets the X-Tenant-Id header from the resolved customer context, mutating and returning
+ * `headers`. An existing tenant header (any casing — e.g. an OpenAPI operation that declares
+ * one explicitly) is left untouched so callers keep control and we never send it twice.
+ */
+export function applyTenantIdHeader(
+    headers: Record<string, string>,
+    customerContextId?: string
+): Record<string, string> {
+    const customerContext = resolveCustomerContext(customerContextId);
+    if (!customerContext) return headers;
+
+    const alreadySet = Object.keys(headers).some((key) => key.toLowerCase() === TENANT_ID_HEADER.toLowerCase());
+    if (alreadySet) return headers;
+
+    headers[TENANT_ID_HEADER] = customerContext;
+    return headers;
+}
+
+/**
  * Helper function to append customer context to URL if available
  * @param baseUrl The base URL to append parameters to
  * @returns URL with maxResults and optional customerContext parameters
@@ -215,7 +249,7 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
         url += `${separator}maxResults=40`;
     }
 
-    const customerContext = customerContextId || process.env.CUSTOMER_CONTEXT;
+    const customerContext = resolveCustomerContext(customerContextId);
 
     if (customerContext) {
         // Use & as separator since we know the URL now has parameters
@@ -301,6 +335,10 @@ export async function makeDoitRequest<T>(
         ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
         ...extraHeaders,
     };
+
+    // The customer scope goes out as both the customerContext query param (below) and the
+    // X-Tenant-Id header, since the API reads the scope from the header on newer endpoints.
+    applyTenantIdHeader(headers, customerContext);
 
     let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;
 
@@ -464,7 +502,8 @@ const DATA_LINE_PREFIX = "data:";
 export async function* makeDoitSSERequest(
     url: string,
     body: object,
-    authToken: string
+    authToken: string,
+    customerContext?: string
 ): AsyncGenerator<{ data: string }> {
     const parsedUrl = new URL(applyRuntimeDoiTApiBase(url));
 
@@ -479,15 +518,21 @@ export async function* makeDoitSSERequest(
     const requestUrl = parsedUrl.href;
     debugLog("SSE request URL:", DebugLevel.VERBOSE, requestUrl);
 
-    const tenantId = process.env.TENANT_ID;
+    const headers: Record<string, string> = {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+    };
+    // Scope the stream to the customer the same way the non-streaming client does; the
+    // standalone TENANT_ID env var stays as a fallback for deployments that set it.
+    applyTenantIdHeader(headers, customerContext);
+    if (!headers[TENANT_ID_HEADER] && process.env.TENANT_ID) {
+        headers[TENANT_ID_HEADER] = process.env.TENANT_ID;
+    }
+
     const response = await fetch(requestUrl, {
         method: "POST",
-        headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-            Accept: "text/event-stream",
-            ...(tenantId ? { "x-tenant-id": tenantId } : {}),
-        },
+        headers,
         body: JSON.stringify(body),
     });
 

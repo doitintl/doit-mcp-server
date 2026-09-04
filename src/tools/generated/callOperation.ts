@@ -99,6 +99,9 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
             method: metadata.method.toUpperCase(),
             body,
             appendParams: false,
+            // URL params are built above (appendParams: false), but makeDoitRequest still
+            // needs the context to send the X-Tenant-Id header.
+            customerContext,
             parseAs: "text",
             timeoutMs: GENERATED_REQUEST_TIMEOUT_MS,
             headers: Object.keys(headers).length > 0 ? headers : undefined,

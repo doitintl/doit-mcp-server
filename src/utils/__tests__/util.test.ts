@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
     appendUrlParameters,
+    applyTenantIdHeader,
     DebugLevel,
     debugLog,
     formatEnumValues,
     getTrackingContext,
     makeDoitRequest,
+    makeDoitSSERequest,
     runWithTracking,
 } from "../util.js";
 
@@ -206,5 +208,198 @@ describe("makeDoitRequest timeout", () => {
         const result = await makeDoitRequest("https://api.doit.com/test", "test-token");
 
         expect(result).toBeNull();
+    });
+});
+
+describe("applyTenantIdHeader", () => {
+    const originalCustomerContext = process.env.CUSTOMER_CONTEXT;
+
+    afterEach(() => {
+        if (originalCustomerContext === undefined) delete process.env.CUSTOMER_CONTEXT;
+        else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
+    });
+
+    it("sets X-Tenant-Id from the explicit customer context", () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        expect(applyTenantIdHeader({}, "cust-1")).toEqual({ "X-Tenant-Id": "cust-1" });
+    });
+
+    it("falls back to the CUSTOMER_CONTEXT env var", () => {
+        process.env.CUSTOMER_CONTEXT = "env-cust";
+        expect(applyTenantIdHeader({})).toEqual({ "X-Tenant-Id": "env-cust" });
+    });
+
+    it("prefers the explicit customer context over the env var", () => {
+        process.env.CUSTOMER_CONTEXT = "env-cust";
+        expect(applyTenantIdHeader({}, "cust-1")).toEqual({ "X-Tenant-Id": "cust-1" });
+    });
+
+    it("adds no header when there is no customer context", () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        expect(applyTenantIdHeader({ Accept: "application/json" })).toEqual({ Accept: "application/json" });
+    });
+
+    it("keeps an already-set tenant header regardless of casing, so it is never sent twice", () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        const headers = applyTenantIdHeader({ "x-tenant-id": "explicit" }, "cust-1");
+
+        expect(headers).toEqual({ "x-tenant-id": "explicit" });
+        expect(Object.keys(headers).filter((key) => key.toLowerCase() === "x-tenant-id")).toHaveLength(1);
+    });
+});
+
+describe("makeDoitRequest customer context header", () => {
+    const originalCustomerContext = process.env.CUSTOMER_CONTEXT;
+
+    // Captures the headers of the last stubbed fetch call.
+    function stubFetchOk() {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ ok: true }),
+            text: async () => "{}",
+        });
+        vi.stubGlobal("fetch", fetchMock);
+        return fetchMock;
+    }
+
+    function headersOf(fetchMock: ReturnType<typeof stubFetchOk>): Record<string, string> {
+        return fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    }
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        if (originalCustomerContext === undefined) delete process.env.CUSTOMER_CONTEXT;
+        else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
+    });
+
+    it("sends the customer context as the X-Tenant-Id header in addition to the query param", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        const fetchMock = stubFetchOk();
+
+        await makeDoitRequest("https://api.doit.com/test", "test-token", { customerContext: "cust-1" });
+
+        expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("cust-1");
+        expect(fetchMock.mock.calls[0][0]).toContain("customerContext=cust-1");
+    });
+
+    it("sends the X-Tenant-Id header from the CUSTOMER_CONTEXT env var", async () => {
+        process.env.CUSTOMER_CONTEXT = "env-cust";
+        const fetchMock = stubFetchOk();
+
+        await makeDoitRequest("https://api.doit.com/test", "test-token");
+
+        expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("env-cust");
+    });
+
+    it("sends the X-Tenant-Id header even when URL params are not appended", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        const fetchMock = stubFetchOk();
+
+        await makeDoitRequest("https://api.doit.com/test", "test-token", {
+            appendParams: false,
+            customerContext: "cust-1",
+        });
+
+        expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("cust-1");
+    });
+
+    it("omits the X-Tenant-Id header when there is no customer context", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        const fetchMock = stubFetchOk();
+
+        await makeDoitRequest("https://api.doit.com/test", "test-token");
+
+        const headers = headersOf(fetchMock);
+        expect(Object.keys(headers).some((key) => key.toLowerCase() === "x-tenant-id")).toBe(false);
+    });
+
+    it("does not override an explicit tenant header passed by the caller", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        const fetchMock = stubFetchOk();
+
+        await makeDoitRequest("https://api.doit.com/test", "test-token", {
+            customerContext: "cust-1",
+            headers: { "X-Tenant-Id": "explicit" },
+        });
+
+        const headers = headersOf(fetchMock);
+        expect(headers["X-Tenant-Id"]).toBe("explicit");
+        expect(Object.keys(headers).filter((key) => key.toLowerCase() === "x-tenant-id")).toHaveLength(1);
+    });
+});
+
+describe("makeDoitSSERequest customer context header", () => {
+    const originalCustomerContext = process.env.CUSTOMER_CONTEXT;
+    const originalTenantId = process.env.TENANT_ID;
+
+    function stubSSEFetch() {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            body: new ReadableStream<Uint8Array>({
+                start(controller) {
+                    controller.enqueue(new TextEncoder().encode('data: {"answer":"hi"}\n\n'));
+                    controller.close();
+                },
+            }),
+        });
+        vi.stubGlobal("fetch", fetchMock);
+        return fetchMock;
+    }
+
+    async function drain(generator: AsyncGenerator<{ data: string }>) {
+        for await (const _event of generator) {
+            // consume the stream so the request completes
+        }
+    }
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        if (originalCustomerContext === undefined) delete process.env.CUSTOMER_CONTEXT;
+        else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
+        if (originalTenantId === undefined) delete process.env.TENANT_ID;
+        else process.env.TENANT_ID = originalTenantId;
+    });
+
+    it("sends the customer context as the X-Tenant-Id header", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        delete process.env.TENANT_ID;
+        const fetchMock = stubSSEFetch();
+
+        await drain(makeDoitSSERequest("https://api.doit.com/stream", { question: "q" }, "test-token", "cust-1"));
+
+        expect(fetchMock.mock.calls[0][1].headers["X-Tenant-Id"]).toBe("cust-1");
+    });
+
+    it("prefers the customer context over the TENANT_ID env var and sends a single tenant header", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        process.env.TENANT_ID = "env-tenant";
+        const fetchMock = stubSSEFetch();
+
+        await drain(makeDoitSSERequest("https://api.doit.com/stream", { question: "q" }, "test-token", "cust-1"));
+
+        const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+        expect(headers["X-Tenant-Id"]).toBe("cust-1");
+        expect(Object.keys(headers).filter((key) => key.toLowerCase() === "x-tenant-id")).toHaveLength(1);
+    });
+
+    it("falls back to the TENANT_ID env var when there is no customer context", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        process.env.TENANT_ID = "env-tenant";
+        const fetchMock = stubSSEFetch();
+
+        await drain(makeDoitSSERequest("https://api.doit.com/stream", { question: "q" }, "test-token"));
+
+        expect(fetchMock.mock.calls[0][1].headers["X-Tenant-Id"]).toBe("env-tenant");
+    });
+
+    it("omits the tenant header when neither a customer context nor TENANT_ID is set", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        delete process.env.TENANT_ID;
+        const fetchMock = stubSSEFetch();
+
+        await drain(makeDoitSSERequest("https://api.doit.com/stream", { question: "q" }, "test-token"));
+
+        const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+        expect(Object.keys(headers).some((key) => key.toLowerCase() === "x-tenant-id")).toBe(false);
     });
 });
