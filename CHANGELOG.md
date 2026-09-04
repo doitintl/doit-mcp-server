@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.23.0 (2026-09-04)
+
+**Full diff:** [`v0.22.1...v0.23.0`](../../compare/v0.22.1...v0.23.0)
+
+### Bug Fixes
+
+- fix(tests): lint (`0a4a931`)
+- fix(prompts): remove deprecated legacy prompts keep only 3 (`697fa6f`)
+- fix: exclude SSE-only ask_ava streaming op and guard the generator (`471f824`)
+
+### Chores
+
+- chore(utils)!: remove toSnakeCase utility not used anymore (`2d0aa28`)
 ## v0.22.1 (2026-09-04)
 
 **Full diff:** [`v0.22.0...v0.22.1`](../../compare/v0.22.0...v0.22.1)
