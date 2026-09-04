@@ -75,8 +75,12 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           branch: chore/refresh-generated-openapi-spec
-          title: "chore: refresh generated OpenAPI spec snapshot"
-          commit-message: "chore: refresh generated OpenAPI spec snapshot"
+          # feat, not chore: a refreshed snapshot usually adds generated tools, and the
+          # commit subject is what next-version.sh reads to pick the bump — feat gives
+          # the release a minor version instead of a patch. Keep title and
+          # commit-message identical so a squash merge lands the same subject.
+          title: "feat: refresh generated OpenAPI spec snapshot"
+          commit-message: "feat: refresh generated OpenAPI spec snapshot"
           body-path: /tmp/pr-body.md
           labels: automated,spec-refresh
           delete-branch: true
