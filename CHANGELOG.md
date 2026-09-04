@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.22.1 (2026-09-04)
+
+**Full diff:** [`v0.22.0...v0.22.1`](../../compare/v0.22.0...v0.22.1)
+
+### Bug Fixes
+
+- fix: hand-write build_cloud_flow so it consumes the SSE build stream (`767cc3a`)
+
+### Chores
+
+- chore: refresh generated OpenAPI spec snapshot (`d3ae911`)
+
+### Other Changes
+
+- docs: document API-token bearer auth for the remote endpoint (`479b346`)
 ## v0.22.0 (2026-09-02)
 
 **Full diff:** [`v0.21.0...v0.22.0`](../../compare/v0.21.0...v0.22.0)
