@@ -8,9 +8,12 @@ import {
     ListResourcesRequestSchema,
     ListToolsRequestSchema,
     McpError,
+    ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
+import { SERVER_INSTRUCTIONS } from "../docs/serverInstructions.js";
 import { prompts } from "../prompts/index.js";
 import { SERVER_VERSION } from "../utils/consts.js";
 
@@ -351,8 +354,18 @@ describe("createServer", () => {
     it("creates a Server instance with correct name and version", () => {
         expect(Server).toHaveBeenCalledWith(
             { name: "doit-mcp-server", version: SERVER_VERSION },
-            { capabilities: { tools: {}, prompts: {}, resources: {} } }
+            {
+                capabilities: { tools: {}, prompts: {}, resources: {} },
+                instructions: SERVER_INSTRUCTIONS,
+            }
         );
+    });
+
+    it("passes non-empty instructions covering the codeNode contract", () => {
+        const [, options] = (Server as any).mock.calls[0];
+
+        expect(options.instructions).toContain('nodes["<node name>"]');
+        expect(options.instructions).toContain("{message: null}");
     });
 
     it("registers handlers for all required schemas", () => {
@@ -360,6 +373,7 @@ describe("createServer", () => {
         expect(setRequestHandlerMock).toHaveBeenCalledWith(ListPromptsRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(GetPromptRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(ListResourcesRequestSchema, expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith(ReadResourceRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(CallToolRequestSchema, expect.any(Function));
         expect(setRequestHandlerMock).toHaveBeenCalledWith(InitializeRequestSchema, expect.any(Function));
     });
@@ -728,12 +742,47 @@ describe("GetPromptRequestSchema handler", () => {
 });
 
 describe("ListResourcesRequestSchema handler", () => {
-    it("returns an empty resources list", async () => {
+    it("lists the CloudFlow authoring guide", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListResourcesRequestSchema)?.[1];
 
         const response = await handler();
 
-        expect(response).toEqual({ resources: [] });
+        expect(response).toEqual({
+            resources: [
+                {
+                    uri: "doit://docs/cloudflow-authoring",
+                    name: "CloudFlow authoring guide",
+                    description: "Runtime contracts for authoring, repairing and verifying CloudFlow flows.",
+                    mimeType: "text/markdown",
+                },
+            ],
+        });
+    });
+});
+
+describe("ReadResourceRequestSchema handler", () => {
+    const getHandler = () =>
+        setRequestHandlerMock.mock.calls.find((call) => call[0] === ReadResourceRequestSchema)?.[1];
+
+    it("returns the guide for its own URI", async () => {
+        const response = await getHandler()({ params: { uri: "doit://docs/cloudflow-authoring" } });
+
+        expect(response).toEqual({
+            contents: [
+                {
+                    uri: "doit://docs/cloudflow-authoring",
+                    mimeType: "text/markdown",
+                    text: CLOUDFLOW_AUTHORING_GUIDE,
+                },
+            ],
+        });
+    });
+
+    it("throws InvalidParams for an unknown URI", async () => {
+        await expect(getHandler()({ params: { uri: "doit://docs/nope" } })).rejects.toThrow(McpError);
+        await expect(getHandler()({ params: { uri: "doit://docs/nope" } })).rejects.toThrow(
+            /Unknown resource: doit:\/\/docs\/nope/
+        );
     });
 });
 
@@ -747,7 +796,17 @@ describe("InitializeRequestSchema handler", () => {
             protocolVersion: "2024-11-05",
             serverInfo: { name: "doit-mcp-server", version: SERVER_VERSION },
             capabilities: { tools: {}, prompts: {}, resources: {} },
+            instructions: SERVER_INSTRUCTIONS,
         });
+    });
+
+    it("echoes the instructions in the initialize result — this handler replaces the SDK's own", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
+
+        const response = await handler({ params: { protocolVersion: "2024-11-05" } });
+
+        expect(response.instructions).toBe(SERVER_INSTRUCTIONS);
+        expect(response.instructions).not.toBe("");
     });
 
     it("falls back to default protocol version when not provided", async () => {

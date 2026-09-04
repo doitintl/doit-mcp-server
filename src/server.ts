@@ -8,7 +8,10 @@ import {
     ListResourcesRequestSchema,
     ListToolsRequestSchema,
     McpError,
+    ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
+import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
 import { handleListAccountTeamRequest } from "./tools/accountTeam.js";
 import {
@@ -134,6 +137,10 @@ const generatedToolDefinitions = generatedTools.map((tool) => ({
     securitySchemes: tool.securitySchemes,
 }));
 
+// Resources are pull-only: a client has to ask. This is the depth-on-request tier — the
+// load-bearing rules also ride the tool descriptions and the server instructions.
+const CLOUDFLOW_GUIDE_URI = "doit://docs/cloudflow-authoring";
+
 export function createServer() {
     // Connection-level MCP client info — set once on initialize, read on every tool call.
     // Stored in a closure (not a module global) so each server instance is isolated.
@@ -155,6 +162,9 @@ export function createServer() {
                 prompts: {},
                 resources: {},
             },
+            // Returned in the initialize result. Only the stdio server is constructed here —
+            // the remote Worker builds its own Server and has to pass this itself.
+            instructions: SERVER_INSTRUCTIONS,
         }
     );
 
@@ -207,7 +217,30 @@ export function createServer() {
 
     server.setRequestHandler(ListResourcesRequestSchema, async () => {
         return {
-            resources: [],
+            resources: [
+                {
+                    uri: CLOUDFLOW_GUIDE_URI,
+                    name: "CloudFlow authoring guide",
+                    description: "Runtime contracts for authoring, repairing and verifying CloudFlow flows.",
+                    mimeType: "text/markdown",
+                },
+            ],
+        };
+    });
+
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+        if (request.params.uri !== CLOUDFLOW_GUIDE_URI) {
+            throw new McpError(ErrorCode.InvalidParams, `Unknown resource: ${request.params.uri}`);
+        }
+
+        return {
+            contents: [
+                {
+                    uri: CLOUDFLOW_GUIDE_URI,
+                    mimeType: "text/markdown",
+                    text: CLOUDFLOW_AUTHORING_GUIDE,
+                },
+            ],
         };
     });
 
@@ -251,6 +284,10 @@ export function createServer() {
             },
             // biome-ignore lint/complexity/useLiteralKeys: bracket notation bypasses private property TS check
             capabilities: server["_capabilities"] || {},
+            // Repeated from the Server options above, not redundantly: this handler replaces the
+            // SDK's own initialize handler, so the constructor's `instructions` is never sent
+            // unless it is echoed here.
+            instructions: SERVER_INSTRUCTIONS,
         };
     });
 
