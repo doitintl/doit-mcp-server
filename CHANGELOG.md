@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.1 (2026-09-04)
+
+**Full diff:** [`v1.0.0...v1.0.1`](../../compare/v1.0.0...v1.0.1)
+
+### Chores
+
+- chore: refresh-spec uses feat not chore commits (`7a50703`)
 ## v1.0.0 (2026-09-04)
 
 **Full diff:** [`v0.22.1...v1.0.0`](../../compare/v0.22.1...v1.0.0)
