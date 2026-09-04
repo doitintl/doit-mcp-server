@@ -1,6 +1,8 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CLOUDFLOW_AUTHORING_GUIDE } from "../../../src/docs/cloudflowGuidance.js";
+import { SERVER_INSTRUCTIONS } from "../../../src/docs/serverInstructions.js";
 import { SERVER_NAME, SERVER_VERSION } from "../../../src/utils/consts.js";
 import { createTestClient } from "../helpers.js";
 
@@ -42,12 +44,47 @@ describe("MCP Server Integration", () => {
             const caps = client.getServerCapabilities();
             expect(caps?.resources).toBeDefined();
         });
+
+        // src/server.ts registers its own InitializeRequestSchema handler, replacing the SDK's,
+        // so the `instructions` constructor option is only delivered if that handler echoes it.
+        // Asserting it through a real client is the only check that catches the omission.
+        it("delivers server instructions to the client", async () => {
+            expect(client.getInstructions()).toBe(SERVER_INSTRUCTIONS);
+        });
     });
 
     describe("resources/list", () => {
-        it("returns an empty resources list", async () => {
+        it("lists the CloudFlow authoring guide", async () => {
             const result = await client.listResources();
-            expect(result.resources).toEqual([]);
+
+            expect(result.resources).toEqual([
+                {
+                    uri: "doit://docs/cloudflow-authoring",
+                    name: "CloudFlow authoring guide",
+                    description: "Runtime contracts for authoring, repairing and verifying CloudFlow flows.",
+                    mimeType: "text/markdown",
+                },
+            ]);
+        });
+    });
+
+    describe("resources/read", () => {
+        it("returns the whole guide as markdown", async () => {
+            const result = await client.readResource({ uri: "doit://docs/cloudflow-authoring" });
+
+            expect(result.contents).toEqual([
+                {
+                    uri: "doit://docs/cloudflow-authoring",
+                    mimeType: "text/markdown",
+                    text: CLOUDFLOW_AUTHORING_GUIDE,
+                },
+            ]);
+        });
+
+        it("rejects an unknown resource URI", async () => {
+            await expect(client.readResource({ uri: "doit://docs/nope" })).rejects.toThrow(
+                /Unknown resource: doit:\/\/docs\/nope/
+            );
         });
     });
 

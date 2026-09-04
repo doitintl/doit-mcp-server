@@ -1,5 +1,12 @@
 import generatedToolsOpenApiSpec from "./tools/generated/openapi.json" with { type: "json" };
 
+export {
+    CLOUDFLOW_AUTHORING_GUIDE,
+    CLOUDFLOW_BUILDER_HINT,
+    CLOUDFLOW_CODENODE_HINT,
+    CLOUDFLOW_INSTRUCTIONS,
+} from "./docs/cloudflowGuidance.js";
+export { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 export * from "./prompts/index.js";
 export { ListAccountTeamArgumentsSchema, listAccountTeamTool } from "./tools/accountTeam.js";
 export {

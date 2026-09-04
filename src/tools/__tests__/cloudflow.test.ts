@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CLOUDFLOW_BUILDER_HINT } from "../../docs/cloudflowGuidance.js";
 import { makeDoitRequest, makeDoitSSERequest } from "../../utils/util.js";
 import {
     buildCloudflowTool,
@@ -15,6 +16,7 @@ import {
     handleListCloudFlowTemplatesRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateCloudFlowConnectionRequest,
+    refineCloudflowTool,
 } from "../cloudflow.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -871,5 +873,17 @@ describe("cloudflow", () => {
             expect(response.isError).toBe(true);
             expect(makeDoitSSERequest as unknown as vi.Mock).not.toHaveBeenCalled();
         });
+    });
+});
+
+describe("CloudFlow builder tool guidance", () => {
+    it("carries the builder warning on both builder tools", () => {
+        expect(buildCloudflowTool.description).toContain(CLOUDFLOW_BUILDER_HINT);
+        expect(refineCloudflowTool.description).toContain(CLOUDFLOW_BUILDER_HINT);
+    });
+
+    it("keeps the tool's own purpose first, with the warning appended", () => {
+        expect(buildCloudflowTool.description.startsWith("Use this when the user wants to build")).toBe(true);
+        expect(buildCloudflowTool.description.endsWith(CLOUDFLOW_BUILDER_HINT)).toBe(true);
     });
 });

@@ -2,6 +2,7 @@ import type { OpenAPIV3 } from "openapi-types";
 import { type ZodRawShape, z } from "zod";
 
 import { isExcludedOperation } from "./excludedOperations.js";
+import { toolOverrides } from "./overrides.js";
 import { type JsonSchema, schemaToZod } from "./schemaToZod.js";
 import { type GeneratedTool, HTTP_METHODS, type OperationMetadata } from "./types.js";
 
@@ -177,7 +178,13 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             const paginationNote = isPaginated
                 ? " This endpoint is paginated: to fetch the next page, call again passing the response's `pageToken` value as the `pageToken` parameter. Stop once the response has no `pageToken` — that means there are no more pages."
                 : "";
-            const description = `${tagDescription ? `${tagDescription} ` : ""}${baseDescription}${paginationNote}`;
+            // Guidance the spec cannot carry — see overrides.ts. Tool descriptions ride in every
+            // tools/list response, which makes them the only guidance channel that reaches the
+            // remote Worker transport from this repo alone.
+            const override = toolOverrides[name];
+            const description = `${tagDescription ? `${tagDescription} ` : ""}${baseDescription}${paginationNote}${
+                override?.descriptionSuffix ? ` ${override.descriptionSuffix}` : ""
+            }`;
 
             const isReadOnly = method === "get";
 

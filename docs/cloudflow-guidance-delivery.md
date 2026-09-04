@@ -1,7 +1,9 @@
 # Delivering CloudFlow authoring guidance to the model
 
-Status: **draft for review**. Implementation spec for one change: making the CloudFlow runtime
-contract reach the model that is writing flows, through this server.
+Status: **implemented** (steps 1 and 2 of §8; Worker adoption still outstanding). Implementation
+spec for one change: making the CloudFlow runtime contract reach the model that is writing flows,
+through this server. Kept in the repo as the record of what was decided and why — the code it
+describes lives in `src/docs/cloudflowGuidance.ts`.
 
 Scope: `doitintl/doit-mcp-server` only. No API change, no change to the flow builder.
 
@@ -122,6 +124,24 @@ const server = new Server(
 );
 ```
 
+**The constructor option alone is a no-op here, and this is the one thing to get right.**
+`src/server.ts` registers its own `InitializeRequestSchema` handler, which *replaces* the SDK's —
+so the SDK never builds the `initialize` result and the stored `instructions` is never sent. The
+first end-to-end probe of the built server returned no instructions at all. The option must be
+echoed in that handler's return value as well:
+
+```ts
+return {
+    protocolVersion: request?.params?.protocolVersion || "2024-11-05",
+    serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
+    capabilities: server["_capabilities"] || {},
+    instructions: SERVER_INSTRUCTIONS,
+};
+```
+
+Anything else in this repo that overrides an SDK-provided handler inherits the same hazard: the
+SDK's own behaviour for that method is gone, not extended.
+
 ### C4 — `src/server.ts` — serve the guide as a resource
 
 `ListResourcesRequestSchema` currently returns `{ resources: [] }` while the `resources`
@@ -195,7 +215,9 @@ Following the repo's `__tests__` convention:
 
 - `src/__tests__/server.test.ts` — extend the existing `ListResourcesRequestSchema` test to
   assert the guide is listed; add a `ReadResourceRequestSchema` test for a hit and for an
-  unknown URI; assert `instructions` is passed to the `Server` constructor.
+  unknown URI; assert `instructions` is passed to the `Server` constructor **and** that the
+  `InitializeRequestSchema` handler returns it — the constructor assertion alone passes against
+  the no-op described in C3.
 - `src/tools/generated/__tests__/` — assert the suffix appears on an overridden tool, that a
   non-overridden tool is unchanged, and that **every key in `toolOverrides` matches a real
   generated tool name** (the same guard `excludedOperations.test.ts` applies, so a renamed
@@ -233,16 +255,21 @@ Before that, say it validated and imported.
   design a real per-domain guidance mechanism rather than growing one string.
 - **Resources are pull, not push.** Most clients never read a resource unprompted. The resource
   tier is for depth on request; it must not be where a load-bearing rule lives alone.
-- **Unverified:** whether the remote Worker forwards `instructions` at `initialize`, and whether
-  the major clients surface it into model context at all. Neither is checkable from this repo.
-  The description tier is deliberately sufficient on its own for exactly this reason.
+- **Verified for stdio; unverified beyond it.** Driving the built server over stdio with a real
+  MCP client confirms all three tiers: `instructions` arrives in the `initialize` result, the
+  guide lists and reads at `doit://docs/cloudflow-authoring`, and the description suffixes appear
+  in `tools/list`. What remains unverified from this repo is whether the remote Worker forwards
+  `instructions` at `initialize`, and whether the major clients surface it into model context at
+  all. The description tier is deliberately sufficient on its own for exactly this reason.
 - **This does not fix the builder.** It tells the model to expect broken code and verify. The
   generated code is still wrong as often as before, and repairing it still means
   export → edit → import as a new flow, because the API has no flow-update endpoint.
 
 ## 7. Verification
 
-Beyond the unit tests, the change is only worth shipping if it moves the observed failure:
+Beyond the unit tests, the change is only worth shipping if it moves the observed failure. The
+stdio delivery is verified (see §6); the behavioural check below needs a live tenant and has
+**not** been run:
 
 1. Re-run the motivating task through a client that surfaces server instructions: a manual
    trigger, a saved-report fetch, and a Python node returning `rowCount`/`firstRow`.
@@ -253,8 +280,10 @@ Beyond the unit tests, the change is only worth shipping if it moves the observe
 
 ## 8. Sequencing
 
-1. **C1, C2, C5, C6** — the description tier plus the shared constants. Reaches both transports
-   with no change outside this repo. Ship first.
-2. **C3, C4** — instructions and the resource, for the stdio server.
+1. ~~**C1, C2, C5, C6** — the description tier plus the shared constants. Reaches both transports
+   with no change outside this repo. Ship first.~~ **Done.**
+2. ~~**C3, C4** — instructions and the resource, for the stdio server.~~ **Done**, with the
+   `InitializeRequestSchema` correction noted in C3.
 3. **Worker adoption** — the companion change in the separate private repo, importing the
-   constants from `/core`. Tracked there, not here.
+   constants from `/core`. Tracked there, not here. **Still outstanding**, and it is what carries
+   the instructions and resource tiers to the transport that served the motivating session.

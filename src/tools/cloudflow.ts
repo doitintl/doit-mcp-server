@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CLOUDFLOW_BUILDER_HINT } from "../docs/cloudflowGuidance.js";
 import type {
     CloudFlowConnection,
     CloudFlowConnectionsResponse,
@@ -119,7 +120,8 @@ export const refineCloudflowTool = {
     name: "refine_cloudflow",
     coversEndpoint: "post:/cloudflow/v1/flows/{flowId}/actions/refine",
     description:
-        "Use this when the user wants to refine or rebuild an existing CloudFlow automation using natural language. Streams real-time progress updates while the AI builds the flow, then returns the final result.",
+        "Use this when the user wants to refine or rebuild an existing CloudFlow automation using natural language. Streams real-time progress updates while the AI builds the flow, then returns the final result. " +
+        CLOUDFLOW_BUILDER_HINT,
     inputSchema: {
         type: "object",
         properties: {
@@ -159,7 +161,8 @@ export const buildCloudflowTool = {
     name: "build_cloud_flow",
     coversEndpoint: "post:/cloudflow/v1/flows/actions/build",
     description:
-        "Use this when the user wants to build a brand-new CloudFlow automation from scratch using natural language. Streams real-time progress while the AI builds the flow, then returns the newly created flow's ID, the builder's answer, and the build steps that ran. Use refine_cloudflow to change an existing flow; use this only to create a new one.",
+        "Use this when the user wants to build a brand-new CloudFlow automation from scratch using natural language. Streams real-time progress while the AI builds the flow, then returns the newly created flow's ID, the builder's answer, and the build steps that ran. Use refine_cloudflow to change an existing flow; use this only to create a new one. " +
+        CLOUDFLOW_BUILDER_HINT,
     inputSchema: {
         type: "object",
         properties: {
