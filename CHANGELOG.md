@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.1.0 (2026-09-04)
+
+**Full diff:** [`v1.0.1...v1.1.0`](../../compare/v1.0.1...v1.1.0)
+
+### Features
+
+- feat: deliver CloudFlow authoring guidance to the model (`cc8a08f`)
+
+### Chores
+
+- chore: pin yarn 1 to match the committed lockfiles and CI (`f00e7d4`)
+
+### Other Changes
+
+- docs: spec — deliver CloudFlow authoring guidance to the model (`1aed3d5`)
 ## v1.0.1 (2026-09-04)
 
 **Full diff:** [`v1.0.0...v1.0.1`](../../compare/v1.0.0...v1.0.1)
