@@ -27,6 +27,10 @@
       "reason": "Admin-grade contract write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
     },
     {
+      "endpoint": "post:/ava/v1/ask",
+      "reason": "SSE-only streaming endpoint (askAvaStreaming; 200 is text/event-stream). The generic generated-tool path sends Accept: application/json and reads one body, so it can only ever fail here. The sync variant ask_ava_sync (post:/ava/v1/askSync) is the MCP-appropriate coverage for asking AVA — a single tool result, no streaming needed."
+    },
+    {
       "endpoint": "post:/billing/v1/contract-templates",
       "reason": "Admin-grade contract-template write — proposed exclusion pending product decision (MCP coverage research 2026-08)"
     },

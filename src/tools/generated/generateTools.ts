@@ -46,6 +46,23 @@ function findJsonContent(
 }
 
 /**
+ * The generic generated-tool path (callOperation.ts) sends `Accept: application/json` and
+ * reads a single response body, so an operation whose success response is only ever a
+ * text/event-stream (SSE) can't work over it — makeDoitRequest gets a 406/unparseable body,
+ * returns null, and the tool reports an opaque "Failed to call ...". Such endpoints must be
+ * hand-written to consume the stream (see handleBuildCloudflowRequest in src/tools/cloudflow.ts)
+ * or excluded (excludedOperations.json). Skip here — like the undeclared-placeholder guard —
+ * so a future SSE endpoint can't silently ship a generic tool that can only ever fail.
+ */
+function isEventStreamOnlyOperation(operation: OpenAPIV3.OperationObject): boolean {
+    const success = (operation.responses?.["200"] ?? operation.responses?.["201"]) as
+        | OpenAPIV3.ResponseObject
+        | undefined;
+    const contentTypes = Object.keys(success?.content ?? {});
+    return contentTypes.length > 0 && contentTypes.every((type) => type.split(";")[0].trim() === "text/event-stream");
+}
+
+/**
  * DELETE operations are irreversible, so they go through the server-side two-phase approval
  * flow (`approval_required` → `confirm_action`) rather than relying on the client honouring
  * `destructiveHint`, which is advisory only. The summary is the text the user confirms.
@@ -76,6 +93,13 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             if (!operation) continue;
             if (coveredEndpoints.has(`${method}:${pathTemplate}`.toLowerCase())) continue;
             if (isExcludedOperation(method, pathTemplate, operation.tags)) continue;
+
+            if (isEventStreamOnlyOperation(operation)) {
+                console.error(
+                    `Skipping generated tool for ${method.toUpperCase()} ${pathTemplate}: response is text/event-stream only (SSE); the generic generated-tool path cannot consume a stream. Hand-write a tool that consumes the stream, or add it to excludedOperations.json.`
+                );
+                continue;
+            }
 
             const parameters = mergeParameters(
                 (pathItem.parameters ?? []) as OpenAPIV3.ParameterObject[],

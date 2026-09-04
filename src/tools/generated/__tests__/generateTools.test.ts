@@ -290,6 +290,51 @@ describe("generateTools", () => {
         warn.mockRestore();
     });
 
+    it("skips an operation whose only success response is text/event-stream, leaving other tools intact", () => {
+        const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+        const document = buildDocument({
+            paths: {
+                "/streamy": {
+                    post: {
+                        operationId: "streamThings",
+                        responses: {
+                            "200": { description: "stream", content: { "text/event-stream": {} } },
+                            "400": { description: "bad", content: { "application/json": {} } },
+                        },
+                    },
+                },
+                "/gadgets": {
+                    get: { operationId: "listGadgets" },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const tools = generateTools(document, new Set());
+        expect(tools.map((tool) => tool.name)).toEqual(["list_gadgets"]);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining("text/event-stream only"));
+        warn.mockRestore();
+    });
+
+    it("still generates a tool when a success response offers JSON alongside an event stream", () => {
+        const document = buildDocument({
+            paths: {
+                "/hybrid": {
+                    get: {
+                        operationId: "getHybrid",
+                        responses: {
+                            "200": {
+                                description: "ok",
+                                content: { "application/json": {}, "text/event-stream": {} },
+                            },
+                        },
+                    },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        expect(generateTools(document, new Set()).map((tool) => tool.name)).toEqual(["get_hybrid"]);
+    });
+
     it("treats application/*+json request bodies as JSON and preserves the declared content type", () => {
         const document = buildDocument({
             paths: {
@@ -340,5 +385,11 @@ describe("generateTools", () => {
     it("does not generate a tool for build_cloud_flow — it is hand-written to consume the SSE stream", () => {
         const names = new Set(generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS).map((tool) => tool.name));
         expect(names.has("build_cloud_flow")).toBe(false);
+    });
+
+    it("does not generate a streaming ask_ava tool — POST /ava/v1/ask is SSE-only and excluded (ask_ava_sync covers AVA)", () => {
+        const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+        const keys = new Set(tools.map((tool) => `${tool.metadata.method}:${tool.metadata.pathTemplate}`.toLowerCase()));
+        expect(keys.has("post:/ava/v1/ask")).toBe(false);
     });
 });
