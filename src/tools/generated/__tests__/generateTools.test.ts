@@ -389,7 +389,9 @@ describe("generateTools", () => {
 
     it("does not generate a streaming ask_ava tool — POST /ava/v1/ask is SSE-only and excluded (ask_ava_sync covers AVA)", () => {
         const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
-        const keys = new Set(tools.map((tool) => `${tool.metadata.method}:${tool.metadata.pathTemplate}`.toLowerCase()));
+        const keys = new Set(
+            tools.map((tool) => `${tool.metadata.method}:${tool.metadata.pathTemplate}`.toLowerCase())
+        );
         expect(keys.has("post:/ava/v1/ask")).toBe(false);
     });
 });

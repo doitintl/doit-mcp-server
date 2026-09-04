@@ -1,4 +1,3 @@
-import { toSnakeCase } from "../utils/util.js";
 import type { Prompt, PromptMessage } from "./types.js";
 
 /**
@@ -65,17 +64,4 @@ export function applyPromptMessageArguments(messages: PromptMessage[], args: Rec
 export function resolvePromptMessages(prompt: Prompt): PromptMessage[] {
     if (prompt.messages) return prompt.messages;
     return [{ role: prompt.role ?? "user", text: prompt.text }];
-}
-
-/**
- * Returns a copy of the prompt with a deprecation notice appended to its description,
- * directing users to the snake_case version of the prompt name.
- */
-export function deprecateBySnakeCaseNotice(prompt: Prompt): Prompt {
-    const snakeCaseName = toSnakeCase(prompt.name);
-    const deprecationSuffix = ` [DEPRECATED: Please use '${snakeCaseName}' instead]`;
-    return {
-        ...prompt,
-        description: `${prompt.description}${deprecationSuffix}`,
-    };
 }

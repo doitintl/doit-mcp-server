@@ -40,7 +40,7 @@ src/
 │   └── __tests__/        # Tool tests
 ├── types/                # Tools and general type definitions
 ├── utils/                # Shared utilities
-│   ├── util.ts           # General utilities (debugLog, toSnakeCase, etc.)
+│   ├── util.ts           # General utilities (debugLog, etc.)
 │   ├── prompts.ts        # MCP prompt definitions
 │   ├── consts.ts         # Constants
 │   ├── toolsHandler.ts   # Tool request handler
@@ -116,7 +116,6 @@ export async function handleMyToolRequest(args: any, token: string) {
 ### Utility Functions
 
 Common utilities are located in `src/utils/util.ts`:
-- `toSnakeCase(str)` - Convert strings to snake_case
 - `debugLog(message, level)` - Debug logging with levels
 
 ### Testing

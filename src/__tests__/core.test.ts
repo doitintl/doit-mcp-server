@@ -13,6 +13,7 @@ describe("core package API", () => {
             handleChangeCustomerRequest: expect.any(Function),
             handleValidateUserRequest: expect.any(Function),
             parseValidatedUserResponse: expect.any(Function),
+            prompts: expect.any(Array),
             promptsIncludingLegacyNames: expect.any(Array),
             resolvePromptMessages: expect.any(Function),
             configureDoiTApiBase: expect.any(Function),

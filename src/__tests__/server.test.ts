@@ -533,10 +533,19 @@ describe("ListPromptsRequestSchema handler", () => {
         const names: string[] = response.prompts.map((p: { name: string }) => p.name);
         const snakeCasePattern = /^[a-z][a-z0-9_]*$/;
 
-        expect(names).toContain("allow_artifacts");
-        expect(names).not.toContain("Allow Artifacts");
         for (const name of names) {
             expect(name).toMatch(snakeCasePattern);
+        }
+    });
+
+    it("includes every prompt defined in the prompts module", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+
+        const response = await handler();
+        const names: string[] = response.prompts.map((p: { name: string }) => p.name);
+
+        for (const prompt of prompts) {
+            expect(names).toContain(prompt.name);
         }
     });
 });
@@ -554,7 +563,7 @@ describe("GetPromptRequestSchema handler", () => {
     it("returns description and a single message for a snake_case prompt name", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
 
-        const response = await handler({ params: { name: "allow_artifacts" } });
+        const response = await handler({ params: { name: "filter_fields_reference" } });
 
         expect(response).toHaveProperty("description");
         expect(response).toHaveProperty("messages");
@@ -562,15 +571,6 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[0].role).toBe("user");
         expect(response.messages[0].content.type).toBe("text");
         expect(response.messages[0].content.text).toBeTruthy();
-    });
-
-    it("throws McpError with InvalidParams for a human-readable prompt name (not exposed by this server)", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-
-        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toThrow(McpError);
-        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toMatchObject({
-            code: ErrorCode.InvalidParams,
-        });
     });
 
     it("returns all messages for a multi-message prompt", async () => {

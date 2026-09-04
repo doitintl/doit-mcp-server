@@ -597,17 +597,6 @@ export function formatEnumValues(values: readonly string[], separator = ", "): s
 }
 
 /**
- * Converts a human-readable string to snake_case.
- * e.g. "Filter Fields Reference" → "filter_fields_reference"
- */
-export function toSnakeCase(str: string): string {
-    return str
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
-}
-
-/**
  * Finds items whose `nameKey` field partially matches `query` (case-insensitive).
  *
  * Returns:

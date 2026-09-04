@@ -1,7 +1,6 @@
 import { TicketStatus } from "../common/types.js";
-import { formatEnumValues, toSnakeCase } from "../utils/util.js";
-import { deprecateBySnakeCaseNotice } from "./helpers.js";
-import { legacyPrompts } from "./legacy.js";
+import { formatEnumValues } from "../utils/util.js";
+import { aws_global_resource_id, gcp_global_resource_id } from "./filterFields.js";
 import type { Prompt } from "./types.js";
 
 const TOOL_LIST_TICKETS = "list_tickets";
@@ -17,12 +16,12 @@ const EXPERT_INQUIRIES_PROMPT_TEXT = `List recent expert inquiries from the DoiT
 const SEARCH_EXPERT_INQUIRIES_PROMPT_TEXT = `Search expert inquiries from the DoiT support API by calling the \`${TOOL_LIST_TICKETS}\` tool with a pageSize=100 to retrieve a set of results. Search through the returned tickets, to find tickets where subject or body matches the provided keyword. If platform or product are provided, further narrow the matches to tickets related to those criteria. ${PLATFORM_PRODUCT_RESOLUTION} Present the matching expert inquiries prominently. If no match found, call the tool again page by page (using pageToken) to fetch more results until a match found or no more results. Do not retrieve more than 5 pages in a single response. If you reach this limit and still want to search further, first ask the user for explicit confirmation before continuing with additional pages. At the end, include a brief summary with statistics about the full set of tickets searched (e.g. total retrieved, how many matched, ticket status breakdown). ${EXPERT_INQUIRY_TERMINOLOGY_GUIDE}`;
 
 /**
- * The canonical prompts defined by the MCP server, using snake_case names only.
+ * The prompts exposed by the MCP server, using snake_case names only.
  *
  * NOTE: New prompts should be added directly to this array using snake_case names,
  * e.g. { name: "my_new_prompt", description: "...", text: "..." }
  */
-const canonicalPrompts: Prompt[] = [
+export const prompts: Prompt[] = [
     {
         name: "cloud_overview",
         description: "Get a high-level overview dashboard of your entire cloud infrastructure",
@@ -58,22 +57,34 @@ const canonicalPrompts: Prompt[] = [
             { name: "product", description: "Optional, filter matches by related product" },
         ],
     },
+    {
+        name: "filter_fields_reference",
+        description: "Filter fields explanation for GCP and AWS resources",
+        text: `Filter fields explanation: ${gcp_global_resource_id}\n\n ${aws_global_resource_id}\n\n`,
+    },
+    {
+        name: "generate_report_command",
+        description: "Template for generating cost reports",
+        text: `To create a cost report, first check if you need specific dimensions with:\nlist_dimensions(filter: "type:fixed") and allocations with list_allocations(filter: "type:fixed")\n\nThen check if there are similar reports with list_reports and get_report_results. When you understand the structure, run a query like:\nrun_query({\n  config: {\n    dataSource: "billing",\n    metric: { type: "basic", value: "cost" },\n    timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },\n    group: [{ id: "service_description", type: "fixed", limit: { metric: { type: "basic", value: "cost" }, sort: "desc", value: 10 } }]\n  }\n})`,
+    },
+    {
+        name: "trigger_cloudflow_flow",
+        description:
+            "Trigger a flow defined in CloudFlow by its flow ID, optionally passing a JSON payload as the request body if the flow requires it",
+        text: "Trigger a CloudFlow by its flow ID by calling the trigger_cloud_flow tool passing the flow ID. The user should provide the flow ID and an optional request body JSON if the flow requires it. Request the user to provide the flow ID before triggering the flow if not set.",
+        arguments: [
+            { name: "flowID", description: "The ID of the flow to trigger" },
+            {
+                name: "requestBodyJson",
+                description: "The request body JSON to pass to the flow",
+            },
+        ],
+    },
 ];
 
 /**
- * The exported list of prompts exposed by the MCP server, using snake_case names only.
- *
- * NOTE: New prompts should be added directly to canonicalPrompts array,
- * this is a way to keep exporting legacy prompts until deprecated.
+ * Alias kept for backward compatibility with consumers (e.g. the remote Worker) that still
+ * import `promptsIncludingLegacyNames`. The dual human-readable/snake_case registration has
+ * been removed, so this is now identical to `prompts`.
  */
-export const prompts: Prompt[] = [
-    ...canonicalPrompts,
-    ...legacyPrompts.map((p) => ({ ...p, name: toSnakeCase(p.name) })),
-];
-
-/**
- * Extends `prompts` with the original human-readable names of legacy prompts for
- * backward compatibility. Use this only where clients may still refer to prompts
- * by their old human-readable names.
- */
-export const promptsIncludingLegacyNames: Prompt[] = [...prompts, ...legacyPrompts.map(deprecateBySnakeCaseNotice)];
+export const promptsIncludingLegacyNames: Prompt[] = prompts;
