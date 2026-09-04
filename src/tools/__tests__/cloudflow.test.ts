@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { makeDoitRequest } from "../../utils/util.js";
+import { makeDoitRequest, makeDoitSSERequest } from "../../utils/util.js";
 import {
+    buildCloudflowTool,
     CLOUDFLOW_CONNECTIONS_BASE_URL,
     CLOUDFLOW_TEMPLATES_BASE_URL,
     CLOUDFLOW_TRIGGER_BASE_URL,
     extractCloudFlowId,
     getTriggerCloudFlowURL,
+    handleBuildCloudflowRequest,
     handleCreateCloudFlowConnectionRequest,
     handleGetCloudFlowConnectionRequest,
     handleGetCloudFlowTemplateRequest,
@@ -17,7 +19,7 @@ import {
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
     const actual = await importOriginal();
-    return { ...actual, makeDoitRequest: vi.fn() };
+    return { ...actual, makeDoitRequest: vi.fn(), makeDoitSSERequest: vi.fn() };
 });
 
 beforeEach(() => {
@@ -780,6 +782,94 @@ describe("cloudflow", () => {
                 content: [{ type: "text", text: expect.stringContaining("Failed to retrieve CloudFlow template") }],
                 isError: true,
             });
+        });
+    });
+
+    describe("handleBuildCloudflowRequest", () => {
+        const mockToken = "fake-token";
+
+        // Yields the given event objects as the SSE helper would: each `data` string is the
+        // JSON payload of one `data:` line (see makeDoitSSERequest / the builder stream shape).
+        function sseStreamOf(events: Array<Record<string, unknown>>) {
+            return (async function* () {
+                for (const event of events) {
+                    yield { data: JSON.stringify(event) };
+                }
+            })();
+        }
+
+        it("declares build_cloud_flow and covers the build endpoint so the generator skips it", () => {
+            expect(buildCloudflowTool.name).toBe("build_cloud_flow");
+            expect(buildCloudflowTool.coversEndpoint).toBe("post:/cloudflow/v1/flows/actions/build");
+        });
+
+        it("parses the stream into flowId, conversationId, answer, and steps and forwards progress", async () => {
+            (makeDoitSSERequest as unknown as vi.Mock).mockReturnValue(
+                sseStreamOf([
+                    { answerId: "a1", conversationId: "conv-1" },
+                    { answer: JSON.stringify({ toolStart: "Building nodes" }) },
+                    {
+                        answer: JSON.stringify({
+                            customEvent: { messageId: "cloudflow_created", data: { flowId: "flow-123" } },
+                        }),
+                    },
+                    { answer: "All set." },
+                ])
+            );
+            const onProgress = vi.fn().mockResolvedValue(undefined);
+
+            const response = await handleBuildCloudflowRequest({ question: "make a flow" }, mockToken, onProgress);
+
+            expect(response.isError).toBeUndefined();
+            const result = JSON.parse(response.content[0].text);
+            expect(result).toEqual({
+                flowId: "flow-123",
+                conversationId: "conv-1",
+                answer: "All set.",
+                steps: ["Building nodes"],
+            });
+            expect(onProgress).toHaveBeenCalledWith("Building nodes");
+        });
+
+        it("surfaces the real error instead of an opaque 'Failed to call POST ...' when the stream fails", async () => {
+            // Faithful to makeDoitSSERequest, which throws on a non-2xx (e.g. the 406 the build
+            // endpoint returns for an application/json Accept) as the stream is first read.
+            (makeDoitSSERequest as unknown as vi.Mock).mockReturnValue({
+                [Symbol.asyncIterator]() {
+                    return { next: () => Promise.reject(new Error("HTTP 406: Not Acceptable")) };
+                },
+            });
+
+            const response = await handleBuildCloudflowRequest({ question: "make a flow" }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("HTTP 406: Not Acceptable");
+            expect(response.content[0].text).not.toContain("Failed to call POST");
+        });
+
+        it("reports the recoverable flow ID the stream emitted before it failed", async () => {
+            (makeDoitSSERequest as unknown as vi.Mock).mockImplementation(async function* () {
+                yield {
+                    data: JSON.stringify({
+                        answer: JSON.stringify({
+                            customEvent: { messageId: "cloudflow_created", data: { flowId: "flow-partial" } },
+                        }),
+                    }),
+                };
+                throw new Error("HTTP 500: boom");
+            });
+
+            const response = await handleBuildCloudflowRequest({ question: "make a flow" }, mockToken);
+
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("flow-partial");
+            expect(response.content[0].text).toContain("HTTP 500");
+        });
+
+        it("rejects a missing question via schema validation", async () => {
+            const response = await handleBuildCloudflowRequest({}, mockToken);
+            expect(response.isError).toBe(true);
+            expect(makeDoitSSERequest as unknown as vi.Mock).not.toHaveBeenCalled();
         });
     });
 });

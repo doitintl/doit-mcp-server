@@ -150,6 +150,185 @@ export const refineCloudflowTool = {
     securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
+export const BuildCloudflowArgumentsSchema = z.object({
+    question: z.string().describe("Natural language description of the CloudFlow to build from scratch."),
+    conversationId: z.string().optional().describe("Optional conversation ID to continue an existing build session."),
+});
+
+export const buildCloudflowTool = {
+    name: "build_cloud_flow",
+    coversEndpoint: "post:/cloudflow/v1/flows/actions/build",
+    description:
+        "Use this when the user wants to build a brand-new CloudFlow automation from scratch using natural language. Streams real-time progress while the AI builds the flow, then returns the newly created flow's ID, the builder's answer, and the build steps that ran. Use refine_cloudflow to change an existing flow; use this only to create a new one.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            question: {
+                type: "string",
+                description: "Natural language description of the CloudFlow to build from scratch.",
+            },
+            conversationId: {
+                type: "string",
+                description: "Optional conversation ID to continue an existing build session.",
+            },
+        },
+        required: ["question"],
+    },
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Building CloudFlow...",
+        "openai/toolInvocation/invoked": "CloudFlow built",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+/**
+ * The CloudFlow NL builder (build and refine) answers with a text/event-stream of build
+ * events rather than a single JSON body: tool-lifecycle markers, token-by-token assistant
+ * text, and a custom event carrying the created flow's ID. The generic generated-tool path
+ * (callOperation.ts) sends `Accept: application/json` and reads one response body, so on
+ * these endpoints it gets a 406/parse failure and reports an opaque "Failed to call
+ * POST ..." — which is why build and refine are hand-written and consume the stream here.
+ *
+ * parseBuilderLifecycleEvent distinguishes the stream's embedded lifecycle JSON
+ * (toolStart/toolEnd/llmStart/llmEnd/customEvent) from plain assistant text: a token that
+ * merely looks like JSON stays text unless it carries one of the lifecycle keys.
+ */
+function parseBuilderLifecycleEvent(token: string): Record<string, unknown> | null {
+    if (!token.startsWith("{")) return null;
+    let event: Record<string, unknown>;
+    try {
+        event = JSON.parse(token);
+    } catch {
+        return null;
+    }
+    if (!event || typeof event !== "object") return null;
+    for (const key of ["toolStart", "toolEnd", "llmStart", "llmEnd", "customEvent"]) {
+        if (key in event) return event;
+    }
+    return null;
+}
+
+/** Extracts the created flow's ID from a `cloudflow_created` custom event, if this is one. */
+function builderCreatedFlowId(lifecycle: Record<string, unknown>): string | undefined {
+    const custom = lifecycle.customEvent as Record<string, unknown> | undefined;
+    if (!custom || custom.messageId !== "cloudflow_created") return undefined;
+    const data = custom.data as Record<string, unknown> | undefined;
+    const flowId = data?.flowId;
+    return typeof flowId === "string" && flowId ? flowId : undefined;
+}
+
+type CloudflowBuilderResult = {
+    answer: string;
+    conversationId?: string;
+    flowId?: string;
+    steps: string[];
+};
+
+/**
+ * Consumes the NL builder's SSE stream, mutating `accumulator` as events arrive and
+ * forwarding progress steps to `onProgress`. The accumulator is passed in (rather than
+ * returned) so a caller can still report the flow ID the stream emitted before an error
+ * interrupted it — a partially built flow is recoverable.
+ */
+async function consumeCloudflowBuilderStream(
+    url: string,
+    body: Record<string, unknown>,
+    token: string,
+    accumulator: CloudflowBuilderResult,
+    onProgress?: (message: string) => Promise<void>
+): Promise<void> {
+    let answerText = "";
+    for await (const { data } of makeDoitSSERequest(url, body, token)) {
+        let parsed: Record<string, unknown>;
+        try {
+            parsed = JSON.parse(data);
+        } catch {
+            continue;
+        }
+
+        if (typeof parsed.conversationId === "string" && parsed.conversationId) {
+            accumulator.conversationId = parsed.conversationId;
+        }
+
+        const answer = parsed.answer;
+        if (typeof answer !== "string") continue;
+
+        const lifecycle = parseBuilderLifecycleEvent(answer);
+        if (!lifecycle) {
+            answerText += answer;
+            continue;
+        }
+
+        const step = lifecycle.toolStart;
+        if (typeof step === "string" && step) {
+            accumulator.steps.push(step);
+            await onProgress?.(step);
+        }
+        const createdFlowId = builderCreatedFlowId(lifecycle);
+        if (createdFlowId) accumulator.flowId = createdFlowId;
+    }
+    accumulator.answer = answerText;
+}
+
+/** makeDoitSSERequest preserves existing query params, so append customerContext here so
+ *  the builder endpoints can be scoped to a customer (required for DoiT-employee tokens). */
+function buildCustomerContextUrl(baseUrl: string, customerContext?: string): string {
+    if (!customerContext) return baseUrl;
+    const url = new URL(baseUrl);
+    url.searchParams.set("customerContext", customerContext);
+    return url.href;
+}
+
+export async function handleBuildCloudflowRequest(
+    args: any,
+    token: string,
+    onProgress?: (message: string) => Promise<void>
+) {
+    try {
+        const { question, conversationId } = BuildCloudflowArgumentsSchema.parse(args);
+        const customerContext = (args?.customerContext as string | undefined) || process.env.CUSTOMER_CONTEXT;
+
+        const url = buildCustomerContextUrl(`${CLOUDFLOW_FLOWS_BASE_URL}/actions/build`, customerContext);
+        const body: Record<string, unknown> = { question };
+        if (conversationId) body.conversationId = conversationId;
+
+        const accumulator: CloudflowBuilderResult = { answer: "", steps: [] };
+
+        try {
+            await consumeCloudflowBuilderStream(url, body, token, accumulator, onProgress);
+        } catch (error) {
+            // Surface the real underlying error, plus any flow ID the stream emitted before it
+            // failed, instead of the generic generated-path "Failed to call POST ...".
+            const detail = error instanceof Error ? error.message : String(error);
+            const recovered = accumulator.flowId
+                ? ` A flow was created before the stream failed (flowId: ${accumulator.flowId}); inspect it with export_cloudflow_flow or delete it if unusable.`
+                : "";
+            return createErrorResponse(`CloudFlow build stream failed: ${detail}.${recovered}`);
+        }
+
+        if (!accumulator.answer && !accumulator.flowId && !accumulator.conversationId) {
+            return createErrorResponse("No result received from CloudFlow build stream");
+        }
+
+        const result: Record<string, unknown> = {};
+        if (accumulator.flowId) result.flowId = accumulator.flowId;
+        if (accumulator.conversationId) result.conversationId = accumulator.conversationId;
+        if (accumulator.answer) result.answer = accumulator.answer;
+        if (accumulator.steps.length > 0) result.steps = accumulator.steps;
+        return createSuccessResponse(JSON.stringify(result, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return createErrorResponse(formatZodError(error));
+        }
+        return handleGeneralError(error, "handling build CloudFlow request");
+    }
+}
+
 export async function handleRefineCloudflowRequest(
     args: any,
     token: string,
@@ -157,59 +336,31 @@ export async function handleRefineCloudflowRequest(
 ) {
     try {
         const { flowId, question, conversationId } = RefineCloudflowArgumentsSchema.parse(args);
+        const customerContext = (args?.customerContext as string | undefined) || process.env.CUSTOMER_CONTEXT;
 
-        const url = `${CLOUDFLOW_BASE_URL}/flows/${encodeURIComponent(flowId)}/actions/refine`;
+        const url = buildCustomerContextUrl(
+            `${CLOUDFLOW_BASE_URL}/flows/${encodeURIComponent(flowId)}/actions/refine`,
+            customerContext
+        );
         const body: Record<string, unknown> = { question };
         if (conversationId) body.conversationId = conversationId;
 
-        let answerText = "";
-        let responseConversationId: string | undefined;
+        const accumulator: CloudflowBuilderResult = { answer: "", steps: [] };
 
         try {
-            for await (const { data } of makeDoitSSERequest(url, body, token)) {
-                let parsed: Record<string, unknown>;
-                try {
-                    parsed = JSON.parse(data);
-                } catch {
-                    continue;
-                }
-
-                if (parsed.conversationId) {
-                    responseConversationId = parsed.conversationId as string;
-                    continue;
-                }
-
-                const answer = parsed.answer;
-                if (typeof answer !== "string") continue;
-
-                // Lifecycle events have answer values that are JSON objects (llmStart, llmEnd, toolStart, toolEnd)
-                let isLifecycle = false;
-                try {
-                    const inner = JSON.parse(answer);
-                    if (inner && typeof inner === "object") {
-                        isLifecycle = true;
-                        const label =
-                            (inner as any).toolStart ?? (inner as any).toolEnd ?? (inner as any).value ?? null;
-                        if (label) await onProgress?.(String(label));
-                    }
-                } catch {
-                    // not JSON — plain text chunk
-                }
-
-                if (!isLifecycle) {
-                    answerText += answer;
-                }
-            }
+            await consumeCloudflowBuilderStream(url, body, token, accumulator, onProgress);
         } catch (error) {
             return handleGeneralError(error, "calling refine CloudFlow API");
         }
 
-        if (!answerText) {
+        if (!accumulator.answer) {
             return createErrorResponse("No result received from CloudFlow build stream");
         }
 
-        const result: Record<string, unknown> = { answer: answerText };
-        if (responseConversationId) result.conversationId = responseConversationId;
+        const result: Record<string, unknown> = { answer: accumulator.answer };
+        if (accumulator.conversationId) result.conversationId = accumulator.conversationId;
+        if (accumulator.flowId) result.flowId = accumulator.flowId;
+        if (accumulator.steps.length > 0) result.steps = accumulator.steps;
         return createSuccessResponse(JSON.stringify(result, null, 2));
     } catch (error) {
         if (error instanceof z.ZodError) {

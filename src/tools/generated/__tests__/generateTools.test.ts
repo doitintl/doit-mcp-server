@@ -329,4 +329,16 @@ describe("generateTools", () => {
         expect(warn).not.toHaveBeenCalled();
         warn.mockRestore();
     });
+
+    it("exposes the three CloudFlow run tools from the bundled spec", () => {
+        const names = new Set(generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS).map((tool) => tool.name));
+        expect(names.has("test_run_cloudflow_flow")).toBe(true);
+        expect(names.has("list_cloudflow_flow_runs")).toBe(true);
+        expect(names.has("get_cloudflow_flow_run")).toBe(true);
+    });
+
+    it("does not generate a tool for build_cloud_flow — it is hand-written to consume the SSE stream", () => {
+        const names = new Set(generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS).map((tool) => tool.name));
+        expect(names.has("build_cloud_flow")).toBe(false);
+    });
 });

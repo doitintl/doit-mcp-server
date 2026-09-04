@@ -50,6 +50,7 @@ import {
     handleSearchCloudDiagramsRequest,
 } from "./tools/cloudDiagrams.js";
 import {
+    handleBuildCloudflowRequest,
     handleCreateCloudFlowConnectionRequest,
     handleGetCloudFlowConnectionRequest,
     handleGetCloudFlowTemplateRequest,
@@ -265,6 +266,7 @@ export {
     handleAnomalyRequest,
     handleAskAvaSyncRequest,
     handleAssignObjectsToLabelRequest,
+    handleBuildCloudflowRequest,
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAlertRequest,

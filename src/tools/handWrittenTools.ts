@@ -18,6 +18,7 @@ import {
     searchCloudDiagramsTool,
 } from "./cloudDiagrams.js";
 import {
+    buildCloudflowTool,
     createCloudFlowConnectionTool,
     getCloudFlowConnectionTool,
     getCloudFlowTemplateTool,
@@ -143,6 +144,7 @@ export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     listCloudFlowTemplatesTool,
     getCloudFlowTemplateTool,
     refineCloudflowTool,
+    buildCloudflowTool,
     listOrganizationsTool,
     listPlatformsTool,
     listUsersTool,

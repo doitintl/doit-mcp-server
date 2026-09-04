@@ -85,6 +85,8 @@ export {
     searchCloudDiagramsTool,
 } from "./tools/cloudDiagrams.js";
 export {
+    BuildCloudflowArgumentsSchema,
+    buildCloudflowTool,
     CreateCloudFlowConnectionArgumentsSchema,
     createCloudFlowConnectionTool,
     GetCloudFlowConnectionArgumentsSchema,
