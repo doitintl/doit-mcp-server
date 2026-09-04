@@ -243,10 +243,11 @@ async function consumeCloudflowBuilderStream(
     body: Record<string, unknown>,
     token: string,
     accumulator: CloudflowBuilderResult,
-    onProgress?: (message: string) => Promise<void>
+    onProgress?: (message: string) => Promise<void>,
+    customerContext?: string
 ): Promise<void> {
     let answerText = "";
-    for await (const { data } of makeDoitSSERequest(url, body, token)) {
+    for await (const { data } of makeDoitSSERequest(url, body, token, customerContext)) {
         let parsed: Record<string, unknown>;
         try {
             parsed = JSON.parse(data);
@@ -303,7 +304,7 @@ export async function handleBuildCloudflowRequest(
         const accumulator: CloudflowBuilderResult = { answer: "", steps: [] };
 
         try {
-            await consumeCloudflowBuilderStream(url, body, token, accumulator, onProgress);
+            await consumeCloudflowBuilderStream(url, body, token, accumulator, onProgress, customerContext);
         } catch (error) {
             // Surface the real underlying error, plus any flow ID the stream emitted before it
             // failed, instead of the generic generated-path "Failed to call POST ...".
@@ -351,7 +352,7 @@ export async function handleRefineCloudflowRequest(
         const accumulator: CloudflowBuilderResult = { answer: "", steps: [] };
 
         try {
-            await consumeCloudflowBuilderStream(url, body, token, accumulator, onProgress);
+            await consumeCloudflowBuilderStream(url, body, token, accumulator, onProgress, customerContext);
         } catch (error) {
             return handleGeneralError(error, "calling refine CloudFlow API");
         }
