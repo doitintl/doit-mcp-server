@@ -14,6 +14,14 @@ Requires Node.js `>=18`. Install dependencies before running any commands:
 yarn install
 ```
 
+**Yarn 1 (classic), pinned.** Both `yarn.lock` files are v1 format and CI resolves `yarn` from the
+runner image, so the version is pinned in `package.json` via `packageManager` (for Corepack) and
+`volta` (for Volta) — in this directory *and* in `test/integration`, which is a separate project
+with its own lockfile. Running a Yarn 2+ binary here fails with "This package doesn't seem to be
+present in your lockfile" or "The lockfile would have been modified by this install"; if you see
+either, your shell resolved an unpinned Yarn. Do not commit a berry-format lockfile or a
+`.yarnrc.yml` without migrating both projects and all four workflows together.
+
 ## Project Overview
 
 DoiT MCP Server is a Model Context Protocol (MCP) server that provides LLMs with access to the DoiT API.
