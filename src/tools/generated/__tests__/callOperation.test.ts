@@ -76,6 +76,37 @@ describe("handleGeneratedOperationRequest", () => {
         expect(url).toContain("customerContext=cust-1");
     });
 
+    it("passes customerContext to makeDoitRequest so it is also sent as the tenant header", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+
+        await handleGeneratedOperationRequest(buildTool(), { id: "abc", customerContext: "cust-1" }, mockToken);
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ customerContext: "cust-1" })
+        );
+    });
+
+    it("passes the CUSTOMER_CONTEXT env fallback to makeDoitRequest", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+        const original = process.env.CUSTOMER_CONTEXT;
+        process.env.CUSTOMER_CONTEXT = "env-cust";
+
+        try {
+            await handleGeneratedOperationRequest(buildTool(), { id: "abc" }, mockToken);
+        } finally {
+            if (original === undefined) delete process.env.CUSTOMER_CONTEXT;
+            else process.env.CUSTOMER_CONTEXT = original;
+        }
+
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            mockToken,
+            expect.objectContaining({ customerContext: "env-cust" })
+        );
+    });
+
     it("sends leftover fields as a JSON body for non-GET operations", async () => {
         (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
         const tool = buildTool({
