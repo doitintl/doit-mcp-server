@@ -12615,12 +12615,13 @@
                           "area_spline_chart",
                           "stacked_area_chart",
                           "treemap_chart",
+                          "sankey_chart",
                           "table",
                           "table_heatmap",
                           "table_row_heatmap",
                           "table_col_heatmap",
-                          "csv_export",
-                          "sheets_export"
+                          "column_and_line_chart",
+                          "trend_board"
                         ]
                       },
                       "displayValues": {
@@ -13835,12 +13836,13 @@
                             "area_spline_chart",
                             "stacked_area_chart",
                             "treemap_chart",
+                            "sankey_chart",
                             "table",
                             "table_heatmap",
                             "table_row_heatmap",
                             "table_col_heatmap",
-                            "csv_export",
-                            "sheets_export"
+                            "column_and_line_chart",
+                            "trend_board"
                           ]
                         },
                         "displayValues": {
@@ -15098,12 +15100,13 @@
                           "area_spline_chart",
                           "stacked_area_chart",
                           "treemap_chart",
+                          "sankey_chart",
                           "table",
                           "table_heatmap",
                           "table_row_heatmap",
                           "table_col_heatmap",
-                          "csv_export",
-                          "sheets_export"
+                          "column_and_line_chart",
+                          "trend_board"
                         ]
                       },
                       "displayValues": {
@@ -15660,6 +15663,22 @@
                         "cacheHit": {
                           "type": "boolean",
                           "description": "If true, results were fetched from the cache."
+                        },
+                        "details": {
+                          "type": "object",
+                          "description": "Optional metadata about the result.",
+                          "properties": {
+                            "valueAliases": {
+                              "type": "object",
+                              "description": "Display aliases for values that appear in `rows`, keyed by dimension id and then by the stored value (for example `{\"fixed:cloud_provider\": {\"datadog_prod\": \"Datadog (prod)\"}}`). Rows keep the stored values so they can be fed back into filters; apply the alias only when presenting a value. Present only when the customer has renamed a DataHub dataset whose dimension is part of the report.",
+                              "additionalProperties": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     }
@@ -17045,12 +17064,13 @@
                           "area_spline_chart",
                           "stacked_area_chart",
                           "treemap_chart",
+                          "sankey_chart",
                           "table",
                           "table_heatmap",
                           "table_row_heatmap",
                           "table_col_heatmap",
-                          "csv_export",
-                          "sheets_export"
+                          "column_and_line_chart",
+                          "trend_board"
                         ]
                       },
                       "displayValues": {
@@ -18257,12 +18277,13 @@
                             "area_spline_chart",
                             "stacked_area_chart",
                             "treemap_chart",
+                            "sankey_chart",
                             "table",
                             "table_heatmap",
                             "table_row_heatmap",
                             "table_col_heatmap",
-                            "csv_export",
-                            "sheets_export"
+                            "column_and_line_chart",
+                            "trend_board"
                           ]
                         },
                         "displayValues": {
@@ -19552,12 +19573,13 @@
                             "area_spline_chart",
                             "stacked_area_chart",
                             "treemap_chart",
+                            "sankey_chart",
                             "table",
                             "table_heatmap",
                             "table_row_heatmap",
                             "table_col_heatmap",
-                            "csv_export",
-                            "sheets_export"
+                            "column_and_line_chart",
+                            "trend_board"
                           ]
                         },
                         "displayValues": {
@@ -20831,12 +20853,13 @@
                           "area_spline_chart",
                           "stacked_area_chart",
                           "treemap_chart",
+                          "sankey_chart",
                           "table",
                           "table_heatmap",
                           "table_row_heatmap",
                           "table_col_heatmap",
-                          "csv_export",
-                          "sheets_export"
+                          "column_and_line_chart",
+                          "trend_board"
                         ]
                       },
                       "displayValues": {
@@ -24595,6 +24618,161 @@
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "Anomalies"
+        ],
+        "summary": "Update an anomaly's review status",
+        "description": "Updates the review status of the anomaly identified by `{id}`, the same identifier `getAnomaly` accepts. Mirrors the review workflow available in the console: set `reviewStatus`, and when resolving, qualify it with `resolution` and optionally a `resolutionNote` (feedback reason and comment). The change is recorded in the anomaly's review history exactly like a console update, and the actor is derived from the API credentials - never from the request body.\n\nValidation: `reviewStatus` is one of `NEEDS_REVIEW`, `UNDER_REVIEW`, `RESOLVED`; `resolution` (`ANOMALY_CONFIRMED` or `NOT_ANOMALY`) is required when `reviewStatus` is `RESOLVED` and forbidden otherwise; `resolutionNote.reason` must belong to the given `resolution` - `SECURITY_BREACH`, `MISCONFIGURATION`, `UNINTENTIONAL_PROVISIONING`, `EXPECTED_COST_SPIKE` or `ANOMALOUS_OTHER` for `ANOMALY_CONFIRMED`, and `FAULTY_ANOMALY_DETECTION_MODEL`, `INCORRECT_DATA`, `LOW_IMPACT` or `NON_ANOMALOUS_OTHER` for `NOT_ANOMALY`. Requires the `AnomaliesManager` permission and DoiT API access (`platform:externalApi`).",
+        "operationId": "patchAnomaly",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A unique identifier of the anomaly.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "customerFeedback"
+                ],
+                "properties": {
+                  "customerFeedback": {
+                    "type": "object",
+                    "description": "Partial review-status update. Fields that are omitted are left unchanged. `reviewStatus` drives the state machine; `resolution` and `resolutionNote` apply only when resolving.",
+                    "properties": {
+                      "reviewStatus": {
+                        "type": "string",
+                        "description": "The review state to move the anomaly to.",
+                        "enum": [
+                          "NEEDS_REVIEW",
+                          "UNDER_REVIEW",
+                          "RESOLVED"
+                        ]
+                      },
+                      "resolution": {
+                        "type": "string",
+                        "description": "Required when `reviewStatus` is `RESOLVED`; forbidden otherwise. Qualifies whether the anomaly was confirmed as real.",
+                        "enum": [
+                          "ANOMALY_CONFIRMED",
+                          "NOT_ANOMALY"
+                        ]
+                      },
+                      "resolutionNote": {
+                        "type": "object",
+                        "description": "Optional reason and comment captured on a resolve transition.",
+                        "properties": {
+                          "reason": {
+                            "type": "string",
+                            "description": "Feedback reason; must belong to the given `resolution`. `ANOMALY_CONFIRMED` accepts `SECURITY_BREACH`, `MISCONFIGURATION`, `UNINTENTIONAL_PROVISIONING`, `EXPECTED_COST_SPIKE`, `ANOMALOUS_OTHER`; `NOT_ANOMALY` accepts `FAULTY_ANOMALY_DETECTION_MODEL`, `INCORRECT_DATA`, `LOW_IMPACT`, `NON_ANOMALOUS_OTHER`.",
+                            "enum": [
+                              "FAULTY_ANOMALY_DETECTION_MODEL",
+                              "INCORRECT_DATA",
+                              "EXPECTED_COST_SPIKE",
+                              "LOW_IMPACT",
+                              "NON_ANOMALOUS_OTHER",
+                              "SECURITY_BREACH",
+                              "MISCONFIGURATION",
+                              "UNINTENTIONAL_PROVISIONING",
+                              "ANOMALOUS_OTHER"
+                            ]
+                          },
+                          "comment": {
+                            "type": "string",
+                            "description": "Free-text resolution comment; stored as the tagged resolution comment on the anomaly feed. Length-capped like console comments."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK - Anomaly status updated."
+          },
+          "400": {
+            "description": "Bad Request - The server cannot process the request, often due to a malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - The requested resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/auth/v1/validate": {
@@ -25989,6 +26167,11 @@
                             "description": "The timestamp of the last update.",
                             "example": "2024-03-10T23:00:00Z"
                           },
+                          "displayName": {
+                            "type": "string",
+                            "description": "Human-readable name shown in the DoiT console and in report results instead of `name`. Absent when the dataset is displayed by its `name`. Does not affect ingest, which always uses `name` as the provider.",
+                            "example": "Datadog (prod)"
+                          },
                           "logoName": {
                             "type": "string",
                             "description": "The preset logo shown next to the dataset in the DoiT console. Absent when the dataset has no preset logo.",
@@ -26083,6 +26266,12 @@
                     "description": "An optional description for the dataset.",
                     "example": "Dataset for tracking custom business metrics"
                   },
+                  "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable name shown in the DoiT console and in report results instead of `name`. 1-64 characters after trimming; must not be unique. Ingest always uses `name`.",
+                    "example": "Datadog (prod)",
+                    "maxLength": 64
+                  },
                   "logoName": {
                     "type": "string",
                     "description": "An optional preset logo shown next to the dataset in the DoiT console.",
@@ -26147,6 +26336,11 @@
                       "type": "string",
                       "description": "The timestamp of the last update.",
                       "example": "2024-03-10T23:00:00Z"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "description": "Human-readable name shown in the DoiT console and in report results instead of `name`. Absent when the dataset is displayed by its `name`. Does not affect ingest, which always uses `name` as the provider.",
+                      "example": "Datadog (prod)"
                     },
                     "logoName": {
                       "type": "string",
@@ -26403,6 +26597,11 @@
                       "description": "The timestamp of the last update.",
                       "example": "2024-03-10T23:00:00Z"
                     },
+                    "displayName": {
+                      "type": "string",
+                      "description": "Human-readable name shown in the DoiT console and in report results instead of `name`. Absent when the dataset is displayed by its `name`. Does not affect ingest, which always uses `name` as the provider.",
+                      "example": "Datadog (prod)"
+                    },
                     "logoName": {
                       "type": "string",
                       "description": "The preset logo shown next to the dataset in the DoiT console. Absent when the dataset has no preset logo.",
@@ -26611,7 +26810,7 @@
           "DataHub"
         ],
         "summary": "Update dataset",
-        "description": "Updates an existing DataHub dataset's metadata. The `description` and `logoName` fields can be updated.\nOnly the fields present in the request body are changed; an omitted field keeps its stored value, and an empty string clears it.\nThe dataset name is immutable and serves as the resource identifier. To rename a dataset, delete it and create a new one.\nIf `name` is included in the request body, it must match the dataset name in the URL path. A mismatched name will be rejected with a 400 error.",
+        "description": "Updates an existing DataHub dataset's metadata. The `description`, `displayName` and `logoName` fields can be updated.\nOnly the fields present in the request body are changed; an omitted field keeps its stored value, and an empty string clears it.\nThe dataset `name` is immutable and serves as the resource identifier and the ingest `provider` value. To change how a dataset is displayed in the console and in report results, set `displayName`; saved reports, budgets, alerts and filters keep working because they reference `name`.\nIf `name` is included in the request body, it must match the dataset name in the URL path. A mismatched name will be rejected with a 400 error.",
         "operationId": "updateDatahubDataset",
         "parameters": [
           {
@@ -26642,6 +26841,12 @@
                     "type": "string",
                     "description": "The new description for the dataset. Omit to keep the current description; send an empty string to clear it.",
                     "example": "Updated description for the dataset"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the DoiT console and in report results instead of `name`. 1-64 characters after trimming; must not be unique. Omit to keep the current display name; send an empty string to clear it and fall back to `name`.",
+                    "example": "Datadog (prod)",
+                    "maxLength": 64
                   },
                   "logoName": {
                     "type": "string",
@@ -26709,6 +26914,11 @@
                       "description": "The timestamp of the last update.",
                       "example": "2024-03-10T23:00:00Z"
                     },
+                    "displayName": {
+                      "type": "string",
+                      "description": "Human-readable name shown in the DoiT console and in report results instead of `name`. Absent when the dataset is displayed by its `name`. Does not affect ingest, which always uses `name` as the provider.",
+                      "example": "Datadog (prod)"
+                    },
                     "logoName": {
                       "type": "string",
                       "description": "The preset logo shown next to the dataset in the DoiT console. Absent when the dataset has no preset logo.",
@@ -26772,6 +26982,225 @@
           },
           "404": {
             "description": "Not Found - The requested resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong with the DoiT API server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/datahub/v1/datasets/{name}/records": {
+      "get": {
+        "tags": [
+          "DataHub"
+        ],
+        "summary": "Export dataset records",
+        "description": "Returns one page of the live records of a DataHub dataset, as CSV (default) or as newline-delimited JSON in the same shape as the `/datahub/v1/events` payload.\n\nA time window is required: `startTime` is inclusive, `endTime` is exclusive, and the window must not exceed 366 days. Rows are ordered by their event time and event id, and pages never overlap: read the `X-Next-Page-Token` response header and pass it back as `pageToken` until the header is absent. `X-Row-Count` carries the number of rows in the page. Only live rows are returned; rows deleted through the console or the delete endpoints are excluded.\n\nEvery row starts with five provenance columns (`event_id`, `batch`, `source`, `export_time`, `updated_by`) followed by the dataset's business columns in the CSV ingest vocabulary (`usage_date`, `fixed.<key>`, `label.<key>`, `project_label.<key>`, `system_label.<key>`, `metric.<type>`). The business columns are computed from the rows of each page, so consecutive pages can have different label and metric columns; union the headers when concatenating pages. Datasets created with the FOCUS schema template use the FOCUS column names instead and can only be exported as CSV.\n\nTo re-import an export into another dataset, drop the `batch`, `source`, `export_time` and `updated_by` columns, and either drop `event_id` or rename it to `id`.",
+        "operationId": "exportDatahubDatasetRecords",
+        "x-cli-name": "export-datahub-dataset-records",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the dataset to export.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "My Custom Dataset"
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Output format.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "csv",
+                "jsonl"
+              ],
+              "default": "csv"
+            }
+          },
+          {
+            "name": "startTime",
+            "in": "query",
+            "description": "Inclusive lower bound on the event time, RFC3339.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-01-01T00:00:00Z"
+          },
+          {
+            "name": "endTime",
+            "in": "query",
+            "description": "Exclusive upper bound on the event time, RFC3339. At most 366 days after the start time.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-02-01T00:00:00Z"
+          },
+          {
+            "name": "maxResults",
+            "in": "query",
+            "description": "Maximum number of rows in the page.",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 10000,
+              "minimum": 1,
+              "maximum": 50000
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "description": "Page token, returned by a previous call, to request the next page of results",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - One page of records. The body is streamed.",
+            "headers": {
+              "X-Next-Page-Token": {
+                "description": "Pass as `pageToken` to fetch the next page. Absent on the last page.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Row-Count": {
+                "description": "Number of rows in this page.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "Content-Disposition": {
+                "description": "Suggested filename, `<dataset>-<startTime>-<endTime>-p<page>.csv|jsonl`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The server cannot process the request, often due to a malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - The requested resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests.",
             "content": {
               "application/json": {
                 "schema": {
@@ -69077,6 +69506,11 @@
                           "billSourceType": {
                             "type": "string"
                           },
+                          "curBasePath": {
+                            "type": "string",
+                            "description": "S3 key prefix where this end customer's CUR data lands. Omitted when no path was recorded at mapping time.",
+                            "example": "cur2/dpma_rpma_ec"
+                          },
                           "effectiveTime": {
                             "type": "string",
                             "format": "date-time",
@@ -69412,6 +69846,11 @@
                           },
                           "billSourceType": {
                             "type": "string"
+                          },
+                          "curBasePath": {
+                            "type": "string",
+                            "description": "S3 key prefix where this end customer's CUR data lands. Omitted when no path was recorded at mapping time.",
+                            "example": "cur2/dpma_rpma_ec"
                           },
                           "effectiveTime": {
                             "type": "string",
@@ -70081,6 +70520,11 @@
                                 },
                                 "billSourceType": {
                                   "type": "string"
+                                },
+                                "curBasePath": {
+                                  "type": "string",
+                                  "description": "S3 key prefix where this end customer's CUR data lands. Omitted when no path was recorded at mapping time.",
+                                  "example": "cur2/dpma_rpma_ec"
                                 },
                                 "effectiveTime": {
                                   "type": "string",
@@ -90629,6 +91073,62 @@
           }
         }
       },
+      "AnomalyStatusUpdate": {
+        "type": "object",
+        "required": [
+          "customerFeedback"
+        ],
+        "properties": {
+          "customerFeedback": {
+            "type": "object",
+            "description": "Partial review-status update. Fields that are omitted are left unchanged. `reviewStatus` drives the state machine; `resolution` and `resolutionNote` apply only when resolving.",
+            "properties": {
+              "reviewStatus": {
+                "type": "string",
+                "description": "The review state to move the anomaly to.",
+                "enum": [
+                  "NEEDS_REVIEW",
+                  "UNDER_REVIEW",
+                  "RESOLVED"
+                ]
+              },
+              "resolution": {
+                "type": "string",
+                "description": "Required when `reviewStatus` is `RESOLVED`; forbidden otherwise. Qualifies whether the anomaly was confirmed as real.",
+                "enum": [
+                  "ANOMALY_CONFIRMED",
+                  "NOT_ANOMALY"
+                ]
+              },
+              "resolutionNote": {
+                "type": "object",
+                "description": "Optional reason and comment captured on a resolve transition.",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "description": "Feedback reason; must belong to the given `resolution`. `ANOMALY_CONFIRMED` accepts `SECURITY_BREACH`, `MISCONFIGURATION`, `UNINTENTIONAL_PROVISIONING`, `EXPECTED_COST_SPIKE`, `ANOMALOUS_OTHER`; `NOT_ANOMALY` accepts `FAULTY_ANOMALY_DETECTION_MODEL`, `INCORRECT_DATA`, `LOW_IMPACT`, `NON_ANOMALOUS_OTHER`.",
+                    "enum": [
+                      "FAULTY_ANOMALY_DETECTION_MODEL",
+                      "INCORRECT_DATA",
+                      "EXPECTED_COST_SPIKE",
+                      "LOW_IMPACT",
+                      "NON_ANOMALOUS_OTHER",
+                      "SECURITY_BREACH",
+                      "MISCONFIGURATION",
+                      "UNINTENTIONAL_PROVISIONING",
+                      "ANOMALOUS_OTHER"
+                    ]
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Free-text resolution comment; stored as the tagged resolution comment on the anomaly feed. Length-capped like console comments."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "NotificationEvent": {
         "type": "object",
         "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
@@ -94145,12 +94645,13 @@
               "area_spline_chart",
               "stacked_area_chart",
               "treemap_chart",
+              "sankey_chart",
               "table",
               "table_heatmap",
               "table_row_heatmap",
               "table_col_heatmap",
-              "csv_export",
-              "sheets_export"
+              "column_and_line_chart",
+              "trend_board"
             ]
           },
           "displayValues": {
@@ -94908,12 +95409,13 @@
           "area_spline_chart",
           "stacked_area_chart",
           "treemap_chart",
+          "sankey_chart",
           "table",
           "table_heatmap",
           "table_row_heatmap",
           "table_col_heatmap",
-          "csv_export",
-          "sheets_export"
+          "column_and_line_chart",
+          "trend_board"
         ]
       },
       "Folder": {
@@ -95761,12 +96263,13 @@
                   "area_spline_chart",
                   "stacked_area_chart",
                   "treemap_chart",
+                  "sankey_chart",
                   "table",
                   "table_heatmap",
                   "table_row_heatmap",
                   "table_col_heatmap",
-                  "csv_export",
-                  "sheets_export"
+                  "column_and_line_chart",
+                  "trend_board"
                 ]
               },
               "displayValues": {
@@ -97058,12 +97561,13 @@
                   "area_spline_chart",
                   "stacked_area_chart",
                   "treemap_chart",
+                  "sankey_chart",
                   "table",
                   "table_heatmap",
                   "table_row_heatmap",
                   "table_col_heatmap",
-                  "csv_export",
-                  "sheets_export"
+                  "column_and_line_chart",
+                  "trend_board"
                 ]
               },
               "displayValues": {
@@ -98900,6 +99404,22 @@
               "cacheHit": {
                 "type": "boolean",
                 "description": "If true, results were fetched from the cache."
+              },
+              "details": {
+                "type": "object",
+                "description": "Optional metadata about the result.",
+                "properties": {
+                  "valueAliases": {
+                    "type": "object",
+                    "description": "Display aliases for values that appear in `rows`, keyed by dimension id and then by the stored value (for example `{\"fixed:cloud_provider\": {\"datadog_prod\": \"Datadog (prod)\"}}`). Rows keep the stored values so they can be fed back into filters; apply the alias only when presenting a value. Present only when the customer has renamed a DataHub dataset whose dimension is part of the report.",
+                    "additionalProperties": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -122715,6 +123235,11 @@
           "billSourceType": {
             "type": "string"
           },
+          "curBasePath": {
+            "type": "string",
+            "description": "S3 key prefix where this end customer's CUR data lands. Omitted when no path was recorded at mapping time.",
+            "example": "cur2/dpma_rpma_ec"
+          },
           "effectiveTime": {
             "type": "string",
             "format": "date-time",
@@ -122789,6 +123314,11 @@
                 },
                 "billSourceType": {
                   "type": "string"
+                },
+                "curBasePath": {
+                  "type": "string",
+                  "description": "S3 key prefix where this end customer's CUR data lands. Omitted when no path was recorded at mapping time.",
+                  "example": "cur2/dpma_rpma_ec"
                 },
                 "effectiveTime": {
                   "type": "string",
@@ -123226,6 +123756,11 @@
                 "billSourceType": {
                   "type": "string"
                 },
+                "curBasePath": {
+                  "type": "string",
+                  "description": "S3 key prefix where this end customer's CUR data lands. Omitted when no path was recorded at mapping time.",
+                  "example": "cur2/dpma_rpma_ec"
+                },
                 "effectiveTime": {
                   "type": "string",
                   "format": "date-time",
@@ -123416,6 +123951,11 @@
                       },
                       "billSourceType": {
                         "type": "string"
+                      },
+                      "curBasePath": {
+                        "type": "string",
+                        "description": "S3 key prefix where this end customer's CUR data lands. Omitted when no path was recorded at mapping time.",
+                        "example": "cur2/dpma_rpma_ec"
                       },
                       "effectiveTime": {
                         "type": "string",
