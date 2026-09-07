@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.0 (2026-09-07)
+
+**Full diff:** [`v1.1.0...v1.2.0`](../../compare/v1.1.0...v1.2.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`7107839`)
+
+### Bug Fixes
+
+- fix(api): send customerContext also as x-tenant-id header (`3ddaa5e`)
 ## v1.1.0 (2026-09-04)
 
 **Full diff:** [`v1.0.1...v1.1.0`](../../compare/v1.0.1...v1.1.0)
