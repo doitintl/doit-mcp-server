@@ -117,6 +117,40 @@ const DOIT_DEBUG_LEVEL = parseDebugLevel();
  * @param level Debug level for this message (default: INFO).
  * @param optionalArgs Optional additional arguments (logged after the message, like console.log)
  */
+/**
+ * Query parameters whose values must never reach the logs. `customerContext`
+ * identifies a tenant, and `pageToken` / `filter` carry request state that can
+ * describe what a customer is querying.
+ */
+export const REDACTED_LOG_PARAMS = ["customerContext", "pageToken", "filter"] as const;
+
+const REDACTED_VALUE = "REDACTED";
+
+/**
+ * Mask sensitive query-parameter values so a request URL can be logged safely.
+ *
+ * Debug logging is off by default, but when `DOIT_DEBUG_LEVEL` raises it the
+ * full URL would otherwise land in aggregated or shared logs.
+ */
+export function redactUrlForLog(url: string): string {
+    const sensitive = new Set<string>(REDACTED_LOG_PARAMS.map((param) => param.toLowerCase()));
+
+    try {
+        const parsed = new URL(url);
+        for (const key of Array.from(parsed.searchParams.keys())) {
+            if (sensitive.has(key.toLowerCase())) {
+                parsed.searchParams.set(key, REDACTED_VALUE);
+            }
+        }
+        return parsed.href;
+    } catch {
+        // Relative or malformed URL: fall back to a textual pass, so a value is
+        // never logged in full merely because the URL could not be parsed.
+        const pattern = new RegExp(`([?&](?:${REDACTED_LOG_PARAMS.join("|")})=)[^&#]*`, "gi");
+        return url.replace(pattern, `$1${REDACTED_VALUE}`);
+    }
+}
+
 export function debugLog(message: unknown, level: DebugLevel = DebugLevel.INFO, ...optionalArgs: unknown[]): void {
     if (DOIT_DEBUG_LEVEL < level) return;
 
@@ -309,8 +343,8 @@ export async function makeDoitRequest<T>(
 
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
     debugLog("Resolved DoiT API URL:", DebugLevel.TRACE, {
-        inputUrl: url,
-        resolvedUrl,
+        inputUrl: redactUrlForLog(url),
+        resolvedUrl: redactUrlForLog(resolvedUrl),
         isDemoToken: token === DEMO_TOKEN,
     });
 
@@ -366,7 +400,7 @@ export async function makeDoitRequest<T>(
             requestUrl += `&sse=true`;
         }
 
-        debugLog("API request URL: ", DebugLevel.VERBOSE, requestUrl);
+        debugLog("API request URL: ", DebugLevel.VERBOSE, redactUrlForLog(requestUrl));
         const response = await fetch(requestUrl, requestOptions);
 
         if (!response.ok) {
@@ -482,7 +516,7 @@ export async function makeConsoleRequest<T>(
         requestOptions.body = JSON.stringify(body);
     }
 
-    debugLog("Console API request URL: ", DebugLevel.VERBOSE, requestUrl);
+    debugLog("Console API request URL: ", DebugLevel.VERBOSE, redactUrlForLog(requestUrl));
     const response = await doFetch(requestUrl, requestOptions);
 
     if (!response.ok) {
@@ -516,7 +550,7 @@ export async function* makeDoitSSERequest(
     if (tracking?.mcpProtocolVersion) parsedUrl.searchParams.set("mcpProtocolVersion", tracking.mcpProtocolVersion);
 
     const requestUrl = parsedUrl.href;
-    debugLog("SSE request URL:", DebugLevel.VERBOSE, requestUrl);
+    debugLog("SSE request URL:", DebugLevel.VERBOSE, redactUrlForLog(requestUrl));
 
     const headers: Record<string, string> = {
         Authorization: `Bearer ${authToken}`,
