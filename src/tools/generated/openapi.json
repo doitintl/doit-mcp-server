@@ -12603,7 +12603,7 @@
                       },
                       "layout": {
                         "type": "string",
-                        "description": "Type of visualization or output format.",
+                        "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                         "enum": [
                           "column_chart",
                           "stacked_column_chart",
@@ -12621,7 +12621,8 @@
                           "table_row_heatmap",
                           "table_col_heatmap",
                           "column_and_line_chart",
-                          "trend_board"
+                          "trend_board",
+                          "cumulative_comparison"
                         ]
                       },
                       "displayValues": {
@@ -13824,7 +13825,7 @@
                         },
                         "layout": {
                           "type": "string",
-                          "description": "Type of visualization or output format.",
+                          "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                           "enum": [
                             "column_chart",
                             "stacked_column_chart",
@@ -13842,7 +13843,8 @@
                             "table_row_heatmap",
                             "table_col_heatmap",
                             "column_and_line_chart",
-                            "trend_board"
+                            "trend_board",
+                            "cumulative_comparison"
                           ]
                         },
                         "displayValues": {
@@ -15088,7 +15090,7 @@
                       },
                       "layout": {
                         "type": "string",
-                        "description": "Type of visualization or output format.",
+                        "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                         "enum": [
                           "column_chart",
                           "stacked_column_chart",
@@ -15106,7 +15108,8 @@
                           "table_row_heatmap",
                           "table_col_heatmap",
                           "column_and_line_chart",
-                          "trend_board"
+                          "trend_board",
+                          "cumulative_comparison"
                         ]
                       },
                       "displayValues": {
@@ -17052,7 +17055,7 @@
                       },
                       "layout": {
                         "type": "string",
-                        "description": "Type of visualization or output format.",
+                        "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                         "enum": [
                           "column_chart",
                           "stacked_column_chart",
@@ -17070,7 +17073,8 @@
                           "table_row_heatmap",
                           "table_col_heatmap",
                           "column_and_line_chart",
-                          "trend_board"
+                          "trend_board",
+                          "cumulative_comparison"
                         ]
                       },
                       "displayValues": {
@@ -18265,7 +18269,7 @@
                         },
                         "layout": {
                           "type": "string",
-                          "description": "Type of visualization or output format.",
+                          "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                           "enum": [
                             "column_chart",
                             "stacked_column_chart",
@@ -18283,7 +18287,8 @@
                             "table_row_heatmap",
                             "table_col_heatmap",
                             "column_and_line_chart",
-                            "trend_board"
+                            "trend_board",
+                            "cumulative_comparison"
                           ]
                         },
                         "displayValues": {
@@ -19561,7 +19566,7 @@
                         },
                         "layout": {
                           "type": "string",
-                          "description": "Type of visualization or output format.",
+                          "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                           "enum": [
                             "column_chart",
                             "stacked_column_chart",
@@ -19579,7 +19584,8 @@
                             "table_row_heatmap",
                             "table_col_heatmap",
                             "column_and_line_chart",
-                            "trend_board"
+                            "trend_board",
+                            "cumulative_comparison"
                           ]
                         },
                         "displayValues": {
@@ -20841,7 +20847,7 @@
                       },
                       "layout": {
                         "type": "string",
-                        "description": "Type of visualization or output format.",
+                        "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                         "enum": [
                           "column_chart",
                           "stacked_column_chart",
@@ -20859,7 +20865,8 @@
                           "table_row_heatmap",
                           "table_col_heatmap",
                           "column_and_line_chart",
-                          "trend_board"
+                          "trend_board",
+                          "cumulative_comparison"
                         ]
                       },
                       "displayValues": {
@@ -66208,7 +66215,7 @@
                               "approved",
                               "paused"
                             ],
-                            "description": "Approval state for purchases of this commitment type. Approve or pause on the Planned Purchases tab in the DoiT Console. Absent or unrecognized stored values are returned as `pending_approval`.",
+                            "description": "Approval state for purchases of this commitment type. Approve or pause on the Planned Purchases tab in the DoiT Console. Absent or unrecognized stored values are returned as `pending_approval`, except on autonomous automation-mode lines, where they are returned as `approved` since no customer approval is required.",
                             "x-enumDescriptions": {
                               "pending_approval": "Approve the commitment ceiling on the Planned Purchases tab in the DoiT Console before purchases can run.",
                               "approved": "Purchases may run up to the approved commitment ceiling.",
@@ -94633,7 +94640,7 @@
           },
           "layout": {
             "type": "string",
-            "description": "Type of visualization or output format.",
+            "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
             "enum": [
               "column_chart",
               "stacked_column_chart",
@@ -94651,7 +94658,8 @@
               "table_row_heatmap",
               "table_col_heatmap",
               "column_and_line_chart",
-              "trend_board"
+              "trend_board",
+              "cumulative_comparison"
             ]
           },
           "displayValues": {
@@ -95397,7 +95405,7 @@
       },
       "ExternalRenderer": {
         "type": "string",
-        "description": "Type of visualization or output format.",
+        "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
         "enum": [
           "column_chart",
           "stacked_column_chart",
@@ -95415,7 +95423,8 @@
           "table_row_heatmap",
           "table_col_heatmap",
           "column_and_line_chart",
-          "trend_board"
+          "trend_board",
+          "cumulative_comparison"
         ]
       },
       "Folder": {
@@ -96251,7 +96260,7 @@
               },
               "layout": {
                 "type": "string",
-                "description": "Type of visualization or output format.",
+                "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                 "enum": [
                   "column_chart",
                   "stacked_column_chart",
@@ -96269,7 +96278,8 @@
                   "table_row_heatmap",
                   "table_col_heatmap",
                   "column_and_line_chart",
-                  "trend_board"
+                  "trend_board",
+                  "cumulative_comparison"
                 ]
               },
               "displayValues": {
@@ -97549,7 +97559,7 @@
               },
               "layout": {
                 "type": "string",
-                "description": "Type of visualization or output format.",
+                "description": "Type of visualization or output format. cumulative_comparison requires daily datetime dimensions (year, month, day), total aggregation, one metric, a secondary time range, and no comparative or forecast.",
                 "enum": [
                   "column_chart",
                   "stacked_column_chart",
@@ -97567,7 +97577,8 @@
                   "table_row_heatmap",
                   "table_col_heatmap",
                   "column_and_line_chart",
-                  "trend_board"
+                  "trend_board",
+                  "cumulative_comparison"
                 ]
               },
               "displayValues": {
@@ -121261,7 +121272,7 @@
               "approved",
               "paused"
             ],
-            "description": "Approval state for purchases of this commitment type. Approve or pause on the Planned Purchases tab in the DoiT Console. Absent or unrecognized stored values are returned as `pending_approval`.",
+            "description": "Approval state for purchases of this commitment type. Approve or pause on the Planned Purchases tab in the DoiT Console. Absent or unrecognized stored values are returned as `pending_approval`, except on autonomous automation-mode lines, where they are returned as `approved` since no customer approval is required.",
             "x-enumDescriptions": {
               "pending_approval": "Approve the commitment ceiling on the Planned Purchases tab in the DoiT Console before purchases can run.",
               "approved": "Purchases may run up to the approved commitment ceiling.",
