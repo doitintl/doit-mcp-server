@@ -22,6 +22,12 @@ present in your lockfile" or "The lockfile would have been modified by this inst
 either, your shell resolved an unpinned Yarn. Do not commit a berry-format lockfile or a
 `.yarnrc.yml` without migrating both projects and all four workflows together.
 
+**Never run `npm install`.** npm lockfiles are gitignored, rejected by the `no-npm-lockfiles`
+pre-commit hook, and fail the `Enforce yarn` step in `test.yml`. `npm` is still used deliberately
+for *publishing only* — `release.yml`'s `publish-npm` job needs the npm CLI for Trusted Publishing
+(OIDC + provenance), which yarn cannot do, and `yarn deploy` shells out to `npm publish` for the
+same reason. That is registry publication, not dependency management.
+
 ## Project Overview
 
 DoiT MCP Server is a Model Context Protocol (MCP) server that provides LLMs with access to the DoiT API.

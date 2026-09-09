@@ -29,7 +29,8 @@ function applyRuntimeDoiTApiBase(url: string): string {
 // --- MCP tracking context ---
 // Uses AsyncLocalStorage for request-scoped tracking. Module-level globals are unsafe in the
 // SSE/Cloudflare path because Durable Object instances can share module scope on the same isolate.
-// AsyncLocalStorage is supported via the nodejs_compat flag in wrangler.jsonc.
+// AsyncLocalStorage is supported via the nodejs_compat flag in the remote Worker's wrangler
+// config (separate private repo).
 
 export interface TrackingContext {
     mcpTool?: string;

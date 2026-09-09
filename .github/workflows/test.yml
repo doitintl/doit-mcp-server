@@ -13,6 +13,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # This project is Yarn 1 (see the packageManager/volta pins). A committed
+      # npm lockfile means someone ran `npm install`, which silently diverges from
+      # yarn.lock. `|| true` keeps a no-match grep from failing the step.
+      - name: Enforce yarn (no npm lockfiles committed)
+        run: |
+          found="$(git ls-files | grep -E '(^|/)(package-lock\.json|npm-shrinkwrap\.json)$' || true)"
+          if [ -n "$found" ]; then
+            echo "::error::This project uses Yarn 1 - remove the npm lockfile(s): $found"
+            exit 1
+          fi
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
