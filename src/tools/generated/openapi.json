@@ -531,14 +531,6 @@
                                   "evaluateForEach": {
                                     "type": "string",
                                     "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-                                  },
-                                  "attributions": {
-                                    "type": "array",
-                                    "deprecated": true,
-                                    "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                                    "items": {
-                                      "type": "string"
-                                    }
                                   }
                                 }
                               }
@@ -562,10 +554,15 @@
                                 },
                                 "operator": "gt",
                                 "evaluateForEach": "",
-                                "attributions": [
-                                  "PvqyGcdFcTHh7aLUdGdf"
+                                "scopes": [
+                                  {
+                                    "id": "attribution",
+                                    "type": "attribution",
+                                    "values": [
+                                      "PvqyGcdFcTHh7aLUdGdf"
+                                    ]
+                                  }
                                 ],
-                                "scopes": [],
                                 "timeInterval": "month",
                                 "dataSource": "billing",
                                 "value": 500
@@ -890,14 +887,6 @@
                       "evaluateForEach": {
                         "type": "string",
                         "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-                      },
-                      "attributions": {
-                        "type": "array",
-                        "deprecated": true,
-                        "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                        "items": {
-                          "type": "string"
-                        }
                       }
                     }
                   },
@@ -1188,14 +1177,6 @@
                         "evaluateForEach": {
                           "type": "string",
                           "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-                        },
-                        "attributions": {
-                          "type": "array",
-                          "deprecated": true,
-                          "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                          "items": {
-                            "type": "string"
-                          }
                         }
                       }
                     }
@@ -1219,10 +1200,15 @@
                       },
                       "operator": "gt",
                       "evaluateForEach": "",
-                      "attributions": [
-                        "PvqyGcdFcTHh7aLUdGdf"
+                      "scopes": [
+                        {
+                          "id": "attribution",
+                          "type": "attribution",
+                          "values": [
+                            "PvqyGcdFcTHh7aLUdGdf"
+                          ]
+                        }
                       ],
-                      "scopes": [],
                       "timeInterval": "month",
                       "dataSource": "billing",
                       "value": 500
@@ -1595,14 +1581,6 @@
                         "evaluateForEach": {
                           "type": "string",
                           "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-                        },
-                        "attributions": {
-                          "type": "array",
-                          "deprecated": true,
-                          "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                          "items": {
-                            "type": "string"
-                          }
                         }
                       }
                     }
@@ -1626,10 +1604,15 @@
                       },
                       "operator": "gt",
                       "evaluateForEach": "",
-                      "attributions": [
-                        "PvqyGcdFcTHh7aLUdGdf"
+                      "scopes": [
+                        {
+                          "id": "attribution",
+                          "type": "attribution",
+                          "values": [
+                            "PvqyGcdFcTHh7aLUdGdf"
+                          ]
+                        }
                       ],
-                      "scopes": [],
                       "timeInterval": "month",
                       "dataSource": "billing",
                       "value": 500
@@ -2056,14 +2039,6 @@
                       "evaluateForEach": {
                         "type": "string",
                         "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-                      },
-                      "attributions": {
-                        "type": "array",
-                        "deprecated": true,
-                        "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                        "items": {
-                          "type": "string"
-                        }
                       }
                     }
                   },
@@ -2332,14 +2307,6 @@
                         "evaluateForEach": {
                           "type": "string",
                           "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-                        },
-                        "attributions": {
-                          "type": "array",
-                          "deprecated": true,
-                          "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                          "items": {
-                            "type": "string"
-                          }
                         }
                       }
                     }
@@ -2363,10 +2330,15 @@
                       },
                       "operator": "gt",
                       "evaluateForEach": "",
-                      "attributions": [
-                        "PvqyGcdFcTHh7aLUdGdf"
+                      "scopes": [
+                        {
+                          "id": "attribution",
+                          "type": "attribution",
+                          "values": [
+                            "PvqyGcdFcTHh7aLUdGdf"
+                          ]
+                        }
                       ],
-                      "scopes": [],
                       "timeInterval": "month",
                       "dataSource": "billing",
                       "value": 500
@@ -2771,12 +2743,6 @@
                               "description": "If true, all selected values will be excluded.",
                               "default": false
                             },
-                            "inverse_selection": {
-                              "type": "boolean",
-                              "description": "If true, all selected values will be excluded.",
-                              "default": false,
-                              "deprecated": true
-                            },
                             "includeNull": {
                               "type": "boolean",
                               "description": "Include null values.",
@@ -2895,12 +2861,6 @@
                                 "type": "boolean",
                                 "description": "If true, all selected values will be excluded.",
                                 "default": false
-                              },
-                              "inverse_selection": {
-                                "type": "boolean",
-                                "description": "If true, all selected values will be excluded.",
-                                "default": false,
-                                "deprecated": true
                               },
                               "includeNull": {
                                 "type": "boolean",
@@ -3063,12 +3023,6 @@
                                 "description": "If true, all selected values will be excluded.",
                                 "default": false
                               },
-                              "inverse_selection": {
-                                "type": "boolean",
-                                "description": "If true, all selected values will be excluded.",
-                                "default": false,
-                                "deprecated": true
-                              },
                               "includeNull": {
                                 "type": "boolean",
                                 "description": "Include null values.",
@@ -3187,12 +3141,6 @@
                                   "type": "boolean",
                                   "description": "If true, all selected values will be excluded.",
                                   "default": false
-                                },
-                                "inverse_selection": {
-                                  "type": "boolean",
-                                  "description": "If true, all selected values will be excluded.",
-                                  "default": false,
-                                  "deprecated": true
                                 },
                                 "includeNull": {
                                   "type": "boolean",
@@ -3466,12 +3414,6 @@
                                 "description": "If true, all selected values will be excluded.",
                                 "default": false
                               },
-                              "inverse_selection": {
-                                "type": "boolean",
-                                "description": "If true, all selected values will be excluded.",
-                                "default": false,
-                                "deprecated": true
-                              },
                               "includeNull": {
                                 "type": "boolean",
                                 "description": "Include null values.",
@@ -3590,12 +3532,6 @@
                                   "type": "boolean",
                                   "description": "If true, all selected values will be excluded.",
                                   "default": false
-                                },
-                                "inverse_selection": {
-                                  "type": "boolean",
-                                  "description": "If true, all selected values will be excluded.",
-                                  "default": false,
-                                  "deprecated": true
                                 },
                                 "includeNull": {
                                   "type": "boolean",
@@ -3978,12 +3914,6 @@
                               "description": "If true, all selected values will be excluded.",
                               "default": false
                             },
-                            "inverse_selection": {
-                              "type": "boolean",
-                              "description": "If true, all selected values will be excluded.",
-                              "default": false,
-                              "deprecated": true
-                            },
                             "includeNull": {
                               "type": "boolean",
                               "description": "Include null values.",
@@ -4102,12 +4032,6 @@
                                 "type": "boolean",
                                 "description": "If true, all selected values will be excluded.",
                                 "default": false
-                              },
-                              "inverse_selection": {
-                                "type": "boolean",
-                                "description": "If true, all selected values will be excluded.",
-                                "default": false,
-                                "deprecated": true
                               },
                               "includeNull": {
                                 "type": "boolean",
@@ -4270,12 +4194,6 @@
                                 "description": "If true, all selected values will be excluded.",
                                 "default": false
                               },
-                              "inverse_selection": {
-                                "type": "boolean",
-                                "description": "If true, all selected values will be excluded.",
-                                "default": false,
-                                "deprecated": true
-                              },
                               "includeNull": {
                                 "type": "boolean",
                                 "description": "Include null values.",
@@ -4394,12 +4312,6 @@
                                   "type": "boolean",
                                   "description": "If true, all selected values will be excluded.",
                                   "default": false
-                                },
-                                "inverse_selection": {
-                                  "type": "boolean",
-                                  "description": "If true, all selected values will be excluded.",
-                                  "default": false,
-                                  "deprecated": true
                                 },
                                 "includeNull": {
                                   "type": "boolean",
@@ -7831,14 +7743,6 @@
                               "unknown"
                             ]
                           },
-                          "scope": {
-                            "type": "array",
-                            "description": "List of allocations that define the budget scope.",
-                            "items": {
-                              "type": "string"
-                            },
-                            "deprecated": true
-                          },
                           "scopes": {
                             "type": "array",
                             "description": "The filters selected define the scope of the budget.",
@@ -8232,14 +8136,6 @@
                       }
                     }
                   },
-                  "scope": {
-                    "type": "array",
-                    "description": "List of allocations that define the budget scope.",
-                    "items": {
-                      "type": "string"
-                    },
-                    "deprecated": true
-                  },
                   "scopes": {
                     "type": "array",
                     "description": "The filters selected define the scope of the budget.",
@@ -8573,13 +8469,6 @@
                             "type": "string"
                           }
                         }
-                      }
-                    },
-                    "scope": {
-                      "type": "array",
-                      "description": "List of allocations that defines the budget scope.",
-                      "items": {
-                        "type": "string"
                       }
                     },
                     "scopes": {
@@ -9006,13 +8895,6 @@
                             "type": "string"
                           }
                         }
-                      }
-                    },
-                    "scope": {
-                      "type": "array",
-                      "description": "List of allocations that defines the budget scope.",
-                      "items": {
-                        "type": "string"
                       }
                     },
                     "scopes": {
@@ -9488,14 +9370,6 @@
                       }
                     }
                   },
-                  "scope": {
-                    "type": "array",
-                    "description": "List of allocations that define the budget scope.",
-                    "items": {
-                      "type": "string"
-                    },
-                    "deprecated": true
-                  },
                   "scopes": {
                     "type": "array",
                     "description": "The filters selected define the scope of the budget.",
@@ -9805,13 +9679,6 @@
                             "type": "string"
                           }
                         }
-                      }
-                    },
-                    "scope": {
-                      "type": "array",
-                      "description": "List of allocations that defines the budget scope.",
-                      "items": {
-                        "type": "string"
                       }
                     },
                     "scopes": {
@@ -11873,39 +11740,6 @@
                     "type": "object",
                     "description": "Report configuration.",
                     "properties": {
-                      "metric": {
-                        "deprecated": true,
-                        "description": "Deprecated: Use 'metrics' instead.",
-                        "allOf": [
-                          {
-                            "description": "Metric selector used in reports and filters.",
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                              }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
-                          }
-                        ]
-                      },
                       "metrics": {
                         "type": "array",
                         "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -13095,39 +12929,6 @@
                       "type": "object",
                       "description": "Report configuration.",
                       "properties": {
-                        "metric": {
-                          "deprecated": true,
-                          "description": "Deprecated: Use 'metrics' instead.",
-                          "allOf": [
-                            {
-                              "description": "Metric selector used in reports and filters.",
-                              "type": "object",
-                              "required": [
-                                "type",
-                                "value"
-                              ],
-                              "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                                }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
-                            }
-                          ]
-                        },
                         "metrics": {
                           "type": "array",
                           "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -14360,39 +14161,6 @@
                     "type": "object",
                     "description": "Report configuration.",
                     "properties": {
-                      "metric": {
-                        "deprecated": true,
-                        "description": "Deprecated: Use 'metrics' instead.",
-                        "allOf": [
-                          {
-                            "description": "Metric selector used in reports and filters.",
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                              }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
-                          }
-                        ]
-                      },
                       "metrics": {
                         "type": "array",
                         "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -16325,39 +16093,6 @@
                     "type": "object",
                     "description": "Report configuration.",
                     "properties": {
-                      "metric": {
-                        "deprecated": true,
-                        "description": "Deprecated: Use 'metrics' instead.",
-                        "allOf": [
-                          {
-                            "description": "Metric selector used in reports and filters.",
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                              }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
-                          }
-                        ]
-                      },
                       "metrics": {
                         "type": "array",
                         "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -17539,39 +17274,6 @@
                       "type": "object",
                       "description": "Report configuration.",
                       "properties": {
-                        "metric": {
-                          "deprecated": true,
-                          "description": "Deprecated: Use 'metrics' instead.",
-                          "allOf": [
-                            {
-                              "description": "Metric selector used in reports and filters.",
-                              "type": "object",
-                              "required": [
-                                "type",
-                                "value"
-                              ],
-                              "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                                }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
-                            }
-                          ]
-                        },
                         "metrics": {
                           "type": "array",
                           "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -18836,39 +18538,6 @@
                       "type": "object",
                       "description": "Report configuration.",
                       "properties": {
-                        "metric": {
-                          "deprecated": true,
-                          "description": "Deprecated: Use 'metrics' instead.",
-                          "allOf": [
-                            {
-                              "description": "Metric selector used in reports and filters.",
-                              "type": "object",
-                              "required": [
-                                "type",
-                                "value"
-                              ],
-                              "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                                }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
-                            }
-                          ]
-                        },
                         "metrics": {
                           "type": "array",
                           "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -20117,39 +19786,6 @@
                     "type": "object",
                     "description": "Report configuration.",
                     "properties": {
-                      "metric": {
-                        "deprecated": true,
-                        "description": "Deprecated: Use 'metrics' instead.",
-                        "allOf": [
-                          {
-                            "description": "Metric selector used in reports and filters.",
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                              }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
-                          }
-                        ]
-                      },
                       "metrics": {
                         "type": "array",
                         "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -40076,7 +39712,7 @@
           "Support Requests"
         ],
         "summary": "List request comments",
-        "description": "Returns all comments on a support request. For customers, only public\ncomments are returned. For DoiT employees, both public and private\ncomments are returned. All comments are returned in a single response\n(no pagination).",
+        "description": "Returns all permitted comments on a support request. Customers and\nservice-account callers receive only public comments; private comment\nbodies and attachments are excluded. Callers authenticated with DoiT\nemployee privileges receive both public and private comments, subject\nto existing ticket authorization. Each comment includes `public`,\nsourced from Zendesk: `true` means public and `false` means private\n(internal). Missing visibility in legacy responses or snapshots means\nunknown, not private. All comments are returned in a single response\n(no pagination).",
         "operationId": "listTicketComments",
         "x-cli-name": "list-ticket-comments",
         "x-cli-aliases": [
@@ -40108,6 +39744,9 @@
                       "items": {
                         "type": "object",
                         "description": "A comment on a support ticket.",
+                        "required": [
+                          "public"
+                        ],
                         "properties": {
                           "id": {
                             "type": "integer",
@@ -40117,6 +39756,10 @@
                           "body": {
                             "type": "string",
                             "description": "The text content of the comment."
+                          },
+                          "public": {
+                            "type": "boolean",
+                            "description": "Whether the comment is public. Always present in new responses,\nincluding false for private internal notes. GET reports Zendesk\nvisibility; POST reports the effective visibility of the created\ncomment. Missing metadata in legacy responses or snapshots means\nunknown and must not be interpreted as false."
                           },
                           "author": {
                             "type": "string",
@@ -40246,7 +39889,7 @@
           "Support Requests"
         ],
         "summary": "Add a comment",
-        "description": "Adds a comment to an existing support request. For customers, comments\nare always public. For DoiT employees, comments can be marked as\nprivate (internal notes) by setting the `private` field to `true`.",
+        "description": "Adds a comment to an existing support request. For customers and\nservice-account callers, comments are always public, even when\n`private` is `true`. Callers authenticated with DoiT employee privileges\ncan create private internal notes by setting `private` to `true`.\nThe response always includes `public`, reflecting the effective\nvisibility after these rules are applied, not merely the requested\nprivacy. Existing authentication and ticket authorization are unchanged.",
         "operationId": "createTicketComment",
         "x-cli-name": "create-ticket-comment",
         "x-cli-aliases": [
@@ -40297,6 +39940,9 @@
                 "schema": {
                   "type": "object",
                   "description": "A comment on a support ticket.",
+                  "required": [
+                    "public"
+                  ],
                   "properties": {
                     "id": {
                       "type": "integer",
@@ -40306,6 +39952,10 @@
                     "body": {
                       "type": "string",
                       "description": "The text content of the comment."
+                    },
+                    "public": {
+                      "type": "boolean",
+                      "description": "Whether the comment is public. Always present in new responses,\nincluding false for private internal notes. GET reports Zendesk\nvisibility; POST reports the effective visibility of the created\ncomment. Missing metadata in legacy responses or snapshots means\nunknown and must not be interpreted as false."
                     },
                     "author": {
                       "type": "string",
@@ -40334,6 +39984,28 @@
                           }
                         }
                       }
+                    }
+                  }
+                },
+                "examples": {
+                  "publicComment": {
+                    "summary": "Public comment created by an authorized caller",
+                    "value": {
+                      "id": 0,
+                      "body": "Additional information for the support request.",
+                      "public": true,
+                      "author": "requester@example.com",
+                      "created": 1788912000000
+                    }
+                  },
+                  "privateComment": {
+                    "summary": "Internal note created by an authorized DoiT employee",
+                    "value": {
+                      "id": 0,
+                      "body": "Internal investigation note.",
+                      "public": false,
+                      "author": "agent@example.com",
+                      "created": 1788912000000
                     }
                   }
                 }
@@ -99286,14 +98958,6 @@
               "evaluateForEach": {
                 "type": "string",
                 "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-              },
-              "attributions": {
-                "type": "array",
-                "deprecated": true,
-                "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                "items": {
-                  "type": "string"
-                }
               }
             }
           }
@@ -99317,10 +98981,15 @@
             },
             "operator": "gt",
             "evaluateForEach": "",
-            "attributions": [
-              "PvqyGcdFcTHh7aLUdGdf"
+            "scopes": [
+              {
+                "id": "attribution",
+                "type": "attribution",
+                "values": [
+                  "PvqyGcdFcTHh7aLUdGdf"
+                ]
+              }
             ],
-            "scopes": [],
             "timeInterval": "month",
             "dataSource": "billing",
             "value": 500
@@ -99577,14 +99246,6 @@
                   "evaluateForEach": {
                     "type": "string",
                     "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-                  },
-                  "attributions": {
-                    "type": "array",
-                    "deprecated": true,
-                    "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                    "items": {
-                      "type": "string"
-                    }
                   }
                 }
               }
@@ -99608,10 +99269,15 @@
                 },
                 "operator": "gt",
                 "evaluateForEach": "",
-                "attributions": [
-                  "PvqyGcdFcTHh7aLUdGdf"
+                "scopes": [
+                  {
+                    "id": "attribution",
+                    "type": "attribution",
+                    "values": [
+                      "PvqyGcdFcTHh7aLUdGdf"
+                    ]
+                  }
                 ],
-                "scopes": [],
                 "timeInterval": "month",
                 "dataSource": "billing",
                 "value": 500
@@ -99838,14 +99504,6 @@
           "evaluateForEach": {
             "type": "string",
             "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-          },
-          "attributions": {
-            "type": "array",
-            "deprecated": true,
-            "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-            "items": {
-              "type": "string"
-            }
           }
         }
       },
@@ -100070,14 +99728,6 @@
               "evaluateForEach": {
                 "type": "string",
                 "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-              },
-              "attributions": {
-                "type": "array",
-                "deprecated": true,
-                "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                "items": {
-                  "type": "string"
-                }
               }
             }
           },
@@ -100347,14 +99997,6 @@
               "evaluateForEach": {
                 "type": "string",
                 "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-              },
-              "attributions": {
-                "type": "array",
-                "deprecated": true,
-                "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                "items": {
-                  "type": "string"
-                }
               }
             }
           },
@@ -100420,12 +100062,6 @@
             "type": "boolean",
             "description": "If true, all selected values will be excluded.",
             "default": false
-          },
-          "inverse_selection": {
-            "type": "boolean",
-            "description": "If true, all selected values will be excluded.",
-            "default": false,
-            "deprecated": true
           },
           "includeNull": {
             "type": "boolean",
@@ -100923,12 +100559,6 @@
                       "description": "If true, all selected values will be excluded.",
                       "default": false
                     },
-                    "inverse_selection": {
-                      "type": "boolean",
-                      "description": "If true, all selected values will be excluded.",
-                      "default": false,
-                      "deprecated": true
-                    },
                     "includeNull": {
                       "type": "boolean",
                       "description": "Include null values.",
@@ -101047,12 +100677,6 @@
                         "type": "boolean",
                         "description": "If true, all selected values will be excluded.",
                         "default": false
-                      },
-                      "inverse_selection": {
-                        "type": "boolean",
-                        "description": "If true, all selected values will be excluded.",
-                        "default": false,
-                        "deprecated": true
                       },
                       "includeNull": {
                         "type": "boolean",
@@ -101183,12 +100807,6 @@
                       "description": "If true, all selected values will be excluded.",
                       "default": false
                     },
-                    "inverse_selection": {
-                      "type": "boolean",
-                      "description": "If true, all selected values will be excluded.",
-                      "default": false,
-                      "deprecated": true
-                    },
                     "includeNull": {
                       "type": "boolean",
                       "description": "Include null values.",
@@ -101307,12 +100925,6 @@
                         "type": "boolean",
                         "description": "If true, all selected values will be excluded.",
                         "default": false
-                      },
-                      "inverse_selection": {
-                        "type": "boolean",
-                        "description": "If true, all selected values will be excluded.",
-                        "default": false,
-                        "deprecated": true
                       },
                       "includeNull": {
                         "type": "boolean",
@@ -101482,12 +101094,6 @@
                   "type": "boolean",
                   "description": "If true, all selected values will be excluded.",
                   "default": false
-                },
-                "inverse_selection": {
-                  "type": "boolean",
-                  "description": "If true, all selected values will be excluded.",
-                  "default": false,
-                  "deprecated": true
                 },
                 "includeNull": {
                   "type": "boolean",
@@ -103081,7 +102687,7 @@
         "required": [
           "currency",
           "name",
-          "scope",
+          "scopes",
           "startPeriod",
           "timeInterval",
           "type"
@@ -103244,11 +102850,103 @@
               }
             }
           },
-          "scope": {
+          "scopes": {
             "type": "array",
-            "description": "List of allocations that defines the budget scope.",
+            "description": "The filters selected define the scope of the budget.",
             "items": {
-              "type": "string"
+              "description": "To include or exclude certain values.\nWhen using allocation rules as a filter, both the type and the ID must be \"allocation_rule\", and the values array contains the allocation rule IDs.\nWhen using allocations as a filter, the type must be \"allocation\" and the ID is the actual allocation group ID.",
+              "type": "object",
+              "required": [
+                "id",
+                "type"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Dimension key to filter on. Must pair with `type` and match a dimension returned by `GET /analytics/v1/dimensions` (for example, `service_description` with `type: fixed`). For `allocation_rule`, use `allocation_rule`. For `allocation`, use the allocation group ID. See `DimensionsTypes` for how each `type` uses `id`."
+                },
+                "type": {
+                  "description": "Dimension filter type. Always pair `type` with `id` on scope filters. Discover valid `id` + `type` pairs for your account with `GET /analytics/v1/dimensions`. `allocation_rule` replaces `attribution`; `allocation` replaces `attribution_group`.",
+                  "type": "string",
+                  "enum": [
+                    "datetime",
+                    "fixed",
+                    "optional",
+                    "label",
+                    "tag",
+                    "project_label",
+                    "system_label",
+                    "attribution",
+                    "attribution_group",
+                    "allocation",
+                    "allocation_rule",
+                    "gke",
+                    "gke_label"
+                  ],
+                  "x-enumDescriptions": {
+                    "fixed": "Standard built-in billing dimensions (Service, Provider, Project/Account ID, SKU, Region, etc.).",
+                    "label": "Customer-defined resource labels; id is the label key, values are label values.",
+                    "tag": "AWS cost allocation tags; id is the tag key.",
+                    "project_label": "Google Cloud project-level labels; id is the label key.",
+                    "system_label": "DoiT- or provider-generated system labels; id is the system label key.",
+                    "optional": "Console grouping for label/tag keys; use label, tag, project_label, or system_label in API scopes.",
+                    "datetime": "Time dimensions (Year, Month, Day) for date-based filtering or grouping.",
+                    "allocation_rule": "Allocation rule filter; id must be allocation_rule, values are rule IDs.",
+                    "allocation": "Allocation group filter; id is the allocation group ID.",
+                    "gke": "Google Kubernetes Engine cost-allocation dimensions.",
+                    "gke_label": "GKE workload labels; id is the label key.",
+                    "attribution": "Deprecated. Use allocation_rule.",
+                    "attribution_group": "Deprecated. Use allocation."
+                  }
+                },
+                "values": {
+                  "type": "array",
+                  "description": "List of values to include or exclude. Must match exact strings from your billing or DataHub data for the dimension (for example, `Amazon Simple Storage Service` for AWS S3 on `service_description`). For `allocation_rule`, use allocation rule IDs.",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "mode": {
+                  "type": "string",
+                  "description": "Controls how the dimension’s `values` are matched when the alert query runs. If mode is omitted, behavior defaults to is.",
+                  "enum": [
+                    "is",
+                    "starts_with",
+                    "ends_with",
+                    "contains",
+                    "regexp"
+                  ],
+                  "x-enumDescriptions": {
+                    "is": "Exact match on one or more values.",
+                    "starts_with": "Value starts with the given string(s).",
+                    "ends_with": "Value ends with the given string(s).",
+                    "contains": "Value contains the given string(s).",
+                    "regexp": "Value matches the regular expression in `values` (exactly one pattern)."
+                  }
+                },
+                "inverse": {
+                  "type": "boolean",
+                  "description": "Set to `true` to exclude the set values. If inverse is omitted, behavior defaults to `false`."
+                },
+                "caseInsensitive": {
+                  "type": "boolean",
+                  "description": "If true, string matching is case-insensitive. Effective only for starts_with, ends_with, and contains modes; ignored otherwise.",
+                  "default": false
+                },
+                "includeNull": {
+                  "type": "boolean",
+                  "description": "Include rows where the dimension is null. If includeNull is omitted, behavior defaults to `false`.",
+                  "default": false
+                }
+              },
+              "example": {
+                "id": "cloud_provider",
+                "type": "fixed",
+                "inverse": false,
+                "values": [
+                  "google-cloud"
+                ]
+              }
             }
           },
           "startPeriod": {
@@ -103454,13 +103152,6 @@
               }
             }
           },
-          "scope": {
-            "type": "array",
-            "description": "List of allocations that defines the budget scope.",
-            "items": {
-              "type": "string"
-            }
-          },
           "scopes": {
             "type": "array",
             "description": "The filters selected define the scope of the budget.",
@@ -103646,14 +103337,6 @@
               "onTrack",
               "unknown"
             ]
-          },
-          "scope": {
-            "type": "array",
-            "description": "List of allocations that define the budget scope.",
-            "items": {
-              "type": "string"
-            },
-            "deprecated": true
           },
           "scopes": {
             "type": "array",
@@ -103962,14 +103645,6 @@
                 }
               }
             }
-          },
-          "scope": {
-            "type": "array",
-            "description": "List of allocations that define the budget scope.",
-            "items": {
-              "type": "string"
-            },
-            "deprecated": true
           },
           "scopes": {
             "type": "array",
@@ -104894,14 +104569,6 @@
                         "evaluateForEach": {
                           "type": "string",
                           "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Must be a dimension key returned by GET /analytics/v1/dimensions. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
-                        },
-                        "attributions": {
-                          "type": "array",
-                          "deprecated": true,
-                          "description": "Use 'scopes' instead. The attributions selected define the scope to monitor.",
-                          "items": {
-                            "type": "string"
-                          }
                         }
                       }
                     }
@@ -104925,10 +104592,15 @@
                       },
                       "operator": "gt",
                       "evaluateForEach": "",
-                      "attributions": [
-                        "PvqyGcdFcTHh7aLUdGdf"
+                      "scopes": [
+                        {
+                          "id": "attribution",
+                          "type": "attribution",
+                          "values": [
+                            "PvqyGcdFcTHh7aLUdGdf"
+                          ]
+                        }
                       ],
-                      "scopes": [],
                       "timeInterval": "month",
                       "dataSource": "billing",
                       "value": 500
@@ -104970,39 +104642,6 @@
         "type": "object",
         "description": "Report configuration.",
         "properties": {
-          "metric": {
-            "deprecated": true,
-            "description": "Deprecated: Use 'metrics' instead.",
-            "allOf": [
-              {
-                "description": "Metric selector used in reports and filters.",
-                "type": "object",
-                "required": [
-                  "type",
-                  "value"
-                ],
-                "properties": {
-                  "type": {
-                    "description": "Type of metric to use.",
-                    "type": "string",
-                    "enum": [
-                      "basic",
-                      "custom",
-                      "extended"
-                    ]
-                  },
-                  "value": {
-                    "type": "string",
-                    "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                  }
-                },
-                "example": {
-                  "type": "basic",
-                  "value": "cost"
-                }
-              }
-            ]
-          },
           "metrics": {
             "type": "array",
             "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -106590,39 +106229,6 @@
             "type": "object",
             "description": "Report configuration.",
             "properties": {
-              "metric": {
-                "deprecated": true,
-                "description": "Deprecated: Use 'metrics' instead.",
-                "allOf": [
-                  {
-                    "description": "Metric selector used in reports and filters.",
-                    "type": "object",
-                    "required": [
-                      "type",
-                      "value"
-                    ],
-                    "properties": {
-                      "type": {
-                        "description": "Type of metric to use.",
-                        "type": "string",
-                        "enum": [
-                          "basic",
-                          "custom",
-                          "extended"
-                        ]
-                      },
-                      "value": {
-                        "type": "string",
-                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                      }
-                    },
-                    "example": {
-                      "type": "basic",
-                      "value": "cost"
-                    }
-                  }
-                ]
-              },
               "metrics": {
                 "type": "array",
                 "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -107889,39 +107495,6 @@
             "type": "object",
             "description": "Report configuration.",
             "properties": {
-              "metric": {
-                "deprecated": true,
-                "description": "Deprecated: Use 'metrics' instead.",
-                "allOf": [
-                  {
-                    "description": "Metric selector used in reports and filters.",
-                    "type": "object",
-                    "required": [
-                      "type",
-                      "value"
-                    ],
-                    "properties": {
-                      "type": {
-                        "description": "Type of metric to use.",
-                        "type": "string",
-                        "enum": [
-                          "basic",
-                          "custom",
-                          "extended"
-                        ]
-                      },
-                      "value": {
-                        "type": "string",
-                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                      }
-                    },
-                    "example": {
-                      "type": "basic",
-                      "value": "cost"
-                    }
-                  }
-                ]
-              },
               "metrics": {
                 "type": "array",
                 "description": "The list of metrics to apply to the report. Custom metric can be used only once. Maximum number of metrics is 4.",
@@ -109170,12 +108743,6 @@
                       "description": "If true, all selected values will be excluded.",
                       "default": false
                     },
-                    "inverse_selection": {
-                      "type": "boolean",
-                      "description": "If true, all selected values will be excluded.",
-                      "default": false,
-                      "deprecated": true
-                    },
                     "includeNull": {
                       "type": "boolean",
                       "description": "Include null values.",
@@ -109294,12 +108861,6 @@
                         "type": "boolean",
                         "description": "If true, all selected values will be excluded.",
                         "default": false
-                      },
-                      "inverse_selection": {
-                        "type": "boolean",
-                        "description": "If true, all selected values will be excluded.",
-                        "default": false,
-                        "deprecated": true
                       },
                       "includeNull": {
                         "type": "boolean",
@@ -109431,12 +108992,6 @@
                   "type": "boolean",
                   "description": "If true, all selected values will be excluded.",
                   "default": false
-                },
-                "inverse_selection": {
-                  "type": "boolean",
-                  "description": "If true, all selected values will be excluded.",
-                  "default": false,
-                  "deprecated": true
                 },
                 "includeNull": {
                   "type": "boolean",
@@ -112023,6 +111578,9 @@
       "CommentExtAPI": {
         "type": "object",
         "description": "A comment on a support ticket.",
+        "required": [
+          "public"
+        ],
         "properties": {
           "id": {
             "type": "integer",
@@ -112032,6 +111590,10 @@
           "body": {
             "type": "string",
             "description": "The text content of the comment."
+          },
+          "public": {
+            "type": "boolean",
+            "description": "Whether the comment is public. Always present in new responses,\nincluding false for private internal notes. GET reports Zendesk\nvisibility; POST reports the effective visibility of the created\ncomment. Missing metadata in legacy responses or snapshots means\nunknown and must not be interpreted as false."
           },
           "author": {
             "type": "string",
@@ -112072,6 +111634,9 @@
             "items": {
               "type": "object",
               "description": "A comment on a support ticket.",
+              "required": [
+                "public"
+              ],
               "properties": {
                 "id": {
                   "type": "integer",
@@ -112081,6 +111646,10 @@
                 "body": {
                   "type": "string",
                   "description": "The text content of the comment."
+                },
+                "public": {
+                  "type": "boolean",
+                  "description": "Whether the comment is public. Always present in new responses,\nincluding false for private internal notes. GET reports Zendesk\nvisibility; POST reports the effective visibility of the created\ncomment. Missing metadata in legacy responses or snapshots means\nunknown and must not be interpreted as false."
                 },
                 "author": {
                   "type": "string",
