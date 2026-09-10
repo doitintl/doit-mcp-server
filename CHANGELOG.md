@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.5.0 (2026-09-10)
+
+**Full diff:** [`v1.4.1...v1.5.0`](../../compare/v1.4.1...v1.5.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`05a4414`)
+
+### Chores
+
+- chore(deps): bump @hono/node-server in /test/integration (`a4fcf92`)
+- chore(deps): bump nanoid from 3.3.11 to 3.3.18 (`8223710`)
+- chore(deps): bump fast-uri from 3.1.0 to 3.1.7 in /test/integration (`0c34cd6`)
+- chore(deps): bump qs from 6.15.0 to 6.16.0 (`8522bb7`)
+- chore(deps): bump fast-uri from 3.1.0 to 3.1.7 (`cb39ee1`)
+- chore(deps-dev): bump vitest from 3.2.4 to 4.1.11 in /test/integration (`32cb3b0`)
 ## v1.4.1 (2026-09-10)
 
 **Full diff:** [`v1.4.0...v1.4.1`](../../compare/v1.4.0...v1.4.1)
