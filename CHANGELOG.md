@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.4.1 (2026-09-10)
+
+**Full diff:** [`v1.4.0...v1.4.1`](../../compare/v1.4.0...v1.4.1)
+
+### Chores
+
+- chore: drop Cloudflare-era deps and npm remnants, enforce yarn (`58ce749`)
+- chore(deps): bump js-yaml from 4.3.0 to 4.3.2 (`0cb281c`)
 ## v1.4.0 (2026-09-09)
 
 **Full diff:** [`v1.3.0...v1.4.0`](../../compare/v1.3.0...v1.4.0)
