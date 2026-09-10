@@ -45,9 +45,9 @@ coverage/
 # Optional REPL history
 .node_repl_history
 
-# Package lock files (uncomment if you want to ignore them)
-# package-lock.json
-# yarn.lock
+# npm lockfiles - this project uses Yarn 1; yarn.lock is committed
+package-lock.json
+npm-shrinkwrap.json
 
 # Debug files
 .debug
@@ -61,7 +61,6 @@ coverage/
 _local
 widget-gallery.html
 .yarn/
-package-lock.json
 
 # Local API-coverage loop config (not part of the published server)
 .doit-api-coverage/

@@ -20,6 +20,12 @@ repos:
 
   - repo: local
     hooks:
+      - id: no-npm-lockfiles
+        name: No npm lockfiles (this project uses yarn)
+        entry: This project uses Yarn 1 - commit yarn.lock, never package-lock.json
+        language: fail
+        files: (^|/)(package-lock\.json|npm-shrinkwrap\.json)$
+
       - id: type-check
         name: TypeScript type check
         entry: yarn type-check
