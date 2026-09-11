@@ -2,7 +2,8 @@
 
 import * as dotenv from "dotenv";
 
-dotenv.config();
+// quiet: dotenv >=17 prints a banner to stdout, which corrupts the MCP JSON-RPC stream
+dotenv.config({ quiet: true });
 
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
