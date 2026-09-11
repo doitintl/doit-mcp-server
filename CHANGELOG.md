@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.6.0 (2026-09-11)
+
+**Full diff:** [`v1.5.0...v1.6.0`](../../compare/v1.5.0...v1.6.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`56e0b76`)
+
+### Chores
+
+- chore: vitest from 3.2.7 -> 3.1.3 for node 18 (`d727d49`)
+- chore: pre-commit ping tag hash (`02774dd`)
+- chore(deps): bump dev dependencies to their Node 18 ceiling (`a6f06c4`)
 ## v1.5.0 (2026-09-10)
 
 **Full diff:** [`v1.4.1...v1.5.0`](../../compare/v1.4.1...v1.5.0)
