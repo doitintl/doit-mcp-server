@@ -219,7 +219,7 @@ function parseBuilderLifecycleEvent(token: string): Record<string, unknown> | nu
 /** Extracts the created flow's ID from a `cloudflow_created` custom event, if this is one. */
 function builderCreatedFlowId(lifecycle: Record<string, unknown>): string | undefined {
     const custom = lifecycle.customEvent as Record<string, unknown> | undefined;
-    if (!custom || custom.messageId !== "cloudflow_created") return undefined;
+    if (custom?.messageId !== "cloudflow_created") return undefined;
     const data = custom.data as Record<string, unknown> | undefined;
     const flowId = data?.flowId;
     return typeof flowId === "string" && flowId ? flowId : undefined;
