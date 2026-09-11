@@ -8,6 +8,7 @@ import {
     getTrackingContext,
     makeDoitRequest,
     makeDoitSSERequest,
+    redactUrlForLog,
     runWithTracking,
 } from "../util.js";
 
@@ -401,5 +402,46 @@ describe("makeDoitSSERequest customer context header", () => {
 
         const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
         expect(Object.keys(headers).some((key) => key.toLowerCase() === "x-tenant-id")).toBe(false);
+    });
+});
+
+describe("redactUrlForLog", () => {
+    it("masks customerContext, pageToken and filter values", () => {
+        const redacted = redactUrlForLog(
+            "https://api.doit.com/analytics/v1/reports?customerContext=acme-corp&pageToken=abc123&filter=owner:jane@acme.com"
+        );
+
+        expect(redacted).not.toContain("acme-corp");
+        expect(redacted).not.toContain("abc123");
+        expect(redacted).not.toContain("jane@acme.com");
+        expect(redacted).toContain("customerContext=REDACTED");
+        expect(redacted).toContain("pageToken=REDACTED");
+        expect(redacted).toContain("filter=REDACTED");
+    });
+
+    it("leaves the rest of the URL intact", () => {
+        const redacted = redactUrlForLog("https://api.doit.com/v1/cloudflow?maxResults=50&customerContext=acme");
+
+        expect(redacted).toContain("https://api.doit.com/v1/cloudflow");
+        expect(redacted).toContain("maxResults=50");
+        expect(redacted).toContain("customerContext=REDACTED");
+    });
+
+    it("returns a URL without sensitive params unchanged", () => {
+        const url = "https://api.doit.com/v1/reports?maxResults=10";
+
+        expect(redactUrlForLog(url)).toBe(url);
+    });
+
+    it("matches parameter names case-insensitively", () => {
+        expect(redactUrlForLog("https://api.doit.com/v1/x?CustomerContext=acme")).toContain("CustomerContext=REDACTED");
+    });
+
+    it("still redacts when the URL cannot be parsed", () => {
+        const redacted = redactUrlForLog("/v1/reports?customerContext=acme-corp&maxResults=5");
+
+        expect(redacted).not.toContain("acme-corp");
+        expect(redacted).toContain("customerContext=REDACTED");
+        expect(redacted).toContain("maxResults=5");
     });
 });
