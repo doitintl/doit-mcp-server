@@ -10,7 +10,7 @@
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.0.3",
     "@types/node": "^22",
-    "msw": "^2.12.10",
+    "msw": "^2.15.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.11"
   },
