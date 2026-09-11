@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.6.1 (2026-09-11)
+
+**Full diff:** [`v1.6.0...v1.6.1`](../../compare/v1.6.0...v1.6.1)
+
+### Chores
+
+- chore: update runtime deps still capped by node 18 (`2f90209`)
 ## v1.6.0 (2026-09-11)
 
 **Full diff:** [`v1.5.0...v1.6.0`](../../compare/v1.5.0...v1.6.0)
