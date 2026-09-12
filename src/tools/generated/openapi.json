@@ -323,13 +323,13 @@
                               "recipientsSlackChannels": {
                                 "type": "array",
                                 "maxItems": 50,
-                                "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+                                "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
                                 "items": {
                                   "type": "object",
                                   "required": [
                                     "id"
                                   ],
-                                  "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                                  "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                                   "properties": {
                                     "id": {
                                       "type": "string",
@@ -359,39 +359,7 @@
                                         "private"
                                       ]
                                     }
-                                  },
-                                  "oneOf": [
-                                    {
-                                      "required": [
-                                        "shared"
-                                      ],
-                                      "properties": {
-                                        "shared": {
-                                          "type": "boolean",
-                                          "enum": [
-                                            true
-                                          ]
-                                        }
-                                      }
-                                    },
-                                    {
-                                      "required": [
-                                        "workspace"
-                                      ],
-                                      "properties": {
-                                        "shared": {
-                                          "type": "boolean",
-                                          "enum": [
-                                            false
-                                          ]
-                                        },
-                                        "workspace": {
-                                          "type": "string",
-                                          "minLength": 1
-                                        }
-                                      }
-                                    }
-                                  ]
+                                  }
                                 }
                               },
                               "recipients": {
@@ -1024,13 +992,13 @@
                   "recipientsSlackChannels": {
                     "type": "array",
                     "maxItems": 50,
-                    "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+                    "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
                     "items": {
                       "type": "object",
                       "required": [
                         "id"
                       ],
-                      "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                      "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                       "properties": {
                         "id": {
                           "type": "string",
@@ -1060,39 +1028,7 @@
                             "private"
                           ]
                         }
-                      },
-                      "oneOf": [
-                        {
-                          "required": [
-                            "shared"
-                          ],
-                          "properties": {
-                            "shared": {
-                              "type": "boolean",
-                              "enum": [
-                                true
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "required": [
-                            "workspace"
-                          ],
-                          "properties": {
-                            "shared": {
-                              "type": "boolean",
-                              "enum": [
-                                false
-                              ]
-                            },
-                            "workspace": {
-                              "type": "string",
-                              "minLength": 1
-                            }
-                          }
-                        }
-                      ]
+                      }
                     }
                   },
                   "recipients": {
@@ -1243,13 +1179,13 @@
                     "recipientsSlackChannels": {
                       "type": "array",
                       "maxItems": 50,
-                      "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+                      "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
                       "items": {
                         "type": "object",
                         "required": [
                           "id"
                         ],
-                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                         "properties": {
                           "id": {
                             "type": "string",
@@ -1279,39 +1215,7 @@
                               "private"
                             ]
                           }
-                        },
-                        "oneOf": [
-                          {
-                            "required": [
-                              "shared"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  true
-                                ]
-                              }
-                            }
-                          },
-                          {
-                            "required": [
-                              "workspace"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  false
-                                ]
-                              },
-                              "workspace": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          }
-                        ]
+                        }
                       }
                     },
                     "recipients": {
@@ -1746,7 +1650,7 @@
                         "required": [
                           "id"
                         ],
-                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                         "properties": {
                           "id": {
                             "type": "string",
@@ -1776,39 +1680,7 @@
                               "private"
                             ]
                           }
-                        },
-                        "oneOf": [
-                          {
-                            "required": [
-                              "shared"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  true
-                                ]
-                              }
-                            }
-                          },
-                          {
-                            "required": [
-                              "workspace"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  false
-                                ]
-                              },
-                              "workspace": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          }
-                        ]
+                        }
                       }
                     },
                     "rowCount": {
@@ -1956,13 +1828,13 @@
                     "recipientsSlackChannels": {
                       "type": "array",
                       "maxItems": 50,
-                      "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+                      "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
                       "items": {
                         "type": "object",
                         "required": [
                           "id"
                         ],
-                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                         "properties": {
                           "id": {
                             "type": "string",
@@ -1992,39 +1864,7 @@
                               "private"
                             ]
                           }
-                        },
-                        "oneOf": [
-                          {
-                            "required": [
-                              "shared"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  true
-                                ]
-                              }
-                            }
-                          },
-                          {
-                            "required": [
-                              "workspace"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  false
-                                ]
-                              },
-                              "workspace": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          }
-                        ]
+                        }
                       }
                     },
                     "recipients": {
@@ -2552,7 +2392,7 @@
                       },
                       "scopes": {
                         "type": "array",
-                        "description": "All supplied filters are applied together (AND across filters). Values within each filter follow its matching mode. Nonempty scopes replace legacy attributions. On PATCH, omission preserves scopes and [] clears them. With neither scopes nor attributions, evaluation covers all available billing data for the customer.",
+                        "description": "All supplied filters are applied together (AND across filters). Values within each filter follow its matching mode. Omission preserves scopes and [] clears them.",
                         "maxItems": 26,
                         "items": {
                           "description": "To include or exclude certain values.\nWhen using allocation rules as a filter, both the type and the ID must be \"allocation_rule\", and the values array contains the allocation rule IDs.\nWhen using allocations as a filter, the type must be \"allocation\" and the ID is the actual allocation group ID.",
@@ -2697,7 +2537,7 @@
                       },
                       "timeInterval": {
                         "type": "string",
-                        "description": "The period each evaluation looks at.",
+                        "description": "The period each evaluation looks at. Omission preserves the saved interval.",
                         "enum": [
                           "day",
                           "week",
@@ -2726,24 +2566,24 @@
                       "value": {
                         "type": "number",
                         "format": "double",
-                        "description": "The `condition` threshold value. For example, actual metric threshold value for the `value` condition, or percentage change threshold value for the `percentage-change` condition."
+                        "description": "The `condition` threshold value. Omission preserves the saved value; an explicit 0 is a valid threshold."
                       },
                       "evaluateForEach": {
                         "type": "string",
-                        "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Use type:id from GET /analytics/v1/dimensions, for example fixed:service_description. An empty string on PATCH clears the breakdown. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
+                        "description": "Add a dimension to break down the evaluation of the condition. Use type:id from GET /analytics/v1/dimensions, for example fixed:service_description. Omission preserves the saved breakdown and an empty string clears it. Not allowed with condition: `forecast`."
                       }
                     }
                   },
                   "recipientsSlackChannels": {
                     "type": "array",
                     "maxItems": 50,
-                    "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+                    "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
                     "items": {
                       "type": "object",
                       "required": [
                         "id"
                       ],
-                      "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                      "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                       "properties": {
                         "id": {
                           "type": "string",
@@ -2773,39 +2613,7 @@
                             "private"
                           ]
                         }
-                      },
-                      "oneOf": [
-                        {
-                          "required": [
-                            "shared"
-                          ],
-                          "properties": {
-                            "shared": {
-                              "type": "boolean",
-                              "enum": [
-                                true
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "required": [
-                            "workspace"
-                          ],
-                          "properties": {
-                            "shared": {
-                              "type": "boolean",
-                              "enum": [
-                                false
-                              ]
-                            },
-                            "workspace": {
-                              "type": "string",
-                              "minLength": 1
-                            }
-                          }
-                        }
-                      ]
+                      }
                     }
                   },
                   "recipients": {
@@ -2913,13 +2721,13 @@
                     "recipientsSlackChannels": {
                       "type": "array",
                       "maxItems": 50,
-                      "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+                      "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
                       "items": {
                         "type": "object",
                         "required": [
                           "id"
                         ],
-                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                         "properties": {
                           "id": {
                             "type": "string",
@@ -2949,39 +2757,7 @@
                               "private"
                             ]
                           }
-                        },
-                        "oneOf": [
-                          {
-                            "required": [
-                              "shared"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  true
-                                ]
-                              }
-                            }
-                          },
-                          {
-                            "required": [
-                              "workspace"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  false
-                                ]
-                              },
-                              "workspace": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          }
-                        ]
+                        }
                       }
                     },
                     "recipients": {
@@ -106541,13 +106317,13 @@
           "recipientsSlackChannels": {
             "type": "array",
             "maxItems": 50,
-            "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+            "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
             "items": {
               "type": "object",
               "required": [
                 "id"
               ],
-              "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+              "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
               "properties": {
                 "id": {
                   "type": "string",
@@ -106577,39 +106353,7 @@
                     "private"
                   ]
                 }
-              },
-              "oneOf": [
-                {
-                  "required": [
-                    "shared"
-                  ],
-                  "properties": {
-                    "shared": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  }
-                },
-                {
-                  "required": [
-                    "workspace"
-                  ],
-                  "properties": {
-                    "shared": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "workspace": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  }
-                }
-              ]
+              }
             }
           },
           "recipients": {
@@ -106929,13 +106673,13 @@
               "recipientsSlackChannels": {
                 "type": "array",
                 "maxItems": 50,
-                "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+                "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
                 "items": {
                   "type": "object",
                   "required": [
                     "id"
                   ],
-                  "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                  "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                   "properties": {
                     "id": {
                       "type": "string",
@@ -106965,39 +106709,7 @@
                         "private"
                       ]
                     }
-                  },
-                  "oneOf": [
-                    {
-                      "required": [
-                        "shared"
-                      ],
-                      "properties": {
-                        "shared": {
-                          "type": "boolean",
-                          "enum": [
-                            true
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "required": [
-                        "workspace"
-                      ],
-                      "properties": {
-                        "shared": {
-                          "type": "boolean",
-                          "enum": [
-                            false
-                          ]
-                        },
-                        "workspace": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      }
-                    }
-                  ]
+                  }
                 }
               },
               "recipients": {
@@ -107779,13 +107491,13 @@
           "recipientsSlackChannels": {
             "type": "array",
             "maxItems": 50,
-            "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+            "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
             "items": {
               "type": "object",
               "required": [
                 "id"
               ],
-              "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+              "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
               "properties": {
                 "id": {
                   "type": "string",
@@ -107815,39 +107527,7 @@
                     "private"
                   ]
                 }
-              },
-              "oneOf": [
-                {
-                  "required": [
-                    "shared"
-                  ],
-                  "properties": {
-                    "shared": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  }
-                },
-                {
-                  "required": [
-                    "workspace"
-                  ],
-                  "properties": {
-                    "shared": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "workspace": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  }
-                }
-              ]
+              }
             }
           },
           "recipients": {
@@ -107942,7 +107622,7 @@
               },
               "scopes": {
                 "type": "array",
-                "description": "All supplied filters are applied together (AND across filters). Values within each filter follow its matching mode. Nonempty scopes replace legacy attributions. On PATCH, omission preserves scopes and [] clears them. With neither scopes nor attributions, evaluation covers all available billing data for the customer.",
+                "description": "All supplied filters are applied together (AND across filters). Values within each filter follow its matching mode. Omission preserves scopes and [] clears them.",
                 "maxItems": 26,
                 "items": {
                   "description": "To include or exclude certain values.\nWhen using allocation rules as a filter, both the type and the ID must be \"allocation_rule\", and the values array contains the allocation rule IDs.\nWhen using allocations as a filter, the type must be \"allocation\" and the ID is the actual allocation group ID.",
@@ -108087,7 +107767,7 @@
               },
               "timeInterval": {
                 "type": "string",
-                "description": "The period each evaluation looks at.",
+                "description": "The period each evaluation looks at. Omission preserves the saved interval.",
                 "enum": [
                   "day",
                   "week",
@@ -108116,24 +107796,24 @@
               "value": {
                 "type": "number",
                 "format": "double",
-                "description": "The `condition` threshold value. For example, actual metric threshold value for the `value` condition, or percentage change threshold value for the `percentage-change` condition."
+                "description": "The `condition` threshold value. Omission preserves the saved value; an explicit 0 is a valid threshold."
               },
               "evaluateForEach": {
                 "type": "string",
-                "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Use type:id from GET /analytics/v1/dimensions, for example fixed:service_description. An empty string on PATCH clears the breakdown. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
+                "description": "Add a dimension to break down the evaluation of the condition. Use type:id from GET /analytics/v1/dimensions, for example fixed:service_description. Omission preserves the saved breakdown and an empty string clears it. Not allowed with condition: `forecast`."
               }
             }
           },
           "recipientsSlackChannels": {
             "type": "array",
             "maxItems": 50,
-            "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+            "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
             "items": {
               "type": "object",
               "required": [
                 "id"
               ],
-              "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+              "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
               "properties": {
                 "id": {
                   "type": "string",
@@ -108163,39 +107843,7 @@
                     "private"
                   ]
                 }
-              },
-              "oneOf": [
-                {
-                  "required": [
-                    "shared"
-                  ],
-                  "properties": {
-                    "shared": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  }
-                },
-                {
-                  "required": [
-                    "workspace"
-                  ],
-                  "properties": {
-                    "shared": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "workspace": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  }
-                }
-              ]
+              }
             }
           },
           "recipients": {
@@ -108261,7 +107909,7 @@
           },
           "scopes": {
             "type": "array",
-            "description": "All supplied filters are applied together (AND across filters). Values within each filter follow its matching mode. Nonempty scopes replace legacy attributions. On PATCH, omission preserves scopes and [] clears them. With neither scopes nor attributions, evaluation covers all available billing data for the customer.",
+            "description": "All supplied filters are applied together (AND across filters). Values within each filter follow its matching mode. Omission preserves scopes and [] clears them.",
             "maxItems": 26,
             "items": {
               "description": "To include or exclude certain values.\nWhen using allocation rules as a filter, both the type and the ID must be \"allocation_rule\", and the values array contains the allocation rule IDs.\nWhen using allocations as a filter, the type must be \"allocation\" and the ID is the actual allocation group ID.",
@@ -108406,7 +108054,7 @@
           },
           "timeInterval": {
             "type": "string",
-            "description": "The period each evaluation looks at.",
+            "description": "The period each evaluation looks at. Omission preserves the saved interval.",
             "enum": [
               "day",
               "week",
@@ -108435,11 +108083,11 @@
           "value": {
             "type": "number",
             "format": "double",
-            "description": "The `condition` threshold value. For example, actual metric threshold value for the `value` condition, or percentage change threshold value for the `percentage-change` condition."
+            "description": "The `condition` threshold value. Omission preserves the saved value; an explicit 0 is a valid threshold."
           },
           "evaluateForEach": {
             "type": "string",
-            "description": "Add a dimension to break down the evaluation of the condition. For example, evaluate a condition over an attribution for each \"Service\". Use type:id from GET /analytics/v1/dimensions, for example fixed:service_description. An empty string on PATCH clears the breakdown. Not allowed with condition: `forecast`. Used when you Investigate an alert, the dimension becomes the report grouping."
+            "description": "Add a dimension to break down the evaluation of the condition. Use type:id from GET /analytics/v1/dimensions, for example fixed:service_description. Omission preserves the saved breakdown and an empty string clears it. Not allowed with condition: `forecast`."
           }
         }
       },
@@ -108448,7 +108096,7 @@
         "required": [
           "id"
         ],
-        "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+        "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
         "properties": {
           "id": {
             "type": "string",
@@ -108478,39 +108126,7 @@
               "private"
             ]
           }
-        },
-        "oneOf": [
-          {
-            "required": [
-              "shared"
-            ],
-            "properties": {
-              "shared": {
-                "type": "boolean",
-                "enum": [
-                  true
-                ]
-              }
-            }
-          },
-          {
-            "required": [
-              "workspace"
-            ],
-            "properties": {
-              "shared": {
-                "type": "boolean",
-                "enum": [
-                  false
-                ]
-              },
-              "workspace": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        ]
+        }
       },
       "AlertSlackChannelList": {
         "type": "object",
@@ -108529,7 +108145,7 @@
               "required": [
                 "id"
               ],
-              "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+              "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
               "properties": {
                 "id": {
                   "type": "string",
@@ -108559,39 +108175,7 @@
                     "private"
                   ]
                 }
-              },
-              "oneOf": [
-                {
-                  "required": [
-                    "shared"
-                  ],
-                  "properties": {
-                    "shared": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  }
-                },
-                {
-                  "required": [
-                    "workspace"
-                  ],
-                  "properties": {
-                    "shared": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "workspace": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  }
-                }
-              ]
+              }
             }
           },
           "rowCount": {
@@ -112968,13 +112552,13 @@
                     "recipientsSlackChannels": {
                       "type": "array",
                       "maxItems": 50,
-                      "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
+                      "description": "Slack destinations. Omitted on create means none; omitted on PATCH preserves saved channels; an array replaces them and [] clears them. Null is rejected. Order is preserved as submitted and repeated destinations are collapsed. At least one email or Slack destination must remain. Discover eligible destinations with listAlertSlackChannels.",
                       "items": {
                         "type": "object",
                         "required": [
                           "id"
                         ],
-                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
+                        "description": "Eligible Slack destination returned by listAlertSlackChannels. Exactly one of the two shapes is valid: a shared channel (`shared: true`, `workspace` omitted), or a workspace channel (`shared: false` or omitted, `workspace` required). Any other combination is rejected with `validation_failed`. Identity is id plus workspace/shared context. customerId defaults to the authenticated customer; an explicit mismatch is rejected. Name and type are canonical display metadata. Existing unavailable destinations may be retained or removed. Service accounts can add public/shared destinations; new private destinations require a user credential with channel visibility.",
                         "properties": {
                           "id": {
                             "type": "string",
@@ -113004,39 +112588,7 @@
                               "private"
                             ]
                           }
-                        },
-                        "oneOf": [
-                          {
-                            "required": [
-                              "shared"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  true
-                                ]
-                              }
-                            }
-                          },
-                          {
-                            "required": [
-                              "workspace"
-                            ],
-                            "properties": {
-                              "shared": {
-                                "type": "boolean",
-                                "enum": [
-                                  false
-                                ]
-                              },
-                              "workspace": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          }
-                        ]
+                        }
                       }
                     },
                     "recipients": {
