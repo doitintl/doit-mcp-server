@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.7.0 (2026-09-14)
+
+**Full diff:** [`v1.6.0...v1.7.0`](../../compare/v1.6.0...v1.7.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`0c2f39c`)
+
+### Chores
+
+- chore: update runtime deps still capped by node 18 (`2f90209`)
 ## v1.6.0 (2026-09-11)
 
 **Full diff:** [`v1.5.0...v1.6.0`](../../compare/v1.5.0...v1.6.0)
