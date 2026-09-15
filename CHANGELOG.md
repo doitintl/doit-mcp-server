@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.8.0 (2026-09-15)
+
+**Full diff:** [`v1.7.0...v1.8.0`](../../compare/v1.7.0...v1.8.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`8f4cf14`)
 ## v1.7.0 (2026-09-14)
 
 **Full diff:** [`v1.6.0...v1.7.0`](../../compare/v1.6.0...v1.7.0)
