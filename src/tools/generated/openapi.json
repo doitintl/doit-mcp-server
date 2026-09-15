@@ -25416,7 +25416,7 @@
           "Auth"
         ],
         "summary": "Validate a user",
-        "description": "Returns the domain and email of the current API user.",
+        "description": "Returns the domain, email, and effective permissions of the current API user. Callable by any authenticated token, regardless of its own permissions.",
         "operationId": "validate",
         "responses": {
           "200": {
@@ -25432,6 +25432,13 @@
                     },
                     "email": {
                       "type": "string"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "description": "The caller's own effective permission names (e.g. \"CloudAnalyticsReadOnly\"), not opaque permission IDs. Empty for a DoiT employee token, which is not scoped to a fixed permission set.",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   }
                 }
@@ -118932,6 +118939,13 @@
           },
           "email": {
             "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "description": "The caller's own effective permission names (e.g. \"CloudAnalyticsReadOnly\"), not opaque permission IDs. Empty for a DoiT employee token, which is not scoped to a fixed permission set.",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
