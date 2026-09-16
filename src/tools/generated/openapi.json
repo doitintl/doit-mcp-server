@@ -36381,6 +36381,191 @@
         }
       }
     },
+    "/billing/v1/contract-templates/{templateID}/actions/assign": {
+      "post": {
+        "tags": [
+          "Contract Templates"
+        ],
+        "summary": "Assign contract template",
+        "description": "Applies a contract template owned by the authenticated tenant (from the bearer token) to child customers, creating a draft contract for each. Drafts have no billing effect until each one is completed and activated. The template must not be archived, and the current date must fall within its eligibility window. Requires ContractTemplatesAdmin, DoiT API access (`platform:externalApi`), and the `channelops:contracts:templates` entitlement.",
+        "operationId": "assignContractTemplate",
+        "parameters": [
+          {
+            "name": "templateID",
+            "in": "path",
+            "required": true,
+            "description": "Identifier of the contract template to apply.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "The customers a contract template is applied to.",
+                "required": [
+                  "customerIds"
+                ],
+                "properties": {
+                  "customerIds": {
+                    "type": "array",
+                    "description": "Identifiers of the customers to create a draft contract for. Each identifier must name a tenant within the authenticated tenant's own hierarchy, of the tier one level below it: a distributor supplies resellers, a reseller supplies end customers. Repeated identifiers are ignored, and a customer already holding a contract from this template receives another draft.",
+                    "minItems": 1,
+                    "maxItems": 250,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created - Draft contracts created for the specified customers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The draft contracts created by applying a contract template.",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "description": "Number of draft contracts created."
+                    },
+                    "createdContracts": {
+                      "type": "array",
+                      "description": "One entry per created draft contract, in the order the customers were supplied.",
+                      "items": {
+                        "type": "object",
+                        "description": "A draft contract created from a contract template.",
+                        "properties": {
+                          "customerId": {
+                            "type": "string",
+                            "description": "Identifier of the customer the draft contract was created for."
+                          },
+                          "contractId": {
+                            "type": "string",
+                            "description": "Identifier of the created draft contract."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The server cannot process the request, often due to a malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - The requested resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - The request conflicts with the current state of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong with the DoiT API server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/customers/v1/accountTeam": {
       "get": {
         "tags": [
@@ -108672,6 +108857,66 @@
           },
           "applyAWSEligibleDiscount": {
             "type": "boolean"
+          }
+        }
+      },
+      "AssignContractTemplateInput": {
+        "type": "object",
+        "description": "The customers a contract template is applied to.",
+        "required": [
+          "customerIds"
+        ],
+        "properties": {
+          "customerIds": {
+            "type": "array",
+            "description": "Identifiers of the customers to create a draft contract for. Each identifier must name a tenant within the authenticated tenant's own hierarchy, of the tier one level below it: a distributor supplies resellers, a reseller supplies end customers. Repeated identifiers are ignored, and a customer already holding a contract from this template receives another draft.",
+            "minItems": 1,
+            "maxItems": 250,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AssignContractTemplateResponse": {
+        "type": "object",
+        "description": "The draft contracts created by applying a contract template.",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Number of draft contracts created."
+          },
+          "createdContracts": {
+            "type": "array",
+            "description": "One entry per created draft contract, in the order the customers were supplied.",
+            "items": {
+              "type": "object",
+              "description": "A draft contract created from a contract template.",
+              "properties": {
+                "customerId": {
+                  "type": "string",
+                  "description": "Identifier of the customer the draft contract was created for."
+                },
+                "contractId": {
+                  "type": "string",
+                  "description": "Identifier of the created draft contract."
+                }
+              }
+            }
+          }
+        }
+      },
+      "AssignedContract": {
+        "type": "object",
+        "description": "A draft contract created from a contract template.",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "Identifier of the customer the draft contract was created for."
+          },
+          "contractId": {
+            "type": "string",
+            "description": "Identifier of the created draft contract."
           }
         }
       },
