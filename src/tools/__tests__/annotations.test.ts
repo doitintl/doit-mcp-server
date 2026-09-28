@@ -373,7 +373,7 @@ describe("create_annotation", () => {
         const response = await handleCreateAnnotationRequest({ timestamp: "2026-01-15T00:00:00.000Z" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });
@@ -382,7 +382,7 @@ describe("create_annotation", () => {
         const response = await handleCreateAnnotationRequest({ content: "Test" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });
@@ -488,7 +488,7 @@ describe("update_annotation", () => {
         const response = await handleUpdateAnnotationRequest({ content: "Updated" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });

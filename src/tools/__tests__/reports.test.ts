@@ -761,7 +761,7 @@ Cloud Storage,50`;
             const response = await handleGetReportConfigRequest({}, mockToken);
 
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Required") }],
+                content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             });
             expect(makeDoitRequest).not.toHaveBeenCalled();
         });

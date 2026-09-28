@@ -348,7 +348,7 @@ describe("create_label", () => {
         const response = await handleCreateLabelRequest({ color: "blue" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });
@@ -357,7 +357,9 @@ describe("create_label", () => {
         const response = await handleCreateLabelRequest({ name: "", color: "blue" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("String must contain at least 1 character") }],
+            content: [
+                { type: "text", text: expect.stringContaining("Too small: expected string to have >=1 characters") },
+            ],
             isError: true,
         });
     });
@@ -366,7 +368,9 @@ describe("create_label", () => {
         const response = await handleCreateLabelRequest({ name: "Test" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            // color is an enum, so a missing value reports as an invalid option rather
+            // than the "received undefined" wording used for missing scalars.
+            content: [{ type: "text", text: expect.stringContaining("Invalid option") }],
             isError: true,
         });
     });
@@ -486,7 +490,7 @@ describe("update_label", () => {
         const response = await handleUpdateLabelRequest({ name: "Updated" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });
@@ -597,7 +601,7 @@ describe("get_label_assignments", () => {
         const response = await handleGetLabelAssignmentsRequest({}, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });
@@ -735,7 +739,7 @@ describe("assign_objects_to_label", () => {
         );
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });

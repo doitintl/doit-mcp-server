@@ -402,7 +402,7 @@ describe("update_folder", () => {
         const response = await handleUpdateFolderRequest({ name: "Updated" }, mockToken);
 
         expect(response.isError).toBe(true);
-        expect(response.content[0].text).toContain("Required");
+        expect(response.content[0].text).toContain("received undefined");
     });
 
     it("should return error when id is only whitespace", async () => {

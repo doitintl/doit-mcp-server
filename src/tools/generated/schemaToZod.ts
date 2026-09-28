@@ -90,8 +90,8 @@ export function schemaToZod(schema: JsonSchema | undefined): ZodTypeAny {
     } else if (schema.type === "object") {
         zodType =
             typeof schema.additionalProperties === "object"
-                ? z.record(schemaToZod(schema.additionalProperties))
-                : z.record(z.unknown());
+                ? z.record(z.string(), schemaToZod(schema.additionalProperties))
+                : z.record(z.string(), z.unknown());
     } else {
         zodType = z.unknown();
     }
