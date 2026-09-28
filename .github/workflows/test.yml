@@ -5,10 +5,20 @@ on:
     branches:
       - "**"
 
+# Both suites run on every supported Node major: 20 is the `engines` floor, 22 is
+# what volta pins and what release.yml publishes from. Keep the two matrices in
+# sync, and update them together with `engines.node` in package.json.
+#
+# fail-fast is off so a version-specific failure shows up as exactly that, rather
+# than cancelling its sibling and leaving it ambiguous which version broke.
 jobs:
   lint-test-build:
-    name: Tests and Build - Node 18
+    name: Tests and Build - Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,7 +37,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ matrix.node }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -42,8 +52,12 @@ jobs:
         run: yarn build
 
   integration-tests:
-    name: Integration Tests - Node 20
+    name: Integration Tests - Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,7 +65,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
 
       - name: Install root dependencies
         run: yarn install --frozen-lockfile
