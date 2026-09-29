@@ -202,9 +202,8 @@ export function handleGeneralError(error: any, context: string): ReturnType<type
 }
 
 /**
- * Header the DoiT API reads the customer (tenant) scope from. It is sent in addition to the
- * `customerContext` query parameter — the API accepts either, and newer endpoints only read
- * the header.
+ * Header the DoiT API reads the customer (tenant) scope from. It replaces the legacy
+ * `customerContext` query parameter, which must not be sent.
  */
 export const TENANT_ID_HEADER = "X-Tenant-Id";
 
@@ -236,28 +235,14 @@ export function applyTenantIdHeader(
 }
 
 /**
- * Helper function to append customer context to URL if available
+ * Appends the default maxResults page size to a URL unless it already sets one.
  * @param baseUrl The base URL to append parameters to
- * @returns URL with maxResults and optional customerContext parameters
+ * @returns URL with a maxResults parameter
  */
-export function appendUrlParameters(baseUrl: string, customerContextId?: string): string {
-    // Check if the URL already has query parameters
+export function appendUrlParameters(baseUrl: string): string {
+    if (baseUrl.includes("maxResults=")) return baseUrl;
     const separator = baseUrl.includes("?") ? "&" : "?";
-    let url = baseUrl;
-
-    // Only add maxResults if it's not already in the URL
-    if (!baseUrl.includes("maxResults=")) {
-        url += `${separator}maxResults=40`;
-    }
-
-    const customerContext = resolveCustomerContext(customerContextId);
-
-    if (customerContext) {
-        // Use & as separator since we know the URL now has parameters
-        url += `&customerContext=${encodeURIComponent(customerContext)}`;
-    }
-
-    return url;
+    return `${baseUrl}${separator}maxResults=40`;
 }
 
 /**
@@ -273,7 +258,7 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options Additional request options
  * @param options.method HTTP method (GET, POST, etc.)
  * @param options.body Request body for POST/PUT requests
- * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
+ * @param options.appendParams Whether to append the default maxResults URL parameter
  * @param options.timeoutMs If set, aborts the request after this many milliseconds and throws TimeoutError
  * @returns The parsed JSON response or null on error
  */
@@ -337,11 +322,9 @@ export async function makeDoitRequest<T>(
         ...extraHeaders,
     };
 
-    // The customer scope goes out as both the customerContext query param (below) and the
-    // X-Tenant-Id header, since the API reads the scope from the header on newer endpoints.
     applyTenantIdHeader(headers, customerContext);
 
-    let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;
+    let requestUrl = appendParams ? appendUrlParameters(resolvedUrl) : resolvedUrl;
 
     try {
         const requestOptions: RequestInit = {

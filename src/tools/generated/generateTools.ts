@@ -141,7 +141,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 method,
                 pathTemplate,
                 pathParams: pathParams.map((parameter) => parameter.name),
-                queryParams: [...queryParams.map((parameter) => parameter.name), "customerContext"],
+                queryParams: queryParams.map((parameter) => parameter.name),
                 headerParams: headerParams.map((parameter) => parameter.name),
                 bodyEncoding,
                 contentType: jsonContentType,
@@ -160,7 +160,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             }
 
             // Every operation supports scoping to a customer, but the OpenAPI spec itself has
-            // no notion of this (callOperation.ts reads it as a query param) — declare it here
+            // no notion of this (callOperation.ts sends it as the X-Tenant-Id header) — declare it here
             // so it's visible to callers instead of only working if you already know about it.
             shape.customerContext = z
                 .string()

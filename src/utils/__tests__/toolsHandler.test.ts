@@ -46,7 +46,7 @@ describe("executeToolHandler approval gate", () => {
             method: "delete",
             pathTemplate: "/widgets/{id}",
             pathParams: ["id"],
-            queryParams: ["customerContext"],
+            queryParams: [],
             headerParams: [],
             bodyEncoding: "json",
             multipartFileFields: [],
