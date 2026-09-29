@@ -60,9 +60,6 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
                 queryParams.set(paramName, String(parsed[paramName]));
             }
         }
-        if (customerContext) {
-            queryParams.set("customerContext", customerContext);
-        }
         const queryString = queryParams.toString();
         const url = `${DOIT_API_BASE}${requestPath}${queryString ? `?${queryString}` : ""}`;
 
@@ -78,7 +75,8 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
                 ([key]) =>
                     !metadata.pathParams.includes(key) &&
                     !metadata.queryParams.includes(key) &&
-                    !metadata.headerParams.includes(key)
+                    !metadata.headerParams.includes(key) &&
+                    key !== "customerContext"
             )
         );
         const hasBody = Object.keys(bodyFields).length > 0;
@@ -99,8 +97,6 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
             method: metadata.method.toUpperCase(),
             body,
             appendParams: false,
-            // URL params are built above (appendParams: false), but makeDoitRequest still
-            // needs the context to send the X-Tenant-Id header.
             customerContext,
             parseAs: "text",
             timeoutMs: GENERATED_REQUEST_TIMEOUT_MS,

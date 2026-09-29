@@ -150,33 +150,16 @@ describe("runWithTracking / AsyncLocalStorage propagation", () => {
 });
 
 describe("appendUrlParameters", () => {
-    const originalCustomerContext = process.env.CUSTOMER_CONTEXT;
-
-    afterEach(() => {
-        if (originalCustomerContext === undefined) delete process.env.CUSTOMER_CONTEXT;
-        else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
+    it("appends the default maxResults", () => {
+        expect(appendUrlParameters("https://api.doit.com/x")).toBe("https://api.doit.com/x?maxResults=40");
     });
 
-    it("appends maxResults and an encoded customerContext", () => {
-        delete process.env.CUSTOMER_CONTEXT;
-        expect(appendUrlParameters("https://api.doit.com/x", "cust-1")).toBe(
-            "https://api.doit.com/x?maxResults=40&customerContext=cust-1"
-        );
+    it("uses & when the URL already has query parameters", () => {
+        expect(appendUrlParameters("https://api.doit.com/x?a=1")).toBe("https://api.doit.com/x?a=1&maxResults=40");
     });
 
-    it("encodes reserved characters so customerContext cannot inject extra query parameters", () => {
-        delete process.env.CUSTOMER_CONTEXT;
-        const url = appendUrlParameters("https://api.doit.com/x", "abc&maxResults=1000&other=1");
-        expect(url).toBe("https://api.doit.com/x?maxResults=40&customerContext=abc%26maxResults%3D1000%26other%3D1");
-        expect(new URL(url).searchParams.get("customerContext")).toBe("abc&maxResults=1000&other=1");
-        expect(new URL(url).searchParams.get("other")).toBeNull();
-    });
-
-    it("encodes the CUSTOMER_CONTEXT env fallback the same way", () => {
-        process.env.CUSTOMER_CONTEXT = "a/b?c=d";
-        expect(appendUrlParameters("https://api.doit.com/x?maxResults=5")).toBe(
-            "https://api.doit.com/x?maxResults=5&customerContext=a%2Fb%3Fc%3Dd"
-        );
+    it("keeps an explicit maxResults", () => {
+        expect(appendUrlParameters("https://api.doit.com/x?maxResults=5")).toBe("https://api.doit.com/x?maxResults=5");
     });
 });
 
@@ -272,14 +255,14 @@ describe("makeDoitRequest customer context header", () => {
         else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
     });
 
-    it("sends the customer context as the X-Tenant-Id header in addition to the query param", async () => {
+    it("sends the customer context only as the X-Tenant-Id header, never as a query param", async () => {
         delete process.env.CUSTOMER_CONTEXT;
         const fetchMock = stubFetchOk();
 
         await makeDoitRequest("https://api.doit.com/test", "test-token", { customerContext: "cust-1" });
 
         expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("cust-1");
-        expect(fetchMock.mock.calls[0][0]).toContain("customerContext=cust-1");
+        expect(fetchMock.mock.calls[0][0]).not.toContain("customerContext");
     });
 
     it("sends the X-Tenant-Id header from the CUSTOMER_CONTEXT env var", async () => {
@@ -287,6 +270,8 @@ describe("makeDoitRequest customer context header", () => {
         const fetchMock = stubFetchOk();
 
         await makeDoitRequest("https://api.doit.com/test", "test-token");
+
+        expect(fetchMock.mock.calls[0][0]).not.toContain("customerContext");
 
         expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("env-cust");
     });
