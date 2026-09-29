@@ -43104,7 +43104,7 @@
           "Roles"
         ],
         "summary": "Delete role",
-        "description": "Deletes a custom role. Preset roles cannot be deleted, and a role still assigned to users must be unassigned first. A service account of a parent tenant can delete a descendant tenant's role by setting `X-Tenant-Id` to that tenant's customer ID.",
+        "description": "Deletes a custom role. Preset roles cannot be deleted, and a role still assigned to users or groups must be unassigned first. A service account of a parent tenant can delete a descendant tenant's role by setting `X-Tenant-Id` to that tenant's customer ID.",
         "operationId": "deleteRole",
         "parameters": [
           {
@@ -43190,7 +43190,7 @@
             }
           },
           "409": {
-            "description": "Conflict - The role is still assigned to users.",
+            "description": "Conflict - The role is still assigned to users or groups.",
             "content": {
               "application/json": {
                 "schema": {
@@ -43208,6 +43208,23 @@
           },
           "500": {
             "description": "Internal Server Error - Something went wrong with the DoiT API server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable - Role graph cleanup is temporarily unavailable. Retry the deletion.",
             "content": {
               "application/json": {
                 "schema": {
