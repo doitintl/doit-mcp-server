@@ -232,6 +232,7 @@ import { getAssetTool, listAssetsTool } from "../tools/assets.js";
 import { askAvaSyncTool } from "../tools/ava.js";
 import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
+import { changeCustomerTool } from "../tools/changeCustomer.js";
 import {
     findCloudDiagramsTool,
     getCloudDiagramComponentsTool,
@@ -321,6 +322,7 @@ import * as utilModule from "../utils/util.js";
 
 const generatedToolDefinitions = generatedTools.map((tool) => ({
     name: tool.name,
+    title: tool.title,
     description: tool.description,
     inputSchema: zodToMcpInputSchema(tool.zodSchema),
     annotations: tool.annotations,
@@ -502,6 +504,20 @@ describe("ListToolsRequestSchema handler", () => {
 
         expect(generatedToolDefinitions.length).toBeGreaterThan(0);
         expect(response.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "delete_alert" })]));
+    });
+
+    // Directory listings (e.g. the Claude Connectors Directory) flag any tool without a title
+    // or without the applicable readOnlyHint/destructiveHint set to true.
+    it("every listed tool has a title and sets readOnlyHint or destructiveHint to true", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+        const { tools } = await handler();
+        // change_customer is registered only by the remote Worker (for DoiT employees), so check
+        // it alongside the stdio list.
+        for (const tool of [...tools, changeCustomerTool]) {
+            expect(tool.title?.trim(), tool.name).toBeTruthy();
+            expect(tool.annotations?.readOnlyHint || tool.annotations?.destructiveHint, tool.name).toBe(true);
+            expect(tool.annotations?.readOnlyHint && tool.annotations?.destructiveHint, tool.name).toBeFalsy();
+        }
     });
 
     /** Mutating tools that previously lacked MCP hints: destructive annotations and ask-to-confirm copy in descriptions. */

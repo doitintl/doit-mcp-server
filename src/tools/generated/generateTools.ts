@@ -190,6 +190,9 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
 
             tools.push({
                 name,
+                // Every operation in the bundled spec has a summary (asserted in the tests); the
+                // fallback only keeps a future summary-less operation from shipping untitled.
+                title: operation.summary?.trim() || `${method.toUpperCase()} ${pathTemplate}`,
                 description,
                 zodSchema: z.object(shape),
                 metadata,

@@ -205,6 +205,7 @@ export const UpdateInsightStatusArgumentsSchema = z.object({
 
 export const listOptimizationRecommendationsTool = {
     name: "list_optimization_recommendations",
+    title: "List optimization recommendations",
     coversEndpoint: "get:/insights/v1/results",
     description:
         "Use this when the user asks about optimization, recommendations, insights, savings opportunities, " +
@@ -228,6 +229,7 @@ export const listOptimizationRecommendationsTool = {
 
 export const getInsightResourcesTool = {
     name: "get_insight_resources",
+    title: "Get insight resources",
     coversEndpoint: "get:/insights/v1/results/source/{sourceID}/insight/{insightKey}/resource-results",
     description:
         "Use this when the user wants to see which specific resources are affected by an optimization " +
@@ -248,6 +250,7 @@ export const getInsightResourcesTool = {
 
 export const getInsightTool = {
     name: "get_insight",
+    title: "Get insight",
     coversEndpoint: "get:/insights/v1/results/source/{sourceID}/insight/{insightKey}",
     description:
         "Use this when the user wants the details and aggregate summary (savings, risk counts, status, " +
@@ -270,6 +273,7 @@ export const getInsightTool = {
 
 export const postInsightResultTool = {
     name: "post_insight_result",
+    title: "Post insight result",
     coversEndpoint: "post:/insights/v1/results/source/{sourceID}/insight/{insightKey}",
     description:
         "Use this when the user wants to create a new custom insight or update an existing one's metadata " +
@@ -280,7 +284,7 @@ export const postInsightResultTool = {
     inputSchema: zodToMcpInputSchema(PostInsightResultArgumentsSchema),
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {
@@ -292,6 +296,7 @@ export const postInsightResultTool = {
 
 export const updateInsightStatusTool = {
     name: "update_insight_status",
+    title: "Update insight status",
     coversEndpoint: "put:/insights/v1/results/source/{sourceID}/insight/{insightKey}/status",
     description:
         "Use this when the user wants to change the display status of an existing insight (e.g. mark it " +
@@ -301,7 +306,7 @@ export const updateInsightStatusTool = {
     inputSchema: zodToMcpInputSchema(UpdateInsightStatusArgumentsSchema),
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {

@@ -47,6 +47,7 @@ export const ListAnnotationsArgumentsSchema = z.object({
 
 export const listAnnotationsTool = {
     name: "list_annotations",
+    title: "List annotations",
     coversEndpoint: "get:/analytics/v1/annotations",
     description:
         "Use this when the user wants to see calendar annotations or notes on cost data. Returns a list of annotations. Do NOT use this for labels (use list_labels) or alerts (use list_alerts).",
@@ -111,6 +112,7 @@ export const GetAnnotationArgumentsSchema = z
 
 export const getAnnotationTool = {
     name: "get_annotation",
+    title: "Get annotation",
     coversEndpoint: "get:/analytics/v1/annotations/{id}",
     description:
         "Use this when the user wants to view details of a specific annotation. Accepts either the annotation ID or a partial content match (case-insensitive). Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
@@ -185,6 +187,7 @@ export const CreateAnnotationArgumentsSchema = z.object({
 
 export const createAnnotationTool = {
     name: "create_annotation",
+    title: "Create annotation",
     coversEndpoint: "post:/analytics/v1/annotations",
     description:
         "Use this when the user wants to add a new annotation to mark a specific date or event in cost data. Ask the user to confirm the annotation details before executing. Do NOT use this for creating labels (use create_label) or alerts (use create_alert).",
@@ -262,6 +265,7 @@ export const UpdateAnnotationArgumentsSchema = z.object({
 
 export const updateAnnotationTool = {
     name: "update_annotation",
+    title: "Update annotation",
     coversEndpoint: "patch:/analytics/v1/annotations/{id}",
     description:
         "Use this when the user wants to modify an existing annotation. Ask the user to confirm changes before executing. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",

@@ -81,6 +81,7 @@ export function getTriggerCloudFlowURL(value: string): string | null {
 
 export const triggerCloudFlowTool = {
     name: "trigger_cloud_flow",
+    title: "Trigger CloudFlow flow",
     coversEndpoint: "post:/cloudflow/v1/trigger/{flowId}",
     description:
         "Use this when the user wants to trigger an automated CloudFlow workflow by its flow ID. This executes automation that may modify cloud resources externally. Ask the user to confirm the flow ID and any parameters before executing. Do NOT use this for viewing CloudFlow definitions or checking available flows.",
@@ -118,6 +119,7 @@ export const RefineCloudflowArgumentsSchema = z.object({
 
 export const refineCloudflowTool = {
     name: "refine_cloudflow",
+    title: "Refine CloudFlow flow",
     coversEndpoint: "post:/cloudflow/v1/flows/{flowId}/actions/refine",
     description:
         "Use this when the user wants to refine or rebuild an existing CloudFlow automation using natural language. Streams real-time progress updates while the AI builds the flow, then returns the final result. " +
@@ -142,7 +144,7 @@ export const refineCloudflowTool = {
     },
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {
@@ -159,6 +161,7 @@ export const BuildCloudflowArgumentsSchema = z.object({
 
 export const buildCloudflowTool = {
     name: "build_cloud_flow",
+    title: "Build CloudFlow flow",
     coversEndpoint: "post:/cloudflow/v1/flows/actions/build",
     description:
         "Use this when the user wants to build a brand-new CloudFlow automation from scratch using natural language. Streams real-time progress while the AI builds the flow, then returns the newly created flow's ID, the builder's answer, and the build steps that ran. Use refine_cloudflow to change an existing flow; use this only to create a new one. " +
@@ -179,7 +182,7 @@ export const buildCloudflowTool = {
     },
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {
@@ -430,6 +433,7 @@ export const ListCloudFlowConnectionsArgumentsSchema = z.object({
 
 export const listCloudFlowConnectionsTool = {
     name: "list_cloudflow_connections",
+    title: "List CloudFlow connections",
     coversEndpoint: "get:/cloudflow/v1/connections",
     description:
         "Use this when the user wants to see their CloudFlow cloud provider connections (the GCP/AWS accounts connected for automation). Returns a cursor-paginated list of connections with their config and status. Do NOT use this to trigger a flow (use trigger_cloud_flow) or to view a single connection's details (use get_cloudflow_connection).",
@@ -484,6 +488,7 @@ export const GetCloudFlowConnectionArgumentsSchema = z.object({
 
 export const getCloudFlowConnectionTool = {
     name: "get_cloudflow_connection",
+    title: "Get CloudFlow connection",
     coversEndpoint: "get:/cloudflow/v1/connections/{connectionId}",
     description:
         "Use this when the user wants to view the details of a specific CloudFlow cloud provider connection by its ID, including its GCP/AWS configuration, collaborators, and status. Do NOT use this to list all connections (use list_cloudflow_connections) or to trigger a flow (use trigger_cloud_flow).",
@@ -592,6 +597,7 @@ export const CreateCloudFlowConnectionArgumentsSchema = z.object({
 
 export const createCloudFlowConnectionTool = {
     name: "create_cloudflow_connection",
+    title: "Create CloudFlow connection",
     description:
         "Use this when the user wants to create a new CloudFlow cloud provider connection (a GCP or AWS account connected for automation). Exactly one of gcpConfig or awsConfig must be supplied. Ask the user to confirm the connection details before executing. Do NOT use this to update an existing connection (use update_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
     coversEndpoint: "post:/cloudflow/v1/connections",
@@ -658,6 +664,7 @@ export const UpdateCloudFlowConnectionArgumentsSchema = z.object({
 
 export const updateCloudFlowConnectionTool = {
     name: "update_cloudflow_connection",
+    title: "Update CloudFlow connection",
     description:
         "Use this when the user wants to update an existing CloudFlow cloud provider connection — rename it, change its description, enable/disable it, update its GCP/AWS configuration, or change collaborators. All fields except connectionId are optional; at most one of gcpConfig or awsConfig may be set per request. Ask the user to confirm the changes before executing. Do NOT use this to create a new connection (use create_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
     coversEndpoint: "patch:/cloudflow/v1/connections/{connectionId}",
@@ -719,6 +726,7 @@ export const ListCloudFlowTemplatesArgumentsSchema = z.object({
 
 export const listCloudFlowTemplatesTool = {
     name: "list_cloudflow_templates",
+    title: "List CloudFlow templates",
     coversEndpoint: "get:/cloudflow/v1/templates",
     description:
         "Use this when the user wants to see the catalogue of available CloudFlow templates (read-only blueprints they can build a flow from). Returns a cursor-paginated list of templates with their id, name, description, and instructions. Do NOT use this to view a single template's details (use get_cloudflow_template) or to trigger a flow (use trigger_cloud_flow).",
@@ -773,6 +781,7 @@ export const GetCloudFlowTemplateArgumentsSchema = z.object({
 
 export const getCloudFlowTemplateTool = {
     name: "get_cloudflow_template",
+    title: "Get CloudFlow template",
     coversEndpoint: "get:/cloudflow/v1/templates/{templateId}",
     description:
         "Use this when the user wants to view the details of a specific CloudFlow template by its ID, including its name, description, and configuration instructions. Do NOT use this to list all templates (use list_cloudflow_templates) or to trigger a flow (use trigger_cloud_flow).",
@@ -826,6 +835,7 @@ export const ListCloudFlowsArgumentsSchema = z.object({
 
 export const listCloudFlowsTool = {
     name: "list_cloudflows",
+    title: "List CloudFlow flows",
     coversEndpoint: "get:/cloudflow/v1/flows",
     description:
         "Use this when the user wants to see their CloudFlow automation flows. Returns a cursor-paginated list of flows with their metadata, status, and last execution info.",

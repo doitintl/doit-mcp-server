@@ -13,19 +13,17 @@ export const ConfirmActionArgumentsSchema = z.object({
 });
 
 /**
- * The "gate" tool. This itself is annotated `destructiveHint: false` because, per the MCP
- * spec, that hint refers specifically to *destructive updates* (irreversible changes) —
- * `confirm_action` itself just dispatches a previously-staged call. The actual write
- * (which may be a create, update, or delete — not necessarily destructive) was already
- * announced upstream when the original tool call returned `status: "approval_required"`
- * with a human-readable summary. Setting `destructiveHint: true` here would cause
- * annotation-honoring clients to prompt a second time on top of that summary, which is a
- * confusing UX.
+ * The "gate" tool. Annotated `destructiveHint: true` because this is the call that actually
+ * performs the staged write: the original tool call only returned `status: "approval_required"`
+ * with a summary, and today the gated calls are generated DELETE operations, which cannot be
+ * undone. Directory listings (e.g. the Claude Connectors Directory) also require every tool to
+ * set `readOnlyHint` or `destructiveHint` to true, and this tool is not read-only.
  *
  * This tool should never be called without a prior write-action staging call.
  */
 export const confirmActionTool = {
     name: "confirm_action",
+    title: "Confirm pending action",
     coversEndpoint: null,
     description:
         "Finalizes a pending write action (e.g. creating, updating, or deleting a resource) " +
@@ -36,7 +34,7 @@ export const confirmActionTool = {
     inputSchema: zodToMcpInputSchema(ConfirmActionArgumentsSchema),
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {

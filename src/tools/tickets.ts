@@ -48,6 +48,7 @@ export const ListTicketsArgumentsSchema = z.object({
 // Tool definition
 export const listTicketsTool = {
     name: "list_tickets",
+    title: "List support tickets",
     coversEndpoint: "get:/support/v1/tickets",
     description:
         "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, priority, and platform. Supports partial subject filtering. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
@@ -112,6 +113,7 @@ export async function handleListTicketsRequest(args: any, token: string) {
 // Tool definition for creating a ticket
 export const createTicketTool = {
     name: "create_ticket",
+    title: "Create support ticket",
     coversEndpoint: "post:/support/v1/tickets",
     description:
         "Use this when the user wants to create a new support ticket. Ask the user to confirm the ticket details before executing. Do NOT use this for viewing existing tickets (use list_tickets) or cloud incidents (use get_cloud_incidents).",
@@ -224,9 +226,15 @@ export const GetTicketArgumentsSchema = z.object({
 // Tool definition for getting a single ticket
 export const getTicketTool = {
     name: "get_ticket",
+    title: "Get support ticket",
     coversEndpoint: "get:/support/v1/tickets/{ticketId}",
     description: "Returns details of a specific support ticket from the DoiT API by its ID.",
     inputSchema: zodToMcpInputSchema(GetTicketArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
 };
 
 // Handler for getting a single ticket
@@ -266,10 +274,16 @@ export const ListTicketCommentsArgumentsSchema = z.object({
 // Tool definition for listing ticket comments
 export const listTicketCommentsTool = {
     name: "list_ticket_comments",
+    title: "List ticket comments",
     coversEndpoint: "get:/support/v1/tickets/{ticketId}/comments",
     description:
         "Returns all comments on a support ticket. For customers, only public comments are returned. For DoiT employees, both public and private comments are returned.",
     inputSchema: zodToMcpInputSchema(ListTicketCommentsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
 };
 
 // Handler for listing ticket comments
@@ -311,13 +325,14 @@ export const CreateTicketCommentArgumentsSchema = z.object({
 // Tool definition for creating a ticket comment
 export const createTicketCommentTool = {
     name: "create_ticket_comment",
+    title: "Add ticket comment",
     coversEndpoint: "post:/support/v1/tickets/{ticketId}/comments",
     description:
         "Adds a comment to an existing support ticket. For customers, comments are always public. For DoiT employees, comments can be marked as private (internal notes) by setting the private field to true.",
     inputSchema: zodToMcpInputSchema(CreateTicketCommentArgumentsSchema),
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {

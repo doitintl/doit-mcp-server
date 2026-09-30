@@ -16,6 +16,7 @@ export interface ChangeCustomerResponse {
 // Tool metadata
 export const changeCustomerTool = {
     name: "change_customer",
+    title: "Switch customer context",
     description:
         "Use this when a DoiT employee needs to switch the active customer context for subsequent API calls. Allows switching between different customer accounts. Do NOT use this for regular user operations — this is an internal DoiT employee tool only.",
     inputSchema: {
@@ -28,8 +29,10 @@ export const changeCustomerTool = {
         },
         required: ["customerContext"],
     },
+    // Read-only: switching context changes which customer later calls target, but writes no
+    // DoiT data itself.
     annotations: {
-        readOnlyHint: false,
+        readOnlyHint: true,
         destructiveHint: false,
         openWorldHint: true,
     },
