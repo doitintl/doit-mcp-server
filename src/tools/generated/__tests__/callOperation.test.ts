@@ -67,29 +67,16 @@ describe("handleGeneratedOperationRequest", () => {
         );
     });
 
-    it("does not send customerContext as a query param or body field", async () => {
+    it("appends customerContext as a query param when provided", async () => {
         (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
-        const tool = buildTool({
-            zodSchema: z.object({ name: z.string(), customerContext: z.string().optional() }),
-            metadata: {
-                method: "post",
-                pathTemplate: "/widgets",
-                pathParams: [],
-                queryParams: [],
-                headerParams: [],
-                bodyEncoding: "json",
-                multipartFileFields: [],
-            },
-        });
 
-        await handleGeneratedOperationRequest(tool, { name: "w", customerContext: "cust-1" }, mockToken);
+        await handleGeneratedOperationRequest(buildTool(), { id: "abc", customerContext: "cust-1" }, mockToken);
 
-        const [url, , options] = (makeDoitRequest as vi.Mock).mock.calls[0];
-        expect(url).toBe(`${DOIT_API_BASE}/widgets`);
-        expect(options.body).toEqual({ name: "w" });
+        const [url] = (makeDoitRequest as vi.Mock).mock.calls[0];
+        expect(url).toContain("customerContext=cust-1");
     });
 
-    it("passes customerContext to makeDoitRequest so it is sent as the tenant header", async () => {
+    it("passes customerContext to makeDoitRequest so it is also sent as the tenant header", async () => {
         (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
 
         await handleGeneratedOperationRequest(buildTool(), { id: "abc", customerContext: "cust-1" }, mockToken);
