@@ -301,7 +301,7 @@
                     "properties": {
                       "version": {
                         "type": "string",
-                        "description": "Terms version shown to the requester; must match the current version."
+                        "description": "Terms version shown to the requester; must be a version the API currently accepts, otherwise terms_version_outdated."
                       },
                       "accepted": {
                         "type": "boolean"
@@ -358,6 +358,10 @@
                       "type": "string",
                       "format": "uri",
                       "description": "Page where the organization's admin verifies the request (pending_consent only)."
+                    },
+                    "activationToken": {
+                      "type": "string",
+                      "description": "Returned once, by the verifySignupRequest call that performed the verification. Redeem it with createSignupSession after the request is completed."
                     },
                     "verification": {
                       "type": "object",
@@ -478,6 +482,10 @@
                       "type": "string",
                       "format": "uri",
                       "description": "Page where the organization's admin verifies the request (pending_consent only)."
+                    },
+                    "activationToken": {
+                      "type": "string",
+                      "description": "Returned once, by the verifySignupRequest call that performed the verification. Redeem it with createSignupSession after the request is completed."
                     },
                     "verification": {
                       "type": "object",
@@ -820,6 +828,10 @@
                       "format": "uri",
                       "description": "Page where the organization's admin verifies the request (pending_consent only)."
                     },
+                    "activationToken": {
+                      "type": "string",
+                      "description": "Returned once, by the verifySignupRequest call that performed the verification. Redeem it with createSignupSession after the request is completed."
+                    },
                     "verification": {
                       "type": "object",
                       "description": "Present while the request awaits the emailed code.",
@@ -1084,6 +1096,10 @@
                       "type": "string",
                       "format": "uri",
                       "description": "Page where the organization's admin verifies the request (pending_consent only)."
+                    },
+                    "activationToken": {
+                      "type": "string",
+                      "description": "Returned once, by the verifySignupRequest call that performed the verification. Redeem it with createSignupSession after the request is completed."
                     },
                     "verification": {
                       "type": "object",
@@ -1359,6 +1375,277 @@
         }
       }
     },
+    "/signup/v1/requests/{signupRequestId}/session": {
+      "post": {
+        "tags": [
+          "Signup"
+        ],
+        "summary": "Sign the verified prospect in",
+        "description": "Exchanges the one-time activationToken returned by verifySignupRequest for a Firebase custom token once the request is completed, so the browser that entered the code lands in the new tenant without a second email. The token is bound to the request, single-use and valid for 10 minutes. Sign in with signInWithCustomToken against tenantId, then open consoleUrl.",
+        "operationId": "createSignupSession",
+        "security": [],
+        "parameters": [
+          {
+            "name": "signupRequestId",
+            "in": "path",
+            "required": true,
+            "description": "Public signup request id (sr_ prefix).",
+            "schema": {
+              "type": "string",
+              "pattern": "^sr_[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "activationToken"
+                ],
+                "properties": {
+                  "activationToken": {
+                    "type": "string",
+                    "description": "The one-time token returned by verifySignupRequest."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK - a session for the tenant admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "customToken",
+                    "tenantId",
+                    "customerId"
+                  ],
+                  "properties": {
+                    "customToken": {
+                      "type": "string",
+                      "description": "Firebase custom token for the tenant admin; exchange it with signInWithCustomToken."
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "customerId": {
+                      "type": "string"
+                    },
+                    "consoleUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "code is one of invalid_request, activation_token_invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "description": "RFC 9457 problem details for the Signup operations.",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "retryable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Machine-readable problem code (see each response description)."
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "signupRequestId": {
+                      "type": "string",
+                      "description": "The already-pending request for this domain (signup_already_pending)."
+                    },
+                    "signInUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Where an existing DoiT user or customer should sign in instead."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No signup request exists with this id.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "description": "RFC 9457 problem details for the Signup operations.",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "retryable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Machine-readable problem code (see each response description)."
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "signupRequestId": {
+                      "type": "string",
+                      "description": "The already-pending request for this domain (signup_already_pending)."
+                    },
+                    "signInUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Where an existing DoiT user or customer should sign in instead."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "activation_not_ready (provisioning still running, retry) or activation_token_used.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "description": "RFC 9457 problem details for the Signup operations.",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "retryable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Machine-readable problem code (see each response description)."
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "signupRequestId": {
+                      "type": "string",
+                      "description": "The already-pending request for this domain (signup_already_pending)."
+                    },
+                    "signInUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Where an existing DoiT user or customer should sign in instead."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "activation_token_expired - use the sign-in link from the completion page instead.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "description": "RFC 9457 problem details for the Signup operations.",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "retryable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Machine-readable problem code (see each response description)."
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "signupRequestId": {
+                      "type": "string",
+                      "description": "The already-pending request for this domain (signup_already_pending)."
+                    },
+                    "signInUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Where an existing DoiT user or customer should sign in instead."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/signup/v1/requests/{signupRequestId}/verification": {
       "post": {
         "tags": [
@@ -1425,6 +1712,10 @@
                       "type": "string",
                       "format": "uri",
                       "description": "Page where the organization's admin verifies the request (pending_consent only)."
+                    },
+                    "activationToken": {
+                      "type": "string",
+                      "description": "Returned once, by the verifySignupRequest call that performed the verification. Redeem it with createSignupSession after the request is completed."
                     },
                     "verification": {
                       "type": "object",
@@ -42217,6 +42508,15 @@
                       "items": {
                         "type": "object",
                         "description": "Definition and permissions assigned to a role.",
+                        "required": [
+                          "id",
+                          "name",
+                          "type",
+                          "description",
+                          "customer",
+                          "permissions",
+                          "childTenantEligible"
+                        ],
                         "properties": {
                           "id": {
                             "type": "string",
@@ -42228,19 +42528,23 @@
                           },
                           "type": {
                             "type": "string",
+                            "enum": [
+                              "preset",
+                              "custom"
+                            ],
                             "description": "The type of the role (preset or custom)."
                           },
                           "description": {
                             "type": "string",
-                            "description": "The description of the role."
+                            "description": "The description of the role. An empty string when no description is set."
                           },
                           "customer": {
                             "type": "string",
-                            "description": "The customer ID if this is a custom role."
+                            "description": "The customer ID if this is a custom role. An empty string for a preset role."
                           },
                           "permissions": {
                             "type": "array",
-                            "description": "List of permission IDs assigned to the role.",
+                            "description": "Permission IDs in stored order. An empty array when no permissions are assigned.",
                             "items": {
                               "type": "string"
                             }
@@ -42360,7 +42664,12 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The name of the role. Must be unique among the customer's roles, including preset roles."
+                    "minLength": 1,
+                    "not": {
+                      "type": "string",
+                      "pattern": "^[\t-\r    -     　]|[\t-\r    -     　]$"
+                    },
+                    "description": "The name of the role. Must be nonblank, contain no leading or trailing whitespace, and be unique among the customer's roles, including preset roles."
                   },
                   "description": {
                     "type": "string",
@@ -42368,7 +42677,8 @@
                   },
                   "permissions": {
                     "type": "array",
-                    "description": "Permission IDs to assign to the role, as returned in `permissions` by `GET /iam/v1/roles`. Duplicates are ignored.",
+                    "uniqueItems": true,
+                    "description": "Permission IDs to assign to the role, as returned in `permissions` by `GET /iam/v1/roles`. Duplicate IDs are rejected. Input order is preserved. Omission or an empty array creates a role without permissions.",
                     "items": {
                       "type": "string"
                     }
@@ -42393,44 +42703,51 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "Response returned after creating a role.",
+                  "description": "Definition and permissions assigned to a role.",
+                  "required": [
+                    "id",
+                    "name",
+                    "type",
+                    "description",
+                    "customer",
+                    "permissions",
+                    "childTenantEligible"
+                  ],
                   "properties": {
-                    "role": {
-                      "type": "object",
-                      "description": "Definition and permissions assigned to a role.",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "description": "The unique ID of the role."
-                        },
-                        "name": {
-                          "type": "string",
-                          "description": "The name of the role."
-                        },
-                        "type": {
-                          "type": "string",
-                          "description": "The type of the role (preset or custom)."
-                        },
-                        "description": {
-                          "type": "string",
-                          "description": "The description of the role."
-                        },
-                        "customer": {
-                          "type": "string",
-                          "description": "The customer ID if this is a custom role."
-                        },
-                        "permissions": {
-                          "type": "array",
-                          "description": "List of permission IDs assigned to the role.",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "childTenantEligible": {
-                          "type": "boolean",
-                          "description": "Whether the owning tenant made this role available as a child tenant role."
-                        }
+                    "id": {
+                      "type": "string",
+                      "description": "The unique ID of the role."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the role."
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "preset",
+                        "custom"
+                      ],
+                      "description": "The type of the role (preset or custom)."
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "The description of the role. An empty string when no description is set."
+                    },
+                    "customer": {
+                      "type": "string",
+                      "description": "The customer ID if this is a custom role. An empty string for a preset role."
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "description": "Permission IDs in stored order. An empty array when no permissions are assigned.",
+                      "items": {
+                        "type": "string"
                       }
+                    },
+                    "childTenantEligible": {
+                      "type": "boolean",
+                      "description": "Whether the owning tenant made this role available as a child tenant role."
                     }
                   }
                 }
@@ -42438,7 +42755,7 @@
             }
           },
           "400": {
-            "description": "Bad Request - Missing `name`, or a permission ID that does not exist or is not available to the customer. A missing `Idempotency-Key` returns `application/problem+json`.",
+            "description": "Bad Request - Missing, blank or whitespace-padded `name`, duplicate permission IDs, or a permission ID that does not exist or is not available to the customer. A missing `Idempotency-Key` returns `application/problem+json`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -42775,44 +43092,51 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "Response returned when reading a single role.",
+                  "description": "Definition and permissions assigned to a role.",
+                  "required": [
+                    "id",
+                    "name",
+                    "type",
+                    "description",
+                    "customer",
+                    "permissions",
+                    "childTenantEligible"
+                  ],
                   "properties": {
-                    "role": {
-                      "type": "object",
-                      "description": "Definition and permissions assigned to a role.",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "description": "The unique ID of the role."
-                        },
-                        "name": {
-                          "type": "string",
-                          "description": "The name of the role."
-                        },
-                        "type": {
-                          "type": "string",
-                          "description": "The type of the role (preset or custom)."
-                        },
-                        "description": {
-                          "type": "string",
-                          "description": "The description of the role."
-                        },
-                        "customer": {
-                          "type": "string",
-                          "description": "The customer ID if this is a custom role."
-                        },
-                        "permissions": {
-                          "type": "array",
-                          "description": "List of permission IDs assigned to the role.",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "childTenantEligible": {
-                          "type": "boolean",
-                          "description": "Whether the owning tenant made this role available as a child tenant role."
-                        }
+                    "id": {
+                      "type": "string",
+                      "description": "The unique ID of the role."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the role."
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "preset",
+                        "custom"
+                      ],
+                      "description": "The type of the role (preset or custom)."
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "The description of the role. An empty string when no description is set."
+                    },
+                    "customer": {
+                      "type": "string",
+                      "description": "The customer ID if this is a custom role. An empty string for a preset role."
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "description": "Permission IDs in stored order. An empty array when no permissions are assigned.",
+                      "items": {
+                        "type": "string"
                       }
+                    },
+                    "childTenantEligible": {
+                      "type": "boolean",
+                      "description": "Whether the owning tenant made this role available as a child tenant role."
                     }
                   }
                 }
@@ -42918,15 +43242,21 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The new name of the role. Must be unique among the customer's roles, including preset roles."
+                    "minLength": 1,
+                    "not": {
+                      "type": "string",
+                      "pattern": "^[\t-\r    -     　]|[\t-\r    -     　]$"
+                    },
+                    "description": "The new name of the role. Must be nonblank, contain no leading or trailing whitespace, and be unique among the customer's roles, including preset roles. Omission leaves the name unchanged."
                   },
                   "description": {
                     "type": "string",
-                    "description": "The new description of the role."
+                    "description": "The new description of the role. An empty string clears it; omission leaves it unchanged."
                   },
                   "permissions": {
                     "type": "array",
-                    "description": "Permission IDs that replace the role's current permissions, as returned in `permissions` by `GET /iam/v1/roles`. Duplicates are ignored.",
+                    "uniqueItems": true,
+                    "description": "Permission IDs that replace the role's current permissions, as returned in `permissions` by `GET /iam/v1/roles`. Duplicate IDs are rejected. Input order is preserved. An empty array clears all permissions; omission leaves them unchanged.",
                     "items": {
                       "type": "string"
                     }
@@ -42951,44 +43281,51 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "Response returned after updating a role.",
+                  "description": "Definition and permissions assigned to a role.",
+                  "required": [
+                    "id",
+                    "name",
+                    "type",
+                    "description",
+                    "customer",
+                    "permissions",
+                    "childTenantEligible"
+                  ],
                   "properties": {
-                    "role": {
-                      "type": "object",
-                      "description": "Definition and permissions assigned to a role.",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "description": "The unique ID of the role."
-                        },
-                        "name": {
-                          "type": "string",
-                          "description": "The name of the role."
-                        },
-                        "type": {
-                          "type": "string",
-                          "description": "The type of the role (preset or custom)."
-                        },
-                        "description": {
-                          "type": "string",
-                          "description": "The description of the role."
-                        },
-                        "customer": {
-                          "type": "string",
-                          "description": "The customer ID if this is a custom role."
-                        },
-                        "permissions": {
-                          "type": "array",
-                          "description": "List of permission IDs assigned to the role.",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "childTenantEligible": {
-                          "type": "boolean",
-                          "description": "Whether the owning tenant made this role available as a child tenant role."
-                        }
+                    "id": {
+                      "type": "string",
+                      "description": "The unique ID of the role."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the role."
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "preset",
+                        "custom"
+                      ],
+                      "description": "The type of the role (preset or custom)."
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "The description of the role. An empty string when no description is set."
+                    },
+                    "customer": {
+                      "type": "string",
+                      "description": "The customer ID if this is a custom role. An empty string for a preset role."
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "description": "Permission IDs in stored order. An empty array when no permissions are assigned.",
+                      "items": {
+                        "type": "string"
                       }
+                    },
+                    "childTenantEligible": {
+                      "type": "boolean",
+                      "description": "Whether the owning tenant made this role available as a child tenant role."
                     }
                   }
                 }
@@ -42996,7 +43333,7 @@
             }
           },
           "400": {
-            "description": "Bad Request - Empty body, blank `name`, unknown field, a permission ID that does not exist or is not available to the customer, or the role is a preset role.",
+            "description": "Bad Request - Empty body, blank or whitespace-padded `name`, duplicate permission IDs, unknown field, a permission ID that does not exist or is not available to the customer, or the role is a preset role.",
             "content": {
               "application/json": {
                 "schema": {
@@ -43190,7 +43527,7 @@
             }
           },
           "409": {
-            "description": "Conflict - The role is still assigned to users or groups.",
+            "description": "Conflict - The role is still assigned to users or groups, or held as a child tenant role.",
             "content": {
               "application/json": {
                 "schema": {
@@ -126729,7 +127066,7 @@
             "properties": {
               "version": {
                 "type": "string",
-                "description": "Terms version shown to the requester; must match the current version."
+                "description": "Terms version shown to the requester; must be a version the API currently accepts, otherwise terms_version_outdated."
               },
               "accepted": {
                 "type": "boolean"
@@ -126750,6 +127087,42 @@
             "maxLength": 6,
             "pattern": "^[0-9]{6}$",
             "description": "The 6-digit code from the verification email."
+          }
+        }
+      },
+      "SignupSessionRequest": {
+        "type": "object",
+        "required": [
+          "activationToken"
+        ],
+        "properties": {
+          "activationToken": {
+            "type": "string",
+            "description": "The one-time token returned by verifySignupRequest."
+          }
+        }
+      },
+      "SignupSession": {
+        "type": "object",
+        "required": [
+          "customToken",
+          "tenantId",
+          "customerId"
+        ],
+        "properties": {
+          "customToken": {
+            "type": "string",
+            "description": "Firebase custom token for the tenant admin; exchange it with signInWithCustomToken."
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "consoleUrl": {
+            "type": "string",
+            "format": "uri"
           }
         }
       },
@@ -126812,6 +127185,10 @@
             "type": "string",
             "format": "uri",
             "description": "Page where the organization's admin verifies the request (pending_consent only)."
+          },
+          "activationToken": {
+            "type": "string",
+            "description": "Returned once, by the verifySignupRequest call that performed the verification. Redeem it with createSignupSession after the request is completed."
           },
           "verification": {
             "type": "object",
@@ -134626,6 +135003,15 @@
       "Role": {
         "type": "object",
         "description": "Definition and permissions assigned to a role.",
+        "required": [
+          "id",
+          "name",
+          "type",
+          "description",
+          "customer",
+          "permissions",
+          "childTenantEligible"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -134637,19 +135023,23 @@
           },
           "type": {
             "type": "string",
+            "enum": [
+              "preset",
+              "custom"
+            ],
             "description": "The type of the role (preset or custom)."
           },
           "description": {
             "type": "string",
-            "description": "The description of the role."
+            "description": "The description of the role. An empty string when no description is set."
           },
           "customer": {
             "type": "string",
-            "description": "The customer ID if this is a custom role."
+            "description": "The customer ID if this is a custom role. An empty string for a preset role."
           },
           "permissions": {
             "type": "array",
-            "description": "List of permission IDs assigned to the role.",
+            "description": "Permission IDs in stored order. An empty array when no permissions are assigned.",
             "items": {
               "type": "string"
             }
@@ -134669,7 +135059,12 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "The name of the role. Must be unique among the customer's roles, including preset roles."
+            "minLength": 1,
+            "not": {
+              "type": "string",
+              "pattern": "^[\t-\r    -     　]|[\t-\r    -     　]$"
+            },
+            "description": "The name of the role. Must be nonblank, contain no leading or trailing whitespace, and be unique among the customer's roles, including preset roles."
           },
           "description": {
             "type": "string",
@@ -134677,95 +135072,10 @@
           },
           "permissions": {
             "type": "array",
-            "description": "Permission IDs to assign to the role, as returned in `permissions` by `GET /iam/v1/roles`. Duplicates are ignored.",
+            "uniqueItems": true,
+            "description": "Permission IDs to assign to the role, as returned in `permissions` by `GET /iam/v1/roles`. Duplicate IDs are rejected. Input order is preserved. Omission or an empty array creates a role without permissions.",
             "items": {
               "type": "string"
-            }
-          }
-        }
-      },
-      "CreateRoleResponse": {
-        "type": "object",
-        "description": "Response returned after creating a role.",
-        "properties": {
-          "role": {
-            "type": "object",
-            "description": "Definition and permissions assigned to a role.",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The unique ID of the role."
-              },
-              "name": {
-                "type": "string",
-                "description": "The name of the role."
-              },
-              "type": {
-                "type": "string",
-                "description": "The type of the role (preset or custom)."
-              },
-              "description": {
-                "type": "string",
-                "description": "The description of the role."
-              },
-              "customer": {
-                "type": "string",
-                "description": "The customer ID if this is a custom role."
-              },
-              "permissions": {
-                "type": "array",
-                "description": "List of permission IDs assigned to the role.",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "childTenantEligible": {
-                "type": "boolean",
-                "description": "Whether the owning tenant made this role available as a child tenant role."
-              }
-            }
-          }
-        }
-      },
-      "GetRoleResponse": {
-        "type": "object",
-        "description": "Response returned when reading a single role.",
-        "properties": {
-          "role": {
-            "type": "object",
-            "description": "Definition and permissions assigned to a role.",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The unique ID of the role."
-              },
-              "name": {
-                "type": "string",
-                "description": "The name of the role."
-              },
-              "type": {
-                "type": "string",
-                "description": "The type of the role (preset or custom)."
-              },
-              "description": {
-                "type": "string",
-                "description": "The description of the role."
-              },
-              "customer": {
-                "type": "string",
-                "description": "The customer ID if this is a custom role."
-              },
-              "permissions": {
-                "type": "array",
-                "description": "List of permission IDs assigned to the role.",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "childTenantEligible": {
-                "type": "boolean",
-                "description": "Whether the owning tenant made this role available as a child tenant role."
-              }
             }
           }
         }
@@ -134777,60 +135087,23 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "The new name of the role. Must be unique among the customer's roles, including preset roles."
+            "minLength": 1,
+            "not": {
+              "type": "string",
+              "pattern": "^[\t-\r    -     　]|[\t-\r    -     　]$"
+            },
+            "description": "The new name of the role. Must be nonblank, contain no leading or trailing whitespace, and be unique among the customer's roles, including preset roles. Omission leaves the name unchanged."
           },
           "description": {
             "type": "string",
-            "description": "The new description of the role."
+            "description": "The new description of the role. An empty string clears it; omission leaves it unchanged."
           },
           "permissions": {
             "type": "array",
-            "description": "Permission IDs that replace the role's current permissions, as returned in `permissions` by `GET /iam/v1/roles`. Duplicates are ignored.",
+            "uniqueItems": true,
+            "description": "Permission IDs that replace the role's current permissions, as returned in `permissions` by `GET /iam/v1/roles`. Duplicate IDs are rejected. Input order is preserved. An empty array clears all permissions; omission leaves them unchanged.",
             "items": {
               "type": "string"
-            }
-          }
-        }
-      },
-      "UpdateRoleResponse": {
-        "type": "object",
-        "description": "Response returned after updating a role.",
-        "properties": {
-          "role": {
-            "type": "object",
-            "description": "Definition and permissions assigned to a role.",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The unique ID of the role."
-              },
-              "name": {
-                "type": "string",
-                "description": "The name of the role."
-              },
-              "type": {
-                "type": "string",
-                "description": "The type of the role (preset or custom)."
-              },
-              "description": {
-                "type": "string",
-                "description": "The description of the role."
-              },
-              "customer": {
-                "type": "string",
-                "description": "The customer ID if this is a custom role."
-              },
-              "permissions": {
-                "type": "array",
-                "description": "List of permission IDs assigned to the role.",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "childTenantEligible": {
-                "type": "boolean",
-                "description": "Whether the owning tenant made this role available as a child tenant role."
-              }
             }
           }
         }
