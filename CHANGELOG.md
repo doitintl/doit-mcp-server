@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.12.1 (2026-09-30)
+
+**Full diff:** [`v1.12.0...v1.12.1`](../../compare/v1.12.0...v1.12.1)
+
+### Other Changes
+
+- Revert "fix: stop sending legacy customerContext query param" (`54977d0`)
 ## v1.12.0 (2026-09-30)
 
 **Full diff:** [`v1.11.0...v1.12.0`](../../compare/v1.11.0...v1.12.0)
