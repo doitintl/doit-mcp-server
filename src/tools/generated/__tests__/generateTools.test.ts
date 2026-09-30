@@ -105,7 +105,7 @@ describe("generateTools", () => {
         expect(tool.description).toContain("Widget operations.");
         expect(tool.description).toContain("paginated");
         expect(tool.metadata.pathParams).toEqual(["id"]);
-        expect(tool.metadata.queryParams).toEqual(["pageToken"]);
+        expect(tool.metadata.queryParams).toEqual(["pageToken", "customerContext"]);
         expect(tool.annotations.readOnlyHint).toBe(true);
         expect(tool.annotations.destructiveHint).toBe(false);
         expect(tool.zodSchema.shape.id).toBeDefined();
