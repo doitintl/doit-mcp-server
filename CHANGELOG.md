@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.12.0 (2026-09-30)
+
+**Full diff:** [`v1.11.0...v1.12.0`](../../compare/v1.11.0...v1.12.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`5cd5c59`)
+- feat: refresh generated OpenAPI spec snapshot (`37aa00d`)
+
+### Bug Fixes
+
+- fix: stop sending legacy customerContext query param (`d1c6159`)
 ## v1.11.0 (2026-09-28)
 
 **Full diff:** [`v1.10.0...v1.11.0`](../../compare/v1.10.0...v1.11.0)
