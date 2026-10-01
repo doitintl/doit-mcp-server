@@ -180,6 +180,7 @@ export interface AllocationsResponse {
 // Tool metadata
 export const listAllocationsTool = {
     name: "list_allocations",
+    title: "List allocations",
     coversEndpoint: "get:/analytics/v1/allocations",
     description:
         "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Supports partial name filtering. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
@@ -211,6 +212,7 @@ export const listAllocationsTool = {
 
 export const getAllocationTool = {
     name: "get_allocation",
+    title: "Get allocation",
     coversEndpoint: "get:/analytics/v1/allocations/{id}",
     description:
         "Use this when the user wants to view details of a specific cost allocation. Accepts either the allocation ID or a partial name (case-insensitive). Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
@@ -350,6 +352,7 @@ const createAllocationInputSchema = {
 
 export const createAllocationTool = {
     name: "create_allocation",
+    title: "Create allocation",
     coversEndpoint: "post:/analytics/v1/allocations",
     description:
         "Use this when the user wants to create a new cost allocation rule. Ask the user to confirm the allocation parameters before executing. Do NOT use this for viewing existing allocations (use list_allocations) or labels (use create_label).",
@@ -380,6 +383,7 @@ const updateAllocationInputSchema = {
 
 export const updateAllocationTool = {
     name: "update_allocation",
+    title: "Update allocation",
     coversEndpoint: "patch:/analytics/v1/allocations/{id}",
     description:
         "Use this when the user wants to modify an existing cost allocation. Ask the user to confirm changes before executing. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",

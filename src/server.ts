@@ -120,6 +120,7 @@ import { createErrorResponse, formatZodError, handleGeneralError, type TrackingC
 // hand-written tool — see src/tools/handWrittenTools.ts (coversEndpoint).
 const generatedToolDefinitions = generatedTools.map((tool) => ({
     name: tool.name,
+    title: tool.title,
     description: tool.description,
     inputSchema: zodToMcpInputSchema(tool.zodSchema),
     annotations: tool.annotations,

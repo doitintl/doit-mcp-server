@@ -11,6 +11,7 @@ const INCIDENTS_URL = `${DOIT_API_BASE}/core/v1/cloudincidents`;
 
 export const cloudOverviewTool = {
     name: "get_cloud_overview",
+    title: "Get cloud overview",
     coversEndpoint: null,
     description:
         "Use this when the user wants a high-level overview or dashboard of their entire cloud infrastructure. " +

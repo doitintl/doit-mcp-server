@@ -15,6 +15,8 @@ export type OperationMetadata = {
 
 export type GeneratedTool = {
     name: string;
+    /** Human-readable display name, from the OpenAPI operation summary. */
+    title: string;
     description: string;
     zodSchema: import("zod").ZodObject<import("zod").ZodRawShape>;
     metadata: OperationMetadata;
