@@ -8,6 +8,7 @@ import {
     handleGeneralError,
     makeDoitRequest,
 } from "../../utils/util.js";
+import { buildRequestPath } from "./requestPath.js";
 import type { GeneratedTool } from "./types.js";
 
 const GENERATED_REQUEST_TIMEOUT_MS = 30000;
@@ -49,10 +50,7 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
         const customerContext = (args?.customerContext as string | undefined) || process.env.CUSTOMER_CONTEXT;
         const { metadata } = tool;
 
-        let requestPath = metadata.pathTemplate;
-        for (const paramName of metadata.pathParams) {
-            requestPath = requestPath.replace(`{${paramName}}`, encodeURIComponent(String(parsed[paramName])));
-        }
+        const requestPath = buildRequestPath(metadata, parsed);
 
         const queryParams = new URLSearchParams();
         for (const paramName of metadata.queryParams) {
