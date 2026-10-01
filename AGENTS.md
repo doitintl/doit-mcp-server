@@ -50,7 +50,8 @@ This repo is the stdio MCP server plus a transport-independent core package:
 ```
 src/
 ├── index.ts              # Entry point (stdio transport)
-├── server.ts             # MCP server setup and request handlers
+├── stdio.ts              # serveDoitStdio: serves 2025-era and 2026-07-28 clients (see docs/protocol-compatibility.md)
+├── server.ts             # MCP server setup and request handlers (createServer is the per-connection factory)
 ├── tools/                # MCP tool implementations
 │   └── __tests__/        # Tool tests
 ├── types/                # Tools and general type definitions
