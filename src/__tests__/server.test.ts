@@ -524,7 +524,7 @@ describe("tools/list handler", () => {
     // Directory listings (e.g. the Claude Connectors Directory) flag any tool without a title
     // or without the applicable readOnlyHint/destructiveHint set to true.
     it("every listed tool has a title and sets readOnlyHint or destructiveHint to true", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
         // change_customer is registered only by the remote Worker (for DoiT employees), so check
         // it alongside the stdio list.
