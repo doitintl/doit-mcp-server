@@ -18,13 +18,17 @@ import { SERVER_VERSION } from "../utils/consts.js";
 //    fails to load. Per-test behaviour is still set via mockImplementation.
 vi.mock("@modelcontextprotocol/server", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@modelcontextprotocol/server")>()),
-    Server: vi.fn(() => ({
-        setRequestHandler: vi.fn(),
-        connect: vi.fn(),
-        notification: vi.fn(),
-        getClientVersion: vi.fn(),
-        getNegotiatedProtocolVersion: vi.fn(),
-    })),
+    // A class, not an arrow: src/server.ts calls `new Server(...)`, and since Vitest 4 a
+    // mock invoked with `new` needs a constructible implementation.
+    Server: vi.fn(
+        class {
+            setRequestHandler = vi.fn();
+            connect = vi.fn();
+            notification = vi.fn();
+            getClientVersion = vi.fn();
+            getNegotiatedProtocolVersion = vi.fn();
+        }
+    ),
 }));
 vi.mock(import("../tools/overview.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -172,15 +176,17 @@ vi.mock(import("../utils/util.js"), async (importOriginal) => ({
 }));
 
 const setRequestHandlerMock = vi.fn();
-(Server as any).mockImplementation(() => ({
-    setRequestHandler: setRequestHandlerMock,
-    connect: vi.fn(),
-    notification: vi.fn(),
-    // Client identity now comes from the SDK's own initialize path via these
-    // accessors, replacing the closure the deleted custom handler populated.
-    getClientVersion: vi.fn(() => ({ name: "test-client", version: "1.2.3" })),
-    getNegotiatedProtocolVersion: vi.fn(() => "2025-06-18"),
-}));
+(Server as any).mockImplementation(
+    class {
+        setRequestHandler = setRequestHandlerMock;
+        connect = vi.fn();
+        notification = vi.fn();
+        // Client identity now comes from the SDK's own initialize path via these
+        // accessors, replacing the closure the deleted custom handler populated.
+        getClientVersion = vi.fn(() => ({ name: "test-client", version: "1.2.3" }));
+        getNegotiatedProtocolVersion = vi.fn(() => "2025-06-18");
+    }
+);
 
 import {
     createServer,
@@ -348,15 +354,17 @@ let _server: any;
 beforeEach(() => {
     vi.resetAllMocks();
     process.env = { ...originalProcessEnv, DOIT_API_KEY: "fake-token" };
-    (Server as any).mockImplementation(() => ({
-        setRequestHandler: setRequestHandlerMock,
-        connect: vi.fn(),
-        notification: vi.fn(),
-        // Client identity now comes from the SDK's own initialize path via these
-        // accessors, replacing the closure the deleted custom handler populated.
-        getClientVersion: vi.fn(() => ({ name: "test-client", version: "1.2.3" })),
-        getNegotiatedProtocolVersion: vi.fn(() => "2025-06-18"),
-    }));
+    (Server as any).mockImplementation(
+        class {
+            setRequestHandler = setRequestHandlerMock;
+            connect = vi.fn();
+            notification = vi.fn();
+            // Client identity now comes from the SDK's own initialize path via these
+            // accessors, replacing the closure the deleted custom handler populated.
+            getClientVersion = vi.fn(() => ({ name: "test-client", version: "1.2.3" }));
+            getNegotiatedProtocolVersion = vi.fn(() => "2025-06-18");
+        }
+    );
     _server = createServer();
     formatZodErrorSpy.mockClear();
     createErrorResponseSpy.mockClear();

@@ -13,7 +13,7 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import OpenAPIParser from "@readme/openapi-parser";
+import { dereference } from "@readme/openapi-parser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const source = process.argv[2] ?? "https://api.doit.com/openapi.yaml";
@@ -22,7 +22,7 @@ const outputPath = path.resolve(
   "../src/tools/generated/openapi.json",
 );
 
-const document = await OpenAPIParser.dereference(source);
+const document = await dereference(source);
 writeFileSync(outputPath, `${JSON.stringify(document, null, 2)}\n`);
 
 console.error(`Wrote dereferenced spec from ${source} to ${outputPath}`);
