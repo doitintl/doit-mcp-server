@@ -18,10 +18,9 @@ import { SERVER_VERSION } from "../utils/consts.js";
 //    `types.js` this mock never touched; in v2 they share a module with Server, so a
 //    bare auto-mock would stub out the error class the handlers throw and every
 //    `toThrow` assertion would see an empty error.
-// 2. Server needs a default implementation. src/server.ts constructs one at module
-//    scope (`export const server = createServer()`), which runs on import — before any
-//    mockImplementation below. A bare vi.fn() returns undefined there and the module
-//    fails to load. Per-test behaviour is still set via mockImplementation.
+// 2. Server keeps a constructible default implementation, so `createServer()` works even
+//    where no test has set one yet. A bare vi.fn() would make `new Server(...)` return
+//    undefined. Per-test behaviour is still set via mockImplementation.
 vi.mock("@modelcontextprotocol/server", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@modelcontextprotocol/server")>()),
     // A class, not an arrow: src/server.ts calls `new Server(...)`, and since Vitest 4 a

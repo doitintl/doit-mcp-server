@@ -310,8 +310,6 @@ export function createServer() {
     return server;
 }
 
-export const server = createServer();
-
 export {
     createErrorResponse,
     formatZodError,
