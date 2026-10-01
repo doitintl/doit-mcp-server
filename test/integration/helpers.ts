@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { createServer } from "../../src/server.js";
+import { serveDoitStdio } from "../../src/stdio.js";
 
 type ToolResult = { content: Array<{ type: string; text?: string }>; isError?: boolean };
 
@@ -16,12 +16,16 @@ type ToolResult = { content: Array<{ type: string; text?: string }>; isError?: b
  *
  * The two-phase shape itself is asserted explicitly in
  * test/integration/stdio/approvalFlow.test.ts using `rawClient`.
+ *
+ * The server side goes through `serveDoitStdio` — the same entry `main()` ships — with the
+ * in-memory transport swapped in for process stdio. That makes this suite's v1 SDK client
+ * (which only speaks the 2025-era `initialize` handshake) a backward-compatibility check of
+ * the real era-selecting entry, not of a hand-wired `server.connect()`.
  */
 export async function createTestClient() {
-    const server = createServer();
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-    await server.connect(serverTransport);
+    const handle = serveDoitStdio({ transport: serverTransport });
 
     const client = new Client({ name: "test-client", version: "1.0.0" });
     await client.connect(clientTransport);
@@ -54,10 +58,13 @@ export async function createTestClient() {
     return {
         client,
         rawClient: { callTool: originalCallTool },
-        _server: server,
+        // serveStdio owns the per-connection Server instance and does not expose it. No test
+        // reads this; it stays only so the existing `({ client, _server, cleanup })`
+        // destructuring in the stdio/*.test.ts files keeps working unchanged.
+        _server: undefined,
         cleanup: async () => {
             await client.close();
-            await server.close();
+            await handle.close();
         },
     };
 }
