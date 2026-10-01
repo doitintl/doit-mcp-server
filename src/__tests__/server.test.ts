@@ -1,4 +1,10 @@
-import { ProtocolError, ProtocolErrorCode, Server } from "@modelcontextprotocol/server";
+import {
+    CLIENT_INFO_META_KEY,
+    PROTOCOL_VERSION_META_KEY,
+    ProtocolError,
+    ProtocolErrorCode,
+    Server,
+} from "@modelcontextprotocol/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
@@ -266,6 +272,7 @@ import {
     createCloudFlowConnectionTool,
     getCloudFlowConnectionTool,
     getCloudFlowTemplateTool,
+    handleRefineCloudflowRequest,
     listCloudFlowConnectionsTool,
     listCloudFlowsTool,
     listCloudFlowTemplatesTool,
@@ -827,7 +834,90 @@ describe("resources/read handler", () => {
 describe("tools/call handler", () => {
     const mockRequest = (name: string, args: any) => ({ params: { name, arguments: args } });
 
-    const getCallToolHandler = () => setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/call")?.[1];
+    // The SDK passes a per-request context as the handler's second argument. `envelope` is
+    // only present on 2026-07-28 requests; it is absent (undefined) on 2025-era requests.
+    const mockCtx = (envelope?: Record<string, unknown>) => ({
+        mcpReq: { id: 1, envelope, notify: vi.fn(async () => {}) },
+    });
+
+    const getCallToolHandler = () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/call")?.[1];
+        return (request: any, ctx: any = mockCtx()) => handler(request, ctx);
+    };
+
+    describe("tracking context", () => {
+        const captureTrackingContext = async (ctx: any) => {
+            let captured: utilModule.TrackingContext | undefined;
+            (handleCloudIncidentsRequest as any).mockImplementation(async () => {
+                captured = utilModule.getTrackingContext();
+                return { content: [] };
+            });
+            await getCallToolHandler()(mockRequest("get_cloud_incidents", {}), ctx);
+            return captured;
+        };
+
+        it("reads client identity and protocol version from the 2026-07-28 request envelope", async () => {
+            const ctx = mockCtx({
+                [PROTOCOL_VERSION_META_KEY]: "2026-07-28",
+                [CLIENT_INFO_META_KEY]: { name: "modern-client", version: "9.9.9" },
+            });
+
+            expect(await captureTrackingContext(ctx)).toMatchObject({
+                mcpClient: "modern-client",
+                mcpClientVersion: "9.9.9",
+                mcpProtocolVersion: "2026-07-28",
+                mcpTool: "get_cloud_incidents",
+            });
+            expect(_server.getClientVersion).not.toHaveBeenCalled();
+            expect(_server.getNegotiatedProtocolVersion).not.toHaveBeenCalled();
+        });
+
+        it("falls back to the initialize-time accessors on 2025-era requests (no envelope)", async () => {
+            expect(await captureTrackingContext(mockCtx())).toMatchObject({
+                mcpClient: "test-client",
+                mcpClientVersion: "1.2.3",
+                mcpProtocolVersion: "2025-06-18",
+            });
+        });
+
+        it("keeps the envelope's protocol version when the optional client info is absent", async () => {
+            const ctx = mockCtx({ [PROTOCOL_VERSION_META_KEY]: "2026-07-28" });
+
+            expect(await captureTrackingContext(ctx)).toMatchObject({
+                mcpClient: "test-client",
+                mcpProtocolVersion: "2026-07-28",
+            });
+        });
+    });
+
+    describe("progress notifications", () => {
+        it("sends progress through the per-request ctx.mcpReq.notify", async () => {
+            (handleRefineCloudflowRequest as any).mockImplementation(
+                async (_args: unknown, _token: string, onProgress?: (message: string) => Promise<void>) => {
+                    await onProgress?.("step 1");
+                    return { content: [] };
+                }
+            );
+            const ctx = mockCtx();
+
+            await getCallToolHandler()(
+                { params: { name: "refine_cloudflow", arguments: {}, _meta: { progressToken: "tok-1" } } },
+                ctx
+            );
+
+            expect(ctx.mcpReq.notify).toHaveBeenCalledWith({
+                method: "notifications/progress",
+                params: { progressToken: "tok-1", progress: 0, message: "step 1" },
+            });
+            expect(_server.notification).not.toHaveBeenCalled();
+        });
+
+        it("passes no progress callback when the request has no progressToken", async () => {
+            await getCallToolHandler()(mockRequest("refine_cloudflow", {}));
+
+            expect(handleRefineCloudflowRequest).toHaveBeenCalledWith({}, "fake-token", undefined);
+        });
+    });
 
     it("returns Unauthorized when DOIT_API_KEY is missing", async () => {
         process.env.DOIT_API_KEY = undefined;
