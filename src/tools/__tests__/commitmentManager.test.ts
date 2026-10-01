@@ -238,7 +238,7 @@ describe("handleGetCommitmentRequest", () => {
         const response = await handleGetCommitmentRequest({}, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
         expect(makeDoitRequest).not.toHaveBeenCalled();

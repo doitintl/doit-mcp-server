@@ -8,7 +8,8 @@ generic (e.g. "a separate private repo") instead.
 
 ## Environment Setup
 
-Requires Node.js `>=18`. Install dependencies before running any commands:
+Requires Node.js `>=20` (the MCP SDK v2 packages set that floor). Install dependencies
+before running any commands:
 
 ```sh
 yarn install

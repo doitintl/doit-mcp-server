@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
+import type { Server } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import * as dotenv from "dotenv";
 
 // quiet: dotenv >=17 prints a banner to stdout, which corrupts the MCP JSON-RPC stream
 dotenv.config({ quiet: true });
 
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { server } from "./server.js";
 
 export async function mainWithServer(customServer?: Server) {

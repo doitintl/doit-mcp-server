@@ -170,11 +170,17 @@ export function createSuccessResponse(text: string) {
  * @returns Formatted error message string
  */
 export function formatZodError(error: any): string {
-    if (!error.errors) {
+    // zod 4 renamed ZodError.errors to .issues. Both are read here because this is
+    // reached with plain `any`: .issues first, .errors as the zod-3 fallback. Dropping
+    // the fallback silently is the trap — the guard below returns a generic string
+    // rather than throwing, so a missed rename degrades every validation message in
+    // the product instead of failing loudly.
+    const issues = error?.issues ?? error?.errors;
+    if (!Array.isArray(issues)) {
         return "Invalid arguments provided";
     }
 
-    return `Invalid arguments: ${error.errors.map((e: any) => (e.path.length > 0 ? `${e.path.join(".")}: ${e.message}` : e.message)).join(", ")}`;
+    return `Invalid arguments: ${issues.map((e: any) => (e.path.length > 0 ? `${e.path.join(".")}: ${e.message}` : e.message)).join(", ")}`;
 }
 
 /**

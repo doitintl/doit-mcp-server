@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from "openapi-types";
-import { type ZodRawShape, z } from "zod";
+import { z } from "zod";
 
 import { isExcludedOperation } from "./excludedOperations.js";
 import { toolOverrides } from "./overrides.js";
@@ -110,7 +110,9 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             const queryParams = parameters.filter((parameter) => parameter.in === "query");
             const headerParams = parameters.filter((parameter) => parameter.in === "header");
 
-            const shape: ZodRawShape = {};
+            // Built mutably, then frozen into a schema by z.object() below. zod 4's own
+            // ZodRawShape is Readonly, so it can't type a shape that's still being filled in.
+            const shape: Record<string, z.ZodType> = {};
             for (const parameter of [...pathParams, ...queryParams, ...headerParams]) {
                 const zodType = schemaToZod(parameter.schema as unknown as JsonSchema);
                 shape[parameter.name] = parameter.required ? zodType : zodType.optional();
