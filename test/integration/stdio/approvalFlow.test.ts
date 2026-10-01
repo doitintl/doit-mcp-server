@@ -36,7 +36,7 @@ describe("Write-gated tool approval flow (stdio)", () => {
         expect(body.status).toBe("approval_required");
         expect(body.approvalToken).toMatch(/^[0-9a-f-]{36}$/i);
         expect(body.summary).toBe(
-            'Delete an alert (id="alert-1"). This cannot be undone: DELETE /analytics/v1/alerts/{id}.'
+            'Delete an alert (id="alert-1"). This cannot be undone: DELETE /analytics/v1/alerts/alert-1.'
         );
         expect(body.next).toContain("confirm_action");
         expect(deleteCalls).toEqual([]);

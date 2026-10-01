@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { isExcludedOperation } from "./excludedOperations.js";
 import { toolOverrides } from "./overrides.js";
+import { buildRequestPath } from "./requestPath.js";
 import { type JsonSchema, schemaToZod } from "./schemaToZod.js";
 import { type GeneratedTool, HTTP_METHODS, type OperationMetadata } from "./types.js";
 
@@ -66,14 +67,25 @@ function isEventStreamOnlyOperation(operation: OpenAPIV3.OperationObject): boole
 /**
  * DELETE operations are irreversible, so they go through the server-side two-phase approval
  * flow (`approval_required` → `confirm_action`) rather than relying on the client honouring
- * `destructiveHint`, which is advisory only. The summary is the text the user confirms.
+ * `destructiveHint`, which is advisory only. The summary is the text the user confirms, so it
+ * names the resolved request path (built by the same function the executor uses) rather than
+ * the template — and throws, minting no approval, for args that would not resolve safely.
  */
-function buildDeleteSummary(operationSummary: string | undefined, pathTemplate: string, pathParams: string[]) {
+function buildDeleteSummary(
+    operationSummary: string | undefined,
+    pathTemplate: string,
+    pathParams: string[],
+    zodSchema: z.ZodType
+) {
     return (args: Record<string, unknown>) => {
+        // Validated the same way the executor will, so no approval is minted for a call
+        // that confirm_action could never run.
+        zodSchema.parse(args ?? {});
+        const requestPath = buildRequestPath({ pathTemplate, pathParams }, args);
         const target = pathParams.map((name) => `${name}=${JSON.stringify(String(args?.[name] ?? ""))}`).join(", ");
         const scope = args?.customerContext ? ` for customer ${String(args.customerContext)}` : "";
         const label = operationSummary ?? `Delete ${pathTemplate}`;
-        return `${label}${target ? ` (${target})` : ""}${scope}. This cannot be undone: DELETE ${pathTemplate}.`;
+        return `${label}${target ? ` (${target})` : ""}${scope}. This cannot be undone: DELETE ${requestPath}.`;
     };
 }
 
@@ -189,6 +201,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             }`;
 
             const isReadOnly = method === "get";
+            const zodSchema = z.object(shape);
 
             tools.push({
                 name,
@@ -196,7 +209,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 // fallback only keeps a future summary-less operation from shipping untitled.
                 title: operation.summary?.trim() || `${method.toUpperCase()} ${pathTemplate}`,
                 description,
-                zodSchema: z.object(shape),
+                zodSchema,
                 metadata,
                 annotations: {
                     readOnlyHint: isReadOnly,
@@ -210,7 +223,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                     },
                 ],
                 ...(method === "delete"
-                    ? { summary: buildDeleteSummary(operation.summary, pathTemplate, metadata.pathParams) }
+                    ? { summary: buildDeleteSummary(operation.summary, pathTemplate, metadata.pathParams, zodSchema) }
                     : {}),
             });
         }

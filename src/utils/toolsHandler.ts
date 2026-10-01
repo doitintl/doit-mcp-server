@@ -234,6 +234,10 @@ export async function executeToolHandler(
 
                 const summaryFn = WRITE_GATED_SUMMARIES[toolName] ?? generatedTools?.get(toolName)?.summary;
                 if (summaryFn) {
+                    // Built before stashing: a summary that rejects the args (e.g. a path
+                    // param that would resolve to a different endpoint) must not leave a
+                    // staged approval behind.
+                    const summary = summaryFn(args);
                     const approvalToken = mintApprovalToken();
                     await approvalStore.stash(approvalToken, {
                         toolName,
@@ -251,7 +255,7 @@ export async function executeToolHandler(
                     //       approval JSON as if it were tool results.
                     // The real tool output (after `confirm_action` → `runOriginal`) still
                     // flows through `convertResponse` normally.
-                    return buildApprovalResponse(approvalToken, summaryFn(args));
+                    return buildApprovalResponse(approvalToken, summary);
                 }
             }
 

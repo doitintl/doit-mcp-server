@@ -211,6 +211,49 @@ describe("handleGeneratedOperationRequest", () => {
         expect(response.isError).toBe(true);
     });
 
+    it.each(["..", ".", "", "x/../..", "..\\x"])(
+        "rejects path param %j instead of sending a request",
+        async (value) => {
+            const tool = buildTool({
+                zodSchema: z.object({ targetCustomerId: z.string(), userId: z.string() }),
+                metadata: {
+                    method: "delete",
+                    pathTemplate: "/rbac/v1/customers/{targetCustomerId}/users/{userId}/geographic-scope",
+                    pathParams: ["targetCustomerId", "userId"],
+                    queryParams: [],
+                    headerParams: [],
+                    bodyEncoding: "json",
+                    multipartFileFields: [],
+                },
+            });
+
+            const response = await handleGeneratedOperationRequest(
+                tool,
+                { targetCustomerId: "T", userId: value },
+                mockToken
+            );
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("userId");
+        }
+    );
+
+    it("keeps dot-containing path params that are not whole dot segments", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+
+        await handleGeneratedOperationRequest(buildTool(), { id: "a..b" }, mockToken);
+        await handleGeneratedOperationRequest(buildTool(), { id: "a/b" }, mockToken);
+        await handleGeneratedOperationRequest(buildTool(), { id: "%2e%2e" }, mockToken);
+
+        const urls = (makeDoitRequest as vi.Mock).mock.calls.map(([url]) => url);
+        expect(urls).toEqual([
+            `${DOIT_API_BASE}/widgets/a..b`,
+            `${DOIT_API_BASE}/widgets/a%2Fb`,
+            `${DOIT_API_BASE}/widgets/%252e%252e`,
+        ]);
+    });
+
     it("surfaces a failure response when makeDoitRequest returns null", async () => {
         (makeDoitRequest as vi.Mock).mockResolvedValue(null);
 

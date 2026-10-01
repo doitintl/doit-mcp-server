@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from "openapi-types";
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { COVERED_ENDPOINTS } from "../../handWrittenTools.js";
 import { generateTools } from "../generateTools.js";
 import { loadGeneratedToolsSpec } from "../loadSpec.js";
@@ -168,10 +169,24 @@ describe("generateTools", () => {
         expect(updateTool?.summary).toBeUndefined();
         expect(deleteTool?.summary).toBeDefined();
         expect(deleteTool?.summary?.({ id: "w-1", customerContext: "cust-9" })).toBe(
-            'Delete a widget (id="w-1") for customer cust-9. This cannot be undone: DELETE /widgets/{id}.'
+            'Delete a widget (id="w-1") for customer cust-9. This cannot be undone: DELETE /widgets/w-1.'
         );
         expect(deleteTool?.summary?.({ id: "w-1" })).toBe(
-            'Delete a widget (id="w-1"). This cannot be undone: DELETE /widgets/{id}.'
+            'Delete a widget (id="w-1"). This cannot be undone: DELETE /widgets/w-1.'
+        );
+    });
+
+    it("refuses to build an approval summary for a path param that would change the target path", () => {
+        const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+        const tool = tools.find((candidate) => candidate.name === "delete_user_geographic_access_scope");
+        expect(tool?.summary).toBeDefined();
+
+        expect(() => tool?.summary?.({ targetCustomerId: "T", userId: ".." })).toThrow(z.ZodError);
+        expect(() => tool?.summary?.({ targetCustomerId: "T", userId: "" })).toThrow(z.ZodError);
+        // Args that fail the tool's own schema get no approval either.
+        expect(() => tool?.summary?.({ targetCustomerId: "T", userId: ["..", "x"] })).toThrow(z.ZodError);
+        expect(tool?.summary?.({ targetCustomerId: "T", userId: "u1" })).toContain(
+            "DELETE /rbac/v1/customers/T/users/u1/geographic-scope."
         );
     });
 

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { generateTools } from "../../tools/generated/generateTools.js";
+import { loadGeneratedToolsSpec } from "../../tools/generated/loadSpec.js";
 import type { GeneratedTool } from "../../tools/generated/types.js";
+import { COVERED_ENDPOINTS } from "../../tools/handWrittenTools.js";
 import { MemoryApprovalStore } from "../approval.js";
 import { executeToolHandler } from "../toolsHandler.js";
 import { makeDoitRequest } from "../util.js";
@@ -81,6 +84,24 @@ describe("executeToolHandler approval gate", () => {
         expect(parsed.summary).toBe('Delete a widget (id="w-1").');
         expect(makeDoitRequest).not.toHaveBeenCalled();
         expect(approvalStore.size()).toBe(1);
+    });
+
+    it("a generated DELETE whose path param would resolve to a sibling endpoint mints no approval", async () => {
+        const approvalStore = new MemoryApprovalStore();
+        const specTools = new Map(
+            generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS).map((tool) => [tool.name, tool])
+        );
+        const response = await executeToolHandler(
+            "delete_user_geographic_access_scope",
+            { targetCustomerId: "T", userId: ".." },
+            apiToken,
+            { userKey, approvalStore, generatedTools: specTools }
+        );
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("userId");
+        expect(approvalStore.size()).toBe(0);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 
     it("confirm_action with a valid token runs the staged DELETE exactly once", async () => {
