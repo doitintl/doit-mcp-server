@@ -28,8 +28,10 @@ export function buildRequestPath(
     for (const paramName of metadata.pathParams) {
         const raw = values?.[paramName];
         const value = raw === undefined || raw === null ? "" : String(raw);
-        if (value === "" || value === "." || value === "..") {
-            throw invalidPathParam(paramName, value, "must be a non-empty identifier and not '.' or '..'");
+        // `/` and `\` are percent-encoded below, but a proxy or framework that decodes `%2F`
+        // before routing would still see `a/../b` as a traversal — reject dot pieces there too.
+        if (value === "" || value.split(/[/\\]/).some((piece) => piece === "." || piece === "..")) {
+            throw invalidPathParam(paramName, value, "must be a non-empty identifier with no '.' or '..' segments");
         }
         requestPath = requestPath.replace(`{${paramName}}`, encodeURIComponent(value));
     }

@@ -183,6 +183,8 @@ describe("generateTools", () => {
 
         expect(() => tool?.summary?.({ targetCustomerId: "T", userId: ".." })).toThrow(z.ZodError);
         expect(() => tool?.summary?.({ targetCustomerId: "T", userId: "" })).toThrow(z.ZodError);
+        // Args that fail the tool's own schema get no approval either.
+        expect(() => tool?.summary?.({ targetCustomerId: "T", userId: ["..", "x"] })).toThrow(z.ZodError);
         expect(tool?.summary?.({ targetCustomerId: "T", userId: "u1" })).toContain(
             "DELETE /rbac/v1/customers/T/users/u1/geographic-scope."
         );

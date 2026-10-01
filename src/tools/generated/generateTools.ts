@@ -71,8 +71,16 @@ function isEventStreamOnlyOperation(operation: OpenAPIV3.OperationObject): boole
  * names the resolved request path (built by the same function the executor uses) rather than
  * the template — and throws, minting no approval, for args that would not resolve safely.
  */
-function buildDeleteSummary(operationSummary: string | undefined, pathTemplate: string, pathParams: string[]) {
+function buildDeleteSummary(
+    operationSummary: string | undefined,
+    pathTemplate: string,
+    pathParams: string[],
+    zodSchema: z.ZodType
+) {
     return (args: Record<string, unknown>) => {
+        // Validated the same way the executor will, so no approval is minted for a call
+        // that confirm_action could never run.
+        zodSchema.parse(args ?? {});
         const requestPath = buildRequestPath({ pathTemplate, pathParams }, args);
         const target = pathParams.map((name) => `${name}=${JSON.stringify(String(args?.[name] ?? ""))}`).join(", ");
         const scope = args?.customerContext ? ` for customer ${String(args.customerContext)}` : "";
@@ -193,6 +201,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             }`;
 
             const isReadOnly = method === "get";
+            const zodSchema = z.object(shape);
 
             tools.push({
                 name,
@@ -200,7 +209,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 // fallback only keeps a future summary-less operation from shipping untitled.
                 title: operation.summary?.trim() || `${method.toUpperCase()} ${pathTemplate}`,
                 description,
-                zodSchema: z.object(shape),
+                zodSchema,
                 metadata,
                 annotations: {
                     readOnlyHint: isReadOnly,
@@ -214,7 +223,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                     },
                 ],
                 ...(method === "delete"
-                    ? { summary: buildDeleteSummary(operation.summary, pathTemplate, metadata.pathParams) }
+                    ? { summary: buildDeleteSummary(operation.summary, pathTemplate, metadata.pathParams, zodSchema) }
                     : {}),
             });
         }
