@@ -543,8 +543,8 @@ describe("tools/list handler", () => {
         }
     });
 
-    /** Mutating tools that previously lacked MCP hints: destructive annotations and ask-to-confirm copy in descriptions. */
-    it("list_tools: user, invite, and DataHub mutating tools expose destructive hints and confirmation guidance", async () => {
+    /** Mutating tools that previously lacked MCP hints: destructive annotations carry the confirmation signal. */
+    it("list_tools: user, invite, and DataHub mutating tools expose destructive hints", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
         const names = [
@@ -562,8 +562,29 @@ describe("tools/list handler", () => {
                 destructiveHint: true,
                 openWorldHint: true,
             });
-            expect(tool.description).toMatch(/Ask the user to confirm/i);
         }
+    });
+
+    // Directory review (e.g. the Claude Connectors Directory) rejects tool text that tells the
+    // model how to behave: always calling other tools, asking the user, or what it may claim.
+    // Descriptions say what a tool does and when it applies; confirmation rides on annotations.
+    it("no tool description or server instruction prescribes model behavior", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        const behavioral =
+            /\bALWAYS\b|\bAlways (call|use|include|export)\b|\bIMPORTANT\b|Ask the user|before reporting|Only claim|proactively|Only call this/;
+        for (const tool of [...tools, changeCustomerTool]) {
+            expect(tool.description, tool.name).not.toMatch(behavioral);
+        }
+        expect(SERVER_INSTRUCTIONS).not.toMatch(behavioral);
+    });
+
+    it("run_query names the DoiT Cloud Analytics API it calls", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        const runQuery = tools.find((t: { name: string }) => t.name === "run_query");
+        expect(runQuery.description).toContain("DoiT Cloud Analytics API");
+        expect(runQuery.description).toContain("https://developer.doit.com/reference/query");
     });
 });
 

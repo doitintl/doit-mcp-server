@@ -246,7 +246,7 @@ export const createBudgetTool = {
     title: "Create budget",
     coversEndpoint: "post:/analytics/v1/budgets",
     description:
-        "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires budget name, currency, type, and start period. Ask the user to confirm the budget parameters before executing. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
+        "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires budget name, currency, type, and start period. Changes apply immediately. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateBudgetArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -412,7 +412,7 @@ export const updateBudgetTool = {
     title: "Update budget",
     coversEndpoint: "patch:/analytics/v1/budgets/{id}",
     description:
-        "Use this when the user wants to modify an existing budget. Supports partial updates. Ask the user to confirm the changes before executing. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
+        "Use this when the user wants to modify an existing budget. Supports partial updates. Changes apply immediately. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateBudgetArgumentsSchema),
     annotations: {
         readOnlyHint: false,

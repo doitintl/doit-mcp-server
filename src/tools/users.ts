@@ -104,7 +104,7 @@ export const updateUserTool = {
     title: "Update user",
     coversEndpoint: "patch:/iam/v1/users/{id}",
     description:
-        "Use this when the user wants to update a user's information such as name, job function, phone, language, or role. Ask the user to confirm the changes before executing. Do NOT use this for inviting new users (use invite_user) or listing users (use list_users).",
+        "Use this when the user wants to update a user's information such as name, job function, phone, language, or role. Changes apply immediately. Do NOT use this for inviting new users (use invite_user) or listing users (use list_users).",
     inputSchema: zodToMcpInputSchema(UpdateUserArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -139,7 +139,7 @@ export const inviteUserTool = {
     title: "Invite user",
     coversEndpoint: "post:/iam/v1/users/invite",
     description:
-        "Use this when the user wants to invite a new person to the organization. Ask the user to confirm the email, role, and organization before executing. Do NOT use this for updating existing users (use update_user) or listing users (use list_users).",
+        "Use this when the user wants to invite a new person to the organization. The invitation email is sent immediately. Do NOT use this for updating existing users (use update_user) or listing users (use list_users).",
     inputSchema: zodToMcpInputSchema(InviteUserArgumentsSchema),
     annotations: {
         readOnlyHint: false,
