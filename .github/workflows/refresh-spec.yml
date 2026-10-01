@@ -34,6 +34,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # The fetched spec is untrusted; keep the write token out of .git/config while it is
+          # processed. create-pull-request authenticates with its own token input.
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
