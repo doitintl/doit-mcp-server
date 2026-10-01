@@ -19,6 +19,7 @@ describe("package exports", () => {
         });
         expect(packageJson.files).toEqual(["dist"]);
         expect(packageJson.scripts.prepare).toBeUndefined();
-        expect(packageJson.scripts.deploy).toBe("yarn build && npm publish --access public");
+        // Publishing happens only from CI (release.yml, behind the `npm` environment).
+        expect(packageJson.scripts.deploy).toBeUndefined();
     });
 });
