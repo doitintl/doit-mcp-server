@@ -572,9 +572,31 @@ describe("tools/list handler", () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
         const behavioral =
-            /\bALWAYS\b|\bAlways (call|use|include|export)\b|\bIMPORTANT\b|Ask the user|before reporting|Only claim|proactively|Only call this/;
+            /\bALWAYS\b|\bAlways (call|use|include|export)\b|\bIMPORTANT\b|Ask the user|before reporting|Only claim|proactively|Only call this|\b(should|must) (call|present|ask|tell|respond|reply)\b|[Dd]o not guess|only if you know/;
+        // Generated from the upstream OpenAPI spec, whose description says "Agents should present
+        // consentUrl … and poll". The fix belongs in the spec; remove this once it is refreshed.
+        const upstreamSpecExceptions = new Set(["create_signup_request"]);
+
+        // Every description a client sees: the tool's own and each input property's, recursively.
+        const descriptions = (schema: any, path: string): [string, string][] => {
+            if (!schema || typeof schema !== "object") return [];
+            const own: [string, string][] = typeof schema.description === "string" ? [[path, schema.description]] : [];
+            const nested = [
+                ...Object.entries(schema.properties ?? {}).map(([key, value]) => descriptions(value, `${path}.${key}`)),
+                descriptions(schema.items, `${path}[]`),
+                ...[...(schema.anyOf ?? []), ...(schema.oneOf ?? []), ...(schema.allOf ?? [])].map((alt) =>
+                    descriptions(alt, path)
+                ),
+            ].flat();
+            return [...own, ...nested];
+        };
+
         for (const tool of [...tools, changeCustomerTool]) {
+            if (upstreamSpecExceptions.has(tool.name)) continue;
             expect(tool.description, tool.name).not.toMatch(behavioral);
+            for (const [path, text] of descriptions(tool.inputSchema, tool.name)) {
+                expect(text, path).not.toMatch(behavioral);
+            }
         }
         expect(SERVER_INSTRUCTIONS).not.toMatch(behavioral);
     });

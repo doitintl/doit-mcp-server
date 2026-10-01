@@ -28,7 +28,7 @@ export const confirmActionTool = {
     description:
         "Runs a write action (e.g. creating, updating, or deleting a resource) that another " +
         'tool staged and returned as `status: "approval_required"` with a summary and a ' +
-        "one-time approval token. Applies once the user has approved that summary. A token " +
+        "one-time approval token. Intended for use after the user approves that summary. A token " +
         "that is never confirmed expires after 5 minutes, and the staged action does not run. " +
         "The token must match the returned value exactly.",
     inputSchema: zodToMcpInputSchema(ConfirmActionArgumentsSchema),

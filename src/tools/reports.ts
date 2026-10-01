@@ -806,6 +806,7 @@ export function formatReportResults(report: GetReportResultsResponse): string {
         report.result.forecastRows
             ? `Forecast Rows: ${report.result.forecastRows.map((row) => row.join(", ")).join("\n")}`
             : "",
+        "-----------",
     ]
         .filter(Boolean)
         .join(`\n\n`);
