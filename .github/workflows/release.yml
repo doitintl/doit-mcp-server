@@ -4,7 +4,8 @@ name: Release
 #
 #   * merging the release PR opened by release-pr.yml — this workflow tags the
 #     merge commit with the version already in package.json, then releases it
-#   * pushing a vX.Y.Z tag by hand — the original flow, still supported
+#   * pushing a vX.Y.Z tag by hand — creates the GitHub Release only; npm
+#     publishing happens solely from main (see the publish-npm job)
 #
 # The branch trigger exists because a tag pushed with GITHUB_TOKEN does not
 # start another workflow run: the tagging has to happen inside this run for the
@@ -15,8 +16,10 @@ name: Release
 # The `on:` filter below is NOT a security boundary: a push runs the copy of
 # this file at the pushed ref, so any branch can carry its own release.yml with
 # different triggers. What keeps unreviewed refs from publishing is the `npm`
-# environment's deployment-branch policy (main and v* tags only) and its
-# required reviewers, which GitHub enforces before minting the OIDC token.
+# environment's deployment-branch policy (main only) and its required
+# reviewers, which GitHub enforces before minting the OIDC token. Tags are not
+# admitted: any write-access workflow can push a tag at an unreviewed commit
+# with GITHUB_TOKEN, so a hand-pushed tag creates the GitHub Release only.
 
 on:
   push:
@@ -105,13 +108,16 @@ jobs:
   # One-time setup: a package maintainer adds a GitHub Actions trusted publisher
   # (repo doitintl/doit-mcp-server, workflow release.yml, environment npm) in
   # the package's settings on npmjs.com, and a repo admin creates the `npm`
-  # environment restricted to main + v* tags with required reviewers. Without
-  # the environment binding npm would accept a token from any ref that carries
-  # a file named release.yml. See docs/release.md.
+  # environment restricted to main with required reviewers. Without the
+  # environment binding npm would accept a token from any ref that carries a
+  # file named release.yml. See docs/release.md.
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
     needs: [version, release]
+    # Not a security check (a branch's own copy of this file can drop it) —
+    # it only skips the job on tag runs, which the environment would refuse.
+    if: github.ref == 'refs/heads/main'
     environment: npm
     permissions:
       contents: read

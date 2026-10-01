@@ -116,7 +116,7 @@ Computed as (operations in the live spec) minus (operations in the MCP snapshot)
 | Live spec → CLI commands | ✅ Yes (runtime) | restish loads the spec per invocation/cache; zero-lag coverage. |
 | Live spec → MCP snapshot (`openapi.json`) | ❌ Manual at research time | Was `yarn generate:refresh-spec` run by a maintainer (last run 2026-07-13, no CI cron, no drift check). Now automated by `.github/workflows/refresh-spec.yml` (PR #219): daily cron + `repository_dispatch`, opens a review PR. |
 | Snapshot → MCP tools | ✅ Yes (build/load time) | `generateTools.ts` emits a tool per uncovered operation; hand-written coverage tracked via `coversEndpoint` so nothing double-registers. |
-| MCP release → npm | ✅ Yes (on tag) | `release.yml`'s `publish-npm` job publishes via npm Trusted Publishing (OIDC, no token) after verifying the tag matches `package.json`. |
+| MCP release → npm | ✅ Yes (on release merge to `main`) | `release.yml`'s `publish-npm` job publishes via npm Trusted Publishing (OIDC, no token) from the protected `npm` environment after reviewer approval, having verified the tag matches `package.json`. |
 | npm → hosted worker (`mcp.doit.com`) | ❌ Manual / separate repo | Worker imports `@doitintl/doit-mcp-server/core`; redeploy cadence not visible from the public repo. |
 | MCP docs (help.doit.com tool list) | ❌ Manual | The docs list a curated subset and lag the generated tools. |
 
