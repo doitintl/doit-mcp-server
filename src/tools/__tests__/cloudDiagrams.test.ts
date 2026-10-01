@@ -28,6 +28,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    vi.resetAllMocks();
     vi.restoreAllMocks();
 });
 
