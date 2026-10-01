@@ -285,14 +285,18 @@ export function createServer() {
         // ctx.mcpReq.notify (not server.notification) ties the notification to this request
         // (relatedRequestId), which per-request transports need to route it; it behaves the
         // same in both protocol eras.
+        // Compare against undefined, not truthiness: a progress token may be any string or
+        // number, and 2026-07-28 clients commonly send 0 (the v2 SDK uses the request id, and
+        // the first post-discover request is id 0).
         const progressToken = _meta?.progressToken;
-        const onProgress = progressToken
-            ? async (message: string) =>
-                  ctx.mcpReq.notify({
-                      method: "notifications/progress",
-                      params: { progressToken, progress: 0, message },
-                  })
-            : undefined;
+        const onProgress =
+            progressToken !== undefined
+                ? async (message: string) =>
+                      ctx.mcpReq.notify({
+                          method: "notifications/progress",
+                          params: { progressToken, progress: 0, message },
+                      })
+                : undefined;
 
         return await executeToolHandler(name, args, token, {
             trackingContext: resolveTrackingContext(server, ctx),

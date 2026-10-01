@@ -912,6 +912,26 @@ describe("tools/call handler", () => {
             expect(_server.notification).not.toHaveBeenCalled();
         });
 
+        it("treats a progressToken of 0 as a real token", async () => {
+            (handleRefineCloudflowRequest as any).mockImplementation(
+                async (_args: unknown, _token: string, onProgress?: (message: string) => Promise<void>) => {
+                    await onProgress?.("step 1");
+                    return { content: [] };
+                }
+            );
+            const ctx = mockCtx();
+
+            await getCallToolHandler()(
+                { params: { name: "refine_cloudflow", arguments: {}, _meta: { progressToken: 0 } } },
+                ctx
+            );
+
+            expect(ctx.mcpReq.notify).toHaveBeenCalledWith({
+                method: "notifications/progress",
+                params: { progressToken: 0, progress: 0, message: "step 1" },
+            });
+        });
+
         it("passes no progress callback when the request has no progressToken", async () => {
             await getCallToolHandler()(mockRequest("refine_cloudflow", {}));
 
