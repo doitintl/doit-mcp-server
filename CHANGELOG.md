@@ -1,5 +1,23 @@
 # Changelog
 
+## v2.1.0 (2026-10-01)
+
+**Full diff:** [`v2.0.0...v2.1.0`](../../compare/v2.0.0...v2.1.0)
+
+### Features
+
+- feat(tools): update changeCustomer destructive hint (`6eac6d5`)
+- feat(tools): add titles to all tools and enforce MCP hints (`46697ec`)
+
+### Chores
+
+- chore(deps-dev): bump integration test dev deps (`df0b984`)
+- chore(deps-dev): bump biome, openapi-parser, typescript, vitest (`5baea7f`)
+- chore(deps): bump qs from 6.15.0 to 6.16.0 in /test/integration (`363c664`)
+
+### Other Changes
+
+- test(tools): update list tools request handler mock (`c7f8a4e`)
 ## v2.0.0 (2026-10-01)
 
 **Full diff:** [`v1.13.0...v2.0.0`](../../compare/v1.13.0...v2.0.0)
