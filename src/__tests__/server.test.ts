@@ -1,15 +1,4 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-    CallToolRequestSchema,
-    ErrorCode,
-    GetPromptRequestSchema,
-    InitializeRequestSchema,
-    ListPromptsRequestSchema,
-    ListResourcesRequestSchema,
-    ListToolsRequestSchema,
-    McpError,
-    ReadResourceRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { ProtocolError, ProtocolErrorCode, Server } from "@modelcontextprotocol/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
@@ -17,7 +6,26 @@ import { SERVER_INSTRUCTIONS } from "../docs/serverInstructions.js";
 import { prompts } from "../prompts/index.js";
 import { SERVER_VERSION } from "../utils/consts.js";
 
-vi.mock("@modelcontextprotocol/sdk/server/index.js");
+// Only the Server class is mocked, for two reasons:
+//
+// 1. ProtocolError/ProtocolErrorCode must stay real. v1 imported them from a separate
+//    `types.js` this mock never touched; in v2 they share a module with Server, so a
+//    bare auto-mock would stub out the error class the handlers throw and every
+//    `toThrow` assertion would see an empty error.
+// 2. Server needs a default implementation. src/server.ts constructs one at module
+//    scope (`export const server = createServer()`), which runs on import — before any
+//    mockImplementation below. A bare vi.fn() returns undefined there and the module
+//    fails to load. Per-test behaviour is still set via mockImplementation.
+vi.mock("@modelcontextprotocol/server", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@modelcontextprotocol/server")>()),
+    Server: vi.fn(() => ({
+        setRequestHandler: vi.fn(),
+        connect: vi.fn(),
+        notification: vi.fn(),
+        getClientVersion: vi.fn(),
+        getNegotiatedProtocolVersion: vi.fn(),
+    })),
+}));
 vi.mock(import("../tools/overview.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleCloudOverviewRequest: vi.fn(),
@@ -167,7 +175,11 @@ const setRequestHandlerMock = vi.fn();
 (Server as any).mockImplementation(() => ({
     setRequestHandler: setRequestHandlerMock,
     connect: vi.fn(),
-    _capabilities: { tools: {}, prompts: {}, resources: {} },
+    notification: vi.fn(),
+    // Client identity now comes from the SDK's own initialize path via these
+    // accessors, replacing the closure the deleted custom handler populated.
+    getClientVersion: vi.fn(() => ({ name: "test-client", version: "1.2.3" })),
+    getNegotiatedProtocolVersion: vi.fn(() => "2025-06-18"),
 }));
 
 import {
@@ -341,7 +353,11 @@ beforeEach(() => {
     (Server as any).mockImplementation(() => ({
         setRequestHandler: setRequestHandlerMock,
         connect: vi.fn(),
-        _capabilities: { tools: {}, prompts: {}, resources: {} },
+        notification: vi.fn(),
+        // Client identity now comes from the SDK's own initialize path via these
+        // accessors, replacing the closure the deleted custom handler populated.
+        getClientVersion: vi.fn(() => ({ name: "test-client", version: "1.2.3" })),
+        getNegotiatedProtocolVersion: vi.fn(() => "2025-06-18"),
     }));
     _server = createServer();
     formatZodErrorSpy.mockClear();
@@ -371,19 +387,18 @@ describe("createServer", () => {
     });
 
     it("registers handlers for all required schemas", () => {
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListToolsRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListPromptsRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(GetPromptRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListResourcesRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ReadResourceRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(CallToolRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(InitializeRequestSchema, expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("tools/list", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("prompts/list", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("prompts/get", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("resources/list", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("resources/read", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("tools/call", expect.any(Function));
     });
 });
 
-describe("ListToolsRequestSchema handler", () => {
+describe("tools/list handler", () => {
     it("returns all registered tools in order", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
         const response = await handler();
 
@@ -498,7 +513,7 @@ describe("ListToolsRequestSchema handler", () => {
     });
 
     it("includes a generated tool for a non-blacklisted OpenAPI operation", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
         const response = await handler();
 
@@ -522,7 +537,7 @@ describe("ListToolsRequestSchema handler", () => {
 
     /** Mutating tools that previously lacked MCP hints: destructive annotations and ask-to-confirm copy in descriptions. */
     it("list_tools: user, invite, and DataHub mutating tools expose destructive hints and confirmation guidance", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
         const names = [
             "update_user",
@@ -544,9 +559,9 @@ describe("ListToolsRequestSchema handler", () => {
     });
 });
 
-describe("ListPromptsRequestSchema handler", () => {
+describe("prompts/list handler", () => {
     it("returns a non-empty list of prompts with name and description fields", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/list")?.[1];
 
         const response = await handler();
 
@@ -557,7 +572,7 @@ describe("ListPromptsRequestSchema handler", () => {
     });
 
     it("exposes only snake_case names", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/list")?.[1];
 
         const response = await handler();
         const names: string[] = response.prompts.map((p: { name: string }) => p.name);
@@ -569,7 +584,7 @@ describe("ListPromptsRequestSchema handler", () => {
     });
 
     it("includes every prompt defined in the prompts module", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/list")?.[1];
 
         const response = await handler();
         const names: string[] = response.prompts.map((p: { name: string }) => p.name);
@@ -580,7 +595,7 @@ describe("ListPromptsRequestSchema handler", () => {
     });
 });
 
-describe("GetPromptRequestSchema handler", () => {
+describe("prompts/get handler", () => {
     const TEST_PROMPT_NAMES = ["__test_multi__", "__test_args__", "__test_no_args__"];
 
     afterEach(() => {
@@ -591,7 +606,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("returns description and a single message for a snake_case prompt name", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
 
         const response = await handler({ params: { name: "filter_fields_reference" } });
 
@@ -615,7 +630,7 @@ describe("GetPromptRequestSchema handler", () => {
         };
         prompts.push(multiMessagePrompt); // this will be cleaned up by the afterEach hook
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({ params: { name: "__test_multi__" } });
 
         expect(response.messages).toHaveLength(3);
@@ -625,11 +640,11 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("throws McpError with InvalidParams for an unknown prompt name", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
 
-        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(McpError);
+        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(ProtocolError);
         await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toMatchObject({
-            code: ErrorCode.InvalidParams,
+            code: ProtocolErrorCode.InvalidParams,
             message: expect.stringContaining("nonexistent-prompt"),
         });
     });
@@ -645,7 +660,7 @@ describe("GetPromptRequestSchema handler", () => {
             ],
         });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: { name: "__test_args__", arguments: { arg1: "value" } },
         });
@@ -665,7 +680,7 @@ describe("GetPromptRequestSchema handler", () => {
             ],
         });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: { name: "__test_args__", arguments: { name: "Alice", id: "42" } },
         });
@@ -685,7 +700,7 @@ describe("GetPromptRequestSchema handler", () => {
             arguments: [{ name: "flowID", description: "Flow ID", required: true }],
         });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: { name: "__test_args__", arguments: { flowID: "flow-7" } },
         });
@@ -696,7 +711,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("returns prompt for expert_inquiries with expected message and arguments", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({ params: { name: "expert_inquiries" } });
 
         expect(response).toHaveProperty("description");
@@ -709,7 +724,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("returns prompt for expert_inquiries with arguments appended to message", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: {
                 name: "expert_inquiries",
@@ -722,7 +737,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("returns prompt for search_expert_inquiries with expected structure and content", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({ params: { name: "search_expert_inquiries" } });
 
         expect(response.description).toContain("expert inquiries");
@@ -733,7 +748,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("appends arguments to search_expert_inquiries message", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: { name: "search_expert_inquiries", arguments: { keyword: "billing", platform: "gcp" } },
         });
@@ -750,16 +765,16 @@ describe("GetPromptRequestSchema handler", () => {
             text: "Static prompt text with no placeholders",
         });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({ params: { name: "__test_no_args__" } });
 
         expect(response.messages[0].content.text).toBe("Static prompt text with no placeholders");
     });
 });
 
-describe("ListResourcesRequestSchema handler", () => {
+describe("resources/list handler", () => {
     it("lists the CloudFlow authoring guide", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListResourcesRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "resources/list")?.[1];
 
         const response = await handler();
 
@@ -776,9 +791,8 @@ describe("ListResourcesRequestSchema handler", () => {
     });
 });
 
-describe("ReadResourceRequestSchema handler", () => {
-    const getHandler = () =>
-        setRequestHandlerMock.mock.calls.find((call) => call[0] === ReadResourceRequestSchema)?.[1];
+describe("resources/read handler", () => {
+    const getHandler = () => setRequestHandlerMock.mock.calls.find((call) => call[0] === "resources/read")?.[1];
 
     it("returns the guide for its own URI", async () => {
         const response = await getHandler()({ params: { uri: "doit://docs/cloudflow-authoring" } });
@@ -795,50 +809,17 @@ describe("ReadResourceRequestSchema handler", () => {
     });
 
     it("throws InvalidParams for an unknown URI", async () => {
-        await expect(getHandler()({ params: { uri: "doit://docs/nope" } })).rejects.toThrow(McpError);
+        await expect(getHandler()({ params: { uri: "doit://docs/nope" } })).rejects.toThrow(ProtocolError);
         await expect(getHandler()({ params: { uri: "doit://docs/nope" } })).rejects.toThrow(
             /Unknown resource: doit:\/\/docs\/nope/
         );
     });
 });
 
-describe("InitializeRequestSchema handler", () => {
-    it("returns server info and capabilities with the provided protocol version", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
-
-        const response = await handler({ params: { protocolVersion: "2024-11-05" } });
-
-        expect(response).toEqual({
-            protocolVersion: "2024-11-05",
-            serverInfo: { name: "doit-mcp-server", version: SERVER_VERSION },
-            capabilities: { tools: {}, prompts: {}, resources: {} },
-            instructions: SERVER_INSTRUCTIONS,
-        });
-    });
-
-    it("echoes the instructions in the initialize result — this handler replaces the SDK's own", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
-
-        const response = await handler({ params: { protocolVersion: "2024-11-05" } });
-
-        expect(response.instructions).toBe(SERVER_INSTRUCTIONS);
-        expect(response.instructions).not.toBe("");
-    });
-
-    it("falls back to default protocol version when not provided", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
-
-        const response = await handler({ params: {} });
-
-        expect(response.protocolVersion).toBe("2024-11-05");
-    });
-});
-
-describe("CallToolRequestSchema handler", () => {
+describe("tools/call handler", () => {
     const mockRequest = (name: string, args: any) => ({ params: { name, arguments: args } });
 
-    const getCallToolHandler = () =>
-        setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+    const getCallToolHandler = () => setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/call")?.[1];
 
     it("returns Unauthorized when DOIT_API_KEY is missing", async () => {
         process.env.DOIT_API_KEY = undefined;

@@ -31,7 +31,7 @@ export const DEFAULT_MAX_RESULTS_CLOUDFLOW_FLOWS = "50";
 export const TriggerCloudFlowArgumentsSchema = z.object({
     flowID: z.string().describe("The ID of the CloudFlow flow to trigger"),
     requestBodyJson: z
-        .record(z.unknown())
+        .record(z.string(), z.unknown())
         .optional()
         .describe("Optional JSON object to pass as the request body to the flow if the flow requires it"),
 });
@@ -558,7 +558,7 @@ const CloudFlowAwsConfigSchema = z.object({
         .optional()
         .describe("Per-account AWS context (account ID and regions)."),
     roleName: z.string().optional().describe("The AWS role name to assume."),
-    permissions: z.record(z.unknown()).optional().describe("The permissions map for the AWS connection."),
+    permissions: z.record(z.string(), z.unknown()).optional().describe("The permissions map for the AWS connection."),
     managementAccount: z.string().optional().describe("The AWS management (payer) account ID."),
     organizationRootId: z.string().optional().describe("The AWS organization root ID."),
     scopeTargetedOrganizationalUnitIds: z

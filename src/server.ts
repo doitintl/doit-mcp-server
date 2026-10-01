@@ -1,15 +1,4 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-    CallToolRequestSchema,
-    ErrorCode,
-    GetPromptRequestSchema,
-    InitializeRequestSchema,
-    ListPromptsRequestSchema,
-    ListResourcesRequestSchema,
-    ListToolsRequestSchema,
-    McpError,
-    ReadResourceRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { ProtocolError, ProtocolErrorCode, Server, type Tool } from "@modelcontextprotocol/server";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
@@ -142,11 +131,26 @@ const generatedToolDefinitions = generatedTools.map((tool) => ({
 // load-bearing rules also ride the tool descriptions and the server instructions.
 const CLOUDFLOW_GUIDE_URI = "doit://docs/cloudflow-authoring";
 
-export function createServer() {
-    // Connection-level MCP client info — set once on initialize, read on every tool call.
-    // Stored in a closure (not a module global) so each server instance is isolated.
-    let mcpClientInfo: TrackingContext = {};
+/**
+ * Connection-level MCP client identity, attached to every tool call for analytics.
+ *
+ * This used to be captured by a hand-written `initialize` handler into a closure
+ * variable. That handler was removed: in v2 the SDK's own `initialize` does work an
+ * override silently skips — it negotiates and records the protocol version (which the
+ * outbound wire codec is selected from), calls `transport.setProtocolVersion()`, and
+ * stores the client's capabilities and identity. Reading those back through the public
+ * accessors keeps the same three fields without reimplementing the handshake.
+ */
+function resolveTrackingContext(server: Server): TrackingContext {
+    const clientInfo = server.getClientVersion();
+    return {
+        mcpClient: clientInfo?.name,
+        mcpClientVersion: clientInfo?.version,
+        mcpProtocolVersion: server.getNegotiatedProtocolVersion(),
+    };
+}
 
+export function createServer() {
     // stdio is single-process and single-user, so a stable string is sufficient as the
     // identity the approval flow is bound to. The Worker transport binds to the
     // OAuth-derived api key instead — see the remote Worker in the separate private repo.
@@ -169,13 +173,21 @@ export function createServer() {
         }
     );
 
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
+    server.setRequestHandler("tools/list", async () => {
         return {
-            tools: [...HAND_WRITTEN_TOOLS, ...generatedToolDefinitions],
+            // v2 types handler returns from the method name, so this array is now checked
+            // against the spec `Tool` type. Two of our fields aren't spec vocabulary:
+            // `securitySchemes` (DoiT OAuth scope hints, consumed downstream) and
+            // `coversEndpoint` (internal, feeds COVERED_ENDPOINTS — it has always leaked
+            // onto the wire from here). The cast keeps both on the wire byte-for-byte so
+            // this SDK swap stays behaviour-neutral; relocating `securitySchemes` under
+            // `_meta` and dropping `coversEndpoint` are wire-visible changes that belong
+            // in their own commit.
+            tools: [...HAND_WRITTEN_TOOLS, ...generatedToolDefinitions] as unknown as Tool[],
         };
     });
 
-    server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    server.setRequestHandler("prompts/list", async () => {
         return {
             prompts: prompts.map((prompt) => ({
                 name: prompt.name,
@@ -185,11 +197,11 @@ export function createServer() {
         };
     });
 
-    server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    server.setRequestHandler("prompts/get", async (request) => {
         const { name } = request.params;
         const prompt = prompts.find((p) => p.name === name);
         if (!prompt) {
-            throw new McpError(ErrorCode.InvalidParams, `Invalid prompt name: ${name}`);
+            throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Invalid prompt name: ${name}`);
         }
 
         try {
@@ -208,15 +220,15 @@ export function createServer() {
                 })),
             };
         } catch (error) {
-            if (error instanceof McpError) throw error;
-            throw new McpError(
-                ErrorCode.InternalError,
+            if (error instanceof ProtocolError) throw error;
+            throw new ProtocolError(
+                ProtocolErrorCode.InternalError,
                 error instanceof Error ? error.message : "An unexpected error occurred"
             );
         }
     });
 
-    server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    server.setRequestHandler("resources/list", async () => {
         return {
             resources: [
                 {
@@ -229,9 +241,9 @@ export function createServer() {
         };
     });
 
-    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    server.setRequestHandler("resources/read", async (request) => {
         if (request.params.uri !== CLOUDFLOW_GUIDE_URI) {
-            throw new McpError(ErrorCode.InvalidParams, `Unknown resource: ${request.params.uri}`);
+            throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Unknown resource: ${request.params.uri}`);
         }
 
         return {
@@ -245,7 +257,7 @@ export function createServer() {
         };
     });
 
-    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    server.setRequestHandler("tools/call", async (request) => {
         const { name, arguments: args, _meta } = request.params;
         const token = process.env.DOIT_API_KEY;
         if (!token) {
@@ -262,34 +274,12 @@ export function createServer() {
             : undefined;
 
         return await executeToolHandler(name, args, token, {
-            trackingContext: mcpClientInfo,
+            trackingContext: resolveTrackingContext(server),
             userKey,
             approvalStore,
             onProgress,
             generatedTools: generatedToolsByName,
         });
-    });
-
-    server.setRequestHandler(InitializeRequestSchema, async (request) => {
-        mcpClientInfo = {
-            mcpClient: request?.params?.clientInfo?.name,
-            mcpClientVersion: request?.params?.clientInfo?.version,
-            mcpProtocolVersion: request?.params?.protocolVersion,
-        };
-
-        return {
-            protocolVersion: request?.params?.protocolVersion || "2024-11-05",
-            serverInfo: {
-                name: SERVER_NAME,
-                version: SERVER_VERSION,
-            },
-            // biome-ignore lint/complexity/useLiteralKeys: bracket notation bypasses private property TS check
-            capabilities: server["_capabilities"] || {},
-            // Repeated from the Server options above, not redundantly: this handler replaces the
-            // SDK's own initialize handler, so the constructor's `instructions` is never sent
-            // unless it is echoed here.
-            instructions: SERVER_INSTRUCTIONS,
-        };
     });
 
     return server;

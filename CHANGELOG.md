@@ -1,5 +1,43 @@
 # Changelog
 
+## v2.0.0 (2026-10-01)
+
+**Full diff:** [`v1.13.0...v2.0.0`](../../compare/v1.13.0...v2.0.0)
+
+### Breaking Changes
+
+- Node.js `>=20` is now required (was `>=18`) — the MCP SDK v2 packages set that floor.
+- `/core` consumers must move to zod 4 — the exported `*ArgumentsSchema` objects are zod 4 and do not compose with zod 3 schemas.
+- Tool `inputSchema` is now JSON Schema draft 2020-12 (was draft-07), and `.min()` constraints that apply after a `.trim()` transform are no longer advertised. Runtime validation is unchanged.
+- The MCP wire protocol is **unchanged** (2025 era, up to `2025-11-25`) — this release swaps dependencies only.
+
+### Features
+
+- feat!: migrate from @modelcontextprotocol/sdk v1 to the v2 server package (`bca3541`) — v1 is superseded by the split packages; `@modelcontextprotocol/server` replaces it.
+
+### Chores
+
+- chore: migrate to zod 4 and drop Node 18 (`ea668e2`) — required by SDK v2, which does not support zod 3.
+- Dropped `zod-to-json-schema` — zod-3 only with no v4 successor; replaced by zod 4's native `z.toJSONSchema`.
+
+### Other Changes
+
+- ci: name test jobs by role and run shared checks once (`341528b`)
+- ci: run both test suites on Node 20 and 22 (`98e8329`)
+
+## v1.13.0 (2026-10-01)
+
+**Full diff:** [`v1.12.1...v1.13.0`](../../compare/v1.12.1...v1.13.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`5a60427`)
+
+### Chores
+
+- chore(deps): bump hono from 4.12.5 to 4.13.12 in /test/integration (`e9a83bf`)
+- chore(deps): bump hono from 4.12.9 to 4.13.12 (`ab6fe25`)
+- chore(deps): bump fast-uri from 3.1.7 to 3.1.8 (`bc97c96`)
 ## v1.12.1 (2026-09-30)
 
 **Full diff:** [`v1.12.0...v1.12.1`](../../compare/v1.12.0...v1.12.1)

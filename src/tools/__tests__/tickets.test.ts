@@ -167,7 +167,7 @@ describe("handleGetTicketRequest", () => {
         const response = await handleGetTicketRequest({}, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });
@@ -262,7 +262,7 @@ describe("handleListTicketCommentsRequest", () => {
         const response = await handleListTicketCommentsRequest({}, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });
@@ -379,7 +379,7 @@ describe("handleCreateTicketCommentRequest", () => {
         const response = await handleCreateTicketCommentRequest(argsWithoutId, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("Required") }],
+            content: [{ type: "text", text: expect.stringContaining("received undefined") }],
             isError: true,
         });
     });

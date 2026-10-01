@@ -1263,7 +1263,7 @@ describe("MCP Tools Integration", () => {
                 arguments: { content: "No id provided" },
             });
             const text = getTextContent(result);
-            expect(text).toContain("Required");
+            expect(text).toContain("received undefined");
         });
     });
 
@@ -1329,7 +1329,7 @@ describe("MCP Tools Integration", () => {
                 arguments: { name: "No id provided" },
             });
             const text = getTextContent(result);
-            expect(text).toContain("Required");
+            expect(text).toContain("received undefined");
         });
     });
 
@@ -1746,7 +1746,7 @@ describe("MCP Tools Integration", () => {
                 arguments: { name: "No id" },
             });
             const text = getTextContent(result);
-            expect(text).toContain("Required");
+            expect(text).toContain("received undefined");
         });
 
         it("rejects when both gcpConfig and awsConfig are set", async () => {
@@ -1843,7 +1843,7 @@ describe("MCP Tools Integration", () => {
         it("returns error for missing id", async () => {
             const result = await client.callTool({ name: "get_commitment", arguments: {} });
             const text = getTextContent(result);
-            expect(text.toLowerCase()).toContain("required");
+            expect(text.toLowerCase()).toContain("received undefined");
         });
     });
 
