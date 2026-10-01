@@ -26,8 +26,8 @@ either, your shell resolved an unpinned Yarn. Do not commit a berry-format lockf
 **Never run `npm install`.** npm lockfiles are gitignored, rejected by the `no-npm-lockfiles`
 pre-commit hook, and fail the `Enforce yarn` step in `test.yml`. `npm` is still used deliberately
 for *publishing only* — `release.yml`'s `publish-npm` job needs the npm CLI for Trusted Publishing
-(OIDC + provenance), which yarn cannot do, and `yarn deploy` shells out to `npm publish` for the
-same reason. That is registry publication, not dependency management.
+(OIDC + provenance), which yarn cannot do. That is registry publication, not dependency management.
+There is deliberately no local publish script: publishing happens only from that CI job.
 
 ## Project Overview
 
