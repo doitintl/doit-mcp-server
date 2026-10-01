@@ -1,13 +1,10 @@
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { main, mainWithServer } from "../index.js";
-import { server } from "../server.js";
+import { serveDoitStdio } from "../stdio.js";
 
 vi.mock("@modelcontextprotocol/server/stdio");
-vi.mock("../server.js", () => ({
-    server: { connect: vi.fn() },
-    createServer: vi.fn(),
-}));
+vi.mock("../stdio.js", () => ({ serveDoitStdio: vi.fn() }));
 vi.mock("dotenv", () => ({ config: vi.fn() }));
 
 beforeEach(() => {
@@ -20,20 +17,31 @@ afterEach(() => {
 });
 
 describe("mainWithServer", () => {
-    it("connects a custom server to a new StdioServerTransport", async () => {
+    it("hand-wires a custom server to a new StdioServerTransport", async () => {
         const mockServer = { connect: vi.fn() };
 
         await mainWithServer(mockServer as any);
 
         expect(StdioServerTransport).toHaveBeenCalledOnce();
         expect(mockServer.connect).toHaveBeenCalledWith(expect.any(StdioServerTransport));
+        expect(serveDoitStdio).not.toHaveBeenCalled();
     });
 
-    it("falls back to the default server when no argument is provided", async () => {
+    it("serves every protocol era via serveDoitStdio when no server is provided", async () => {
         await mainWithServer();
 
-        expect(StdioServerTransport).toHaveBeenCalled();
-        expect((server as any).connect).toHaveBeenCalledWith(expect.any(StdioServerTransport));
+        expect(serveDoitStdio).toHaveBeenCalledOnce();
+        expect(StdioServerTransport).not.toHaveBeenCalled();
+    });
+
+    it("reports serveStdio's out-of-band errors on stderr", async () => {
+        await mainWithServer();
+
+        const { onerror } = vi.mocked(serveDoitStdio).mock.calls[0][0] ?? {};
+        const error = new Error("boom");
+        onerror?.(error);
+
+        expect(console.error).toHaveBeenCalledWith("DoiT MCP Server stdio error:", error);
     });
 });
 
