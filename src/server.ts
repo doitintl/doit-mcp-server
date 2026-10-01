@@ -112,6 +112,7 @@ import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserReques
 import { handleValidateUserRequest } from "./tools/validateUser.js";
 import { MemoryApprovalStore } from "./utils/approval.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
+import { isDoitEmployee } from "./utils/employeeAccess.js";
 import { zodToMcpInputSchema } from "./utils/schemaHelpers.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError, type TrackingContext } from "./utils/util.js";
@@ -174,6 +175,7 @@ export function createServer() {
     );
 
     server.setRequestHandler("tools/list", async () => {
+        const employee = process.env.DOIT_API_KEY ? await isDoitEmployee(process.env.DOIT_API_KEY) : false;
         return {
             // v2 types handler returns from the method name, so this array is now checked
             // against the spec `Tool` type. Two of our fields aren't spec vocabulary:
@@ -183,7 +185,10 @@ export function createServer() {
             // this SDK swap stays behaviour-neutral; relocating `securitySchemes` under
             // `_meta` and dropping `coversEndpoint` are wire-visible changes that belong
             // in their own commit.
-            tools: [...HAND_WRITTEN_TOOLS, ...generatedToolDefinitions] as unknown as Tool[],
+            tools: [
+                ...HAND_WRITTEN_TOOLS.filter((tool) => employee || tool.name !== "search_customers"),
+                ...generatedToolDefinitions,
+            ] as unknown as Tool[],
         };
     });
 
@@ -262,6 +267,10 @@ export function createServer() {
         const token = process.env.DOIT_API_KEY;
         if (!token) {
             return createErrorResponse("Unauthorized");
+        }
+
+        if (name === "search_customers" && !(await isDoitEmployee(token))) {
+            return createErrorResponse("search_customers is available only to DoiT employees");
         }
 
         const progressToken = _meta?.progressToken;

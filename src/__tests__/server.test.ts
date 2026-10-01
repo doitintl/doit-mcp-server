@@ -356,6 +356,9 @@ let _server: any;
 beforeEach(() => {
     vi.resetAllMocks();
     process.env = { ...originalProcessEnv, DOIT_API_KEY: "fake-token" };
+    vi.mocked(handleValidateUserRequest).mockResolvedValue({
+        content: [{ type: "text", text: JSON.stringify({ domain: "doit.com", email: "employee@doit.com" }) }],
+    });
     (Server as any).mockImplementation(
         class {
             setRequestHandler = setRequestHandlerMock;
@@ -405,6 +408,27 @@ describe("createServer", () => {
 });
 
 describe("tools/list handler", () => {
+    it("hides employee-only tools from a customer key", async () => {
+        vi.mocked(handleValidateUserRequest).mockResolvedValue({
+            content: [{ type: "text", text: JSON.stringify({ domain: "example.com", email: "user@example.com" }) }],
+        });
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        const { tools } = await handler();
+
+        expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
+        expect(tools.map((tool: { name: string }) => tool.name)).toContain("list_assets");
+    });
+
+    it("fails closed when employee identity cannot be verified", async () => {
+        vi.mocked(handleValidateUserRequest).mockRejectedValue(new Error("Identity service unavailable"));
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        const { tools } = await handler();
+
+        expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
+    });
+
     it("returns all registered tools in order", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
@@ -828,6 +852,18 @@ describe("tools/call handler", () => {
     const mockRequest = (name: string, args: any) => ({ params: { name, arguments: args } });
 
     const getCallToolHandler = () => setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/call")?.[1];
+
+    it("rejects a direct employee-only call from a customer key with a clear error", async () => {
+        vi.mocked(handleValidateUserRequest).mockResolvedValue({
+            content: [{ type: "text", text: JSON.stringify({ domain: "example.com", email: "user@example.com" }) }],
+        });
+
+        const response = await getCallToolHandler()(mockRequest("search_customers", {}));
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: "search_customers is available only to DoiT employees" }],
+        });
+    });
 
     it("returns Unauthorized when DOIT_API_KEY is missing", async () => {
         process.env.DOIT_API_KEY = undefined;
