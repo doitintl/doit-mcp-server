@@ -113,6 +113,10 @@
       "description": "Manage contract templates for PartnerOps resellers (T1/T2)."
     },
     {
+      "name": "Shared Payers",
+      "description": "Link and manage shared-payer account mappings for PartnerOps resellers (T2), reassigning AWS accounts under a shared payer to T3 end customers."
+    },
+    {
       "name": "Users",
       "description": "Manage users who have access to the DoiT platform."
     },
@@ -27479,6 +27483,7 @@
                       "items": {
                         "required": [
                           "attribution",
+                          "allocations",
                           "billingAccount",
                           "costOfAnomaly",
                           "platform",
@@ -27497,7 +27502,29 @@
                         "properties": {
                           "attribution": {
                             "type": "string",
-                            "description": "Attribution ID."
+                            "deprecated": true,
+                            "description": "Deprecated: use 'allocations' instead. Name of the anomaly's primary allocation. Can be empty even when `allocations` is not, so it may differ from the first entry of `allocations`."
+                          },
+                          "allocations": {
+                            "type": "array",
+                            "description": "Every allocation the anomaly belongs to, primary allocation first. Allocations that no longer exist are left out. Anomalies with a single allocation return a one-item list. Some older anomalies have no allocation recorded and return an empty list.",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "description": "Allocation ID. Use it with the Allocations API to read the allocation."
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "description": "Allocation name."
+                                }
+                              }
+                            }
                           },
                           "billingAccount": {
                             "type": "string",
@@ -27871,6 +27898,7 @@
                 "schema": {
                   "required": [
                     "attribution",
+                    "allocations",
                     "billingAccount",
                     "costOfAnomaly",
                     "platform",
@@ -27887,7 +27915,29 @@
                   "properties": {
                     "attribution": {
                       "type": "string",
-                      "description": "Attribution ID"
+                      "deprecated": true,
+                      "description": "Deprecated: use 'allocations' instead. Name of the anomaly's primary allocation. Can be empty even when `allocations` is not, so it may differ from the first entry of `allocations`."
+                    },
+                    "allocations": {
+                      "type": "array",
+                      "description": "Every allocation the anomaly belongs to, primary allocation first. Allocations that no longer exist are left out. Anomalies with a single allocation return a one-item list. Some older anomalies have no allocation recorded and return an empty list.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Allocation ID. Use it with the Allocations API to read the allocation."
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Allocation name."
+                          }
+                        }
+                      }
                     },
                     "billingAccount": {
                       "type": "string",
@@ -40945,6 +40995,566 @@
         }
       }
     },
+    "/customers/v1/customers/{customerId}/shared-payer-accounts": {
+      "get": {
+        "tags": [
+          "Shared Payers"
+        ],
+        "summary": "List shared-payer account mappings",
+        "description": "Lists the AWS accounts under the reseller's linked shared payers, together with the end customer each is currently mapped to. `{customerId}` (the reseller itself) means the account has not yet been reassigned to an end customer. Each payer's own management account is included alongside its member accounts. Requires the `SharedPayersAdmin` permission and DoiT API access (`platform:externalApi`). User API tokens must include the permission in their scope.",
+        "operationId": "listSharedPayerAccountMappings",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "description": "Customer ID. Must match the customer resolved from the bearer token - a token scoped to a different customer gets `403`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "managementAccount",
+            "in": "query",
+            "description": "Restricts the results to accounts under this AWS management (payer) account ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - Shared-payer account mappings returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "One AWS account under a linked shared payer - a member account or the payer's own management account - and the customer it is currently mapped to.",
+                        "properties": {
+                          "assetId": {
+                            "type": "string",
+                            "description": "Asset ID of the AWS account."
+                          },
+                          "accountName": {
+                            "type": "string",
+                            "description": "Display name of the AWS account."
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "description": "AWS account ID."
+                          },
+                          "payerId": {
+                            "type": "string",
+                            "description": "AWS account ID of the management (payer) account this account is under."
+                          },
+                          "payerName": {
+                            "type": "string",
+                            "description": "Display name of the management (payer) account."
+                          },
+                          "customerId": {
+                            "type": "string",
+                            "description": "Customer the account is currently mapped to. Equal to `{customerId}` (the reseller itself) when the account has not been reassigned to an end customer."
+                          },
+                          "customerName": {
+                            "type": "string",
+                            "description": "Display name of `customerId`."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The server cannot process the request, often due to a malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong with the DoiT API server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/v1/customers/{customerId}/shared-payer-accounts/management-accounts": {
+      "get": {
+        "tags": [
+          "Shared Payers"
+        ],
+        "summary": "List shared-payer management accounts",
+        "description": "Lists the reseller's linked shared-payer management (payer) accounts that have completed onboarding, for use in an account picker. Requires the `SharedPayersAdmin` permission and DoiT API access (`platform:externalApi`). User API tokens must include the permission in their scope.",
+        "operationId": "listSharedPayerManagementAccounts",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "description": "Customer ID. Must match the customer resolved from the bearer token - a token scoped to a different customer gets `403`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - Shared-payer management accounts returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "A linked shared-payer management (payer) account that has completed onboarding.",
+                        "properties": {
+                          "payerId": {
+                            "type": "string",
+                            "description": "AWS account ID of the management (payer) account."
+                          },
+                          "payerName": {
+                            "type": "string",
+                            "description": "Display name of the management (payer) account."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The server cannot process the request, often due to a malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong with the DoiT API server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/v1/customers/{customerId}/shared-payer-accounts/payers": {
+      "get": {
+        "tags": [
+          "Shared Payers"
+        ],
+        "summary": "List shared payers with mapping progress",
+        "description": "Lists every shared payer linked to the reseller, including ones still mid-onboarding, with per-payer counts of linked and mapped accounts. Requires the `SharedPayersAdmin` permission and DoiT API access (`platform:externalApi`). User API tokens must include the permission in their scope.",
+        "operationId": "listSharedPayers",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "description": "Customer ID. Must match the customer resolved from the bearer token - a token scoped to a different customer gets `403`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - Shared payers returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "A shared payer linked to the reseller, with its account-mapping progress.",
+                        "properties": {
+                          "payerId": {
+                            "type": "string",
+                            "description": "AWS account ID of the management (payer) account."
+                          },
+                          "payerName": {
+                            "type": "string",
+                            "description": "Display name of the management (payer) account."
+                          },
+                          "linkedAccounts": {
+                            "type": "integer",
+                            "description": "Number of AWS accounts under this payer, including the payer's own management account."
+                          },
+                          "mappedAssets": {
+                            "type": "integer",
+                            "description": "Number of those accounts already reassigned to an end customer."
+                          },
+                          "totalAssets": {
+                            "type": "integer",
+                            "description": "Same as `linkedAccounts`."
+                          },
+                          "completed": {
+                            "type": "boolean",
+                            "description": "Whether the payer has finished onboarding. A payer still mid-onboarding has no accounts yet."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The server cannot process the request, often due to a malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong with the DoiT API server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/v1/customers/{customerId}/shared-payer-accounts/{assetId}": {
+      "patch": {
+        "tags": [
+          "Shared Payers"
+        ],
+        "summary": "Reassign a shared-payer account",
+        "description": "Reassigns one AWS account under a linked shared payer - a member account or the payer's own management account - to the reseller itself or to a T3 end customer within its hierarchy. Requires the `SharedPayersAdmin` permission and DoiT API access (`platform:externalApi`). User API tokens must include the permission in their scope.",
+        "operationId": "reassignSharedPayerAccount",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "description": "Customer ID. Must match the customer resolved from the bearer token - a token scoped to a different customer gets `403`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "description": "Asset ID of the AWS account to reassign, as returned by `listSharedPayerAccountMappings`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "customerId"
+                ],
+                "properties": {
+                  "customerId": {
+                    "type": "string",
+                    "description": "Customer to reassign the account to: `{customerId}` (the reseller itself) or a T3 end customer within its hierarchy."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK - Account reassigned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assetId": {
+                      "type": "string",
+                      "description": "Asset ID of the reassigned account."
+                    },
+                    "customerId": {
+                      "type": "string",
+                      "description": "Customer the account was reassigned to."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The server cannot process the request, often due to a malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - The requested resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong with the DoiT API server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cloudflow/v1/trigger/{flowId}": {
       "post": {
         "tags": [
@@ -43974,7 +44584,7 @@
           "Service Accounts"
         ],
         "summary": "Create a service account",
-        "description": "Creates a service account owned by the authenticated customer. API tokens for the service account are managed separately in the DoiT console. Returns `409` when another service account of the customer already uses `name`. With `dryRun=true` the request goes through the same checks as a real create (name bounds and uniqueness, permission names, caller scope) and returns the same errors without creating anything. When the caller authenticates with a service account token, `createdBy`, `createdByEmail` and `createdByUserId` are `null`. Requires the `serviceAccountCreator` permission.",
+        "description": "Creates a service account owned by the authenticated customer. It cannot authenticate anything until it has an API token; mint one with the `api-tokens` sub-resource. Returns `409` when another service account of the customer already uses `name`. With `dryRun=true` the request goes through the same checks as a real create (name bounds and uniqueness, permission names, caller scope) and returns the same errors without creating anything. When the caller authenticates with a service account token, `createdBy`, `createdByEmail` and `createdByUserId` are `null`. Requires the `serviceAccountCreator` permission.",
         "operationId": "createServiceAccount",
         "parameters": [
           {
@@ -47092,6 +47702,2849 @@
                   "detail": "If-Match header is required",
                   "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
                   "code": "precondition_required",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iam/v1/service-accounts/{serviceAccountId}/api-tokens": {
+      "parameters": [
+        {
+          "name": "serviceAccountId",
+          "in": "path",
+          "required": true,
+          "description": "ID of the service account that owns the token, as returned in the id field by the service account list and create operations.",
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Service Accounts"
+        ],
+        "summary": "List API tokens for a service account",
+        "description": "Returns the service account's non-deleted API tokens in a single unpaginated `items` array, at most 10. Secret material is never returned here — `accessToken` is shown only once, by the create operation. Requires the `serviceAccountViewer` permission.",
+        "operationId": "listServiceAccountTokens",
+        "responses": {
+          "200": {
+            "description": "OK - API tokens returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "API tokens of a service account, at most 10.",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "maxItems": 10,
+                      "description": "The service account's non-deleted API tokens.",
+                      "items": {
+                        "type": "object",
+                        "description": "An API token of a service account. It authenticates with the service account's permissions, and carries no secret material after the create response.",
+                        "required": [
+                          "id",
+                          "serviceAccountId",
+                          "customerId",
+                          "name",
+                          "state",
+                          "createTime",
+                          "expiresTime",
+                          "lastUsedTime"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "nullable": true,
+                            "readOnly": true,
+                            "description": "API token ID. `null` only on a dry-run create.",
+                            "example": "Mr0sN7pQ4tU2vW5xY8zC"
+                          },
+                          "serviceAccountId": {
+                            "type": "string",
+                            "readOnly": true,
+                            "description": "ID of the service account that owns the token.",
+                            "example": "Lq3nO9rM5wS2tU0xY4zA"
+                          },
+                          "customerId": {
+                            "type": "string",
+                            "readOnly": true,
+                            "description": "ID of the customer whose service account the token belongs to.",
+                            "example": "Kp2mN8qL4vR0sT1wX3yZ"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Name, unique among the service account's tokens.",
+                            "example": "ci-pipeline-prod"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "disabled"
+                            ],
+                            "description": "The token's stored state: `active` while it is enabled, `disabled` once it has been turned off. This is not a liveness signal — a token whose `expiresTime` has passed stops authenticating but keeps the state it was stored with, so `active` here does not by itself mean the token still works; compare `expiresTime`. Only these two values can be set.",
+                            "example": "active"
+                          },
+                          "createTime": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true,
+                            "readOnly": true,
+                            "description": "When the token was created. `null` only on a dry-run create.",
+                            "example": "2026-09-01T08:00:00Z"
+                          },
+                          "expiresTime": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true,
+                            "description": "When the token stops authenticating. `null` when it does not expire.",
+                            "example": "2027-09-01T08:00:00Z"
+                          },
+                          "lastUsedTime": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true,
+                            "readOnly": true,
+                            "description": "When the token last authenticated a request. `null` until it is first used.",
+                            "example": "2026-09-20T14:31:00Z"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "id": "Mr0sN7pQ4tU2vW5xY8zC",
+                          "serviceAccountId": "Lq3nO9rM5wS2tU0xY4zA",
+                          "customerId": "Kp2mN8qL4vR0sT1wX3yZ",
+                          "name": "ci-pipeline-prod",
+                          "state": "active",
+                          "createTime": "2026-09-01T08:00:00Z",
+                          "expiresTime": "2027-09-01T08:00:00Z",
+                          "lastUsedTime": "2026-09-20T14:31:00Z"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "Mr0sN7pQ4tU2vW5xY8zC",
+                      "serviceAccountId": "Lq3nO9rM5wS2tU0xY4zA",
+                      "customerId": "Kp2mN8qL4vR0sT1wX3yZ",
+                      "name": "ci-pipeline-prod",
+                      "state": "active",
+                      "createTime": "2026-09-01T08:00:00Z",
+                      "expiresTime": "2027-09-01T08:00:00Z",
+                      "lastUsedTime": "2026-09-20T14:31:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Service Accounts"
+        ],
+        "summary": "Create an API token for a service account",
+        "description": "Mints an API token for the service account and returns its `accessToken` once. The token\ninherits the service account's permissions as they stand at creation; there is no per-token\nscoping. Returns `409` when the service account already has a token of the same name, and\n`422` at the cap of 10 tokens.\n\n`dryRun=true` checks the name bounds only, then returns a preview without creating anything.\nIt does **not** verify that the service account exists, that the name is unused, or that the\naccount is under the token cap, so a dry run can succeed where the real create then returns\n`404`, `409` or `422`. Requires the `serviceAccountCreator` permission.\n",
+        "operationId": "createServiceAccountToken",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Client-generated key (UUID v4 or ULID recommended). Retrying with the same key and request returns the stored response instead of repeating the operation; the key is kept for 24 hours.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "dryRun",
+            "in": "query",
+            "required": false,
+            "description": "If true, validates the request and returns the would-be result without applying it. The response then carries the X-Dry-Run header.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The API token to create.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Fields of a new API token.",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Name, unique among the service account's tokens. Leading or trailing whitespace returns `400`.",
+                    "example": "ci-pipeline-prod"
+                  },
+                  "expiresTime": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When the token should stop authenticating. Omit to let the server set the default expiry.",
+                    "example": "2027-09-01T08:00:00Z"
+                  }
+                }
+              },
+              "example": {
+                "name": "ci-pipeline-prod",
+                "expiresTime": "2027-09-01T08:00:00Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK - Dry run only (`dryRun=true`). The name passed its bounds check and nothing was created; `id` and `createTime` are `null` and `accessToken` is an empty string. Not a guarantee that a real create would succeed — see the operation description.",
+            "headers": {
+              "X-Dry-Run": {
+                "description": "Present with the value `true` when the request ran as a dry run and nothing was changed.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "true"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "A newly created API token, together with the credential that authenticates as it.",
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "description": "An API token of a service account. It authenticates with the service account's permissions, and carries no secret material after the create response.",
+                      "required": [
+                        "id",
+                        "serviceAccountId",
+                        "customerId",
+                        "name",
+                        "state",
+                        "createTime",
+                        "expiresTime",
+                        "lastUsedTime"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "nullable": true,
+                          "readOnly": true,
+                          "description": "API token ID. `null` only on a dry-run create.",
+                          "example": "Mr0sN7pQ4tU2vW5xY8zC"
+                        },
+                        "serviceAccountId": {
+                          "type": "string",
+                          "readOnly": true,
+                          "description": "ID of the service account that owns the token.",
+                          "example": "Lq3nO9rM5wS2tU0xY4zA"
+                        },
+                        "customerId": {
+                          "type": "string",
+                          "readOnly": true,
+                          "description": "ID of the customer whose service account the token belongs to.",
+                          "example": "Kp2mN8qL4vR0sT1wX3yZ"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Name, unique among the service account's tokens.",
+                          "example": "ci-pipeline-prod"
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "active",
+                            "disabled"
+                          ],
+                          "description": "The token's stored state: `active` while it is enabled, `disabled` once it has been turned off. This is not a liveness signal — a token whose `expiresTime` has passed stops authenticating but keeps the state it was stored with, so `active` here does not by itself mean the token still works; compare `expiresTime`. Only these two values can be set.",
+                          "example": "active"
+                        },
+                        "createTime": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "readOnly": true,
+                          "description": "When the token was created. `null` only on a dry-run create.",
+                          "example": "2026-09-01T08:00:00Z"
+                        },
+                        "expiresTime": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "When the token stops authenticating. `null` when it does not expire.",
+                          "example": "2027-09-01T08:00:00Z"
+                        },
+                        "lastUsedTime": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "readOnly": true,
+                          "description": "When the token last authenticated a request. `null` until it is first used.",
+                          "example": "2026-09-20T14:31:00Z"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "accessToken"
+                      ],
+                      "properties": {
+                        "accessToken": {
+                          "type": "string",
+                          "format": "password",
+                          "readOnly": true,
+                          "description": "The token credential, and the secret that authenticates as this service account. Returned only by this operation and never retrievable again, so store it somewhere safe on receipt; an empty string on a dry-run create. Treat it like a password.",
+                          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "id": null,
+                  "serviceAccountId": "Lq3nO9rM5wS2tU0xY4zA",
+                  "customerId": "Kp2mN8qL4vR0sT1wX3yZ",
+                  "name": "ci-pipeline-prod",
+                  "state": "active",
+                  "createTime": null,
+                  "expiresTime": "2027-09-01T08:00:00Z",
+                  "lastUsedTime": null,
+                  "accessToken": ""
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created - API token created. This is the only response that carries `accessToken`.",
+            "headers": {
+              "Location": {
+                "description": "URL of the created API token.",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "A newly created API token, together with the credential that authenticates as it.",
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "description": "An API token of a service account. It authenticates with the service account's permissions, and carries no secret material after the create response.",
+                      "required": [
+                        "id",
+                        "serviceAccountId",
+                        "customerId",
+                        "name",
+                        "state",
+                        "createTime",
+                        "expiresTime",
+                        "lastUsedTime"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "nullable": true,
+                          "readOnly": true,
+                          "description": "API token ID. `null` only on a dry-run create.",
+                          "example": "Mr0sN7pQ4tU2vW5xY8zC"
+                        },
+                        "serviceAccountId": {
+                          "type": "string",
+                          "readOnly": true,
+                          "description": "ID of the service account that owns the token.",
+                          "example": "Lq3nO9rM5wS2tU0xY4zA"
+                        },
+                        "customerId": {
+                          "type": "string",
+                          "readOnly": true,
+                          "description": "ID of the customer whose service account the token belongs to.",
+                          "example": "Kp2mN8qL4vR0sT1wX3yZ"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Name, unique among the service account's tokens.",
+                          "example": "ci-pipeline-prod"
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "active",
+                            "disabled"
+                          ],
+                          "description": "The token's stored state: `active` while it is enabled, `disabled` once it has been turned off. This is not a liveness signal — a token whose `expiresTime` has passed stops authenticating but keeps the state it was stored with, so `active` here does not by itself mean the token still works; compare `expiresTime`. Only these two values can be set.",
+                          "example": "active"
+                        },
+                        "createTime": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "readOnly": true,
+                          "description": "When the token was created. `null` only on a dry-run create.",
+                          "example": "2026-09-01T08:00:00Z"
+                        },
+                        "expiresTime": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "When the token stops authenticating. `null` when it does not expire.",
+                          "example": "2027-09-01T08:00:00Z"
+                        },
+                        "lastUsedTime": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "readOnly": true,
+                          "description": "When the token last authenticated a request. `null` until it is first used.",
+                          "example": "2026-09-20T14:31:00Z"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "accessToken"
+                      ],
+                      "properties": {
+                        "accessToken": {
+                          "type": "string",
+                          "format": "password",
+                          "readOnly": true,
+                          "description": "The token credential, and the secret that authenticates as this service account. Returned only by this operation and never retrievable again, so store it somewhere safe on receipt; an empty string on a dry-run create. Treat it like a password.",
+                          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "id": "Mr0sN7pQ4tU2vW5xY8zC",
+                  "serviceAccountId": "Lq3nO9rM5wS2tU0xY4zA",
+                  "customerId": "Kp2mN8qL4vR0sT1wX3yZ",
+                  "name": "ci-pipeline-prod",
+                  "state": "active",
+                  "createTime": "2026-09-01T08:00:00Z",
+                  "expiresTime": "2027-09-01T08:00:00Z",
+                  "lastUsedTime": null,
+                  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Syntactically malformed request, missing required parameter, or unsupported parameter value.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "validationFailed": {
+                    "summary": "Missing or invalid parameter",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/validation_failed",
+                      "title": "Validation failed",
+                      "status": 400,
+                      "detail": "The request is missing a required parameter or contains an invalid value.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "validation_failed",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdRequired": {
+                    "summary": "Tenant scope not resolvable",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_required",
+                      "title": "Tenant ID required",
+                      "status": 400,
+                      "detail": "X-Tenant-Id header is required when the credential can access more than one tenant.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_required",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdMismatch": {
+                    "summary": "Header conflicts with the key's tenant",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_mismatch",
+                      "title": "Tenant ID mismatch",
+                      "status": 400,
+                      "detail": "X-Tenant-Id does not match the tenant the credential is scoped to.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_mismatch",
+                      "retryable": false
+                    }
+                  },
+                  "gcpServiceRequired": {
+                    "summary": "GCP region filter without commitment type",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/gcp_service_required",
+                      "title": "GCP service required",
+                      "status": 400,
+                      "detail": "The region query parameter requires gcp_service.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "gcp_service_required",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenInvalid": {
+                    "summary": "Structurally invalid pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_invalid",
+                      "title": "Invalid pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is structurally invalid (decode failure or tampering).",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_invalid",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenExpired": {
+                    "summary": "Expired pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_expired",
+                      "title": "Expired pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is no longer valid; restart pagination from the beginning.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_expired",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The request conflicts with the current state of the resource.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/conflict",
+                  "title": "Conflict",
+                  "status": 409,
+                  "detail": "The requested resource already exists.",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "conflict",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is well-formed but a value is not accepted, such as an unknown permission name.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/console-iam.invalid_permission",
+                  "title": "Invalid permission",
+                  "status": 422,
+                  "detail": "invalid permission value",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "console-iam.invalid_permission",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iam/v1/service-accounts/{serviceAccountId}/api-tokens/{id}": {
+      "parameters": [
+        {
+          "name": "serviceAccountId",
+          "in": "path",
+          "required": true,
+          "description": "ID of the service account that owns the token, as returned in the id field by the service account list and create operations.",
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "API token ID, as returned in the id field by the token list and create operations.",
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Service Accounts"
+        ],
+        "summary": "Get an API token",
+        "description": "Returns one API token of the service account; an ID that belongs to another customer returns `404`. `accessToken` is not included — it is shown only once, by the create operation. Requires the `serviceAccountViewer` permission.",
+        "operationId": "getServiceAccountToken",
+        "responses": {
+          "200": {
+            "description": "OK - API token returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "An API token of a service account. It authenticates with the service account's permissions, and carries no secret material after the create response.",
+                  "required": [
+                    "id",
+                    "serviceAccountId",
+                    "customerId",
+                    "name",
+                    "state",
+                    "createTime",
+                    "expiresTime",
+                    "lastUsedTime"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "nullable": true,
+                      "readOnly": true,
+                      "description": "API token ID. `null` only on a dry-run create.",
+                      "example": "Mr0sN7pQ4tU2vW5xY8zC"
+                    },
+                    "serviceAccountId": {
+                      "type": "string",
+                      "readOnly": true,
+                      "description": "ID of the service account that owns the token.",
+                      "example": "Lq3nO9rM5wS2tU0xY4zA"
+                    },
+                    "customerId": {
+                      "type": "string",
+                      "readOnly": true,
+                      "description": "ID of the customer whose service account the token belongs to.",
+                      "example": "Kp2mN8qL4vR0sT1wX3yZ"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Name, unique among the service account's tokens.",
+                      "example": "ci-pipeline-prod"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "disabled"
+                      ],
+                      "description": "The token's stored state: `active` while it is enabled, `disabled` once it has been turned off. This is not a liveness signal — a token whose `expiresTime` has passed stops authenticating but keeps the state it was stored with, so `active` here does not by itself mean the token still works; compare `expiresTime`. Only these two values can be set.",
+                      "example": "active"
+                    },
+                    "createTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "readOnly": true,
+                      "description": "When the token was created. `null` only on a dry-run create.",
+                      "example": "2026-09-01T08:00:00Z"
+                    },
+                    "expiresTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "description": "When the token stops authenticating. `null` when it does not expire.",
+                      "example": "2027-09-01T08:00:00Z"
+                    },
+                    "lastUsedTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "readOnly": true,
+                      "description": "When the token last authenticated a request. `null` until it is first used.",
+                      "example": "2026-09-20T14:31:00Z"
+                    }
+                  }
+                },
+                "example": {
+                  "id": "Mr0sN7pQ4tU2vW5xY8zC",
+                  "serviceAccountId": "Lq3nO9rM5wS2tU0xY4zA",
+                  "customerId": "Kp2mN8qL4vR0sT1wX3yZ",
+                  "name": "ci-pipeline-prod",
+                  "state": "active",
+                  "createTime": "2026-09-01T08:00:00Z",
+                  "expiresTime": "2027-09-01T08:00:00Z",
+                  "lastUsedTime": "2026-09-20T14:31:00Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Service Accounts"
+        ],
+        "summary": "Enable or disable an API token",
+        "description": "Moves the token between `active` and `disabled` by setting `state`. Disabling takes effect\nimmediately: the token stops authenticating until it is re-enabled. Setting the state a\ntoken already has succeeds and changes nothing.\n\nThe two directions are not symmetric. Disabling a token whose expiry has passed succeeds,\nbut re-enabling an expired token returns `422` — expiry is final, and a new token has to be\ncreated instead. `deleted` and `expired` are not accepted values: a token is deleted through\nthe delete operation, and expires on its own.\n\nWith `dryRun=true` nothing is written and the response body is the token as it would look\nafter the change, so a `422` here means a real request would also be refused. Requires the\n`serviceAccountManager` permission.\n",
+        "operationId": "updateServiceAccountToken",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Client-generated key (UUID v4 or ULID recommended). Retrying with the same key and request returns the stored response instead of repeating the operation; the key is kept for 24 hours.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "dryRun",
+            "in": "query",
+            "required": false,
+            "description": "If true, validates the request and returns the would-be result without applying it. The response then carries the X-Dry-Run header.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The state to move the token to.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "The state to move an API token to.",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "disabled"
+                    ],
+                    "description": "`active` to enable the token, `disabled` to stop it authenticating. Any other value, `deleted` and `expired` included, returns `400`. Re-enabling a token whose expiry has passed returns `422`.",
+                    "example": "disabled"
+                  }
+                }
+              },
+              "example": {
+                "state": "disabled"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK - API token state changed, or previewed when `dryRun=true`.",
+            "headers": {
+              "X-Dry-Run": {
+                "description": "Present with the value `true` when the request ran as a dry run and nothing was changed.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "true"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "An API token of a service account. It authenticates with the service account's permissions, and carries no secret material after the create response.",
+                  "required": [
+                    "id",
+                    "serviceAccountId",
+                    "customerId",
+                    "name",
+                    "state",
+                    "createTime",
+                    "expiresTime",
+                    "lastUsedTime"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "nullable": true,
+                      "readOnly": true,
+                      "description": "API token ID. `null` only on a dry-run create.",
+                      "example": "Mr0sN7pQ4tU2vW5xY8zC"
+                    },
+                    "serviceAccountId": {
+                      "type": "string",
+                      "readOnly": true,
+                      "description": "ID of the service account that owns the token.",
+                      "example": "Lq3nO9rM5wS2tU0xY4zA"
+                    },
+                    "customerId": {
+                      "type": "string",
+                      "readOnly": true,
+                      "description": "ID of the customer whose service account the token belongs to.",
+                      "example": "Kp2mN8qL4vR0sT1wX3yZ"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Name, unique among the service account's tokens.",
+                      "example": "ci-pipeline-prod"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "disabled"
+                      ],
+                      "description": "The token's stored state: `active` while it is enabled, `disabled` once it has been turned off. This is not a liveness signal — a token whose `expiresTime` has passed stops authenticating but keeps the state it was stored with, so `active` here does not by itself mean the token still works; compare `expiresTime`. Only these two values can be set.",
+                      "example": "active"
+                    },
+                    "createTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "readOnly": true,
+                      "description": "When the token was created. `null` only on a dry-run create.",
+                      "example": "2026-09-01T08:00:00Z"
+                    },
+                    "expiresTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "description": "When the token stops authenticating. `null` when it does not expire.",
+                      "example": "2027-09-01T08:00:00Z"
+                    },
+                    "lastUsedTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "readOnly": true,
+                      "description": "When the token last authenticated a request. `null` until it is first used.",
+                      "example": "2026-09-20T14:31:00Z"
+                    }
+                  }
+                },
+                "example": {
+                  "id": "Mr0sN7pQ4tU2vW5xY8zC",
+                  "serviceAccountId": "Lq3nO9rM5wS2tU0xY4zA",
+                  "customerId": "Kp2mN8qL4vR0sT1wX3yZ",
+                  "name": "ci-pipeline-prod",
+                  "state": "disabled",
+                  "createTime": "2026-09-01T08:00:00Z",
+                  "expiresTime": "2027-09-01T08:00:00Z",
+                  "lastUsedTime": "2026-09-20T14:31:00Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Syntactically malformed request, missing required parameter, or unsupported parameter value.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "validationFailed": {
+                    "summary": "Missing or invalid parameter",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/validation_failed",
+                      "title": "Validation failed",
+                      "status": 400,
+                      "detail": "The request is missing a required parameter or contains an invalid value.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "validation_failed",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdRequired": {
+                    "summary": "Tenant scope not resolvable",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_required",
+                      "title": "Tenant ID required",
+                      "status": 400,
+                      "detail": "X-Tenant-Id header is required when the credential can access more than one tenant.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_required",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdMismatch": {
+                    "summary": "Header conflicts with the key's tenant",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_mismatch",
+                      "title": "Tenant ID mismatch",
+                      "status": 400,
+                      "detail": "X-Tenant-Id does not match the tenant the credential is scoped to.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_mismatch",
+                      "retryable": false
+                    }
+                  },
+                  "gcpServiceRequired": {
+                    "summary": "GCP region filter without commitment type",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/gcp_service_required",
+                      "title": "GCP service required",
+                      "status": 400,
+                      "detail": "The region query parameter requires gcp_service.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "gcp_service_required",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenInvalid": {
+                    "summary": "Structurally invalid pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_invalid",
+                      "title": "Invalid pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is structurally invalid (decode failure or tampering).",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_invalid",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenExpired": {
+                    "summary": "Expired pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_expired",
+                      "title": "Expired pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is no longer valid; restart pagination from the beginning.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_expired",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is well-formed but a value is not accepted, such as an unknown permission name.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/console-iam.invalid_permission",
+                  "title": "Invalid permission",
+                  "status": 422,
+                  "detail": "invalid permission value",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "console-iam.invalid_permission",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Service Accounts"
+        ],
+        "summary": "Delete an API token",
+        "description": "Permanently deletes an API token, which stops authenticating immediately. This cannot be undone. Deleting an ID that no longer exists returns `404`. Requires the `serviceAccountManager` permission.",
+        "operationId": "deleteServiceAccountToken",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Client-generated key (UUID v4 or ULID recommended). Retrying with the same key and request returns the stored response instead of repeating the operation; the key is kept for 24 hours.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "dryRun",
+            "in": "query",
+            "required": false,
+            "description": "If true, validates the request and returns the would-be result without applying it. The response then carries the X-Dry-Run header.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content - API token deleted, or validated when `dryRun=true`.",
+            "headers": {
+              "X-Dry-Run": {
+                "description": "Present with the value `true` when the request ran as a dry run and nothing was changed.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "true"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Syntactically malformed request, missing required parameter, or unsupported parameter value.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "validationFailed": {
+                    "summary": "Missing or invalid parameter",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/validation_failed",
+                      "title": "Validation failed",
+                      "status": 400,
+                      "detail": "The request is missing a required parameter or contains an invalid value.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "validation_failed",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdRequired": {
+                    "summary": "Tenant scope not resolvable",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_required",
+                      "title": "Tenant ID required",
+                      "status": 400,
+                      "detail": "X-Tenant-Id header is required when the credential can access more than one tenant.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_required",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdMismatch": {
+                    "summary": "Header conflicts with the key's tenant",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_mismatch",
+                      "title": "Tenant ID mismatch",
+                      "status": 400,
+                      "detail": "X-Tenant-Id does not match the tenant the credential is scoped to.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_mismatch",
+                      "retryable": false
+                    }
+                  },
+                  "gcpServiceRequired": {
+                    "summary": "GCP region filter without commitment type",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/gcp_service_required",
+                      "title": "GCP service required",
+                      "status": 400,
+                      "detail": "The region query parameter requires gcp_service.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "gcp_service_required",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenInvalid": {
+                    "summary": "Structurally invalid pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_invalid",
+                      "title": "Invalid pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is structurally invalid (decode failure or tampering).",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_invalid",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenExpired": {
+                    "summary": "Expired pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_expired",
+                      "title": "Expired pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is no longer valid; restart pagination from the beginning.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_expired",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - The client is not authorized to perform the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard error response structure.",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Detailed error message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
                   "retryable": false
                 }
               }
@@ -115137,6 +118590,308 @@
           }
         }
       },
+      "ServiceAccountToken": {
+        "type": "object",
+        "description": "An API token of a service account. It authenticates with the service account's permissions, and carries no secret material after the create response.",
+        "required": [
+          "id",
+          "serviceAccountId",
+          "customerId",
+          "name",
+          "state",
+          "createTime",
+          "expiresTime",
+          "lastUsedTime"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true,
+            "description": "API token ID. `null` only on a dry-run create.",
+            "example": "Mr0sN7pQ4tU2vW5xY8zC"
+          },
+          "serviceAccountId": {
+            "type": "string",
+            "readOnly": true,
+            "description": "ID of the service account that owns the token.",
+            "example": "Lq3nO9rM5wS2tU0xY4zA"
+          },
+          "customerId": {
+            "type": "string",
+            "readOnly": true,
+            "description": "ID of the customer whose service account the token belongs to.",
+            "example": "Kp2mN8qL4vR0sT1wX3yZ"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name, unique among the service account's tokens.",
+            "example": "ci-pipeline-prod"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ],
+            "description": "The token's stored state: `active` while it is enabled, `disabled` once it has been turned off. This is not a liveness signal — a token whose `expiresTime` has passed stops authenticating but keeps the state it was stored with, so `active` here does not by itself mean the token still works; compare `expiresTime`. Only these two values can be set.",
+            "example": "active"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "description": "When the token was created. `null` only on a dry-run create.",
+            "example": "2026-09-01T08:00:00Z"
+          },
+          "expiresTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the token stops authenticating. `null` when it does not expire.",
+            "example": "2027-09-01T08:00:00Z"
+          },
+          "lastUsedTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "description": "When the token last authenticated a request. `null` until it is first used.",
+            "example": "2026-09-20T14:31:00Z"
+          }
+        }
+      },
+      "ServiceAccountTokensResponse": {
+        "type": "object",
+        "description": "API tokens of a service account, at most 10.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 10,
+            "description": "The service account's non-deleted API tokens.",
+            "items": {
+              "type": "object",
+              "description": "An API token of a service account. It authenticates with the service account's permissions, and carries no secret material after the create response.",
+              "required": [
+                "id",
+                "serviceAccountId",
+                "customerId",
+                "name",
+                "state",
+                "createTime",
+                "expiresTime",
+                "lastUsedTime"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "nullable": true,
+                  "readOnly": true,
+                  "description": "API token ID. `null` only on a dry-run create.",
+                  "example": "Mr0sN7pQ4tU2vW5xY8zC"
+                },
+                "serviceAccountId": {
+                  "type": "string",
+                  "readOnly": true,
+                  "description": "ID of the service account that owns the token.",
+                  "example": "Lq3nO9rM5wS2tU0xY4zA"
+                },
+                "customerId": {
+                  "type": "string",
+                  "readOnly": true,
+                  "description": "ID of the customer whose service account the token belongs to.",
+                  "example": "Kp2mN8qL4vR0sT1wX3yZ"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Name, unique among the service account's tokens.",
+                  "example": "ci-pipeline-prod"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "disabled"
+                  ],
+                  "description": "The token's stored state: `active` while it is enabled, `disabled` once it has been turned off. This is not a liveness signal — a token whose `expiresTime` has passed stops authenticating but keeps the state it was stored with, so `active` here does not by itself mean the token still works; compare `expiresTime`. Only these two values can be set.",
+                  "example": "active"
+                },
+                "createTime": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "readOnly": true,
+                  "description": "When the token was created. `null` only on a dry-run create.",
+                  "example": "2026-09-01T08:00:00Z"
+                },
+                "expiresTime": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "description": "When the token stops authenticating. `null` when it does not expire.",
+                  "example": "2027-09-01T08:00:00Z"
+                },
+                "lastUsedTime": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "readOnly": true,
+                  "description": "When the token last authenticated a request. `null` until it is first used.",
+                  "example": "2026-09-20T14:31:00Z"
+                }
+              }
+            },
+            "example": [
+              {
+                "id": "Mr0sN7pQ4tU2vW5xY8zC",
+                "serviceAccountId": "Lq3nO9rM5wS2tU0xY4zA",
+                "customerId": "Kp2mN8qL4vR0sT1wX3yZ",
+                "name": "ci-pipeline-prod",
+                "state": "active",
+                "createTime": "2026-09-01T08:00:00Z",
+                "expiresTime": "2027-09-01T08:00:00Z",
+                "lastUsedTime": "2026-09-20T14:31:00Z"
+              }
+            ]
+          }
+        }
+      },
+      "CreateServiceAccountTokenRequest": {
+        "type": "object",
+        "description": "Fields of a new API token.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Name, unique among the service account's tokens. Leading or trailing whitespace returns `400`.",
+            "example": "ci-pipeline-prod"
+          },
+          "expiresTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the token should stop authenticating. Omit to let the server set the default expiry.",
+            "example": "2027-09-01T08:00:00Z"
+          }
+        }
+      },
+      "CreateServiceAccountTokenResponse": {
+        "description": "A newly created API token, together with the credential that authenticates as it.",
+        "allOf": [
+          {
+            "type": "object",
+            "description": "An API token of a service account. It authenticates with the service account's permissions, and carries no secret material after the create response.",
+            "required": [
+              "id",
+              "serviceAccountId",
+              "customerId",
+              "name",
+              "state",
+              "createTime",
+              "expiresTime",
+              "lastUsedTime"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "nullable": true,
+                "readOnly": true,
+                "description": "API token ID. `null` only on a dry-run create.",
+                "example": "Mr0sN7pQ4tU2vW5xY8zC"
+              },
+              "serviceAccountId": {
+                "type": "string",
+                "readOnly": true,
+                "description": "ID of the service account that owns the token.",
+                "example": "Lq3nO9rM5wS2tU0xY4zA"
+              },
+              "customerId": {
+                "type": "string",
+                "readOnly": true,
+                "description": "ID of the customer whose service account the token belongs to.",
+                "example": "Kp2mN8qL4vR0sT1wX3yZ"
+              },
+              "name": {
+                "type": "string",
+                "description": "Name, unique among the service account's tokens.",
+                "example": "ci-pipeline-prod"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "disabled"
+                ],
+                "description": "The token's stored state: `active` while it is enabled, `disabled` once it has been turned off. This is not a liveness signal — a token whose `expiresTime` has passed stops authenticating but keeps the state it was stored with, so `active` here does not by itself mean the token still works; compare `expiresTime`. Only these two values can be set.",
+                "example": "active"
+              },
+              "createTime": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "readOnly": true,
+                "description": "When the token was created. `null` only on a dry-run create.",
+                "example": "2026-09-01T08:00:00Z"
+              },
+              "expiresTime": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "When the token stops authenticating. `null` when it does not expire.",
+                "example": "2027-09-01T08:00:00Z"
+              },
+              "lastUsedTime": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "readOnly": true,
+                "description": "When the token last authenticated a request. `null` until it is first used.",
+                "example": "2026-09-20T14:31:00Z"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "accessToken"
+            ],
+            "properties": {
+              "accessToken": {
+                "type": "string",
+                "format": "password",
+                "readOnly": true,
+                "description": "The token credential, and the secret that authenticates as this service account. Returned only by this operation and never retrievable again, so store it somewhere safe on receipt; an empty string on a dry-run create. Treat it like a password.",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"
+              }
+            }
+          }
+        ]
+      },
+      "UpdateServiceAccountTokenRequest": {
+        "type": "object",
+        "description": "The state to move an API token to.",
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ],
+            "description": "`active` to enable the token, `disabled` to stop it authenticating. Any other value, `deleted` and `expired` included, returns `400`. Re-enabling a token whose expiry has passed returns `422`.",
+            "example": "disabled"
+          }
+        }
+      },
       "CustomerGroupUser": {
         "type": "object",
         "additionalProperties": false,
@@ -123191,6 +126946,211 @@
           }
         }
       },
+      "SharedPayerAccountMapping": {
+        "type": "object",
+        "description": "One AWS account under a linked shared payer - a member account or the payer's own management account - and the customer it is currently mapped to.",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "description": "Asset ID of the AWS account."
+          },
+          "accountName": {
+            "type": "string",
+            "description": "Display name of the AWS account."
+          },
+          "accountId": {
+            "type": "string",
+            "description": "AWS account ID."
+          },
+          "payerId": {
+            "type": "string",
+            "description": "AWS account ID of the management (payer) account this account is under."
+          },
+          "payerName": {
+            "type": "string",
+            "description": "Display name of the management (payer) account."
+          },
+          "customerId": {
+            "type": "string",
+            "description": "Customer the account is currently mapped to. Equal to `{customerId}` (the reseller itself) when the account has not been reassigned to an end customer."
+          },
+          "customerName": {
+            "type": "string",
+            "description": "Display name of `customerId`."
+          }
+        }
+      },
+      "SharedPayerAccountMappingList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One AWS account under a linked shared payer - a member account or the payer's own management account - and the customer it is currently mapped to.",
+              "properties": {
+                "assetId": {
+                  "type": "string",
+                  "description": "Asset ID of the AWS account."
+                },
+                "accountName": {
+                  "type": "string",
+                  "description": "Display name of the AWS account."
+                },
+                "accountId": {
+                  "type": "string",
+                  "description": "AWS account ID."
+                },
+                "payerId": {
+                  "type": "string",
+                  "description": "AWS account ID of the management (payer) account this account is under."
+                },
+                "payerName": {
+                  "type": "string",
+                  "description": "Display name of the management (payer) account."
+                },
+                "customerId": {
+                  "type": "string",
+                  "description": "Customer the account is currently mapped to. Equal to `{customerId}` (the reseller itself) when the account has not been reassigned to an end customer."
+                },
+                "customerName": {
+                  "type": "string",
+                  "description": "Display name of `customerId`."
+                }
+              }
+            }
+          }
+        }
+      },
+      "SharedPayerManagementAccount": {
+        "type": "object",
+        "description": "A linked shared-payer management (payer) account that has completed onboarding.",
+        "properties": {
+          "payerId": {
+            "type": "string",
+            "description": "AWS account ID of the management (payer) account."
+          },
+          "payerName": {
+            "type": "string",
+            "description": "Display name of the management (payer) account."
+          }
+        }
+      },
+      "SharedPayerManagementAccountList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A linked shared-payer management (payer) account that has completed onboarding.",
+              "properties": {
+                "payerId": {
+                  "type": "string",
+                  "description": "AWS account ID of the management (payer) account."
+                },
+                "payerName": {
+                  "type": "string",
+                  "description": "Display name of the management (payer) account."
+                }
+              }
+            }
+          }
+        }
+      },
+      "SharedPayer": {
+        "type": "object",
+        "description": "A shared payer linked to the reseller, with its account-mapping progress.",
+        "properties": {
+          "payerId": {
+            "type": "string",
+            "description": "AWS account ID of the management (payer) account."
+          },
+          "payerName": {
+            "type": "string",
+            "description": "Display name of the management (payer) account."
+          },
+          "linkedAccounts": {
+            "type": "integer",
+            "description": "Number of AWS accounts under this payer, including the payer's own management account."
+          },
+          "mappedAssets": {
+            "type": "integer",
+            "description": "Number of those accounts already reassigned to an end customer."
+          },
+          "totalAssets": {
+            "type": "integer",
+            "description": "Same as `linkedAccounts`."
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Whether the payer has finished onboarding. A payer still mid-onboarding has no accounts yet."
+          }
+        }
+      },
+      "SharedPayerList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A shared payer linked to the reseller, with its account-mapping progress.",
+              "properties": {
+                "payerId": {
+                  "type": "string",
+                  "description": "AWS account ID of the management (payer) account."
+                },
+                "payerName": {
+                  "type": "string",
+                  "description": "Display name of the management (payer) account."
+                },
+                "linkedAccounts": {
+                  "type": "integer",
+                  "description": "Number of AWS accounts under this payer, including the payer's own management account."
+                },
+                "mappedAssets": {
+                  "type": "integer",
+                  "description": "Number of those accounts already reassigned to an end customer."
+                },
+                "totalAssets": {
+                  "type": "integer",
+                  "description": "Same as `linkedAccounts`."
+                },
+                "completed": {
+                  "type": "boolean",
+                  "description": "Whether the payer has finished onboarding. A payer still mid-onboarding has no accounts yet."
+                }
+              }
+            }
+          }
+        }
+      },
+      "SharedPayerAccountReassignRequest": {
+        "type": "object",
+        "required": [
+          "customerId"
+        ],
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "Customer to reassign the account to: `{customerId}` (the reseller itself) or a T3 end customer within its hierarchy."
+          }
+        }
+      },
+      "SharedPayerAccountReassignResult": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "description": "Asset ID of the reassigned account."
+          },
+          "customerId": {
+            "type": "string",
+            "description": "Customer the account was reassigned to."
+          }
+        }
+      },
       "CreateAllocationRequest": {
         "required": [
           "name",
@@ -123909,6 +127869,7 @@
             "items": {
               "required": [
                 "attribution",
+                "allocations",
                 "billingAccount",
                 "costOfAnomaly",
                 "platform",
@@ -123927,7 +127888,29 @@
               "properties": {
                 "attribution": {
                   "type": "string",
-                  "description": "Attribution ID."
+                  "deprecated": true,
+                  "description": "Deprecated: use 'allocations' instead. Name of the anomaly's primary allocation. Can be empty even when `allocations` is not, so it may differ from the first entry of `allocations`."
+                },
+                "allocations": {
+                  "type": "array",
+                  "description": "Every allocation the anomaly belongs to, primary allocation first. Allocations that no longer exist are left out. Anomalies with a single allocation return a one-item list. Some older anomalies have no allocation recorded and return an empty list.",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Allocation ID. Use it with the Allocations API to read the allocation."
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Allocation name."
+                      }
+                    }
+                  }
                 },
                 "billingAccount": {
                   "type": "string",
@@ -124203,6 +128186,7 @@
       "AnomalyItem": {
         "required": [
           "attribution",
+          "allocations",
           "billingAccount",
           "costOfAnomaly",
           "platform",
@@ -124221,7 +128205,29 @@
         "properties": {
           "attribution": {
             "type": "string",
-            "description": "Attribution ID."
+            "deprecated": true,
+            "description": "Deprecated: use 'allocations' instead. Name of the anomaly's primary allocation. Can be empty even when `allocations` is not, so it may differ from the first entry of `allocations`."
+          },
+          "allocations": {
+            "type": "array",
+            "description": "Every allocation the anomaly belongs to, primary allocation first. Allocations that no longer exist are left out. Anomalies with a single allocation return a one-item list. Some older anomalies have no allocation recorded and return an empty list.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Allocation ID. Use it with the Allocations API to read the allocation."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Allocation name."
+                }
+              }
+            }
           },
           "billingAccount": {
             "type": "string",
@@ -159612,6 +163618,7 @@
                       "items": {
                         "required": [
                           "attribution",
+                          "allocations",
                           "billingAccount",
                           "costOfAnomaly",
                           "platform",
@@ -159630,7 +163637,29 @@
                         "properties": {
                           "attribution": {
                             "type": "string",
-                            "description": "Attribution ID."
+                            "deprecated": true,
+                            "description": "Deprecated: use 'allocations' instead. Name of the anomaly's primary allocation. Can be empty even when `allocations` is not, so it may differ from the first entry of `allocations`."
+                          },
+                          "allocations": {
+                            "type": "array",
+                            "description": "Every allocation the anomaly belongs to, primary allocation first. Allocations that no longer exist are left out. Anomalies with a single allocation return a one-item list. Some older anomalies have no allocation recorded and return an empty list.",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "description": "Allocation ID. Use it with the Allocations API to read the allocation."
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "description": "Allocation name."
+                                }
+                              }
+                            }
                           },
                           "billingAccount": {
                             "type": "string",
@@ -159915,6 +163944,7 @@
             "schema": {
               "required": [
                 "attribution",
+                "allocations",
                 "billingAccount",
                 "costOfAnomaly",
                 "platform",
@@ -159930,7 +163960,29 @@
               "properties": {
                 "attribution": {
                   "type": "string",
-                  "description": "Attribution ID"
+                  "deprecated": true,
+                  "description": "Deprecated: use 'allocations' instead. Name of the anomaly's primary allocation. Can be empty even when `allocations` is not, so it may differ from the first entry of `allocations`."
+                },
+                "allocations": {
+                  "type": "array",
+                  "description": "Every allocation the anomaly belongs to, primary allocation first. Allocations that no longer exist are left out. Anomalies with a single allocation return a one-item list. Some older anomalies have no allocation recorded and return an empty list.",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Allocation ID. Use it with the Allocations API to read the allocation."
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Allocation name."
+                      }
+                    }
+                  }
                 },
                 "billingAccount": {
                   "type": "string",
@@ -161615,6 +165667,26 @@
         "in": "path",
         "required": true,
         "description": "Service account ID, as returned in the id field by the list and create operations.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "serviceAccountTokenId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "API token ID, as returned in the id field by the token list and create operations.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "serviceAccountTokenParentId": {
+        "name": "serviceAccountId",
+        "in": "path",
+        "required": true,
+        "description": "ID of the service account that owns the token, as returned in the id field by the service account list and create operations.",
         "schema": {
           "type": "string",
           "minLength": 1
