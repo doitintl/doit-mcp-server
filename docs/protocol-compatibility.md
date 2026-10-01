@@ -75,7 +75,7 @@ All of the following are executable. Run them from `test/integration` after a ro
 | Claim | Test |
 |---|---|
 | A hand-wired server cannot serve a 2026-07-28 client | `stdio/modern/eraNegotiation.test.ts` ("a hand-wired server rejects…") |
-| 2025-era clients are unaffected: the original suite (v1 SDK client, `2025-11-25`) runs unmodified through the shipped entry | `stdio/{approvalFlow,prompts,server,tools}.test.ts` via `helpers.ts` → `serveDoitStdio` |
+| 2025-era clients are unaffected: the original suite (v1 SDK client, `2025-11-25`) runs through the shipped entry with its assertions unchanged. The only edit since 2.1.0 removes an unused `_server` variable. | `stdio/{approvalFlow,prompts,server,tools}.test.ts` via `helpers.ts` → `serveDoitStdio` |
 | A 2026-07-28 client opens with `server/discover`, never sends `initialize`, negotiates `2026-07-28`, and receives the instructions, capabilities and server info | `stdio/modern/handshake.test.ts` |
 | `auto` and pinned v2 clients get the modern era, and a default (`legacy`-mode) v2 client still gets `initialize` | `stdio/modern/eraNegotiation.test.ts` |
 | One era per connection (`-32022`), and unsupported versions are rejected | `stdio/modern/eraNegotiation.test.ts` |
@@ -92,7 +92,7 @@ yarn test                                   # everything
 yarn test --exclude "stdio/modern/**" --exclude "process/**"   # the original 2025-era suite only
 yarn test stdio/modern/                     # the 2026-07-28 suite
 yarn test process/                          # the built-binary smoke test
-git diff main -- stdio/ ":!stdio/modern"   # empty: no original test file was modified
+git diff v2.1.0 -- stdio/ ":!stdio/modern" # only removes the unused `_server` variable; no assertion changed
 ```
 
 ## Checking it by hand

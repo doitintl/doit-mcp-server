@@ -58,10 +58,6 @@ export async function createTestClient() {
     return {
         client,
         rawClient: { callTool: originalCallTool },
-        // serveStdio owns the per-connection Server instance and does not expose it. No test
-        // reads this; it stays only so the existing `({ client, _server, cleanup })`
-        // destructuring in the stdio/*.test.ts files keeps working unchanged.
-        _server: undefined,
         cleanup: async () => {
             await client.close();
             await handle.close();

@@ -1,16 +1,14 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestClient } from "../helpers.js";
 
 describe("MCP Prompts Integration", () => {
     let client: Client;
-    let _server: Server;
     let cleanup: () => Promise<void>;
 
     beforeEach(async () => {
         vi.spyOn(console, "error").mockImplementation(() => {});
-        ({ client, _server, cleanup } = await createTestClient());
+        ({ client, cleanup } = await createTestClient());
     });
 
     afterEach(async () => {
