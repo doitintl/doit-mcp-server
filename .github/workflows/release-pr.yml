@@ -27,6 +27,11 @@ jobs:
   release-pr:
     name: Open or update the release PR
     runs-on: ubuntu-latest
+    # APP_PRIVATE_KEY lives in this environment, not in repo-level secrets: a
+    # repo-level secret is readable by a workflow on any branch, so anyone with
+    # write access could mint the app's token without a reviewed merge. The
+    # environment admits main only. See docs/release.md.
+    environment: release-pr
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

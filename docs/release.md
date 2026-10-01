@@ -66,7 +66,7 @@ git tag v0.10.0
 git push origin v0.10.0
 ```
 
-6. Pushing the tag runs the [Release workflow](../.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md` and creates a GitHub Release. It does **not** publish to npm: tag runs are not admitted to the `npm` environment. If a `main` run created the release but its `Publish to npm` job failed, use **Re-run failed jobs** on that run — it keeps the `refs/heads/main` ref. `yarn deploy` from a laptop is no longer part of the release flow.
+6. Pushing the tag runs the [Release workflow](../.github/workflows/release.yml), which extracts the notes from `CHANGELOG.md` and creates a GitHub Release. It does **not** publish to npm: tag runs are not admitted to the `npm` environment. If a `main` run created the release but its `Publish to npm` job failed, use **Re-run failed jobs** on that run — it keeps the `refs/heads/main` ref. There is no local publish script; publishing happens only from CI.
 
 ## npm publishing (Trusted Publishing / OIDC)
 
@@ -95,7 +95,7 @@ Package maintainer, on npmjs.com → package **Settings** → **Trusted Publishe
 
 1. Select GitHub Actions.
 2. Set organization `doitintl`, repository `doit-mcp-server`, workflow filename `release.yml`, **environment `npm`**. Never leave the environment empty — a filename-only match accepts a token from any ref.
-3. Save. Under **Publishing access**, also select **Require two-factor authentication and disallow tokens** so the trusted publisher is the only token-based way to publish. Maintainers can still publish interactively with 2FA (e.g. `yarn deploy`), which skips this gate — don't.
+3. Save. Under **Publishing access**, also select **Require two-factor authentication and disallow tokens** so the trusted publisher is the only token-based way to publish. Maintainers can still publish interactively with 2FA (`npm publish` from a laptop), which skips this gate — don't; the repo deliberately has no publish script.
 
 Each release now pauses at the `Publish to npm` job until a reviewer approves the `npm` deployment in the Actions run. Approve only runs on `main` whose commit is the merged release PR.
 
@@ -104,6 +104,19 @@ To check the GitHub side without risking a real publish, push a throwaway branch
 Order matters. Create and protect the `npm` environment **before** the first run that references it: GitHub auto-creates a missing environment with no protection rules, so a run against a missing `npm` environment publishes ungated. And until the npm trusted publisher names environment `npm`, npm still accepts tokens from any ref — the GitHub side alone does not close the gap.
 
 Until the npm side is set up at all, the `publish-npm` job fails at the `npm publish` step with an auth error — everything before it (release creation) still works.
+
+## Release PR app key
+
+The Release PR workflow opens its PR with a GitHub App token (so the PR's CI runs), minted from `APP_PRIVATE_KEY`. A **repository-level** secret is readable by a workflow on any branch, so anyone with write access could push a branch that prints or uses it and act as that app without a reviewed merge. The key therefore lives in a `release-pr` environment that only `main` can use.
+
+One-time setup (repository admin, on GitHub → repo **Settings**):
+
+1. **Environments** → **New environment** named `release-pr` (or edit it if a run already auto-created it). Under **Deployment branches and tags**, choose **Selected branches and tags** and add exactly one branch rule, `main`. No required reviewers — the job runs on every push to `main`.
+2. In that environment, add the secret `APP_PRIVATE_KEY` with the app's private key.
+3. **Secrets and variables** → **Actions** → delete the repository-level `APP_PRIVATE_KEY`. Do this only after step 2, or the next push to `main` fails to mint the token.
+4. Because the old key was readable from any branch, generate a new private key in the GitHub App's settings, store that one in step 2, and revoke the old one.
+
+`APP_ID` is a repository variable, not a secret, and can stay where it is.
 
 ## Cloudflare Worker (mcp.doit.com)
 
