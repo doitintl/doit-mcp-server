@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.13.0 (2026-10-01)
+
+**Full diff:** [`v1.12.1...v1.13.0`](../../compare/v1.12.1...v1.13.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`5a60427`)
+
+### Chores
+
+- chore(deps): bump hono from 4.12.5 to 4.13.12 in /test/integration (`e9a83bf`)
+- chore(deps): bump hono from 4.12.9 to 4.13.12 (`ab6fe25`)
+- chore(deps): bump fast-uri from 3.1.7 to 3.1.8 (`bc97c96`)
 ## v1.12.1 (2026-09-30)
 
 **Full diff:** [`v1.12.0...v1.12.1`](../../compare/v1.12.0...v1.12.1)
