@@ -1,10 +1,10 @@
 # MCP Server Coverage vs Public API and CLI — Research
 
-_Date: 2026-08-17. Snapshot-based analysis conducted from the omni monorepo (the external API's source of truth); re-run the comparison before acting on exact numbers. The 40-operation gap described below is the state this research found — PR #219 refreshed the snapshot and closed it._
+_Date: 2026-08-17. Snapshot-based analysis conducted from the external API's private source repo (its source of truth); re-run the comparison before acting on exact numbers. The 40-operation gap described below is the state this research found — PR #219 refreshed the snapshot and closed it._
 
 ## TL;DR
 
-- The public API (`api.doit.com`) exposes **170 operations**; the spec source of truth (`services/external-api/openapi.yaml` in the omni monorepo) is **byte-identical in operation coverage to the live spec** — the spec→API pipeline is healthy and automated.
+- The public API (`api.doit.com`) exposes **170 operations**; the spec source of truth (the OpenAPI spec in the external API's private source repo) is **byte-identical in operation coverage to the live spec** — the spec→API pipeline is healthy and automated.
 - The CLI (`dci`, [doitintl/dci-cli](https://github.com/doitintl/dci-cli)) loads the live OpenAPI spec at runtime (restish OpenAPI loader, default base `https://api.doit.com`), so it **tracks the API automatically — no gap by construction**.
 - The MCP server (this repo, hosted at `mcp.doit.com` and published to npm as `@doitintl/doit-mcp-server`) builds its tools from a **checked-in, manually refreshed OpenAPI snapshot** (`src/tools/generated/openapi.json`). At research time that snapshot was last refreshed **2026-07-13** and covered **130 of 170 operations → 40 operations (≈24%) were missing from MCP**.
 - The missing 40 are concentrated in newer API areas: PerfectScale for Commitments AWS (10), Billing Transfer (8), Contracts (6), Contract Templates (5), Budget Suggestions (3), Billing Explainer (2), Customers settings (2), Support ticket update/tags (2), CloudFlow build (1), Service Quotas (1).
@@ -14,9 +14,9 @@ _Date: 2026-08-17. Snapshot-based analysis conducted from the omni monorepo (the
 
 ### 1. Public API (source of truth)
 
-- Spec: `services/external-api/openapi.yaml` in the omni monorepo (170 operations, 30+ tags), served live at `https://api.doit.com/openapi.yaml`. Verified identical operation sets on 2026-08-17.
-- Contract validation: Schemathesis spec-driven validation (omni `services/external-api/`) checks the deployed API against the spec (GET pass + stateful CRUD chains).
-- New operations are designed against omni's `.agents/skills/agent-first-api-design/SKILL.md`; the AgentLedGrowth spec (omni `specs/AgentLedGrowth/CMP-49790-alg-cloud-intelligence/TECH.md`) states the principle explicitly: "The OpenAPI document is the product. MCP tools are generated from services/external-api/openapi.yaml."
+- Spec: maintained in the external API's private source repo (170 operations, 30+ tags), served live at `https://api.doit.com/openapi.yaml`. Verified identical operation sets on 2026-08-17.
+- Contract validation: Schemathesis spec-driven validation (run from that source repo) checks the deployed API against the spec (GET pass + stateful CRUD chains).
+- New operations are designed against an internal agent-first API design guide, and internal design specs state the principle explicitly: the OpenAPI document is the product, and MCP tools are generated from it.
 
 ### 2. MCP server (this repo)
 
@@ -25,7 +25,7 @@ Architecture (post v0.16.0, 2026-07-13):
 - **~97 hand-written tools**, each declaring `coversEndpoint` (the API operation it wraps) or `coversEndpoint: null` for tools with no API equivalent (cost helpers `cost_breakdown` / `cost_trend` / `compare_spend` / `get_cloud_overview`, session tools `change_customer` / `confirm_action`, `search_customers`).
 - **Auto-generated tools** for every remaining spec operation not covered by a hand-written tool (`src/tools/generated/generateTools.ts`) — one MCP tool per operation, Zod schemas derived from the OpenAPI schemas, pagination notes, read-only/destructive annotations, and an injected `customerContext` param.
 - Tools are generated from `src/tools/generated/openapi.json` — a **pre-dereferenced static snapshot** of the live spec, refreshed via `node scripts/refresh-generated-spec.mjs` (default source `https://api.doit.com/openapi.yaml`). The script header says: run manually whenever the spec changes; it is *not* fetched at runtime because the Cloudflare Worker transport has no filesystem.
-- Transports: stdio (npm package) and hosted Streamable HTTP/SSE at `https://mcp.doit.com` — a Cloudflare Worker (`doit-mcp-server.doitintl.workers.dev`; DNS is managed in omni, `infra/envs/prod/index.ts`). The worker consumes this package's `/core` entry; the worker wrapper itself (OAuth, Durable Objects, widgets) lives in a separate private repo. MCP OAuth (token exchange, client assertions) is handled by omni's `services/auth-service`.
+- Transports: stdio (npm package) and hosted Streamable HTTP/SSE at `https://mcp.doit.com` — a Cloudflare Worker (`doit-mcp-server.doitintl.workers.dev`; DNS is managed in a separate private repo). The worker consumes this package's `/core` entry; the worker wrapper itself (OAuth, Durable Objects, widgets) lives in a separate private repo. MCP OAuth (token exchange, client assertions) is handled by DoiT's internal auth service.
 - Related internal repo: `doitintl/doit-external-api-mcp` — the original fully spec-generated stdio server the generator was ported from. It supports `EXTERNAL_API_SPEC_PATH` to point at a live spec, i.e. it has no staleness problem, but it is stdio-only and internal.
 
 ### 3. CLI (`dci`)
@@ -112,11 +112,11 @@ Computed as (operations in the live spec) minus (operations in the MCP snapshot)
 
 | Stage | Automated? | Detail |
 |---|---|---|
-| Spec (omni) → live `api.doit.com/openapi.yaml` | ✅ Yes | Deployed with the external API; verified identical. Schemathesis validates spec↔deployment. |
+| Spec (source repo) → live `api.doit.com/openapi.yaml` | ✅ Yes | Deployed with the external API; verified identical. Schemathesis validates spec↔deployment. |
 | Live spec → CLI commands | ✅ Yes (runtime) | restish loads the spec per invocation/cache; zero-lag coverage. |
 | Live spec → MCP snapshot (`openapi.json`) | ❌ Manual at research time | Was `yarn generate:refresh-spec` run by a maintainer (last run 2026-07-13, no CI cron, no drift check). Now automated by `.github/workflows/refresh-spec.yml` (PR #219): daily cron + `repository_dispatch`, opens a review PR. |
 | Snapshot → MCP tools | ✅ Yes (build/load time) | `generateTools.ts` emits a tool per uncovered operation; hand-written coverage tracked via `coversEndpoint` so nothing double-registers. |
-| MCP release → npm | ✅ Yes (on tag) | `release.yml`'s `publish-npm` job publishes via npm Trusted Publishing (OIDC, no token) after verifying the tag matches `package.json`. |
+| MCP release → npm | ✅ Yes (on release merge to `main`) | `release.yml`'s `publish-npm` job publishes via npm Trusted Publishing (OIDC, no token) from the protected `npm` environment after reviewer approval, having verified the tag matches `package.json`. |
 | npm → hosted worker (`mcp.doit.com`) | ❌ Manual / separate repo | Worker imports `@doitintl/doit-mcp-server/core`; redeploy cadence not visible from the public repo. |
 | MCP docs (help.doit.com tool list) | ❌ Manual | The docs list a curated subset and lag the generated tools. |
 
@@ -124,10 +124,10 @@ Computed as (operations in the live spec) minus (operations in the MCP snapshot)
 
 ## Recommendations
 
-1. **Automate the snapshot refresh** — ✅ implemented in PR #219: `.github/workflows/refresh-spec.yml` runs `scripts/refresh-generated-spec.mjs` daily (plus `workflow_dispatch` and `repository_dispatch` type `openapi-spec-updated`) and opens a review PR when `openapi.json` changes. Daily polling was chosen over a cross-org push trigger: the omni-side dispatch would need a credential that can reach this repo, and the org's shared cross-repo GitHub App is deliberately read-only.
+1. **Automate the snapshot refresh** — ✅ implemented in PR #219: `.github/workflows/refresh-spec.yml` runs `scripts/refresh-generated-spec.mjs` daily (plus `workflow_dispatch` and `repository_dispatch` type `openapi-spec-updated`) and opens a review PR when `openapi.json` changes. Daily polling was chosen over a cross-org push trigger: a dispatch from the spec's source repo would need a credential that can reach this repo, and the org's shared cross-repo GitHub App is deliberately read-only.
 2. **Add a drift alarm** — ✅ covered by the same workflow: the daily run surfaces divergence as a PR instead of letting it accumulate silently.
-3. **CI hook in omni**: a post-merge step when `services/external-api/openapi.yaml` changes that fires the `repository_dispatch` at this repo (e.g. `gh api repos/doitintl/doit-mcp-server/dispatches -f event_type=openapi-spec-updated`). Not yet implemented.
-4. **Automate npm publish on tag** — ✅ implemented (CMP-47733): `release.yml` publishes to npm via Trusted Publishing on every semver tag; see `docs/release.md`.
+3. **CI hook in the spec's source repo**: a post-merge step when the OpenAPI spec changes that fires the `repository_dispatch` at this repo (e.g. `gh api repos/doitintl/doit-mcp-server/dispatches -f event_type=openapi-spec-updated`). Not yet implemented.
+4. **Automate npm publish on tag** — ✅ implemented: `release.yml` publishes to npm via Trusted Publishing when a release PR merges to `main`; see `docs/release.md`.
 5. **Docs**: generate the help.doit.com MCP tool list from the same snapshot (or mark it explicitly as a curated highlights list) to avoid a third manually-synced surface. Not yet implemented.
 6. **Decide intentional exclusions explicitly** — ✅ mechanism implemented in PR #219 (`src/tools/generated/excludedOperations.json`, enforced by `generateTools.ts` and guarded by `src/tools/generated/__tests__/excludedOperations.test.ts`). The nine seeded entries (Billing Transfer batch writes, Contracts writes, Contract Templates writes) are **proposals pending a product decision** — delete an entry to expose that operation.
 

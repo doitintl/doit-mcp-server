@@ -300,7 +300,7 @@
 
 ### Features
 
-- feat: publish to npm on release tag via trusted publishing (CMP-47733) (`1d2201b`)
+- feat: publish to npm on release tag via trusted publishing (`1d2201b`)
 - feat: scheduled OpenAPI snapshot refresh honoring an exclusion policy — snapshot refreshed 130 → 170 operations, adding 31 generated tools (`c1eb459`)
 - feat: expose remote runtime helpers from core (#217) (`3d23ff0`)
 - feat: add transport-independent core API (`4acc4ba`)
@@ -309,7 +309,7 @@
 
 ### Bug Fixes
 
-- fix: address MCP reliability issues (CMP-47539) (#215) (`67f6d3b`)
+- fix: address MCP reliability issues (#215) (`67f6d3b`)
 
 ### Other Changes
 

@@ -86,7 +86,8 @@ jobs:
             Review the changelog entry and edit it on this branch if needed — the
             entry is what becomes the GitHub Release notes. Merging this PR makes
             the [Release workflow](../blob/main/.github/workflows/release.yml) tag
-            the merge commit, create the GitHub Release, and publish to npm.
+            the merge commit, create the GitHub Release, and — once a reviewer
+            approves the `npm` environment deployment in that run — publish to npm.
 
             This PR is regenerated from `main` on every push, so any hand-edits to
             the changelog are overwritten when new commits land. Edit it last, or
