@@ -29,11 +29,11 @@ export const changeCustomerTool = {
         },
         required: ["customerContext"],
     },
-    // Read-only: switching context changes which customer later calls target, but writes no
-    // DoiT data itself.
+    // Destructive: it writes no DoiT data itself, but it changes which customer every later
+    // call targets, including writes and deletes, so clients should confirm before switching.
     annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
+        readOnlyHint: false,
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {
