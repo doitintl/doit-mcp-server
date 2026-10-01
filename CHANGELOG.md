@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.1.1 (2026-10-01)
+
+**Full diff:** [`v2.1.0...v2.1.1`](../../compare/v2.1.0...v2.1.1)
+
+### Bug Fixes
+
+- fix: harden generated path params against decoded-slash traversal (`a0d1322`)
+- fix: escape spec-derived keys in refresh-spec error output (`520a8c6`)
+- fix: reject external $refs when refreshing the OpenAPI snapshot (`2a3d97a`)
+- fix: reject dot/empty path params in generated tools (`e4f281f`)
+
+### Other Changes
+
+- build: remove local npm publish script (`a2e5bc9`)
+- ci(release-pr): scope app private key to a main-only environment (`ce19ca3`)
+- docs: remove internal repo and issue references (`8187fcd`)
+- docs: remove internal issue references (`9a5ed00`)
+- ci(release): publish to npm from main only (`0c6d889`)
+- ci(release): gate npm publish behind protected `npm` environment (`435fd94`)
 ## v2.1.0 (2026-10-01)
 
 **Full diff:** [`v2.0.0...v2.1.0`](../../compare/v2.0.0...v2.1.0)
