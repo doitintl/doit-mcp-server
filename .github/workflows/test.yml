@@ -93,6 +93,10 @@ jobs:
         run: yarn install --frozen-lockfile
         working-directory: test/integration
 
+      # test/integration/process/ spawns the built CLI (dist/index.js) over real stdio.
+      - name: Build server
+        run: yarn build
+
       - name: Run integration tests
         run: yarn test
         working-directory: test/integration
