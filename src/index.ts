@@ -41,6 +41,11 @@ export async function mainWithServer(customServer?: Server) {
         // prompt) are answered to the client and never reach it. stderr is safe here — stdout
         // carries the JSON-RPC stream.
         serveDoitStdio({ transport, onerror: (error) => console.error("DoiT MCP Server stdio error:", error) });
+        // serveStdio (2.1.0 and 2.2.0) calls transport.start() synchronously. If a future SDK
+        // starts it lazily, fail loudly here rather than silently losing the exit-1 contract.
+        if (!started) {
+            throw new Error("serveStdio did not start the stdio transport synchronously");
+        }
         await started;
     }
     console.error("DoiT MCP Server running on stdio");

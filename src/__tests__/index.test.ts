@@ -9,6 +9,12 @@ vi.mock("dotenv", () => ({ config: vi.fn() }));
 
 beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
+    // Like the real serveStdio: start the transport synchronously, swallow start failures.
+    vi.mocked(StdioServerTransport.prototype.start).mockResolvedValue();
+    vi.mocked(serveDoitStdio).mockImplementation((options) => {
+        void options?.transport?.start().catch(() => {});
+        return { close: vi.fn() };
+    });
 });
 
 afterEach(() => {
@@ -40,13 +46,15 @@ describe("mainWithServer", () => {
     // mainWithServer awaits the transport's own start() to keep main()'s exit-1 contract.
     it("rejects when the stdio transport fails to start", async () => {
         vi.mocked(StdioServerTransport.prototype.start).mockRejectedValue(new Error("stdin unavailable"));
-        vi.mocked(serveDoitStdio).mockImplementation((options) => {
-            void options?.transport?.start().catch(() => {});
-            return { close: vi.fn() };
-        });
 
         await expect(mainWithServer()).rejects.toThrow("stdin unavailable");
         expect(console.error).not.toHaveBeenCalledWith("DoiT MCP Server running on stdio");
+    });
+
+    it("fails loudly if serveStdio stops starting the transport synchronously", async () => {
+        vi.mocked(serveDoitStdio).mockImplementation(() => ({ close: vi.fn() }));
+
+        await expect(mainWithServer()).rejects.toThrow("did not start the stdio transport synchronously");
     });
 
     it("waits for the transport to start before reporting it is running", async () => {
@@ -56,10 +64,6 @@ describe("mainWithServer", () => {
                 resolveStart = resolve;
             })
         );
-        vi.mocked(serveDoitStdio).mockImplementation((options) => {
-            void options?.transport?.start();
-            return { close: vi.fn() };
-        });
 
         const running = mainWithServer();
         await Promise.resolve();
