@@ -23,9 +23,25 @@ export async function mainWithServer(customServer?: Server) {
     if (customServer) {
         await customServer.connect(new StdioServerTransport());
     } else {
-        // serveStdio reports transport and dispatch failures only through onerror; without
-        // it they would be silent. stderr is safe here — stdout carries the JSON-RPC stream.
-        serveDoitStdio({ onerror: (error) => console.error("DoiT MCP Server stdio error:", error) });
+        // serveStdio starts the transport itself and exposes no ready promise: a failed start
+        // only reaches onerror. Capture the transport's start() promise and await it, so a
+        // startup failure still rejects main() (→ "Fatal error in main()", exit code 1) as
+        // `await server.connect(transport)` did.
+        const transport = new StdioServerTransport();
+        const start = transport.start.bind(transport);
+        let started: Promise<void> | undefined;
+        transport.start = () => {
+            started = start();
+            return started;
+        };
+
+        // onerror receives connection-level events only — transport I/O errors, unparseable
+        // input lines, messages discarded before an era is negotiated, server-instance
+        // build/close failures. Per-request failures (a throwing handler, an unknown tool or
+        // prompt) are answered to the client and never reach it. stderr is safe here — stdout
+        // carries the JSON-RPC stream.
+        serveDoitStdio({ transport, onerror: (error) => console.error("DoiT MCP Server stdio error:", error) });
+        await started;
     }
     console.error("DoiT MCP Server running on stdio");
 }
