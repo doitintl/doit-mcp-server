@@ -107,4 +107,4 @@ Until the npm side is set up at all, the `publish-npm` job fails at the `npm pub
 
 ## Cloudflare Worker (mcp.doit.com)
 
-Publishing to npm does **not** update the hosted Worker — it consumes this package's `/core` export from its own (private) repo and must bump the dependency and redeploy there. Automating that half is tracked in [CMP-47733](https://doitintl.atlassian.net/browse/CMP-47733).
+Publishing to npm does **not** update the hosted Worker — it consumes this package's `/core` export from its own (private) repo and must bump the dependency and redeploy there. Automating that half is tracked internally.

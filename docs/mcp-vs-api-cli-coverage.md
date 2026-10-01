@@ -16,7 +16,7 @@ _Date: 2026-08-17. Snapshot-based analysis conducted from the omni monorepo (the
 
 - Spec: `services/external-api/openapi.yaml` in the omni monorepo (170 operations, 30+ tags), served live at `https://api.doit.com/openapi.yaml`. Verified identical operation sets on 2026-08-17.
 - Contract validation: Schemathesis spec-driven validation (omni `services/external-api/`) checks the deployed API against the spec (GET pass + stateful CRUD chains).
-- New operations are designed against omni's `.agents/skills/agent-first-api-design/SKILL.md`; the AgentLedGrowth spec (omni `specs/AgentLedGrowth/CMP-49790-alg-cloud-intelligence/TECH.md`) states the principle explicitly: "The OpenAPI document is the product. MCP tools are generated from services/external-api/openapi.yaml."
+- New operations are designed against omni's `.agents/skills/agent-first-api-design/SKILL.md`; the AgentLedGrowth spec states the principle explicitly: "The OpenAPI document is the product. MCP tools are generated from services/external-api/openapi.yaml."
 
 ### 2. MCP server (this repo)
 
@@ -127,7 +127,7 @@ Computed as (operations in the live spec) minus (operations in the MCP snapshot)
 1. **Automate the snapshot refresh** — ✅ implemented in PR #219: `.github/workflows/refresh-spec.yml` runs `scripts/refresh-generated-spec.mjs` daily (plus `workflow_dispatch` and `repository_dispatch` type `openapi-spec-updated`) and opens a review PR when `openapi.json` changes. Daily polling was chosen over a cross-org push trigger: the omni-side dispatch would need a credential that can reach this repo, and the org's shared cross-repo GitHub App is deliberately read-only.
 2. **Add a drift alarm** — ✅ covered by the same workflow: the daily run surfaces divergence as a PR instead of letting it accumulate silently.
 3. **CI hook in omni**: a post-merge step when `services/external-api/openapi.yaml` changes that fires the `repository_dispatch` at this repo (e.g. `gh api repos/doitintl/doit-mcp-server/dispatches -f event_type=openapi-spec-updated`). Not yet implemented.
-4. **Automate npm publish on tag** — ✅ implemented (CMP-47733): `release.yml` publishes to npm via Trusted Publishing on every semver tag; see `docs/release.md`.
+4. **Automate npm publish on tag** — ✅ implemented: `release.yml` publishes to npm via Trusted Publishing when a release PR merges to `main`; see `docs/release.md`.
 5. **Docs**: generate the help.doit.com MCP tool list from the same snapshot (or mark it explicitly as a curated highlights list) to avoid a third manually-synced surface. Not yet implemented.
 6. **Decide intentional exclusions explicitly** — ✅ mechanism implemented in PR #219 (`src/tools/generated/excludedOperations.json`, enforced by `generateTools.ts` and guarded by `src/tools/generated/__tests__/excludedOperations.test.ts`). The nine seeded entries (Billing Transfer batch writes, Contracts writes, Contract Templates writes) are **proposals pending a product decision** — delete an entry to expose that operation.
 
