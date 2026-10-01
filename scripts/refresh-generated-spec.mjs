@@ -55,6 +55,9 @@ function isPlainObject(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+// Spec-derived keys and pointers are always JSON.stringify'd in error messages so control
+// characters (e.g. a newline followed by a GitHub Actions "::command::") can't reach the log raw.
+
 // Walks every node (cycle-safe, since a dereferenced document can be circular) and calls
 // visit(value, pointer) for each "$ref" key found.
 function forEachRef(node, visit, pointer = "#", seen = new Set()) {
@@ -70,7 +73,7 @@ function forEachRef(node, visit, pointer = "#", seen = new Set()) {
 function assertOnlyLocalRefs(document) {
     const external = [];
     forEachRef(document, (ref, pointer) => {
-        if (typeof ref !== "string" || !ref.startsWith("#")) external.push(`${pointer}: ${JSON.stringify(ref)}`);
+        if (typeof ref !== "string" || !ref.startsWith("#")) external.push(`${JSON.stringify(pointer)}: ${JSON.stringify(ref)}`);
     });
     if (external.length > 0) {
         throw new Error(`Spec contains non-local $ref pointers, which are not allowed:\n  ${external.join("\n  ")}`);
@@ -79,7 +82,7 @@ function assertOnlyLocalRefs(document) {
 
 function assertNoRefs(document) {
     const remaining = [];
-    forEachRef(document, (ref, pointer) => remaining.push(`${pointer}: ${JSON.stringify(ref)}`));
+    forEachRef(document, (ref, pointer) => remaining.push(`${JSON.stringify(pointer)}: ${JSON.stringify(ref)}`));
     if (remaining.length > 0) {
         throw new Error(`Dereferenced spec still contains $ref pointers:\n  ${remaining.join("\n  ")}`);
     }
@@ -90,7 +93,7 @@ function assertExpectedShape(document) {
     if (!isPlainObject(document)) throw new Error("Spec is not an object");
 
     for (const key of Object.keys(document)) {
-        if (!TOP_LEVEL_KEYS.has(key) && !key.startsWith("x-")) problems.push(`unexpected top-level key "${key}"`);
+        if (!TOP_LEVEL_KEYS.has(key) && !key.startsWith("x-")) problems.push(`unexpected top-level key ${JSON.stringify(key)}`);
     }
     if (typeof document.openapi !== "string" || !document.openapi.startsWith("3.")) {
         problems.push(`"openapi" must be a 3.x version string`);
@@ -110,11 +113,11 @@ function assertExpectedShape(document) {
                 }
                 for (const [subKey, subValue] of Object.entries(value)) {
                     if (!INFO_OBJECT_KEYS[key].has(subKey) || typeof subValue !== "string") {
-                        problems.push(`unexpected "info.${key}.${subKey}"`);
+                        problems.push(`unexpected ${JSON.stringify(`info.${key}.${subKey}`)}`);
                     }
                 }
             } else {
-                problems.push(`unexpected key "info.${key}"`);
+                problems.push(`unexpected key ${JSON.stringify(`info.${key}`)}`);
             }
         }
     }
@@ -124,7 +127,7 @@ function assertExpectedShape(document) {
             problems.push(`"components" must be an object`);
         } else {
             for (const [key, value] of Object.entries(document.components)) {
-                if (!COMPONENT_KEYS.has(key)) problems.push(`unexpected key "components.${key}"`);
+                if (!COMPONENT_KEYS.has(key)) problems.push(`unexpected key ${JSON.stringify(`components.${key}`)}`);
                 else if (!isPlainObject(value)) problems.push(`"components.${key}" must be an object`);
             }
         }

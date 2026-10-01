@@ -35,7 +35,8 @@ components:
 ${extra}`;
 }
 
-describe("refresh-generated-spec script", () => {
+// Each test spawns a node process; the snapshot round-trip parses a multi-MB file.
+describe("refresh-generated-spec script", { timeout: 30_000 }, () => {
     let dir: string;
     let output: string;
 
@@ -83,6 +84,14 @@ describe("refresh-generated-spec script", () => {
         expect(result.status).not.toBe(0);
         expect(result.stderr).toContain('unexpected key "info.x-note"');
         expect(existsSync(output)).toBe(false);
+    });
+
+    it("escapes spec-controlled keys in error output so they cannot inject workflow commands", () => {
+        const result = run(specWith("").replace("info:\n", 'info:\n  "a\\n::warning title=spoof::injected": x\n'));
+
+        expect(result.status).not.toBe(0);
+        expect(result.stderr).toContain("\\n::warning");
+        expect(result.stderr).not.toMatch(/^::warning/m);
     });
 
     it("dereferences local $refs and writes a snapshot with no $ref left", () => {
