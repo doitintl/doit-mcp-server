@@ -21,7 +21,7 @@ describe("MCP Tools Integration", () => {
     });
 
     describe("tools/list", () => {
-        it("returns all registered tools", async () => {
+        it("returns customer-visible tools for a customer key", async () => {
             const result = await client.listTools();
             const names = result.tools.map((t) => t.name).sort();
 
@@ -31,11 +31,32 @@ describe("MCP Tools Integration", () => {
             // modules server.ts uses — rather than a hardcoded list — avoids this test
             // going stale every time an operation is added to the OpenAPI spec.
             const expectedNames = [
-                ...HAND_WRITTEN_TOOLS.map((tool) => tool.name),
+                ...HAND_WRITTEN_TOOLS.filter((tool) => tool.name !== "search_customers").map((tool) => tool.name),
                 ...generatedTools.map((tool) => tool.name),
             ].sort();
 
             expect(names).toEqual(expectedNames);
+            expect(names).not.toContain("change_customer");
+        });
+
+        it("returns a clear error for a direct employee-only call from a customer key", async () => {
+            const result = await client.callTool({ name: "search_customers", arguments: {} });
+
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toBe("search_customers is available only to DoiT employees");
+        });
+
+        it("includes search_customers for an employee key", async () => {
+            const savedKey = process.env.DOIT_API_KEY;
+            const payload = Buffer.from(JSON.stringify({ sub: "employee@doit.com" })).toString("base64url");
+            process.env.DOIT_API_KEY = `e30.${payload}.sig`;
+            try {
+                const result = await client.listTools();
+
+                expect(result.tools.map((tool) => tool.name)).toContain("search_customers");
+            } finally {
+                process.env.DOIT_API_KEY = savedKey;
+            }
         });
 
         it("each tool has a name, description, and inputSchema", async () => {

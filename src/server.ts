@@ -121,6 +121,7 @@ import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserReques
 import { handleValidateUserRequest } from "./tools/validateUser.js";
 import { MemoryApprovalStore } from "./utils/approval.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/consts.js";
+import { EMPLOYEE_ONLY_TOOLS, isDoitEmployee } from "./utils/employeeAccess.js";
 import { zodToMcpInputSchema } from "./utils/schemaHelpers.js";
 import { executeToolHandler } from "./utils/toolsHandler.js";
 import { createErrorResponse, formatZodError, handleGeneralError, type TrackingContext } from "./utils/util.js";
@@ -192,6 +193,7 @@ export function createServer() {
     );
 
     server.setRequestHandler("tools/list", async () => {
+        const employee = isDoitEmployee(process.env.DOIT_API_KEY);
         return {
             // v2 types handler returns from the method name, so this array is now checked
             // against the spec `Tool` type. Two of our fields aren't spec vocabulary:
@@ -201,7 +203,10 @@ export function createServer() {
             // this SDK swap stays behaviour-neutral; relocating `securitySchemes` under
             // `_meta` and dropping `coversEndpoint` are wire-visible changes that belong
             // in their own commit.
-            tools: [...HAND_WRITTEN_TOOLS, ...generatedToolDefinitions] as unknown as Tool[],
+            tools: [
+                ...HAND_WRITTEN_TOOLS.filter((tool) => employee || !EMPLOYEE_ONLY_TOOLS.has(tool.name)),
+                ...generatedToolDefinitions,
+            ] as unknown as Tool[],
         };
     });
 
@@ -280,6 +285,10 @@ export function createServer() {
         const token = process.env.DOIT_API_KEY;
         if (!token) {
             return createErrorResponse("Unauthorized");
+        }
+
+        if (EMPLOYEE_ONLY_TOOLS.has(name) && !isDoitEmployee(token)) {
+            return createErrorResponse(`${name} is available only to DoiT employees`);
         }
 
         // ctx.mcpReq.notify (not server.notification) ties the notification to this request

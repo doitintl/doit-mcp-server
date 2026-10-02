@@ -20,11 +20,11 @@ describe("MCP Tools Integration (2026-07-28 client)", () => {
     });
 
     describe("tools/list", () => {
-        it("returns every hand-written and generated tool", async () => {
+        it("returns customer-visible hand-written and generated tools for a customer key", async () => {
             const { tools } = await modern.client.listTools();
 
             const expectedNames = [
-                ...HAND_WRITTEN_TOOLS.map((tool) => tool.name),
+                ...HAND_WRITTEN_TOOLS.filter((tool) => tool.name !== "search_customers").map((tool) => tool.name),
                 ...generatedTools.map((tool) => tool.name),
             ].sort();
             expect(tools.map((tool) => tool.name).sort()).toEqual(expectedNames);
