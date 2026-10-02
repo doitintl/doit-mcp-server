@@ -113,6 +113,12 @@ without duplicating the text.
 
 ### C3 — `src/server.ts` — server instructions
 
+> **Superseded (SDK v2).** This section describes the SDK v1 implementation and is kept as the
+> record of that decision. The custom `initialize` handler it describes has since been removed.
+> The SDK's own `initialize` now returns `instructions` for 2025-era clients, and its
+> `server/discover` returns them for 2026-07-28 clients, both from the `instructions` option on
+> the `Server` constructor. See [protocol-compatibility.md](protocol-compatibility.md).
+
 The pinned SDK resolves to `1.29.0` (`yarn.lock`), whose `ServerOptions` accepts `instructions`
 (`src/server/index.ts:67-69`), stores it, and returns it in the `initialize` result. This closes
 the open question raised when this work was first proposed: **supported, no SDK bump needed.**

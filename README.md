@@ -68,6 +68,15 @@ Example with Claude Desktop — add the following to `claude_desktop_config.json
 - `DOIT_API_KEY`: Your DoiT API token (required)
 - `CUSTOMER_CONTEXT`: Customer context identifier (optional)
 
+### Supported MCP protocol versions
+
+The stdio server works with clients of both MCP protocol eras without any configuration:
+
+- `2024-10-07` through `2025-11-25`, through the `initialize` handshake.
+- `2026-07-28`, through `server/discover`.
+
+Each connection's opening message decides which era it uses. See [docs/protocol-compatibility.md](docs/protocol-compatibility.md) for the details and the tests that verify it.
+
 ### Clone to Local Repository
 
 If you want to clone and run this MCP server directly from the source code, follow these steps:
