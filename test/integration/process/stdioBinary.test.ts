@@ -8,6 +8,7 @@ import { StdioClientTransport as LegacyStdioClientTransport } from "@modelcontex
 import { describe, expect, it } from "vitest";
 import { generatedTools } from "../../../src/tools/generated/registry.js";
 import { HAND_WRITTEN_TOOLS } from "../../../src/tools/handWrittenTools.js";
+import { EMPLOYEE_ONLY_TOOLS } from "../../../src/utils/employeeAccess.js";
 
 // Spawns the *built* CLI (`node dist/index.js`) exactly as an MCP host would and talks to it
 // over real stdio pipes — the closest check to production that this repo can run: real
@@ -21,8 +22,9 @@ import { HAND_WRITTEN_TOOLS } from "../../../src/tools/handWrittenTools.js";
 // calls: the child runs without DOIT_API_KEY, and `tools/call` must answer Unauthorized.
 const SERVER_ENTRY = fileURLToPath(new URL("../../../dist/index.js", import.meta.url));
 
+// Without DOIT_API_KEY the caller is not a DoiT employee, so employee-only tools are hidden.
 const EXPECTED_TOOL_NAMES = [
-    ...HAND_WRITTEN_TOOLS.map((tool) => tool.name),
+    ...HAND_WRITTEN_TOOLS.filter((tool) => !EMPLOYEE_ONLY_TOOLS.has(tool.name)).map((tool) => tool.name),
     ...generatedTools.map((tool) => tool.name),
 ].sort();
 
