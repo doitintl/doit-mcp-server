@@ -46,7 +46,7 @@ A `Server` connected directly with `server.connect(new StdioServerTransport())` 
 - A client pinned to 2026-07-28 has no `initialize` fallback, so it fails with
   `SdkError(EraNegotiationFailed)`.
 
-This was how `src/index.ts` worked up to 2.1.0. `mainWithServer(customServer)` still wires a
+This was how `src/index.ts` worked up to 2.1.1. `mainWithServer(customServer)` still wires a
 `Server` you pass to it this way, for backward compatibility, so that path is 2025-only.
 
 ## Limits and era differences
@@ -75,7 +75,7 @@ All of the following are executable. Run them from `test/integration` after a ro
 | Claim | Test |
 |---|---|
 | A hand-wired server cannot serve a 2026-07-28 client | `stdio/modern/eraNegotiation.test.ts` ("a hand-wired server rejects…") |
-| 2025-era clients are unaffected: the original suite (v1 SDK client, `2025-11-25`) runs through the shipped entry with its assertions unchanged. The only edit since 2.1.0 removes an unused `_server` variable. | `stdio/{approvalFlow,prompts,server,tools}.test.ts` via `helpers.ts` → `serveDoitStdio` |
+| 2025-era clients are unaffected: the original suite (v1 SDK client, `2025-11-25`) runs through the shipped entry with its assertions unchanged. The only edit since 2.1.1 removes an unused `_server` variable. | `stdio/{approvalFlow,prompts,server,tools}.test.ts` via `helpers.ts` → `serveDoitStdio` |
 | A 2026-07-28 client opens with `server/discover`, never sends `initialize`, negotiates `2026-07-28`, and receives the instructions, capabilities and server info | `stdio/modern/handshake.test.ts` |
 | `auto` and pinned v2 clients get the modern era, and a default (`legacy`-mode) v2 client still gets `initialize` | `stdio/modern/eraNegotiation.test.ts` |
 | One era per connection (`-32022`), and unsupported versions are rejected | `stdio/modern/eraNegotiation.test.ts` |
@@ -94,7 +94,7 @@ yarn test                                   # everything
 yarn test --exclude "stdio/modern/**" --exclude "process/**"   # the original 2025-era suite only
 yarn test stdio/modern/                     # the 2026-07-28 suite
 yarn test process/                          # the built-binary smoke test
-git diff v2.1.0 -- stdio/ ":!stdio/modern" # only removes the unused `_server` variable; no assertion changed
+git diff v2.1.1 -- stdio/ ":!stdio/modern" # only removes the unused `_server` variable; no assertion changed
 ```
 
 ## Checking it by hand
@@ -113,5 +113,5 @@ transport closes when stdin ends.
 
 In fish, replace `( …; sleep 1)` with `begin; …; sleep 1; end`.
 
-Against a build of 2.1.0 or earlier, the first command returns
+Against a build of 2.1.1 or earlier, the first command returns
 `{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"Method not found"}}`.
