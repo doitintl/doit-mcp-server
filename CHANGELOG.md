@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.3.0 (2026-10-02)
+
+**Full diff:** [`v2.2.0...v2.3.0`](../../compare/v2.2.0...v2.3.0)
+
+### Features
+
+- feat(auth): restrict employee-only tools to authorized users (`f8cfa19`)
+
+### Bug Fixes
+
+- fix(auth): enforce employee-only tool access via email domain (`a0f4afa`)
+
+### Other Changes
+
+- test(auth): hide employee-only tools in integration tests (`d31575f`)
+- refactor(auth): perform employee check locally via JWT claims (`88f21d0`)
 ## v2.2.0 (2026-10-02)
 
 **Full diff:** [`v2.1.1...v2.2.0`](../../compare/v2.1.1...v2.2.0)
