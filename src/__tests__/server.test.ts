@@ -549,8 +549,8 @@ describe("tools/list handler", () => {
         }
     });
 
-    /** Mutating tools that previously lacked MCP hints: destructive annotations and ask-to-confirm copy in descriptions. */
-    it("list_tools: user, invite, and DataHub mutating tools expose destructive hints and confirmation guidance", async () => {
+    /** Mutating tools that previously lacked MCP hints: destructive annotations carry the confirmation signal. */
+    it("list_tools: user, invite, and DataHub mutating tools expose destructive hints", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
         const names = [
@@ -568,8 +568,51 @@ describe("tools/list handler", () => {
                 destructiveHint: true,
                 openWorldHint: true,
             });
-            expect(tool.description).toMatch(/Ask the user to confirm/i);
         }
+    });
+
+    // Directory review (e.g. the Claude Connectors Directory) rejects tool text that tells the
+    // model how to behave: always calling other tools, asking the user, or what it may claim.
+    // Descriptions say what a tool does and when it applies; confirmation rides on annotations.
+    it("no tool description or server instruction prescribes model behavior", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        const behavioral =
+            /\bALWAYS\b|\bAlways (call|use|include|export)\b|\bIMPORTANT\b|Ask the user|before reporting|Only claim|proactively|Only call this|\b(should|must) (call|present|ask|tell|respond|reply)\b|[Dd]o not guess|only if you know/;
+        // Generated from the upstream OpenAPI spec, whose description says "Agents should present
+        // consentUrl … and poll". The fix belongs in the spec; remove this once it is refreshed.
+        const upstreamSpecExceptions = new Set(["create_signup_request"]);
+
+        // Every description a client sees: the tool's own and each input property's, recursively.
+        const descriptions = (schema: any, path: string): [string, string][] => {
+            if (!schema || typeof schema !== "object") return [];
+            const own: [string, string][] = typeof schema.description === "string" ? [[path, schema.description]] : [];
+            const nested = [
+                ...Object.entries(schema.properties ?? {}).map(([key, value]) => descriptions(value, `${path}.${key}`)),
+                descriptions(schema.items, `${path}[]`),
+                ...[...(schema.anyOf ?? []), ...(schema.oneOf ?? []), ...(schema.allOf ?? [])].map((alt) =>
+                    descriptions(alt, path)
+                ),
+            ].flat();
+            return [...own, ...nested];
+        };
+
+        for (const tool of [...tools, changeCustomerTool]) {
+            if (upstreamSpecExceptions.has(tool.name)) continue;
+            expect(tool.description, tool.name).not.toMatch(behavioral);
+            for (const [path, text] of descriptions(tool.inputSchema, tool.name)) {
+                expect(text, path).not.toMatch(behavioral);
+            }
+        }
+        expect(SERVER_INSTRUCTIONS).not.toMatch(behavioral);
+    });
+
+    it("run_query names the DoiT Cloud Analytics API it calls", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        const runQuery = tools.find((t: { name: string }) => t.name === "run_query");
+        expect(runQuery.description).toContain("DoiT Cloud Analytics API");
+        expect(runQuery.description).toContain("https://developer.doit.com/reference/query");
     });
 });
 

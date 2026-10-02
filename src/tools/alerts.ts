@@ -268,7 +268,7 @@ export const createAlertTool = {
     title: "Create alert",
     coversEndpoint: "post:/analytics/v1/alerts",
     description:
-        "Use this when the user wants to set up a new cost alert with thresholds and notification settings. Ask the user to confirm the alert parameters before executing. Do NOT use this for creating budgets (use create_budget) or viewing existing alerts (use list_alerts).",
+        "Use this when the user wants to set up a new cost alert with thresholds and notification settings. Changes apply immediately. Do NOT use this for creating budgets (use create_budget) or viewing existing alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(CreateAlertArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -323,7 +323,7 @@ export const updateAlertTool = {
     title: "Update alert",
     coversEndpoint: "patch:/analytics/v1/alerts/{id}",
     description:
-        "Use this when the user wants to modify an existing cost alert. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
+        "Use this when the user wants to modify an existing cost alert. Supports partial updates. Changes apply immediately. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateAlertArgumentsSchema),
     annotations: {
         readOnlyHint: false,

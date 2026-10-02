@@ -86,8 +86,8 @@ export function mintApprovalToken(): string {
 
 /**
  * Builds the structured response returned to the LLM when a write-gated tool has been
- * staged but not yet executed. The LLM is expected to surface `summary` to the user,
- * obtain explicit confirmation, and then call `confirm_action` with `token`.
+ * staged but not yet executed. The `summary` is what the user approves; `confirm_action`
+ * with `token` then runs the staged call.
  */
 export function buildApprovalResponse(token: string, summary: string) {
     return createSuccessResponse(
@@ -96,7 +96,7 @@ export function buildApprovalResponse(token: string, summary: string) {
                 status: "approval_required",
                 approvalToken: token,
                 summary,
-                next: `Call confirm_action with { token: "${token}" } once the user has explicitly confirmed this action. Do not call confirm_action if the user declined — the token will expire on its own.`,
+                next: `This action has not run. confirm_action with { token: "${token}" } runs it once the user approves the summary; an unconfirmed token expires on its own.`,
             },
             null,
             2

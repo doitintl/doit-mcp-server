@@ -48,7 +48,7 @@ export const dimensionTool = {
     title: "Get dimension values",
     coversEndpoint: "get:/analytics/v1/dimension",
     description:
-        "Use this to look up the valid filter values for a specific dimension before calling run_query — for example, call get_dimension({type: 'fixed', id: 'cloud_provider'}) to get the exact provider IDs available for this customer. Also use this when the user wants to view dimension details. Do NOT use this for listing all dimensions (use list_dimensions) or running queries (use run_query).",
+        "Use this when the valid filter values for a specific dimension are needed, such as for a run_query filter, or when the user wants to view dimension details. For example, get_dimension({type: 'fixed', id: 'cloud_provider'}) returns the exact provider IDs available for this customer. Do NOT use this for listing all dimensions (use list_dimensions) or running queries (use run_query).",
     inputSchema: {
         type: "object",
         properties: {

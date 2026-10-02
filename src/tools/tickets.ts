@@ -116,7 +116,7 @@ export const createTicketTool = {
     title: "Create support ticket",
     coversEndpoint: "post:/support/v1/tickets",
     description:
-        "Use this when the user wants to create a new support ticket. Ask the user to confirm the ticket details before executing. Do NOT use this for viewing existing tickets (use list_tickets) or cloud incidents (use get_cloud_incidents).",
+        "Use this when the user wants to create a new support ticket. The ticket is opened with DoiT support immediately. Do NOT use this for viewing existing tickets (use list_tickets) or cloud incidents (use get_cloud_incidents).",
     inputSchema: {
         type: "object",
         properties: {

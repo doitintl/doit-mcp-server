@@ -133,7 +133,7 @@ export const createDatahubDatasetTool = {
     title: "Create DataHub dataset",
     coversEndpoint: "post:/datahub/v1/datasets",
     description:
-        "Use this when the user wants to create a new DataHub dataset. Ask the user to confirm the dataset name and description before executing. Do NOT use this for viewing datasets (use list_datahub_datasets) or sending events (use send_datahub_events).",
+        "Use this when the user wants to create a new DataHub dataset. Changes apply immediately. Do NOT use this for viewing datasets (use list_datahub_datasets) or sending events (use send_datahub_events).",
     inputSchema: zodToMcpInputSchema(CreateDatahubDatasetArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -193,7 +193,7 @@ export const updateDatahubDatasetTool = {
     title: "Update DataHub dataset",
     coversEndpoint: "patch:/datahub/v1/datasets/{name}",
     description:
-        "Use this when the user wants to modify an existing DataHub dataset's description. The dataset name is required to identify the dataset; only the description can be changed. Ask the user to confirm the changes before executing. Do NOT use this for creating datasets (use create_datahub_dataset) or listing datasets (use list_datahub_datasets).",
+        "Use this when the user wants to modify an existing DataHub dataset's description. The dataset name is required to identify the dataset; only the description can be changed. Changes apply immediately. Do NOT use this for creating datasets (use create_datahub_dataset) or listing datasets (use list_datahub_datasets).",
     inputSchema: zodToMcpInputSchema(UpdateDatahubDatasetArgumentsSchema),
     annotations: {
         readOnlyHint: false,
