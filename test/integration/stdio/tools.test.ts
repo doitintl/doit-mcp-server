@@ -1,5 +1,4 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { delay, HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { generatedTools } from "../../../src/tools/generated/registry.js";
@@ -9,12 +8,11 @@ import { mswServer } from "../setup.js";
 
 describe("MCP Tools Integration", () => {
     let client: Client;
-    let _server: Server;
     let cleanup: () => Promise<void>;
 
     beforeEach(async () => {
         vi.spyOn(console, "error").mockImplementation(() => {});
-        ({ client, _server, cleanup } = await createTestClient());
+        ({ client, cleanup } = await createTestClient());
     });
 
     afterEach(async () => {

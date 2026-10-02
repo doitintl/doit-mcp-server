@@ -1,4 +1,13 @@
-import { ProtocolError, ProtocolErrorCode, Server, type Tool } from "@modelcontextprotocol/server";
+import {
+    CLIENT_INFO_META_KEY,
+    type Implementation,
+    PROTOCOL_VERSION_META_KEY,
+    ProtocolError,
+    ProtocolErrorCode,
+    Server,
+    type ServerContext,
+    type Tool,
+} from "@modelcontextprotocol/server";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
@@ -133,21 +142,30 @@ const generatedToolDefinitions = generatedTools.map((tool) => ({
 const CLOUDFLOW_GUIDE_URI = "doit://docs/cloudflow-authoring";
 
 /**
- * Connection-level MCP client identity, attached to every tool call for analytics.
+ * MCP client identity, attached to every tool call for analytics.
  *
- * This used to be captured by a hand-written `initialize` handler into a closure
- * variable. That handler was removed: in v2 the SDK's own `initialize` does work an
- * override silently skips — it negotiates and records the protocol version (which the
- * outbound wire codec is selected from), calls `transport.setProtocolVersion()`, and
- * stores the client's capabilities and identity. Reading those back through the public
- * accessors keeps the same three fields without reimplementing the handshake.
+ * Where it comes from depends on the protocol era the connection was opened with (see
+ * src/stdio.ts):
+ * - 2026-07-28: there is no `initialize`. Every request carries a `_meta` envelope with the
+ *   protocol version and (optionally) client info; the SDK validates it and lifts it onto
+ *   `ctx.mcpReq.envelope` before the handler runs. `server.getClientVersion()` stays
+ *   undefined on this path — `serveStdio` never seeds it from the envelope.
+ * - 2025 era: no envelope. The SDK's own `initialize` handler records the client identity and
+ *   negotiated version on the instance, read back through the accessors. (A hand-written
+ *   `initialize` override would skip work the SDK does there — notably selecting the
+ *   outbound wire codec from the negotiated version — so the accessors are the source.)
  */
-function resolveTrackingContext(server: Server): TrackingContext {
-    const clientInfo = server.getClientVersion();
+function resolveTrackingContext(server: Server, ctx: ServerContext): TrackingContext {
+    // RequestMetaEnvelope is an opaque `{}` in the SDK's public types; its keys are the
+    // exported *_META_KEY constants and the shape was already validated on dispatch.
+    const envelope = ctx.mcpReq.envelope as Record<string, unknown> | undefined;
+    const clientInfo = (envelope?.[CLIENT_INFO_META_KEY] as Implementation | undefined) ?? server.getClientVersion();
+    const protocolVersion =
+        (envelope?.[PROTOCOL_VERSION_META_KEY] as string | undefined) ?? server.getNegotiatedProtocolVersion();
     return {
         mcpClient: clientInfo?.name,
         mcpClientVersion: clientInfo?.version,
-        mcpProtocolVersion: server.getNegotiatedProtocolVersion(),
+        mcpProtocolVersion: protocolVersion,
     };
 }
 
@@ -262,7 +280,7 @@ export function createServer() {
         };
     });
 
-    server.setRequestHandler("tools/call", async (request) => {
+    server.setRequestHandler("tools/call", async (request, ctx) => {
         const { name, arguments: args, _meta } = request.params;
         const token = process.env.DOIT_API_KEY;
         if (!token) {
@@ -273,17 +291,24 @@ export function createServer() {
             return createErrorResponse(`${name} is available only to DoiT employees`);
         }
 
+        // ctx.mcpReq.notify (not server.notification) ties the notification to this request
+        // (relatedRequestId), which per-request transports need to route it; it behaves the
+        // same in both protocol eras.
+        // Compare against undefined, not truthiness: a progress token may be any string or
+        // number, and 2026-07-28 clients commonly send 0 (the v2 SDK uses the request id, and
+        // the first post-discover request is id 0).
         const progressToken = _meta?.progressToken;
-        const onProgress = progressToken
-            ? async (message: string) =>
-                  server.notification({
-                      method: "notifications/progress",
-                      params: { progressToken, progress: 0, message },
-                  })
-            : undefined;
+        const onProgress =
+            progressToken !== undefined
+                ? async (message: string) =>
+                      ctx.mcpReq.notify({
+                          method: "notifications/progress",
+                          params: { progressToken, progress: 0, message },
+                      })
+                : undefined;
 
         return await executeToolHandler(name, args, token, {
-            trackingContext: resolveTrackingContext(server),
+            trackingContext: resolveTrackingContext(server, ctx),
             userKey,
             approvalStore,
             onProgress,
@@ -293,8 +318,6 @@ export function createServer() {
 
     return server;
 }
-
-export const server = createServer();
 
 export {
     createErrorResponse,

@@ -1,5 +1,4 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../../../src/docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../../../src/docs/serverInstructions.js";
@@ -8,12 +7,11 @@ import { createTestClient } from "../helpers.js";
 
 describe("MCP Server Integration", () => {
     let client: Client;
-    let _server: Server;
     let cleanup: () => Promise<void>;
 
     beforeEach(async () => {
         vi.spyOn(console, "error").mockImplementation(() => {});
-        ({ client, _server, cleanup } = await createTestClient());
+        ({ client, cleanup } = await createTestClient());
     });
 
     afterEach(async () => {
@@ -95,7 +93,7 @@ describe("MCP Server Integration", () => {
 
             await cleanup();
 
-            ({ client, _server, cleanup } = await createTestClient());
+            ({ client, cleanup } = await createTestClient());
             const result2 = await client.listTools();
             expect(result2.tools.length).toBe(result1.tools.length);
         });
