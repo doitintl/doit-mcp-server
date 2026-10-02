@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.2.0 (2026-10-02)
+
+**Full diff:** [`v2.1.1...v2.2.0`](../../compare/v2.1.1...v2.2.0)
+
+### Features
+
+- feat(stdio): serve 2025-era and 2026-07-28 clients via serveStdio (`4ba4f7b`)
+
 ## v2.1.1 (2026-10-01)
 
 **Full diff:** [`v2.1.0...v2.1.1`](../../compare/v2.1.0...v2.1.1)
