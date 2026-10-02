@@ -1,15 +1,13 @@
-import { handleValidateUserRequest, parseValidatedUserResponse } from "../tools/validateUser.js";
+import { decodeJWT } from "./util.js";
 
 export const EMPLOYEE_ONLY_TOOLS = new Set(["search_customers"]);
 
-// Keyed on the validated email, not `domain`: a Do'er key scoped to a customer
-// reports that customer's domain.
-export async function isDoitEmployee(token: string | undefined): Promise<boolean> {
-    if (!token) return false;
-    try {
-        const { email } = parseValidatedUserResponse(await handleValidateUserRequest({}, token));
-        return email.toLowerCase().endsWith("@doit.com");
-    } catch {
-        return false;
-    }
+// Read from the API key's own claims (no network call). Not a security boundary: the
+// backend still enforces Do'er access, this only decides which tools to advertise.
+export function isDoitEmployee(token: string | undefined): boolean {
+    const payload = token ? decodeJWT(token)?.payload : undefined;
+    return (
+        payload?.DoitEmployee === true ||
+        (typeof payload?.sub === "string" && payload.sub.toLowerCase().endsWith("@doit.com"))
+    );
 }

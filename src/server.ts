@@ -175,7 +175,7 @@ export function createServer() {
     );
 
     server.setRequestHandler("tools/list", async () => {
-        const employee = await isDoitEmployee(process.env.DOIT_API_KEY);
+        const employee = isDoitEmployee(process.env.DOIT_API_KEY);
         return {
             // v2 types handler returns from the method name, so this array is now checked
             // against the spec `Tool` type. Two of our fields aren't spec vocabulary:
@@ -269,7 +269,7 @@ export function createServer() {
             return createErrorResponse("Unauthorized");
         }
 
-        if (EMPLOYEE_ONLY_TOOLS.has(name) && !(await isDoitEmployee(token))) {
+        if (EMPLOYEE_ONLY_TOOLS.has(name) && !isDoitEmployee(token)) {
             return createErrorResponse(`${name} is available only to DoiT employees`);
         }
 

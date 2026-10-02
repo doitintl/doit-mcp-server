@@ -353,12 +353,13 @@ const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
 const originalProcessEnv = process.env;
 let _server: any;
 
+// Unsigned JWT shaped like a DoiT API key; isDoitEmployee only decodes the payload.
+const fakeApiKey = (payload: Record<string, unknown>) =>
+    `e30.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.sig`;
+
 beforeEach(() => {
     vi.resetAllMocks();
     process.env = { ...originalProcessEnv, DOIT_API_KEY: "fake-token" };
-    vi.mocked(handleValidateUserRequest).mockResolvedValue({
-        content: [{ type: "text", text: JSON.stringify({ domain: "doit.com", email: "employee@doit.com" }) }],
-    });
     (Server as any).mockImplementation(
         class {
             setRequestHandler = setRequestHandlerMock;
@@ -409,9 +410,7 @@ describe("createServer", () => {
 
 describe("tools/list handler", () => {
     it("hides employee-only tools from a customer key", async () => {
-        vi.mocked(handleValidateUserRequest).mockResolvedValue({
-            content: [{ type: "text", text: JSON.stringify({ domain: "example.com", email: "user@example.com" }) }],
-        });
+        process.env.DOIT_API_KEY = fakeApiKey({ sub: "user@example.com" });
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
         const { tools } = await handler();
@@ -420,10 +419,11 @@ describe("tools/list handler", () => {
         expect(tools.map((tool: { name: string }) => tool.name)).toContain("list_assets");
     });
 
-    it("shows employee-only tools to an employee key scoped to a customer", async () => {
-        vi.mocked(handleValidateUserRequest).mockResolvedValue({
-            content: [{ type: "text", text: JSON.stringify({ domain: "example.com", email: "Doer@DoiT.com" }) }],
-        });
+    it.each([
+        ["a @doit.com email", { sub: "Doer@DoiT.com", CustomerID: "customer-123" }],
+        ["the legacy DoitEmployee claim", { sub: "doer@example.com", DoitEmployee: true }],
+    ])("shows employee-only tools to an employee key with %s", async (_label, payload) => {
+        process.env.DOIT_API_KEY = fakeApiKey(payload);
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
         const { tools } = await handler();
@@ -431,10 +431,11 @@ describe("tools/list handler", () => {
         expect(tools.map((tool: { name: string }) => tool.name)).toContain("search_customers");
     });
 
-    it("hides employee-only tools from a lookalike email domain", async () => {
-        vi.mocked(handleValidateUserRequest).mockResolvedValue({
-            content: [{ type: "text", text: JSON.stringify({ domain: "doit.com", email: "user@notdoit.com" }) }],
-        });
+    it.each([
+        ["a lookalike email domain", fakeApiKey({ sub: "user@notdoit.com" })],
+        ["a key that is not a JWT", "fake-token"],
+    ])("hides employee-only tools from %s", async (_label, key) => {
+        process.env.DOIT_API_KEY = key;
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
         const { tools } = await handler();
@@ -442,16 +443,17 @@ describe("tools/list handler", () => {
         expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
     });
 
-    it("fails closed when employee identity cannot be verified", async () => {
-        vi.mocked(handleValidateUserRequest).mockRejectedValue(new Error("Identity service unavailable"));
+    it("does not call the validate endpoint", async () => {
+        process.env.DOIT_API_KEY = fakeApiKey({ sub: "employee@doit.com" });
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
-        const { tools } = await handler();
+        await handler();
 
-        expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
+        expect(handleValidateUserRequest).not.toHaveBeenCalled();
     });
 
     it("returns all registered tools in order", async () => {
+        process.env.DOIT_API_KEY = fakeApiKey({ sub: "employee@doit.com" });
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
         const response = await handler();
@@ -876,9 +878,7 @@ describe("tools/call handler", () => {
     const getCallToolHandler = () => setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/call")?.[1];
 
     it("rejects a direct employee-only call from a customer key with a clear error", async () => {
-        vi.mocked(handleValidateUserRequest).mockResolvedValue({
-            content: [{ type: "text", text: JSON.stringify({ domain: "example.com", email: "user@example.com" }) }],
-        });
+        process.env.DOIT_API_KEY = fakeApiKey({ sub: "user@example.com" });
 
         const response = await getCallToolHandler()(mockRequest("search_customers", {}));
 

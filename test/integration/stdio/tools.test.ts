@@ -48,16 +48,17 @@ describe("MCP Tools Integration", () => {
             expect(getTextContent(result)).toBe("search_customers is available only to DoiT employees");
         });
 
-        it("includes search_customers for a validated employee key", async () => {
-            mswServer.use(
-                http.get("https://api.doit.com/auth/v1/validate", () =>
-                    HttpResponse.json({ domain: "doit.com", email: "employee@doit.com" })
-                )
-            );
+        it("includes search_customers for an employee key", async () => {
+            const savedKey = process.env.DOIT_API_KEY;
+            const payload = Buffer.from(JSON.stringify({ sub: "employee@doit.com" })).toString("base64url");
+            process.env.DOIT_API_KEY = `e30.${payload}.sig`;
+            try {
+                const result = await client.listTools();
 
-            const result = await client.listTools();
-
-            expect(result.tools.map((tool) => tool.name)).toContain("search_customers");
+                expect(result.tools.map((tool) => tool.name)).toContain("search_customers");
+            } finally {
+                process.env.DOIT_API_KEY = savedKey;
+            }
         });
 
         it("each tool has a name, description, and inputSchema", async () => {
