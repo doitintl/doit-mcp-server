@@ -420,6 +420,28 @@ describe("tools/list handler", () => {
         expect(tools.map((tool: { name: string }) => tool.name)).toContain("list_assets");
     });
 
+    it("shows employee-only tools to an employee key scoped to a customer", async () => {
+        vi.mocked(handleValidateUserRequest).mockResolvedValue({
+            content: [{ type: "text", text: JSON.stringify({ domain: "example.com", email: "Doer@DoiT.com" }) }],
+        });
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        const { tools } = await handler();
+
+        expect(tools.map((tool: { name: string }) => tool.name)).toContain("search_customers");
+    });
+
+    it("hides employee-only tools from a lookalike email domain", async () => {
+        vi.mocked(handleValidateUserRequest).mockResolvedValue({
+            content: [{ type: "text", text: JSON.stringify({ domain: "doit.com", email: "user@notdoit.com" }) }],
+        });
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        const { tools } = await handler();
+
+        expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
+    });
+
     it("fails closed when employee identity cannot be verified", async () => {
         vi.mocked(handleValidateUserRequest).mockRejectedValue(new Error("Identity service unavailable"));
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
