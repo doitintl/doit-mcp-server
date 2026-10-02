@@ -83,7 +83,7 @@ All of the following are executable. Run them from `test/integration` after a ro
 | The DoiT API receives the correct `mcpClient` and `mcpProtocolVersion` for each era | `stdio/modern/tracking.test.ts` |
 | Progress notifications reach clients of both eras | `stdio/modern/progress.test.ts` |
 | Request-level failures are answered to the client and never reach the stderr `onerror` log, in either era. A control case shows connection-level events do reach it | `stdio/modern/errorReporting.test.ts` |
-| A failed stdio transport start still rejects `main()`, which exits with code 1 | `src/__tests__/index.test.ts` |
+| A failure to start the server, or any error that escapes later, is reported on stderr and exits with code 1. A failed transport start is the exception: the SDK reports it only through `onerror`, and for process stdio it cannot occur in practice | `src/__tests__/index.test.ts` |
 | The **built binary** over real stdio pipes serves a v1 client, a pinned v2 client and an `auto` v2 client | `process/stdioBinary.test.ts` (needs `yarn build`) |
 
 Useful commands:

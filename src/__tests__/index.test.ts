@@ -1,6 +1,6 @@
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { main, mainWithServer } from "../index.js";
+import { exitOnFatalError, main, mainWithServer } from "../index.js";
 import { serveDoitStdio } from "../stdio.js";
 
 vi.mock("@modelcontextprotocol/server/stdio");
@@ -9,12 +9,6 @@ vi.mock("dotenv", () => ({ config: vi.fn() }));
 
 beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    // Like the real serveStdio: start the transport synchronously, swallow start failures.
-    vi.mocked(StdioServerTransport.prototype.start).mockResolvedValue();
-    vi.mocked(serveDoitStdio).mockImplementation((options) => {
-        void options?.transport?.start().catch(() => {});
-        return { close: vi.fn() };
-    });
 });
 
 afterEach(() => {
@@ -37,41 +31,23 @@ describe("mainWithServer", () => {
         await mainWithServer();
 
         expect(serveDoitStdio).toHaveBeenCalledOnce();
-        expect(serveDoitStdio).toHaveBeenCalledWith(
-            expect.objectContaining({ transport: expect.any(StdioServerTransport) })
-        );
-    });
-
-    // serveStdio swallows a failed transport start (it only reaches onerror), so
-    // mainWithServer awaits the transport's own start() to keep main()'s exit-1 contract.
-    it("rejects when the stdio transport fails to start", async () => {
-        vi.mocked(StdioServerTransport.prototype.start).mockRejectedValue(new Error("stdin unavailable"));
-
-        await expect(mainWithServer()).rejects.toThrow("stdin unavailable");
-        expect(console.error).not.toHaveBeenCalledWith("DoiT MCP Server running on stdio");
-    });
-
-    it("fails loudly if serveStdio stops starting the transport synchronously", async () => {
-        vi.mocked(serveDoitStdio).mockImplementation(() => ({ close: vi.fn() }));
-
-        await expect(mainWithServer()).rejects.toThrow("did not start the stdio transport synchronously");
-    });
-
-    it("waits for the transport to start before reporting it is running", async () => {
-        let resolveStart!: () => void;
-        vi.mocked(StdioServerTransport.prototype.start).mockReturnValue(
-            new Promise<void>((resolve) => {
-                resolveStart = resolve;
-            })
-        );
-
-        const running = mainWithServer();
-        await Promise.resolve();
-        expect(console.error).not.toHaveBeenCalledWith("DoiT MCP Server running on stdio");
-
-        resolveStart();
-        await running;
+        expect(StdioServerTransport).not.toHaveBeenCalled();
         expect(console.error).toHaveBeenCalledWith("DoiT MCP Server running on stdio");
+    });
+
+    it("rejects, without reporting it is running, when the server fails to start", async () => {
+        vi.mocked(serveDoitStdio).mockImplementation(() => {
+            throw new Error("cannot serve");
+        });
+
+        await expect(mainWithServer()).rejects.toThrow("cannot serve");
+        expect(console.error).not.toHaveBeenCalledWith("DoiT MCP Server running on stdio");
+    });
+
+    it("rejects when a custom server fails to connect", async () => {
+        const mockServer = { connect: vi.fn().mockRejectedValue(new Error("connect failed")) };
+
+        await expect(mainWithServer(mockServer as any)).rejects.toThrow("connect failed");
     });
 
     it("reports serveStdio's out-of-band errors on stderr", async () => {
@@ -82,6 +58,19 @@ describe("mainWithServer", () => {
         onerror?.(error);
 
         expect(console.error).toHaveBeenCalledWith("DoiT MCP Server stdio error:", error);
+    });
+});
+
+describe("exitOnFatalError", () => {
+    it("reports the error on stderr and exits with code 1", () => {
+        const exit = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+            throw new Error(`process.exit(${code})`);
+        }) as never);
+        const error = new Error("fatal");
+
+        expect(() => exitOnFatalError(error)).toThrow("process.exit(1)");
+        expect(console.error).toHaveBeenCalledWith("DoiT MCP Server failed:", error);
+        expect(exit).toHaveBeenCalledWith(1);
     });
 });
 
