@@ -1,5 +1,33 @@
 # Changelog
 
+## v2.2.0 (2026-10-02)
+
+**Full diff:** [`v2.1.1...v2.2.0`](../../compare/v2.1.1...v2.2.0)
+
+### Features
+
+- feat(stdio): serve 2025-era and 2026-07-28 clients via serveStdio (`4ba4f7b`)
+
+### Bug Fixes
+
+- fix(stdio): fail loudly if serveStdio stops starting the transport synchronously (`409cd5c`)
+- fix(stdio): fail main() when the transport cannot start; onerror is connection-level (`2c35858`)
+- fix(server): send progress for a progressToken of 0 (`7f17677`)
+- fix(server): read tracking context from the 2026-07-28 request envelope and send progress via ctx (`23e94b7`)
+
+### Other Changes
+
+- docs: reference v2.1.1 as the baseline in protocol-compatibility.md (`8f72120`)
+- refactor(stdio): start the server plainly and exit on fatal errors without SDK internals (`6263949`)
+- test(integration): drop the unused _server field from the v1 test helper (`4f63b95`)
+- refactor(server): drop the unused module-level server instance (`f19d190`)
+- docs: document dual-era MCP protocol support for the stdio server (`b948d6c`)
+- test(integration): smoke-test the built stdio with 2025-era and 2026-07-28 clients (`8a1c36b`)
+- test(integration): verify tracking params and progress for 2026-07-28 and 2025-era clients (`2b687ae`)
+- test(integration): cover tools, approval flow, prompts for 2026-07-28 clients (`cbf48ef`)
+- test(integration): verify 2026-07-28 handshake and era negotiation on the stdio entry (`781869b`)
+- test(integration): run the v1-client suite through the shipped serveStdio entry (`9887397`)
+- test(integration): prove a hand-wired server rejects 2026-07-28 clients (`83e9629`)
 ## v2.1.1 (2026-10-01)
 
 **Full diff:** [`v2.1.0...v2.1.1`](../../compare/v2.1.0...v2.1.1)
