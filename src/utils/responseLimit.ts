@@ -107,7 +107,7 @@ export function finalizeToolResponse(response: any, context: ResponseLimitContex
     const source = context.sourceResponse ?? response;
     const sourceIsError = asObject(source)?.isError === true;
     // A formatter must not turn a tool error into a successful result.
-    const candidate = sourceIsError ? source : response;
+    const candidate = sourceIsError && asObject(response)?.isError !== true ? source : response;
     const original = measureToolResponse(candidate);
     const exceededLimit = original !== null && original.serializedChars > MAX_TOOL_RESULT_CHARS;
     let returned = candidate;

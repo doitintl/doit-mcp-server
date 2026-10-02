@@ -77,6 +77,45 @@ describe("final MCP response size guard", () => {
         expect(finalizeToolResponse(textResult("widget output"), { ...base, sourceResponse })).toBe(sourceResponse);
     });
 
+    it("preserves and measures formatted errors that retain their error flag", () => {
+        const sourceResponse = { ...textResult("Permission denied"), isError: true };
+        const formatted = { ...sourceResponse, _meta: { "mcp/www_authenticate": "Bearer" } };
+        const onMetrics = vi.fn();
+        expect(finalizeToolResponse(formatted, { ...base, sourceResponse, onMetrics })).toBe(formatted);
+        expect(onMetrics).toHaveBeenCalledWith(
+            expect.objectContaining({
+                isError: true,
+                disposition: "unchanged",
+                original: measureToolResponse(formatted),
+                returned: measureToolResponse(formatted),
+            })
+        );
+    });
+
+    it("caps errors expanded by a formatter without reporting write success", () => {
+        const sourceResponse = { ...textResult("Permission denied"), isError: true };
+        const formatted = { ...sourceResponse, _meta: { details: "x".repeat(MAX_TOOL_RESULT_CHARS) } };
+        const onMetrics = vi.fn();
+        const result = finalizeToolResponse(formatted, { ...base, operation: "write", sourceResponse, onMetrics });
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toContain("RESPONSE_TOO_LARGE");
+        expect(result.content[0].text).toContain("Verify the current state");
+        expect(measureToolResponse(result)?.serializedChars).toBeLessThan(MAX_TOOL_RESULT_CHARS);
+        expect(onMetrics).toHaveBeenCalledWith(
+            expect.objectContaining({
+                disposition: "size_error",
+                exceededLimit: true,
+                original: measureToolResponse(formatted),
+            })
+        );
+    });
+
+    it("keeps a bounded formatted error even when its source exceeds the limit", () => {
+        const sourceResponse = { ...oversized(), isError: true };
+        const formatted = { ...textResult("Permission denied"), isError: true };
+        expect(finalizeToolResponse(formatted, { ...base, sourceResponse })).toBe(formatted);
+    });
+
     it("never claims that an oversized approval request has executed", () => {
         const result = finalizeToolResponse(oversized(), { ...base, operation: "not_executed" });
         expect(result.isError).toBe(true);
