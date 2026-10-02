@@ -19,6 +19,9 @@ The legacy SSE endpoint (`https://mcp.doit.com/sse`) is deprecated and should no
 
 Your DoiT plan must include API access. Tools follow the same permissions as the [DoiT API](https://developer.doit.com/).
 
+Oversized tool results return an actionable error for reads or a compact receipt
+for completed writes. See [response limits and metrics](docs/response-limits.md).
+
 The Claude Desktop steps below are examples, not the only supported clients. Cursor, VS Code, Amazon Q, Claude Code, and others are covered in the [Connections](https://help.doit.com/docs/mcp/connections) guide.
 
 ## Remote (Streamable HTTP)
