@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -49,33 +50,7 @@ export const dimensionTool = {
     coversEndpoint: "get:/analytics/v1/dimension",
     description:
         "Use this when the valid filter values for a specific dimension are needed, such as for a run_query filter, or when the user wants to view dimension details. For example, get_dimension({type: 'fixed', id: 'cloud_provider'}) returns the exact provider IDs available for this customer. Do NOT use this for listing all dimensions (use list_dimensions) or running queries (use run_query).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            type: {
-                type: "string",
-                enum: [
-                    "datetime",
-                    "fixed",
-                    "optional",
-                    "label",
-                    "tag",
-                    "project_label",
-                    "system_label",
-                    "attribution",
-                    "attribution_group",
-                    "gke",
-                    "gke_label",
-                ],
-                description: "Dimension type",
-            },
-            id: {
-                type: "string",
-                description: "Dimension id",
-            },
-        },
-        required: ["type", "id"],
-    },
+    inputSchema: zodToMcpInputSchema(DimensionArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

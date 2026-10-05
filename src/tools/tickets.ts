@@ -52,24 +52,7 @@ export const listTicketsTool = {
     coversEndpoint: "get:/support/v1/tickets",
     description:
         "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, priority, and platform. Supports partial subject filtering. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            pageToken: {
-                type: "string",
-                description: "Page token for pagination",
-            },
-            pageSize: {
-                type: "number",
-                description: "Number of tickets to return per page",
-            },
-            subject: {
-                type: "string",
-                description:
-                    "Partial subject filter (case-insensitive). Returns only tickets whose subject contains this string.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(ListTicketsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -110,6 +93,18 @@ export async function handleListTicketsRequest(args: any, token: string) {
     }
 }
 
+// Arguments schema for creating a ticket
+export const CreateTicketArgumentsSchema = z.object({
+    ticket: z.object({
+        body: z.string().describe("The body of the ticket (can include html formatting)"),
+        created: z.string().describe("Ticket create time"),
+        platform: z.nativeEnum(TicketPlatform).describe("Platform of the ticket"),
+        product: z.string().describe("Ticket product details"),
+        severity: z.nativeEnum(TicketSeverity).describe("Ticket severity"),
+        subject: z.string().describe("The subject of the ticket."),
+    }),
+});
+
 // Tool definition for creating a ticket
 export const createTicketTool = {
     name: "create_ticket",
@@ -117,44 +112,7 @@ export const createTicketTool = {
     coversEndpoint: "post:/support/v1/tickets",
     description:
         "Use this when the user wants to create a new support ticket. The ticket is opened with DoiT support immediately. Do NOT use this for viewing existing tickets (use list_tickets) or cloud incidents (use get_cloud_incidents).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            ticket: {
-                type: "object",
-                properties: {
-                    body: {
-                        type: "string",
-                        description: "The body of the ticket (can include html formatting)",
-                    },
-                    created: {
-                        type: "string",
-                        description: "Ticket create time",
-                    },
-                    platform: {
-                        type: "string",
-                        description: "Platform of the ticket",
-                        enum: Object.values(TicketPlatform),
-                    },
-                    product: {
-                        type: "string",
-                        description: "Ticket product details",
-                    },
-                    severity: {
-                        type: "string",
-                        description: "Ticket severity",
-                        enum: Object.values(TicketSeverity),
-                    },
-                    subject: {
-                        type: "string",
-                        description: "The subject of the ticket.",
-                    },
-                },
-                required: ["body", "created", "platform", "product", "severity", "subject"],
-            },
-        },
-        required: ["ticket"],
-    },
+    inputSchema: zodToMcpInputSchema(CreateTicketArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         // `destructiveHint` is advisory per the MCP spec — clients are expected (but not
@@ -175,18 +133,6 @@ export const createTicketTool = {
     },
     securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
-
-// Arguments schema for creating a ticket
-export const CreateTicketArgumentsSchema = z.object({
-    ticket: z.object({
-        body: z.string(),
-        created: z.string(),
-        platform: z.nativeEnum(TicketPlatform),
-        product: z.string(),
-        severity: z.nativeEnum(TicketSeverity),
-        subject: z.string(),
-    }),
-});
 
 // Handler for creating a ticket
 export async function handleCreateTicketRequest(args: any, token: string) {

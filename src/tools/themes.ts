@@ -79,16 +79,7 @@ export const getThemeTool = {
     coversEndpoint: "get:/analytics/v1/settings/themes/{id}",
     description:
         "Use this when the user wants to view details of a specific custom color theme. Accepts either the theme ID or a partial name (case-insensitive). Do NOT use this for listing all themes (use list_themes).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: { type: "string", description: "The ID of the custom theme to retrieve." },
-            name: {
-                type: "string",
-                description: "Partial name match (case-insensitive). Used to find the theme when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetThemeArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

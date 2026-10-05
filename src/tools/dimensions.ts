@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -44,19 +45,7 @@ export const dimensionsTool = {
     coversEndpoint: "get:/analytics/v1/dimensions",
     description:
         "Use this when the user wants to see available dimensions for cost analysis queries. Returns a list of dimension types and values that can be used with run_query. Do NOT use this for running cost queries directly (use run_query) or viewing allocations (use list_allocations).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            filter: {
-                type: "string",
-                description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. An empty filter returns all dimensions.`,
-            },
-            pageToken: {
-                type: "string",
-                description: "Token for pagination, from a previous response; returns the next page of results.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(DimensionsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

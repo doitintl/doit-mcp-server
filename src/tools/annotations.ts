@@ -116,17 +116,7 @@ export const getAnnotationTool = {
     coversEndpoint: "get:/analytics/v1/annotations/{id}",
     description:
         "Use this when the user wants to view details of a specific annotation. Accepts either the annotation ID or a partial content match (case-insensitive). Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: { type: "string", description: "The ID of the annotation to retrieve." },
-            content: {
-                type: "string",
-                description:
-                    "Partial content match (case-insensitive). Used to find the annotation when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetAnnotationArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

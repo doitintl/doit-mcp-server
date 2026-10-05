@@ -98,16 +98,7 @@ export const getFolderTool = {
     coversEndpoint: "get:/analytics/v1/folders/{id}",
     description:
         "Use this when the user wants to view details of a specific Cloud Analytics folder. Accepts either the folder ID or a partial name (case-insensitive). Do NOT use this for listing all folders (use list_folders) or viewing reports (use get_report_config).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: { type: "string", description: "The ID of the folder to retrieve." },
-            name: {
-                type: "string",
-                description: "Partial name match (case-insensitive). Used to find the folder when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetFolderArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

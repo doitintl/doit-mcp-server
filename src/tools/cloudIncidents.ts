@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -30,12 +31,12 @@ export enum CloudIncidentFilterKeys {
 
 // Schema definitions
 export const CloudIncidentsArgumentsSchema = z.object({
-    platform: z.nativeEnum(KnownIssuePlatforms).optional(),
+    platform: z.nativeEnum(KnownIssuePlatforms).optional().describe("platform name"),
     filter: z
         .string()
         .optional()
         .describe(
-            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active'"
+            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active' or 'platform:google-cloud|platform:amazon-web-services'"
         ),
     pageToken: z
         .string()
@@ -83,25 +84,7 @@ export const cloudIncidentsTool = {
     coversEndpoint: "get:/core/v1/cloudincidents",
     description:
         "Use this when the user wants to check for active cloud platform outages, service disruptions, or incidents from AWS, Google Cloud, or Azure. Do NOT use this for cost anomalies (use get_anomalies) or support tickets (use list_tickets).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            platform: {
-                type: "string",
-                description: "platform name",
-                enum: Object.values(KnownIssuePlatforms),
-            },
-            filter: {
-                type: "string",
-                description:
-                    "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active' or 'platform:google-cloud|platform:amazon-web-services'",
-            },
-            pageToken: {
-                type: "string",
-                description: "Token for pagination, from a previous response; returns the next page of results.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(CloudIncidentsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -120,19 +103,7 @@ export const cloudIncidentTool = {
     coversEndpoint: "get:/core/v1/cloudincidents/{id}",
     description:
         "Use this when the user wants to view details of a specific cloud platform incident. Accepts either the incident ID or a partial title match (case-insensitive). Do NOT use this for listing all incidents (use get_cloud_incidents) or anomalies (use get_anomalies).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "The ID of the cloud incident.",
-            },
-            title: {
-                type: "string",
-                description: "Partial title match (case-insensitive). Used to find the incident when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(CloudIncidentArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
