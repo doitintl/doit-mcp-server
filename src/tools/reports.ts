@@ -39,7 +39,10 @@ export const ReportsArgumentsSchema = z.object({
         .describe(
             "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'"
         ),
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 // Get Report Results Schema Definition
@@ -130,11 +133,11 @@ export const reportsTool = {
             filter: {
                 type: "string",
                 description:
-                    "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Supported filter keys: reportName, owner, type, updateTime. Other keys are not supported.",
+                    "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Supported filter keys: reportName, owner, type, updateTime, folderId.",
             },
             pageToken: {
                 type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
+                description: "Token for pagination, from a previous response; returns the next page of results.",
             },
         },
     },
@@ -208,7 +211,7 @@ const ExternalMetricSchema = z.object({
 });
 
 const ReportDimensionSchema = z.object({
-    id: z.string().describe("Dimension identifier. Use the dimension tool to get valid IDs."),
+    id: z.string().describe("Dimension identifier. Valid IDs come from list_dimensions or get_dimension."),
     type: z
         .enum(DIMENSION_TYPE_VALUES)
         .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
@@ -291,7 +294,7 @@ const TimeSettingsSecondarySchema = z.object({
 });
 
 const ExternalConfigFilterSchema = z.object({
-    id: z.string().describe("The field to filter on. Use the dimension tool to get valid IDs."),
+    id: z.string().describe("The field to filter on. Valid IDs come from list_dimensions or get_dimension."),
     type: z
         .enum(DIMENSION_TYPE_VALUES)
         .describe(`Dimension type of the filter field. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
@@ -321,7 +324,7 @@ const LimitSchema = z.object({
 });
 
 const GroupSchema = z.object({
-    id: z.string().describe("Dimension ID for the group-by row. Use the dimension tool to get valid IDs."),
+    id: z.string().describe("Dimension ID for the group-by row. Valid IDs come from list_dimensions or get_dimension."),
     type: z
         .enum(DIMENSION_TYPE_VALUES)
         .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
@@ -485,7 +488,7 @@ export const ReportConfigSchema = z
 // Run Query Schema Definition
 export const RunQueryArgumentsSchema = z.object({
     config: ReportConfigSchema.describe(
-        "Configuration for the query. Use the dimension tool to look up valid dimension IDs."
+        "Configuration for the query. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
 });
 
@@ -540,7 +543,7 @@ export const CreateReportArgumentsSchema = z.object({
     description: z.string().optional().describe("A brief description of the report."),
     labels: z.array(z.string()).optional().describe("Optional list of label IDs to assign to the report."),
     config: ReportConfigSchema.describe(
-        "Configuration for the report. Use the dimension tool to look up valid dimension IDs."
+        "Configuration for the report. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
 });
 
@@ -579,7 +582,7 @@ export const UpdateReportArgumentsSchema = z.object({
     description: z.string().optional().describe("Report description."),
     labels: z.array(z.string()).optional().describe("Array of label IDs to assign to the report."),
     config: ReportConfigSchema.optional().describe(
-        "Configuration for the report. Only specified fields will be updated. Use the dimension tool to look up valid dimension IDs."
+        "Configuration for the report. Only specified fields will be updated. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
 });
 

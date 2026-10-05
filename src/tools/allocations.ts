@@ -35,7 +35,10 @@ type AllocationComponentMode = (typeof ALLOCATION_COMPONENT_MODES)[number];
 
 // Schema definitions
 export const ListAllocationsArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
     name: z
         .string()
         .optional()
@@ -189,7 +192,7 @@ export const listAllocationsTool = {
         properties: {
             pageToken: {
                 type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
+                description: "Token for pagination, from a previous response; returns the next page of results.",
             },
             name: {
                 type: "string",

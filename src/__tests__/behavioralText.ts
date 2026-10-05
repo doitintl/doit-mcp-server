@@ -4,7 +4,7 @@
  * calling other tools, asking the user, what it may claim, or how to fill a parameter.
  */
 export const BEHAVIORAL_TEXT =
-    /\bALWAYS\b|\bAlways (call|use|include|export)\b|\bIMPORTANT\b|Ask the user|before reporting|Only claim|proactively|Only call this|\b(should|must) (call|present|ask|tell|respond|reply)\b|[Dd]o not guess|only if you know/;
+    /\bALWAYS\b|\bAlways (call|use|include|export)\b|\bIMPORTANT\b|Ask the user|before reporting|Only claim|proactively|Only call this|\b(should|must) (call|present|ask|tell|respond|reply)\b|[Dd]o not guess|only if you know|call again|Stop once/;
 
 /** Every description in a JSON Schema, keyed by property path, recursively. */
 export function schemaDescriptions(schema: any, path: string): [string, string][] {

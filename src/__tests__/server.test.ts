@@ -586,6 +586,28 @@ describe("tools/list handler", () => {
         expect(SERVER_INSTRUCTIONS).not.toMatch(BEHAVIORAL_TEXT);
     });
 
+    // A description that points at a tool which doesn't exist sends the model to a dead end.
+    it("every tool name a description mentions is a real tool", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        const listed = [...tools, changeCustomerTool];
+        const names = new Set(listed.map((tool: { name: string }) => tool.name));
+        // Tool-shaped words that are not tools: a column name in the DataHub export description.
+        const notToolNames = new Set(["export_time"]);
+        const toolLike =
+            /\b(?:list|get|create|update|delete|run|search|find|send|trigger|refine|build|export|import|test_run|set|assign|invite|validate|ask|confirm|change|post)_[a-z0-9_]+\b/g;
+        for (const tool of listed) {
+            const texts = [
+                tool.description,
+                ...schemaDescriptions(tool.inputSchema, tool.name).map(([, text]) => text),
+            ];
+            for (const mention of texts.join("\n").match(toolLike) ?? []) {
+                if (notToolNames.has(mention)) continue;
+                expect(names.has(mention), `${tool.name} mentions ${mention}`).toBe(true);
+            }
+        }
+    });
+
     it("run_query names the DoiT Cloud Analytics API it calls", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
