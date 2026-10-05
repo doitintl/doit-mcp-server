@@ -40,6 +40,10 @@ export const ReportsArgumentsSchema = z.object({
             "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'"
         ),
     pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    name: z
+        .string()
+        .optional()
+        .describe("Partial name filter (case-insensitive). Returns only reports whose name contains this string."),
 });
 
 // Get Report Results Schema Definition
@@ -126,7 +130,7 @@ export const reportsTool = {
     title: "List reports",
     coversEndpoint: "get:/analytics/v1/reports",
     description:
-        "Use this when the user wants to see their saved Cloud Analytics reports or browse available reports. Returns a paginated list of reports with their IDs and metadata. Do NOT use this for running queries (use run_query) or getting report results (use get_report_results).",
+        "Use this when the user wants to see their saved Cloud Analytics reports or browse available reports. Returns a paginated list of reports with their IDs and metadata. Supports partial name filtering. Do NOT use this for running queries (use run_query) or getting report results (use get_report_results).",
     inputSchema: {
         type: "object",
         properties: {
@@ -138,6 +142,11 @@ export const reportsTool = {
             pageToken: {
                 type: "string",
                 description: "Token for pagination. Use this to get the next page of results.",
+            },
+            name: {
+                type: "string",
+                description:
+                    "Partial name filter (case-insensitive). Returns only reports whose name contains this string.",
             },
         },
     },
@@ -645,7 +654,7 @@ export function formatQueryResult(queryResult: QueryResult): string {
 export async function handleReportsRequest(args: any, token: string) {
     try {
         // Validate arguments
-        const { filter, pageToken } = ReportsArgumentsSchema.parse(args);
+        const { filter, pageToken, name } = ReportsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
         // Create API URL with query parameters
@@ -655,6 +664,10 @@ export async function handleReportsRequest(args: any, token: string) {
         }
         if (pageToken) {
             params.append("pageToken", pageToken);
+        }
+        // Server-side, case-insensitive substring match on the report name.
+        if (name) {
+            params.append("nameContains", name);
         }
 
         let reportsUrl = REPORTS_BASE_URL;
