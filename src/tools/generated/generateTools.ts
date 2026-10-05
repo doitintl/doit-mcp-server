@@ -190,7 +190,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             const tagDescription = tagDescriptions.get(operation.tags?.[0] ?? "");
             const isPaginated = queryParams.some((parameter) => parameter.name === "pageToken");
             const paginationNote = isPaginated
-                ? " This endpoint is paginated: a response that includes `pageToken` has more results, returned when that value is passed as the `pageToken` parameter. A response without `pageToken` is the last page."
+                ? " This endpoint is paginated: a response with a non-empty `pageToken` has more results, returned when that value is passed as the `pageToken` parameter. A missing, null, or empty `pageToken` marks the last page."
                 : "";
             // Guidance the spec cannot carry — see overrides.ts. Tool descriptions ride in every
             // tools/list response, which makes them the only guidance channel that reaches the
