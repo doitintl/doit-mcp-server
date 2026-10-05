@@ -211,7 +211,8 @@ export async function executeToolHandler(
                     onProgress,
                     generatedTools,
                 });
-                return convertResponse ? convertResponse(result) : result;
+                // Success adapters (e.g. hosted widgets) must not erase MCP error flags or OAuth metadata.
+                return convertResponse && !result?.isError ? convertResponse(result) : result;
             };
 
             // Two-phase commit for write-gated tools.
