@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { SERVER_VERSION } from "./consts.js";
 import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
-import { createHttpError, DoitRequestError } from "./requestError.js";
+import { createHttpError, DoitRequestError, requestRecoveryGuidance } from "./requestError.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
 
@@ -83,7 +83,7 @@ export enum DebugLevel {
     INFO = 1,
     /** Detailed debug information */
     VERBOSE = 2,
-    /** Very detailed debug information including full request/response data */
+    /** Most verbose execution diagnostics; sensitive request/response data must be omitted */
     TRACE = 3,
 }
 
@@ -190,10 +190,17 @@ export function formatZodError(error: any): string {
  * @param context Additional context to include in the log message
  * @returns Standardized error response
  */
-export function handleGeneralError(error: any, context: string): ReturnType<typeof createErrorResponse> {
+export function handleGeneralError(
+    error: any,
+    context: string,
+    validationGuidance?: string
+): ReturnType<typeof createErrorResponse> {
     // Request errors already contain safe text; do not log response details or stacks.
     if (!(error instanceof DoitRequestError)) console.error(`Error ${context}:`, error);
-    const message = error instanceof Error ? error.message : String(error);
+    let message = error instanceof Error ? error.message : String(error);
+    if (validationGuidance && error instanceof DoitRequestError && [400, 422].includes(error.status ?? 0)) {
+        message += `\n${validationGuidance}`;
+    }
     // For HTTP 401 errors, include a WWW-Authenticate challenge in _meta so ChatGPT
     // can trigger its native OAuth re-linking UI (MCP Apps SDK requirement).
     if (message.startsWith("HTTP 401")) {
@@ -372,7 +379,7 @@ export async function makeDoitRequest<T>(
         responseStatus = response.status;
 
         if (!response.ok) {
-            throw await createHttpError(response, [token, ...Object.values(headers)]);
+            throw await createHttpError(response, token, headers, method);
         }
         if (!parseResponse) {
             return {} as T;
@@ -383,19 +390,38 @@ export async function makeDoitRequest<T>(
         try {
             return JSON.parse(text) as T;
         } catch {
-            throw new DoitRequestError(`HTTP ${response.status}: The API returned an invalid JSON response.`);
+            throw new DoitRequestError(
+                `HTTP ${response.status}: The API reported success, but returned an invalid JSON response. ${requestRecoveryGuidance(method)}`,
+                response.status
+            );
         }
     } catch (error) {
-        if (error instanceof DOMException && error.name === "TimeoutError") {
-            throw new DOMException("DoiT API request timed out. Try again later.", "TimeoutError");
+        const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+        // Log fixed metadata only: no URL, customer context, header, body, or upstream message.
+        debugLog("DoiT API request failed", DebugLevel.INFO, {
+            method: /^(GET|HEAD|OPTIONS|POST|PUT|PATCH|DELETE)$/.test(method) ? method : "OTHER",
+            status: responseStatus ?? null,
+            kind: timedOut
+                ? "timeout"
+                : responseStatus === undefined
+                  ? "transport"
+                  : responseStatus >= 400
+                    ? "http"
+                    : "response",
+        });
+        if (timedOut) {
+            throw new DOMException(`DoiT API request timed out. ${requestRecoveryGuidance(method)}`, "TimeoutError");
         }
         if (error instanceof DoitRequestError) throw error;
         // Fetch errors may include credentials, URLs, headers, or runtime diagnostics.
         if (responseStatus !== undefined) {
-            throw new DoitRequestError(`HTTP ${responseStatus}: Unable to read the API response. Try again later.`);
+            throw new DoitRequestError(
+                `HTTP ${responseStatus}: The API reported success, but its response could not be read. ${requestRecoveryGuidance(method)}`,
+                responseStatus
+            );
         }
         throw new DoitRequestError(
-            "Unable to reach the DoiT API or read its response. Check your connection and try again."
+            `Unable to reach the DoiT API or read its response. Check your connection. ${requestRecoveryGuidance(method)}`
         );
     }
 }

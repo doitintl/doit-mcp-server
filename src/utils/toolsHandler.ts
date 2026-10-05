@@ -263,11 +263,9 @@ export async function executeToolHandler(
             return await runOriginal(toolName, args, token);
         } catch (error) {
             if (error instanceof z.ZodError) {
-                const errorResult = createErrorResponse(formatZodError(error));
-                return convertResponse ? convertResponse(errorResult) : errorResult;
+                return createErrorResponse(formatZodError(error));
             }
-            const errorResult = handleGeneralError(error, "handling tool request");
-            return convertResponse ? convertResponse(errorResult) : errorResult;
+            return handleGeneralError(error, "handling tool request");
         }
     }); // end runWithTracking
 }

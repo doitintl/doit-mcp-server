@@ -86,6 +86,26 @@ describe.each([
         });
     });
 
+    it("preserves Reports field validation and remediation through tools/call", async () => {
+        mswServer.use(
+            http.post("https://api.doit.com/analytics/v1/reports/query", () =>
+                HttpResponse.json(
+                    {
+                        errors: [
+                            { field: "config.metric", message: "Unsupported metric", diagnostics: "private-data" },
+                        ],
+                    },
+                    { status: 400 }
+                )
+            )
+        );
+        const result = await session.rawClient.callTool({ name: "run_query", arguments: { config: {} } });
+        expect(result.isError).toBe(true);
+        expect(getTextContent(result)).toContain("HTTP 400: config.metric: Unsupported metric");
+        expect(getTextContent(result)).toContain("list_dimensions");
+        expect(getTextContent(result)).not.toContain("private-data");
+    });
+
     it("still returns successful reads", async () => {
         const result = await session.rawClient.callTool({ name: "list_organizations", arguments: {} });
         expect(result.isError).not.toBe(true);

@@ -92,6 +92,11 @@ describe("request failures", () => {
             expect(output).not.toContain(secret);
         }
         expect(error.cause).toBeUndefined();
+        expect(log).toHaveBeenCalledWith("[doit-mcp debug:INFO]", "DoiT API request failed", {
+            method: "POST",
+            status: 400,
+            kind: "http",
+        });
     });
 
     it("does not wait for a diagnostic stream's cancellation to settle", async () => {
@@ -106,7 +111,9 @@ describe("request failures", () => {
             "fetch",
             vi.fn().mockResolvedValue({ ok: true, status: 200, text: () => Promise.reject(new Error(TOKEN)) })
         );
-        await expect(makeDoitRequest(URL, TOKEN)).rejects.toThrow("HTTP 200: Unable to read the API response.");
+        await expect(makeDoitRequest(URL, TOKEN)).rejects.toThrow(
+            "HTTP 200: The API reported success, but its response could not be read."
+        );
     });
 
     it("preserves HTTP status if reading an error body fails", async () => {
@@ -140,7 +147,7 @@ describe("request failures", () => {
         "sanitizes transport failures",
         async (error) => {
             vi.stubGlobal("fetch", vi.fn().mockRejectedValue(error));
-            await expect(makeDoitRequest(URL, TOKEN)).rejects.toThrow("Check your connection and try again");
+            await expect(makeDoitRequest(URL, TOKEN)).rejects.toThrow("Check your connection. Try again later.");
         }
     );
 });
@@ -167,7 +174,7 @@ describe("successful response parsing", () => {
     it("reports malformed successful JSON without exposing its body", async () => {
         respond("private malformed response", 200);
         await expect(makeDoitRequest(URL, TOKEN)).rejects.toThrow(
-            "HTTP 200: The API returned an invalid JSON response."
+            "HTTP 200: The API reported success, but returned an invalid JSON response."
         );
     });
     it.each([{ parseAs: "text" as const }, { parseResponse: false }])(
@@ -178,3 +185,52 @@ describe("successful response parsing", () => {
         }
     );
 });
+
+it("extracts bounded Reports validation entries without serializing unknown fields", async () => {
+    respond(
+        JSON.stringify({
+            errors: [
+                { field: "config.timeRange", message: `Invalid range for ${TOKEN}`, debug: "private-data" },
+                { field: "config.metrics", message: "At least one metric is required", value: "private-value" },
+                { field: "private-field", message: { diagnostic: "private-diagnostic" } },
+                ...Array.from({ length: 8 }, (_, i) => ({ field: "extra", message: `Extra error ${i}` })),
+            ],
+            data: "private-payload",
+        })
+    );
+    const result = await makeDoitRequest(URL, TOKEN).catch((error) => handleGeneralError(error, "request"));
+    expect(result.content[0].text).toContain("config.timeRange: Invalid range for [redacted]");
+    expect(result.content[0].text).toContain("config.metrics: At least one metric is required");
+    expect(result.content[0].text).not.toMatch(/private-|Extra error 2/);
+});
+
+it("preserves media-type guidance and does not replace short header values inside words", async () => {
+    respond(JSON.stringify({ error: "invalid Content-Type, expected application/json; customer a not found" }));
+    await expect(makeDoitRequest(URL, TOKEN, { customerContext: "a" })).rejects.toThrow(
+        "HTTP 400: invalid Content-Type, expected application/json; customer [redacted] not found"
+    );
+});
+
+it.each(["POST", "PUT", "PATCH", "DELETE"])(
+    "requires state verification after uncertain %s outcomes",
+    async (method) => {
+        const responses = [
+            () =>
+                Promise.resolve({ ok: true, status: 201, text: () => Promise.reject(new Error("private-body-error")) }),
+            () => Promise.resolve(new Response("private-invalid-json", { status: 201 })),
+            () => Promise.resolve(new Response(null, { status: 502 })),
+            () => Promise.resolve(new Response(null, { status: 429 })),
+            () => Promise.reject(new Error("private-transport-error")),
+            () => Promise.reject(new DOMException("private-timeout", "TimeoutError")),
+        ];
+        for (const response of responses) {
+            const fetchMock = vi.fn(response);
+            vi.stubGlobal("fetch", fetchMock);
+            const error = await makeDoitRequest(URL, TOKEN, { method }).catch((error) => error);
+            expect(error.message).toContain("may already have been applied");
+            expect(error.message).toContain("Check its state before retrying");
+            expect(error.message).not.toMatch(/Try again later|private-/);
+            expect(fetchMock).toHaveBeenCalledOnce();
+        }
+    }
+);

@@ -5,6 +5,9 @@ import { CLOUD_PROVIDER_ALIASES, normalizeConfig, type QueryResponse, REPORTS_BA
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
+const QUERY_VALIDATION_GUIDANCE =
+    "Try using the full run_query tool for more control, or check dimension IDs with list_dimensions.";
+
 const QUERY_URL = `${REPORTS_BASE_URL}/query`;
 
 const DIMENSION_MAP: Record<string, string> = {
@@ -40,10 +43,7 @@ async function executeQuery(rawConfig: Record<string, unknown>, token: string, c
     });
 
     if (!response?.result || response?.error) {
-        return createErrorResponse(
-            `Query failed: ${response?.error || "Unknown error"}. ` +
-                "Try using the full run_query tool for more control, or check dimension IDs with list_dimensions."
-        );
+        return createErrorResponse(`Query failed: ${response?.error || "Unknown error"}. ${QUERY_VALIDATION_GUIDANCE}`);
     }
 
     return createSuccessResponse(
@@ -146,7 +146,7 @@ export async function handleCostBreakdownRequest(args: any, token: string) {
         if (error instanceof z.ZodError) {
             return createErrorResponse(error.issues.map((i) => i.message).join("; "));
         }
-        return handleGeneralError(error, "handling cost_breakdown request");
+        return handleGeneralError(error, "handling cost_breakdown request", QUERY_VALIDATION_GUIDANCE);
     }
 }
 
@@ -247,7 +247,7 @@ export async function handleCostTrendRequest(args: any, token: string) {
         if (error instanceof z.ZodError) {
             return createErrorResponse(error.issues.map((i) => i.message).join("; "));
         }
-        return handleGeneralError(error, "handling cost_trend request");
+        return handleGeneralError(error, "handling cost_trend request", QUERY_VALIDATION_GUIDANCE);
     }
 }
 
@@ -375,6 +375,6 @@ export async function handleCompareSpendRequest(args: any, token: string) {
         if (error instanceof z.ZodError) {
             return createErrorResponse(error.issues.map((i) => i.message).join("; "));
         }
-        return handleGeneralError(error, "handling compare_spend request");
+        return handleGeneralError(error, "handling compare_spend request", QUERY_VALIDATION_GUIDANCE);
     }
 }

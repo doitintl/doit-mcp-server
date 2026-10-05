@@ -22,7 +22,10 @@ Success semantics are unchanged:
   behavior. Application-specific envelope handling belongs in its caller.
 - Timeouts still throw a `DOMException` named `TimeoutError`, with safe text.
 
-The caller audit found no required tool-handler migration. `get_cloud_overview`
+Report/query handlers append their existing remediation guidance to HTTP 400/422
+errors; authentication and availability errors retain their own guidance. The
+Reports API's `errors: [{field, message}]` envelope is supported, alongside the
+other recognized message shapes. `get_cloud_overview`
 uses `Promise.allSettled` and intentionally returns empty sections for failures,
 including when all sections fail. It continues to return its other successful
 sections. Query comparisons require both results and now surface the failing
@@ -33,11 +36,22 @@ catch rejections explicitly; aggregate callers should use `Promise.allSettled`.
 
 Only recognized client-error message fields and field-validation entries are
 included. Messages are bounded and redact credentials, known request-header
-values, URLs, and email addresses. Unknown objects, HTML, multiline diagnostics,
+values, URLs, and email addresses. Public media types stay readable, and
+non-credential header values are matched as whole values rather than substrings.
+Unknown objects, HTML, multiline diagnostics,
 and all server-error bodies are excluded; safe status-based guidance is used
 instead. Original exceptions, response objects, headers, and request bodies are
 not attached to request errors or logged. The console and SSE request helpers
-retain their separate existing behavior.
+retain their separate existing behavior. Failures emit only fixed method, HTTP
+status (when known), and failure-category metadata at INFO debug level.
+
+Transport failures, timeouts, server errors, rate limits, and unreadable/malformed
+success responses for POST/PUT/PATCH/DELETE advise checking the operation's state
+before retrying. A response failure does not establish that a write was rolled
+back. HTTP methods alone cannot identify read-only POST endpoints, so this guidance
+is deliberately conservative; the helper never retries automatically. Error
+results also bypass success adapters when approval validation or storage throws
+before a tool handler runs.
 
 ## Validation
 

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryApprovalStore } from "../../utils/approval.js";
 import { executeToolHandler } from "../../utils/toolsHandler.js";
 import { handleGeneratedOperationRequest } from "../generated/callOperation.js";
 import { generatedTools } from "../generated/registry.js";
@@ -76,4 +77,106 @@ describe("empty successful caller responses", () => {
         const result = await handleGeneratedOperationRequest(tool, { widgetId: "test" }, "secret");
         expect(result).toEqual({ content: [{ type: "text", text: "" }] });
     });
+});
+
+it.each([
+    ["run_query", { config: {} }],
+    ["create_report", { name: "test-report", config: {} }],
+    ["update_report", { id: "test-report", config: {} }],
+])("preserves Reports API field errors for %s", async (name, args) => {
+    vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation(() =>
+            Response.json(
+                {
+                    errors: [{ field: "config.metric", message: "Unsupported metric", debug: "private-diagnostic" }],
+                },
+                { status: 400 }
+            )
+        )
+    );
+    const result = await executeToolHandler(name as string, args, "secret");
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("HTTP 400: config.metric: Unsupported metric");
+    expect(result.content[0].text).not.toContain("private-diagnostic");
+});
+
+it.each([
+    ["list_reports", {}, "filter parameter"],
+    ["run_query", { config: {} }, "list_allocations"],
+    [
+        "run_query",
+        {
+            config: {
+                timeRange: {
+                    mode: "custom",
+                    customTimeRange: { from: "2026-01-01T00:00:00Z", to: "2026-02-01T00:00:00Z" },
+                },
+            },
+        },
+        "ISO 8601",
+    ],
+    ["cost_breakdown", { groupBy: "service" }, "list_dimensions"],
+    ["cost_trend", {}, "list_dimensions"],
+    ["compare_spend", { period2: { from: "2026-01-01T00:00:00Z", to: "2026-02-01T00:00:00Z" } }, "run_query"],
+])("preserves validation guidance for %s", async (name, args, guidance) => {
+    for (const status of [400, 422, 401, 503]) {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockImplementation(() => Response.json({ error: "Invalid query" }, { status }))
+        );
+        const result = await executeToolHandler(name as string, args, "secret");
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toContain(`HTTP ${status}:`);
+        if (status === 400 || status === 422) {
+            expect(result.content[0].text).toContain("Invalid query");
+            expect(result.content[0].text).toContain(guidance);
+        } else {
+            expect(result.content[0].text).not.toContain(guidance);
+        }
+    }
+});
+
+it.each([{}, { targetCustomerId: "T", userId: ".." }])(
+    "does not adapt errors from generated DELETE approval validation (%j)",
+    async (args) => {
+        vi.spyOn(console, "error").mockImplementation(() => {});
+        const fetchMock = vi.fn();
+        vi.stubGlobal("fetch", fetchMock);
+        const approvalStore = new MemoryApprovalStore();
+        const convertResponse = vi.fn(() => ({ content: [] }));
+        const result = await executeToolHandler("delete_user_geographic_access_scope", args, "secret", {
+            approvalStore,
+            userKey: "test-user",
+            convertResponse,
+            generatedTools: new Map(generatedTools.map((tool) => [tool.name, tool])),
+        });
+        expect(result.isError).toBe(true);
+        expect(convertResponse).not.toHaveBeenCalled();
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(approvalStore.size()).toBe(0);
+    }
+);
+
+it("preserves outer-catch OAuth metadata if storing an approval fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const convertResponse = vi.fn(() => ({ content: [] }));
+    const stash = vi.fn().mockRejectedValue(new Error("HTTP 401: Token expired"));
+    const result = await executeToolHandler(
+        "delete_user_geographic_access_scope",
+        { targetCustomerId: "T", userId: "user-1" },
+        "secret",
+        {
+            approvalStore: { stash, consume: vi.fn() },
+            userKey: "test-user",
+            convertResponse,
+            generatedTools: new Map(generatedTools.map((tool) => [tool.name, tool])),
+        }
+    );
+    expect(stash).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({
+        isError: true,
+        _meta: { "mcp/www_authenticate": expect.stringContaining("invalid_token") },
+    });
+    expect(convertResponse).not.toHaveBeenCalled();
 });
