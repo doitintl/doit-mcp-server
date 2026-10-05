@@ -150,6 +150,7 @@ describe("update_resource_permissions", () => {
             {
                 resourceType: "budgets",
                 resourceId: "budget-123",
+                customerContext: "switched-customer",
                 permissions: [
                     { user: "owner@company.com", role: "owner" },
                     { user: "editor@company.com", role: "editor" },
@@ -168,7 +169,7 @@ describe("update_resource_permissions", () => {
                 ],
                 public: null,
             },
-            customerContext: undefined,
+            customerContext: "switched-customer",
         });
         const parsed = JSON.parse(response.content[0].text);
         expect(parsed.id).toBe("budget-123");

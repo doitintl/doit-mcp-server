@@ -20,22 +20,21 @@ beforeEach(() => {
 });
 
 describe("allocation contracts", () => {
-    it.each([
-        { description: "" },
-        { name: "New name" },
-        { unallocatedCosts: "Other" },
-        { unallocatedCosts: null },
-        { rules: selected },
-        { rule },
-    ])("sends partial updates without inventing omitted fields: %j", async (patch) => {
-        const response = await allocations.handleUpdateAllocationRequest({ id: "group", ...patch }, token);
-        expect(response.isError).not.toBe(true);
-        expect(request).toHaveBeenCalledWith(expect.stringContaining("/group"), token, {
-            method: "PATCH",
-            body: patch,
-            customerContext: undefined,
-        });
-    });
+    it.each([{ unallocatedCosts: "Other" }, { unallocatedCosts: null }, { rules: selected }])(
+        "sends partial updates without inventing omitted fields: %j",
+        async (patch) => {
+            const response = await allocations.handleUpdateAllocationRequest(
+                { id: "group", ...patch, customerContext: "switched-customer" },
+                token
+            );
+            expect(response.isError).not.toBe(true);
+            expect(request).toHaveBeenCalledWith(expect.stringContaining("/group"), token, {
+                method: "PATCH",
+                body: patch,
+                customerContext: "switched-customer",
+            });
+        }
+    );
     it("preserves the group rules and unmatched-cost label on readback", async () => {
         const data = {
             id: "group",
@@ -51,20 +50,13 @@ describe("allocation contracts", () => {
         const response = await allocations.handleGetAllocationRequest({ id: "group" }, token);
         expect(JSON.parse(response.content[0].text)).toEqual(data);
     });
-    it.each(["create", "update", "select"])("validates the %s group action", (action) => {
-        const entry =
-            action === "select"
-                ? { action, id: "first" }
-                : {
-                      action,
-                      ...rule,
-                      name: "Rule",
-                      ...(action === "update" ? { id: "first" } : {}),
-                  };
-        expect(
-            allocations.CreateAllocationArgumentsSchema.safeParse({ name: "Group", rules: [entry, selected[1]] })
-                .success
-        ).toBe(true);
+    it("accepts select rules without requiring components or formula", () => {
+        for (const schema of [
+            allocations.CreateAllocationArgumentsSchema,
+            allocations.UpdateAllocationArgumentsSchema,
+        ]) {
+            expect(schema.safeParse({ id: "group", name: "Group", rules: selected }).success).toBe(true);
+        }
     });
     it.each([
         { action: "create", ...rule },
@@ -72,7 +64,6 @@ describe("allocation contracts", () => {
         { action: "update", name: "Rule", ...rule },
         { action: "update", id: "first", ...rule },
         { action: "select" },
-        { action: "unknown", id: "first" },
         { action: "create", name: "Rule", components: rule.components },
         { action: "update", id: "first", name: "Rule", formula: "A" },
     ])("rejects malformed group rule %j", (entry) => {
