@@ -984,3 +984,31 @@ describe("update_budget", () => {
         });
     });
 });
+
+describe("server-side budget name filtering", () => {
+    it("sends nameContains with repeated owners and preserves the server page and continuation", async () => {
+        const page = { budgets: [{ id: "match", budgetName: "Production" }], rowCount: 1, pageToken: "opaque/+=" };
+        vi.mocked(makeDoitRequest)
+            .mockResolvedValueOnce({ budgets: [], rowCount: 0, pageToken: "first" })
+            .mockResolvedValueOnce(page);
+        const args = {
+            name: "prod",
+            maxResults: "1",
+            filter: "owner:a@example.com|owner:b@example.com",
+            customerContext: "switched",
+        };
+        const first = JSON.parse((await handleListBudgetsRequest(args, "token")).content[0].text);
+        expect(first).toEqual({ budgets: [], rowCount: 0, pageToken: "first" });
+        const result = await handleListBudgetsRequest({ ...args, pageToken: first.pageToken }, "token");
+        const [url, , options] = vi.mocked(makeDoitRequest).mock.calls[1];
+        expect(Object.fromEntries(new URL(url).searchParams)).toEqual({
+            nameContains: "prod",
+            maxResults: "1",
+            filter: args.filter,
+            pageToken: "first",
+        });
+        expect(options?.customerContext).toBe("switched");
+        expect(JSON.parse(result.content[0].text)).toEqual(page);
+        expect(page.budgets).toHaveLength(1);
+    });
+});

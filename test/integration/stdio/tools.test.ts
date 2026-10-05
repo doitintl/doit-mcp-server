@@ -972,7 +972,7 @@ describe("MCP Tools Integration", () => {
         it("rejects invalid arguments before calling the API", async () => {
             const result = await client.callTool({
                 name: "update_alert",
-                arguments: { id: "alert-1" }, // missing config
+                arguments: { id: "alert-1", config: { timeInterval: "hour" } }, // unsupported interval
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");

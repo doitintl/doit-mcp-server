@@ -31,7 +31,12 @@ export const ListAlertsArgumentsSchema = z.object({
         .enum(ALERTS_SORT_ORDER_VALUES)
         .optional()
         .describe("Sort order: ascending (asc) or descending (desc)."),
-    maxResults: z.string().optional().describe("Maximum number of results to return in a single page."),
+    maxResults: z
+        .string()
+        .optional()
+        .describe(
+            "Maximum results per page. Tool default 40; valid range 1–500. Out-of-range values fall back to 50 at the API."
+        ),
     pageToken: z
         .string()
         .optional()
@@ -40,7 +45,7 @@ export const ListAlertsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            "Expression for filtering results. Syntax: key:[<value>]. Multiple filters can be joined with |. Available filter keys: owner, name."
+            "Exact, case-sensitive filters: owner (email) or name. Use key:value and join distinct keys with | (AND). Repeated keys are rejected. Example: owner:user@example.com|name:Daily costs."
         ),
 });
 
@@ -71,7 +76,9 @@ export const GetAlertArgumentsSchema = z
         name: z
             .string()
             .optional()
-            .describe("Partial name match (case-insensitive). Used to find the alert when ID is unknown."),
+            .describe(
+                "Case-insensitive partial name lookup in the 200 most recent alerts only. Multiple matches return an ambiguity error. ID takes precedence."
+            ),
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
@@ -191,40 +198,57 @@ const AlertScopeSchema = z.object({
         .describe(`The dimension type. Accepted values: ${formatEnumValues(ALERT_SCOPE_TYPE_VALUES)}.`),
     mode: z
         .enum(ALERT_SCOPE_MODE_VALUES)
-        .describe(`Filter mode. Accepted values: ${formatEnumValues(ALERT_SCOPE_MODE_VALUES)}.`),
+        .optional()
+        .describe(
+            `Filter mode; defaults to 'is' at the API. Accepted values: ${formatEnumValues(ALERT_SCOPE_MODE_VALUES)}.`
+        ),
     inverse: z.boolean().optional().describe("Set to true to exclude the values."),
     values: z.array(z.string()).optional().describe("Values to filter on."),
 });
 
 const AlertConfigSchema = z.object({
-    metric: AlertMetricSchema.describe("The metric to evaluate (required). Object with 'type' and 'value' fields."),
+    metric: AlertMetricSchema.describe(
+        "The metric to evaluate; required on create. Object with 'type' and 'value' fields."
+    ),
     timeInterval: z
         .enum(ALERT_TIME_INTERVAL_VALUES)
         .describe(
-            `The time interval to evaluate the condition (required). Accepted values: ${formatEnumValues(ALERT_TIME_INTERVAL_VALUES)}.`
+            `The time interval to evaluate the condition; required on create. Accepted values: ${formatEnumValues(ALERT_TIME_INTERVAL_VALUES)}.`
         ),
-    value: z.number().describe("The alert threshold value (required)."),
-    condition: z.string().optional().describe("Condition type (e.g., 'value', 'forecasted', 'percentage')."),
+    value: z.number().describe("The alert threshold value; required on create."),
+    condition: z
+        .enum(["value", "percentage-change", "forecast"])
+        .optional()
+        .describe("Condition type; defaults to percentage-change on create. Omitted on update means unchanged."),
     currency: z
         .enum(CURRENCY_VALUES)
         .optional()
-        .describe(`Currency code. Accepted values: ${formatEnumValues(CURRENCY_VALUES)}.`),
+        .describe(
+            `Currency code; defaults to the customer's currency on create, unchanged when omitted on update. Accepted values: ${formatEnumValues(CURRENCY_VALUES)}.`
+        ),
     operator: z
         .enum(ALERT_OPERATOR_VALUES)
-        .optional()
         .describe(`Comparison operator. Accepted values: ${formatEnumValues(ALERT_OPERATOR_VALUES)}.`),
     evaluateForEach: z.string().optional().describe("Add a dimension to break down the evaluation of the condition."),
-    scopes: z.array(AlertScopeSchema).optional().describe("Filters that define the scope of the alert."),
-    dataSource: z.string().optional().describe("The data source for the alert (e.g., 'billing')."),
+    scopes: z
+        .array(AlertScopeSchema)
+        .optional()
+        .describe("Filters that define the scope of the alert. On update, omit to preserve; [] clears the scopes."),
+    dataSource: z
+        .enum(["billing", "billing-datahub", "kubernetes-utilization", "tokenomics"])
+        .optional()
+        .describe("Data source; defaults to billing on create. Omitted on update means unchanged."),
 });
 
 export const CreateAlertArgumentsSchema = z.object({
-    name: z.string().min(1).describe("Alert name (required, non-empty)."),
+    name: z.string().min(1).max(64).describe("Alert name (required, 1–64 characters)."),
     config: AlertConfigSchema.describe("Parameters that define when and how the alert is evaluated (required)."),
     recipients: z
         .array(z.string().email())
         .optional()
-        .describe("List of email addresses to notify when the alert is triggered."),
+        .describe(
+            "Email addresses to notify when triggered. On create, defaults to the caller's email; omitted on update preserves recipients. The API requires at least one email or existing Slack destination."
+        ),
 });
 
 export const createAlertTool = {
@@ -270,16 +294,20 @@ export async function handleCreateAlertRequest(args: any, token: string) {
     }
 }
 
-// Unlike update_budget (which uses .partial()), config is required here because
-// the public AlertUpdateRequest contract explicitly requires it.
 export const UpdateAlertArgumentsSchema = z.object({
     id: z.string().min(1).describe("The ID of the alert to update (required)."),
-    config: AlertConfigSchema.describe("Parameters that define when and how the alert is evaluated (required)."),
+    config: AlertConfigSchema.partial()
+        .optional()
+        .describe(
+            "Only configuration fields to change. Omitted fields are preserved; a supplied metric requires both type and value."
+        ),
     name: z.string().min(1).optional().describe("Alert name. Must be non-empty if provided."),
     recipients: z
         .array(z.string().email())
         .optional()
-        .describe("List of email addresses to notify when the alert is triggered."),
+        .describe(
+            "Email addresses to notify when triggered. On create, defaults to the caller's email; omitted on update preserves recipients. The API requires at least one email or existing Slack destination."
+        ),
 });
 
 export const updateAlertTool = {
@@ -287,7 +315,7 @@ export const updateAlertTool = {
     title: "Update alert",
     coversEndpoint: "patch:/analytics/v1/alerts/{id}",
     description:
-        "Use this when the user wants to modify an existing cost alert. Supports partial updates. Changes apply immediately. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
+        "Use this when the user wants to modify an existing cost alert. Supports partial updates, including name-only, recipients-only, or individual config fields. Omitted fields are preserved; scopes: [] clears scopes. Changes apply immediately. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateAlertArgumentsSchema),
     annotations: {
         readOnlyHint: false,

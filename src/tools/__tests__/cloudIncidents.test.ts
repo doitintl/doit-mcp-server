@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-    createErrorResponse,
-    createSuccessResponse,
-    formatZodError,
-    handleGeneralError,
-    makeDoitRequest,
-} from "../../utils/util.js";
+import { createErrorResponse, formatZodError, handleGeneralError, makeDoitRequest } from "../../utils/util.js";
 import {
     formatCloudIncident,
     handleCloudIncidentRequest,
@@ -91,7 +85,7 @@ Created: ${new Date(mockIncident.createTime).toLocaleString()}
 
         it("should call makeDoitRequest with correct parameters and return success response", async () => {
             const mockArgs = {
-                platform: KnownIssuePlatforms.GCP,
+                platform: KnownIssuePlatforms.GoogleCloud,
                 filter: "status:active",
                 pageToken: "next-page",
             };
@@ -113,7 +107,7 @@ Created: ${new Date(mockIncident.createTime).toLocaleString()}
             const response = await handleCloudIncidentsRequest(mockArgs, mockToken);
 
             expect(makeDoitRequest).toHaveBeenCalledWith(
-                "https://api.doit.com/core/v1/cloudincidents?filter=status%3Aactive&pageToken=next-page",
+                "https://api.doit.com/core/v1/cloudincidents?filter=status%3Aactive%7Cplatform%3Agoogle-cloud&pageToken=next-page",
                 mockToken,
                 { method: "GET" }
             );
@@ -122,79 +116,56 @@ Created: ${new Date(mockIncident.createTime).toLocaleString()}
             });
         });
 
-        it("should filter by platform if filter is not provided", async () => {
-            const mockArgs = { platform: KnownIssuePlatforms.AWS };
-            const mockApiResponse = {
-                pageToken: "",
-                incidents: [
-                    {
-                        id: "incident-1",
-                        createTime: 1678886400000,
-                        platform: "amazon-web-services",
-                        product: "S3",
-                        title: "Issue 1",
-                        status: "active",
-                    },
-                    {
-                        id: "incident-2",
-                        createTime: 1678886400000,
-                        platform: "google-cloud",
-                        product: "Compute Engine",
-                        title: "Issue 2",
-                        status: "active",
-                    },
-                ],
-            };
-            (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
-
-            const response = await handleCloudIncidentsRequest(mockArgs, mockToken);
-
-            expect(makeDoitRequest).toHaveBeenCalledWith("https://api.doit.com/core/v1/cloudincidents", mockToken, {
-                method: "GET",
-            });
-            const responseText = (createSuccessResponse as vi.Mock).mock.calls[0][0];
-            expect(responseText).not.toContain("Issue 2"); // Ensure GCP incident is filtered out
-            expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("incidents") }],
-            });
+        it("should send the platform constraint to the API before pagination", async () => {
+            const page = { incidents: [{ id: "aws-1", platform: "amazon-web-services" }], pageToken: "next" };
+            (makeDoitRequest as vi.Mock).mockResolvedValue(page);
+            const response = await handleCloudIncidentsRequest({ platform: KnownIssuePlatforms.AWS }, mockToken);
+            expect(new URL((makeDoitRequest as vi.Mock).mock.calls[0][0]).searchParams.get("filter")).toBe(
+                "platform:amazon-web-services"
+            );
+            expect(JSON.parse(response.content[0].text)).toEqual({ ...page, rowCount: 1 });
         });
 
-        it("should handle no incidents found", async () => {
-            const mockArgs = { platform: KnownIssuePlatforms.GCP };
-            const mockApiResponse = {
-                pageToken: "",
-                incidents: [],
-            };
-            (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
+        it.each([{}, { platform: "google-cloud-project" }])(
+            "should preserve an empty page and its continuation: %j",
+            async (args) => {
+                (makeDoitRequest as vi.Mock).mockResolvedValue({ incidents: [], pageToken: "continue" });
+                const response = await handleCloudIncidentsRequest(args, mockToken);
+                expect(JSON.parse(response.content[0].text)).toEqual({
+                    rowCount: 0,
+                    incidents: [],
+                    pageToken: "continue",
+                });
+                expect(createErrorResponse).not.toHaveBeenCalled();
+                if (args.platform)
+                    expect(new URL((makeDoitRequest as vi.Mock).mock.calls[0][0]).searchParams.get("filter")).toBe(
+                        "platform:google-cloud"
+                    );
+            }
+        );
 
-            const response = await handleCloudIncidentsRequest(mockArgs, mockToken);
-
-            expect(makeDoitRequest).toHaveBeenCalledWith("https://api.doit.com/core/v1/cloudincidents", mockToken, {
-                method: "GET",
-            });
-            expect(createErrorResponse).toHaveBeenCalledWith("No incidents found for google-cloud-project");
-            expect(response).toEqual({
-                content: [{ type: "text", text: "No incidents found for google-cloud-project" }],
-            });
+        it("should permit OR values for one key with AND constraints and continuation", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue({ incidents: [], pageToken: null });
+            const filter = "platform:google-cloud|platform:amazon-web-services|status:active";
+            await handleCloudIncidentsRequest(
+                { filter, pageToken: "opaque/+=", customerContext: "switched" },
+                mockToken
+            );
+            const [url, , options] = (makeDoitRequest as vi.Mock).mock.calls[0];
+            expect(new URL(url).searchParams.get("filter")).toBe(filter);
+            expect(new URL(url).searchParams.get("pageToken")).toBe("opaque/+=");
+            expect(options.customerContext).toBe("switched");
         });
 
-        it("should handle no incidents found without platform filter", async () => {
-            const mockArgs = {};
-            const mockApiResponse = {
-                pageToken: "",
-                incidents: [],
-            };
-            (makeDoitRequest as vi.Mock).mockResolvedValue(mockApiResponse);
-
-            const response = await handleCloudIncidentsRequest(mockArgs, mockToken);
-
-            expect(makeDoitRequest).toHaveBeenCalledWith("https://api.doit.com/core/v1/cloudincidents", mockToken, {
-                method: "GET",
-            });
-            expect(createErrorResponse).toHaveBeenCalledWith("No cloud incidents found");
-            expect(response).toEqual({
-                content: [{ type: "text", text: "No cloud incidents found" }],
-            });
+        it.each([
+            { platform: "google-cloud", filter: "platform:amazon-web-services" },
+            { filter: "platform:google-cloud|platform:amazon-web-services|status:active|status:archived" },
+            { filter: "owner:user@example.com" },
+            { filter: "product:a:b" },
+        ])("should reject incompatible incident constraints: %j", async (args) => {
+            await handleCloudIncidentsRequest(args, mockToken);
+            expect(createErrorResponse).toHaveBeenCalled();
+            expect(makeDoitRequest).not.toHaveBeenCalled();
         });
 
         it("should handle API request failure", async () => {

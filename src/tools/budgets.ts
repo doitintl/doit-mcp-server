@@ -31,7 +31,7 @@ export const ListBudgetsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            `The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS_BUDGETS}.`
+            `The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS_BUDGETS}; maximum 250 (larger values are rejected).`
         ),
     pageToken: z
         .string()
@@ -41,12 +41,14 @@ export const ListBudgetsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            'An expression for filtering the results. Syntax: "key:[<value>]". Available keys: owner, budgetName, lastModified in ms (>lastModified), riskStatus (one of atRisk, onTrack, unknown). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in "AND". The owner key can be repeated, and repeated owner values are combined with "OR"; for budgetName, lastModified and riskStatus only the first occurrence is honored.'
+            'An expression for filtering the results. Syntax: "key:value". Available keys: owner, budgetName, lastModified in ms (at or after; also orders by update time), riskStatus (one of atRisk, onTrack, unknown). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in "AND". The owner key can be repeated, and repeated owner values are combined with "OR"; for budgetName (exact, case-sensitive), lastModified and riskStatus only the first occurrence is honored.'
         ),
     name: z
         .string()
         .optional()
-        .describe("Partial name filter (case-insensitive). Returns only budgets whose name contains this string."),
+        .describe(
+            "Server-side case-insensitive substring filter on budget names, applied before pagination (nameContains)."
+        ),
     minCreationTime: z
         .string()
         .optional()
@@ -86,7 +88,9 @@ export const GetBudgetArgumentsSchema = z
         name: z
             .string()
             .optional()
-            .describe("Partial name match (case-insensitive). Used to find the budget when ID is unknown."),
+            .describe(
+                "Case-insensitive partial name lookup in the 200 most recent budgets only. Multiple matches return an ambiguity error. ID takes precedence."
+            ),
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
@@ -141,7 +145,7 @@ const SlackChannelSchema = z.object({
 
 const CreateBudgetBaseSchema = z.object({
     name: z.string().min(1).describe("Budget name (required, non-empty)."),
-    amount: z.number().positive().optional().describe("Budget period amount. Required if usePrevSpend is false."),
+    amount: z.number().positive().optional().describe("Budget period amount. Required unless usePrevSpend is true."),
     currency: z
         .enum(CURRENCY_VALUES)
         .describe(`Currency code (required). Accepted values: ${formatEnumValues(CURRENCY_VALUES)}.`),
@@ -152,9 +156,13 @@ const CreateBudgetBaseSchema = z.object({
         .enum(BUDGET_TIME_INTERVAL_VALUES)
         .optional()
         .describe(
-            `Recurring budget interval. Required for recurring budgets. Accepted values: ${formatEnumValues(BUDGET_TIME_INTERVAL_VALUES)}.`
+            `Recurring budget interval. Required for recurring budgets; ignored for fixed budgets. Accepted values: ${formatEnumValues(BUDGET_TIME_INTERVAL_VALUES)}.`
         ),
-    startPeriod: z.number().int().describe("Budget start date as a UNIX timestamp in milliseconds (required)."),
+    startPeriod: z
+        .number()
+        .int()
+        .min(1514764800000)
+        .describe("Budget start date as a UNIX timestamp in milliseconds (required, on or after 2018-01-01 UTC)."),
     endPeriod: z
         .number()
         .int()
@@ -246,7 +254,7 @@ export const createBudgetTool = {
     title: "Create budget",
     coversEndpoint: "post:/analytics/v1/budgets",
     description:
-        "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires budget name, currency, type, and start period. Changes apply immediately. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
+        "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires name, currency, type, startPeriod, and exactly one of scope/scopes. Requires amount unless usePrevSpend is true, endPeriod for fixed budgets, and timeInterval for recurring budgets (ignored for fixed). Changes apply immediately. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateBudgetArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -303,6 +311,7 @@ export async function handleListBudgetsRequest(args: any, token: string) {
         params.append("maxResults", maxResults || DEFAULT_MAX_RESULTS_BUDGETS);
         if (pageToken) params.append("pageToken", pageToken);
         if (filter) params.append("filter", filter);
+        if (name) params.append("nameContains", name);
         if (minCreationTime) params.append("minCreationTime", minCreationTime);
         if (maxCreationTime) params.append("maxCreationTime", maxCreationTime);
 
@@ -315,13 +324,6 @@ export async function handleListBudgetsRequest(args: any, token: string) {
 
         if (!data) {
             return createErrorResponse("Failed to retrieve budgets");
-        }
-
-        if (name) {
-            const q = name.toLowerCase();
-            data.budgets = (data.budgets ?? []).filter(
-                (b: any) => typeof b.budgetName === "string" && b.budgetName.toLowerCase().includes(q)
-            );
         }
 
         return createSuccessResponse(JSON.stringify(data, null, 2));
@@ -382,21 +384,32 @@ export const UpdateBudgetArgumentsSchema = updateBudgetRefinements(
     UpdateBudgetBaseSchema.extend({
         id: z.string().min(1).describe("The ID of the budget to update (required)."),
         name: UpdateBudgetBaseSchema.shape.name.describe("Budget name. Must be non-empty if provided."),
-        amount: UpdateBudgetBaseSchema.shape.amount.describe("Budget period amount."),
+        amount: UpdateBudgetBaseSchema.shape.amount.describe(
+            "Budget period amount; required when usePrevSpend is explicitly false. Omitted means unchanged."
+        ),
+        usePrevSpend: UpdateBudgetBaseSchema.shape.usePrevSpend.describe(
+            "Use previous spend; omitted means unchanged. If false, also supply a positive amount."
+        ),
+        growthPerPeriod: UpdateBudgetBaseSchema.shape.growthPerPeriod.describe(
+            "Periodical growth percentage (>= 0); omitted means unchanged."
+        ),
+        metric: UpdateBudgetBaseSchema.shape.metric.describe(
+            "Budget metric: cost or amortized_cost; omitted means unchanged."
+        ),
         currency: UpdateBudgetBaseSchema.shape.currency.describe(
             `Currency code. Accepted values: ${formatEnumValues(CURRENCY_VALUES)}.`
         ),
         type: UpdateBudgetBaseSchema.shape.type.describe(
-            `Budget type. Accepted values: ${formatEnumValues(BUDGET_TYPE_VALUES)}.`
+            `Budget type. If supplied, fixed requires endPeriod and recurring requires timeInterval. Accepted values: ${formatEnumValues(BUDGET_TYPE_VALUES)}.`
         ),
         timeInterval: UpdateBudgetBaseSchema.shape.timeInterval.describe(
-            `Recurring budget interval. Accepted values: ${formatEnumValues(BUDGET_TIME_INTERVAL_VALUES)}.`
+            `Recurring budget interval; required when setting type to recurring, ignored for fixed. Accepted values: ${formatEnumValues(BUDGET_TIME_INTERVAL_VALUES)}.`
         ),
         startPeriod: UpdateBudgetBaseSchema.shape.startPeriod.describe(
-            "Budget start date as a UNIX timestamp in milliseconds."
+            "Budget start date as a UNIX timestamp in milliseconds, on or after 2018-01-01 UTC. Omitted means unchanged."
         ),
         endPeriod: UpdateBudgetBaseSchema.shape.endPeriod.describe(
-            "Fixed budget end date as a UNIX timestamp in milliseconds. Must not be set for recurring budgets."
+            "Fixed budget end date as a UNIX timestamp in milliseconds. Required when setting type to fixed; must not be set for recurring budgets."
         ),
         scopes: UpdateBudgetBaseSchema.shape.scopes.describe(
             "Filters that define the scope of the budget. Cannot be combined with scope."
@@ -412,7 +425,7 @@ export const updateBudgetTool = {
     title: "Update budget",
     coversEndpoint: "patch:/analytics/v1/budgets/{id}",
     description:
-        "Use this when the user wants to modify an existing budget. Supports partial updates. Changes apply immediately. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
+        "Use this when the user wants to modify an existing budget. Supports partial updates; omitted fields retain their current values. Setting type to fixed requires endPeriod; setting type to recurring requires timeInterval and forbids endPeriod; setting usePrevSpend to false requires amount. Changes apply immediately. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateBudgetArgumentsSchema),
     annotations: {
         readOnlyHint: false,
