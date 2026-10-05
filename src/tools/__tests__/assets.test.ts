@@ -24,6 +24,33 @@ afterEach(() => {
 describe("handleListAssetsRequest", () => {
     const mockToken = "test-token";
 
+    it.each(["MATCH", "absent"])(
+        "filters name %s on one page while retaining cursors and server rowCount",
+        async (name) => {
+            vi.mocked(makeDoitRequest).mockResolvedValue({
+                assets: [
+                    { id: "1", name: "a Match" },
+                    { id: "2", name: "other" },
+                ],
+                rowCount: 2,
+                pageToken: "next",
+            });
+            const result = await handleListAssetsRequest(
+                { name, maxResults: "2", pageToken: "current", filter: "type:g-suite|type:office-365" },
+                mockToken
+            );
+            const data = JSON.parse(result.content[0].text);
+            expect(data.assets.map((asset: { id: string }) => asset.id)).toEqual(name === "MATCH" ? ["1"] : []);
+            expect(data.pageToken).toBe("next");
+            expect(data.rowCount).toBe(2);
+            expect(makeDoitRequest).toHaveBeenCalledExactlyOnceWith(
+                `${ASSETS_BASE_URL}?maxResults=2&pageToken=current&filter=type%3Ag-suite%7Ctype%3Aoffice-365`,
+                mockToken,
+                expect.any(Object)
+            );
+        }
+    );
+
     const mockAsset = {
         id: "asset-1",
         name: "My Billing Account",
@@ -121,6 +148,52 @@ describe("handleListAssetsRequest", () => {
 
 describe("handleGetAssetRequest", () => {
     const mockToken = "test-token";
+
+    it("gives ID precedence over name without searching", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ id: "chosen" });
+        await handleGetAssetRequest({ id: "chosen", name: "ambiguous" }, mockToken);
+        expect(makeDoitRequest).toHaveBeenCalledExactlyOnceWith(
+            `${ASSETS_BASE_URL}/chosen`,
+            mockToken,
+            expect.any(Object)
+        );
+    });
+
+    it("resolves a case-insensitive substring within the first 249 assets", async () => {
+        vi.mocked(makeDoitRequest)
+            .mockResolvedValueOnce({
+                assets: [{ id: "chosen", name: "Billing account" }],
+                pageToken: "more",
+                rowCount: 1,
+            })
+            .mockResolvedValueOnce({ id: "chosen" });
+        await handleGetAssetRequest({ name: "BILLING", customerContext: "customer-123" }, mockToken);
+        expect(makeDoitRequest).toHaveBeenNthCalledWith(1, `${ASSETS_BASE_URL}?maxResults=249`, mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
+        });
+        expect(makeDoitRequest).toHaveBeenNthCalledWith(2, `${ASSETS_BASE_URL}/chosen`, mockToken, {
+            method: "GET",
+            customerContext: "customer-123",
+        });
+        expect(makeDoitRequest).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+        { assets: [] },
+        {
+            assets: [
+                { id: "a", name: "Billing A" },
+                { id: "b", name: "Billing B" },
+            ],
+        },
+    ])("returns an error for missing or ambiguous names without paging", async ({ assets }) => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ assets, pageToken: "more", rowCount: assets.length });
+        const response = await handleGetAssetRequest({ name: "billing" }, mockToken);
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain(assets.length ? "Multiple items match" : "No items found");
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+    });
 
     const mockAssetDetailed = {
         id: "asset-1",

@@ -20,7 +20,7 @@ export const ListCommitmentsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            `The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS_COMMITMENTS}.`
+            `The maximum number of results per page, from 1 to 500. Defaults to ${DEFAULT_MAX_RESULTS_COMMITMENTS}. The API falls back to 50 for out-of-range integers and rejects non-integers.`
         ),
     pageToken: z
         .string()
@@ -30,7 +30,7 @@ export const ListCommitmentsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            "An expression for filtering the results. Syntax: key:[<value>]. Multiple filters can be connected using pipe |. Available filter keys: name, provider. Example: provider:[google-cloud]"
+            "Exact, case-sensitive filtering using key:value without brackets. Supported keys: name, provider, cloudProvider (alias of provider). Provider values: google-cloud, amazon-web-services, microsoft-azure. Different keys combine with pipe | (AND); repeated keys, including provider with cloudProvider, are rejected. Example: provider:google-cloud"
         ),
     sortBy: z
         .enum(COMMITMENT_SORT_BY_VALUES)
@@ -49,7 +49,7 @@ export const listCommitmentsTool = {
     title: "List commitments",
     coversEndpoint: "get:/analytics/v1/commitment-manager",
     description:
-        "Returns a list of commitment contracts from the DoiT Commitment Manager. These are Enterprise Discount Program (EDP) agreements — negotiated minimum spend or usage commitments between the customer and a cloud provider (Google Cloud, AWS, or Azure) .",
+        "Returns a paginated list of spend commitment contracts from the DoiT Commitment Manager for Google Cloud, AWS, and Azure. These are negotiated spend commitments, rather than resource usage commitments; AWS agreements may be called Enterprise Discount Programs (EDP).",
     inputSchema: zodToMcpInputSchema(ListCommitmentsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -101,7 +101,7 @@ export const getCommitmentTool = {
     title: "Get commitment",
     coversEndpoint: "get:/analytics/v1/commitment-manager/{id}",
     description:
-        "Returns details of a specific Enterprise Discount Program (EDP) commitment contract, identified by its ID. Includes the full breakdown of commitment periods, per-period contracted values, and current spend attainment against the committed amount.",
+        "Returns details of a specific spend commitment contract for Google Cloud, AWS, or Azure, identified by its ID. Includes the full breakdown of commitment periods, per-period contracted values, and current spend attainment against the committed amount.",
     inputSchema: zodToMcpInputSchema(GetCommitmentArgumentsSchema),
     annotations: {
         readOnlyHint: true,

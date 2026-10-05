@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TicketPlatform } from "../../common/types.js";
 import { makeDoitRequest } from "../../utils/util.js";
 import {
     handleCreateTicketCommentRequest,
+    handleCreateTicketRequest,
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
@@ -24,6 +26,49 @@ afterEach(() => {
 
 describe("handleListTicketsRequest", () => {
     const mockToken = "fake-token";
+
+    it.each([1, 100])("sends pageSize %i as maxResults", async (pageSize) => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ tickets: [], rowCount: 0 });
+        await handleListTicketsRequest({ pageSize }, mockToken);
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${TICKETS_BASE_URL}?maxResults=${pageSize}`,
+            mockToken,
+            expect.any(Object)
+        );
+    });
+
+    it.each([0, -1, 101, 1.5, "10", null])("rejects invalid pageSize %s before any API call", async (pageSize) => {
+        const response = await handleListTicketsRequest({ pageSize }, mockToken);
+        expect(response.isError).toBe(true);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it.each(["MATCH", "absent"])(
+        "filters subject %s on one page and preserves the API cursor and rowCount",
+        async (subject) => {
+            vi.mocked(makeDoitRequest).mockResolvedValue({
+                tickets: [
+                    { id: 1, subject: "a Match" },
+                    { id: 2, subject: "other" },
+                ],
+                pageToken: "next-page",
+                rowCount: 2,
+            });
+            const response = await handleListTicketsRequest(
+                { subject, pageSize: 2, pageToken: "current-page" },
+                mockToken
+            );
+            const data = JSON.parse(response.content[0].text);
+            expect(data.tickets.map((ticket: { id: number }) => ticket.id)).toEqual(subject === "MATCH" ? [1] : []);
+            expect(data.pageToken).toBe("next-page");
+            expect(data.rowCount).toBe(2);
+            expect(makeDoitRequest).toHaveBeenCalledExactlyOnceWith(
+                `${TICKETS_BASE_URL}?pageToken=current-page&maxResults=2`,
+                mockToken,
+                expect.any(Object)
+            );
+        }
+    );
 
     it("should call makeDoitRequest with correct parameters and return success response", async () => {
         const mockApiResponse = {
@@ -49,10 +94,14 @@ describe("handleListTicketsRequest", () => {
 
         const response = await handleListTicketsRequest({ pageToken: "next-page", pageSize: 10 }, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?pageToken=next-page&pageSize=10`, mockToken, {
-            method: "GET",
-            customerContext: undefined,
-        });
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${TICKETS_BASE_URL}?pageToken=next-page&maxResults=10`,
+            mockToken,
+            {
+                method: "GET",
+                customerContext: undefined,
+            }
+        );
 
         const text = response.content[0].text;
         const parsed = JSON.parse(text);
@@ -66,7 +115,7 @@ describe("handleListTicketsRequest", () => {
 
         const response = await handleListTicketsRequest({}, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?`, mockToken, {
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?maxResults=40`, mockToken, {
             method: "GET",
             customerContext: undefined,
         });
@@ -97,6 +146,57 @@ describe("handleListTicketsRequest", () => {
             isError: true,
         });
     });
+});
+
+describe("handleCreateTicketRequest", () => {
+    const ticket = {
+        body: "Synthetic body",
+        platform: "google_cloud_platform",
+        product: "big_query",
+        severity: "normal",
+        subject: "Synthetic subject",
+    };
+
+    it.each([undefined, "legacy-timestamp"])(
+        "accepts created=%s but leaves creation time to the server",
+        async (created) => {
+            vi.mocked(makeDoitRequest).mockResolvedValue({ id: 123 });
+            const response = await handleCreateTicketRequest(
+                {
+                    ticket: { ...ticket, ...(created === undefined ? {} : { created }) },
+                    customerContext: "customer-123",
+                },
+                "fake-token"
+            );
+            expect(response.isError).not.toBe(true);
+            expect(makeDoitRequest).toHaveBeenCalledExactlyOnceWith(TICKETS_BASE_URL, "fake-token", {
+                method: "POST",
+                body: { ticket },
+                customerContext: "customer-123",
+                timeoutMs: 60_000,
+            });
+        }
+    );
+
+    it.each(Object.values(TicketPlatform))("preserves support platform ID %s and product ID", async (platform) => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ id: 123 });
+        const response = await handleCreateTicketRequest({ ticket: { ...ticket, platform } }, "fake-token");
+        expect(response.isError).not.toBe(true);
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            TICKETS_BASE_URL,
+            "fake-token",
+            expect.objectContaining({ body: { ticket: { ...ticket, platform } } })
+        );
+    });
+
+    it.each([{ platform: "google-cloud" }, { severity: "critical" }, { created: 123 }])(
+        "rejects invalid ticket values before an API call: %j",
+        async (fields) => {
+            const response = await handleCreateTicketRequest({ ticket: { ...ticket, ...fields } }, "fake-token");
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        }
+    );
 });
 
 describe("handleGetTicketRequest", () => {

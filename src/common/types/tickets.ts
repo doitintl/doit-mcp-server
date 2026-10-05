@@ -22,4 +22,6 @@ export enum TicketPlatform {
     MICROSOFT_AZURE = "microsoft_azure",
     MICROSOFT_OFFICE_365 = "microsoft_office_365",
     PERFECTSCALE = "perfectscale",
+    FINANCE_BILLING = "finance___billing",
+    CREDITS_REQUEST = "credits___request",
 }
