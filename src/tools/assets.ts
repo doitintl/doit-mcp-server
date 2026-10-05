@@ -124,16 +124,7 @@ export const getAssetTool = {
     coversEndpoint: "get:/billing/v1/assets/{id}",
     description:
         "Use this when the user wants to view details of a specific cloud asset. Accepts either the asset ID or a partial name (case-insensitive). Do NOT use this for listing all assets (use list_assets) or cost analysis (use run_query).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: { type: "string", description: "The ID of the asset to retrieve." },
-            name: {
-                type: "string",
-                description: "Partial name match (case-insensitive). Used to find the asset when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetAssetArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

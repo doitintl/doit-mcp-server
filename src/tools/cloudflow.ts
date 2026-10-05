@@ -85,20 +85,7 @@ export const triggerCloudFlowTool = {
     coversEndpoint: "post:/cloudflow/v1/trigger/{flowId}",
     description:
         "Use this when the user wants to trigger an automated CloudFlow workflow by its flow ID. This executes automation that may modify cloud resources externally. The flow starts immediately. Do NOT use this for viewing CloudFlow definitions or checking available flows.",
-    inputSchema: {
-        type: "object",
-        properties: {
-            flowID: {
-                type: "string",
-                description: "The ID of the CloudFlow flow to trigger",
-            },
-            requestBodyJson: {
-                type: "object",
-                description: "Optional JSON object to pass as the request body to the flow if the flow requires it",
-            },
-        },
-        required: ["flowID"],
-    },
+    inputSchema: zodToMcpInputSchema(TriggerCloudFlowArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -124,24 +111,7 @@ export const refineCloudflowTool = {
     description:
         "Use this when the user wants to refine or rebuild an existing CloudFlow automation using natural language. Streams real-time progress updates while the AI builds the flow, then returns the final result. " +
         CLOUDFLOW_BUILDER_HINT,
-    inputSchema: {
-        type: "object",
-        properties: {
-            question: {
-                type: "string",
-                description: "The instruction or question to refine or rebuild the flow",
-            },
-            flowId: {
-                type: "string",
-                description: "The ID of the CloudFlow flow to refine",
-            },
-            conversationId: {
-                type: "string",
-                description: "Optional conversation ID for multi-turn sessions",
-            },
-        },
-        required: ["question", "flowId"],
-    },
+    inputSchema: zodToMcpInputSchema(RefineCloudflowArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -166,20 +136,7 @@ export const buildCloudflowTool = {
     description:
         "Use this when the user wants to build a brand-new CloudFlow automation from scratch using natural language. Streams real-time progress while the AI builds the flow, then returns the newly created flow's ID, the builder's answer, and the build steps that ran. Use refine_cloudflow to change an existing flow; use this only to create a new one. " +
         CLOUDFLOW_BUILDER_HINT,
-    inputSchema: {
-        type: "object",
-        properties: {
-            question: {
-                type: "string",
-                description: "Natural language description of the CloudFlow to build from scratch.",
-            },
-            conversationId: {
-                type: "string",
-                description: "Optional conversation ID to continue an existing build session.",
-            },
-        },
-        required: ["question"],
-    },
+    inputSchema: zodToMcpInputSchema(BuildCloudflowArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,

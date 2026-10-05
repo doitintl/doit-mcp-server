@@ -37,7 +37,7 @@ describe("core package API", () => {
     });
 
     // The remote Worker registers tools with these Zod schemas, so their `.describe()` text is what
-    // hosted clients see — a second copy beside each tool's raw `inputSchema`. Keep both clean.
+    // hosted clients see. The stdio inputSchema is derived from the same schema.
     it("exported argument schemas carry no model-behavior instructions", async () => {
         const core: Record<string, unknown> = await import("../core.js");
         const schemas = Object.entries(core).filter(

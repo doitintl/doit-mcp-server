@@ -27,7 +27,10 @@ const DEFAULT_LIST_ALERTS_MAX_RESULTS = 40;
 // Schema definitions
 export const ListAlertsArgumentsSchema = z.object({
     sortBy: z.enum(ALERTS_SORT_BY_VALUES).optional().describe("A field by which the results will be sorted."),
-    sortOrder: z.enum(ALERTS_SORT_ORDER_VALUES).optional().describe("Sort order: ascending or descending."),
+    sortOrder: z
+        .enum(ALERTS_SORT_ORDER_VALUES)
+        .optional()
+        .describe("Sort order: ascending (asc) or descending (desc)."),
     maxResults: z.string().optional().describe("Maximum number of results to return in a single page."),
     pageToken: z
         .string()
@@ -48,34 +51,7 @@ export const listAlertsTool = {
     coversEndpoint: "get:/analytics/v1/alerts",
     description:
         "Use this when the user wants to see their cost alerts or check alert configurations. Returns a paginated list of alerts. Do NOT use this for anomaly detection (use get_anomalies) or budget tracking (use list_budgets).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            sortBy: {
-                type: "string",
-                enum: [...ALERTS_SORT_BY_VALUES],
-                description: "A field by which the results will be sorted.",
-            },
-            sortOrder: {
-                type: "string",
-                enum: [...ALERTS_SORT_ORDER_VALUES],
-                description: "Sort order: ascending (asc) or descending (desc).",
-            },
-            maxResults: {
-                type: "string",
-                description: "Maximum number of results to return in a single page",
-            },
-            pageToken: {
-                type: "string",
-                description: "Page token returned by a previous call to request the next page of results.",
-            },
-            filter: {
-                type: "string",
-                description:
-                    "Expression for filtering results. Syntax: key:[<value>]. Multiple filters joined with |. Available keys: owner, name.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(ListAlertsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -105,19 +81,7 @@ export const getAlertTool = {
     coversEndpoint: "get:/analytics/v1/alerts/{id}",
     description:
         "Use this when the user wants to view the details of a specific cost alert. Accepts either the alert ID or a partial name (case-insensitive). Do NOT use this for listing all alerts (use list_alerts) or anomalies (use get_anomalies).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "The ID of the alert to retrieve.",
-            },
-            name: {
-                type: "string",
-                description: "Partial name match (case-insensitive). Used to find the alert when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetAlertArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

@@ -121,16 +121,7 @@ export const getLabelTool = {
     coversEndpoint: "get:/analytics/v1/labels/{id}",
     description:
         "Use this when the user wants to view details of a specific label. Accepts either the label ID or a partial name (case-insensitive). Do NOT use this for listing all labels (use list_labels) or annotations (use list_annotations).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: { type: "string", description: "The ID of the label to retrieve." },
-            name: {
-                type: "string",
-                description: "Partial name match (case-insensitive). Used to find the label when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetLabelArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

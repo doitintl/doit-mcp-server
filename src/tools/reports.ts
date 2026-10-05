@@ -127,20 +127,7 @@ export const reportsTool = {
     coversEndpoint: "get:/analytics/v1/reports",
     description:
         "Use this when the user wants to see their saved Cloud Analytics reports or browse available reports. Returns a paginated list of reports with their IDs and metadata. Do NOT use this for running queries (use run_query) or getting report results (use get_report_results).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            filter: {
-                type: "string",
-                description:
-                    "Filter string in format 'key:value|key:value'. Different keys are combined with AND; each key can be used once. Supported keys: reportName (exact, case-sensitive full name), owner (owner's email, exact), type (custom, preset, or managed), updateTime (milliseconds since epoch; matches reports updated at or after it), folderId (exact; 'root' for reports outside any folder). Any other key is rejected with an error. Example: 'type:custom|owner:jane@example.com'",
-            },
-            pageToken: {
-                type: "string",
-                description: "Token for pagination, from a previous response; returns the next page of results.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(ReportsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -159,20 +146,7 @@ export const getReportResultsTool = {
     coversEndpoint: "get:/analytics/v1/reports/{id}",
     description:
         "Use this when the user wants to retrieve the data results of a specific saved report. Accepts either the report ID or a partial name (case-insensitive). Do NOT use this for listing all reports (use list_reports) or running ad-hoc queries (use run_query).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "The ID of the report to retrieve results for.",
-            },
-            name: {
-                type: "string",
-                description:
-                    "Partial report name match (case-insensitive). Used to find the report when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetReportResultsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
