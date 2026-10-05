@@ -301,6 +301,8 @@ export async function makeDoitRequest<T>(
         /** Extra headers to send alongside the default Authorization/Accept/Content-Type
          *  headers (e.g. an OpenAPI operation's required header parameters). */
         headers?: Record<string, string>;
+        /** Opt-in access to successful response headers without changing the parsed body. */
+        onResponseHeaders?: (headers: Headers) => void;
     } = {}
 ): Promise<T | null> {
     const {
@@ -379,6 +381,7 @@ export async function makeDoitRequest<T>(
         if (!response.ok) {
             await throwHttpError(response);
         }
+        options.onResponseHeaders?.(response.headers);
         if (!parseResponse) {
             return {} as T;
         }

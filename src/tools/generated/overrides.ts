@@ -3,6 +3,8 @@ import { CLOUDFLOW_CODENODE_HINT } from "../../docs/cloudflowGuidance.js";
 export type ToolOverride = {
     /** Appended to the description composed from the OpenAPI spec, separated by a space. */
     descriptionSuffix?: string;
+    /** Preserve a cursor carried in a response header in an export-only result envelope. */
+    responsePageTokenHeader?: string;
 };
 
 /**
@@ -17,6 +19,11 @@ export type ToolOverride = {
  * operation upstream fails the build instead of silently dropping the guidance.
  */
 export const toolOverrides: Record<string, ToolOverride> = {
+    export_datahub_dataset_records: {
+        responsePageTokenHeader: "X-Next-Page-Token",
+        descriptionSuffix:
+            "This tool returns a JSON envelope with data (the unchanged CSV or JSONL page body) and pageToken (from X-Next-Page-Token). Pass a non-empty pageToken back as pageToken to advance; null means the final page. MCP does not expose the HTTP headers directly.",
+    },
     import_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
     export_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
     test_run_cloudflow_flow: {

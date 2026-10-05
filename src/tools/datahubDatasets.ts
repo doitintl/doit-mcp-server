@@ -87,7 +87,7 @@ export const getDatahubDatasetTool = {
     title: "Get DataHub dataset",
     coversEndpoint: "get:/datahub/v1/datasets/{name}",
     description:
-        "Use this when the user wants to view details of a specific DataHub dataset by its ID. Returns full dataset metadata and schema. Do NOT use this for listing all datasets (use list_datahub_datasets) or cost queries (use run_query).",
+        "Use this when the user wants to view details of a specific DataHub dataset by its name. Returns dataset metadata, including the schemaTemplate identifier when present, rather than the full column schema. Do NOT use this for listing all datasets (use list_datahub_datasets) or cost queries (use run_query).",
     inputSchema: zodToMcpInputSchema(GetDatahubDatasetArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -178,13 +178,25 @@ const UpdateDatahubDatasetBaseSchema = z.object({
     description: z
         .string()
         .optional()
-        .describe("The new description for the dataset. At least one updatable field (description) must be provided."),
+        .describe("New description. Omit to keep the stored value; an empty string clears it."),
+    displayName: z
+        .string()
+        .optional()
+        .describe(
+            "Display name (up to 64 characters after trimming, no control characters). Omit to keep; an empty string clears it. Does not rename the dataset."
+        ),
+    logoName: z
+        .string()
+        .optional()
+        .describe(
+            "Preset logo name: anthropic, atlassian, aws, azure, bifrost, chatgpt, cloudflare, copilot, figma, gcp, github, gitlab, hotjar, jira, litellm, miro, notion, slack, wordpress. Omit to keep; an empty string clears it."
+        ),
 });
 
 export const UpdateDatahubDatasetArgumentsSchema = UpdateDatahubDatasetBaseSchema.refine(
-    (data) => data.description !== undefined,
+    (data) => data.description !== undefined || data.displayName !== undefined || data.logoName !== undefined,
     {
-        message: "At least one updatable field must be provided. Currently only 'description' can be updated.",
+        message: "At least one of description, displayName, or logoName must be provided.",
     }
 );
 
@@ -193,7 +205,7 @@ export const updateDatahubDatasetTool = {
     title: "Update DataHub dataset",
     coversEndpoint: "patch:/datahub/v1/datasets/{name}",
     description:
-        "Use this when the user wants to modify an existing DataHub dataset's description. The dataset name is required to identify the dataset; only the description can be changed. Changes apply immediately. Do NOT use this for creating datasets (use create_datahub_dataset) or listing datasets (use list_datahub_datasets).",
+        "Use this when the user wants to modify an existing DataHub dataset's description, displayName, or logoName. The dataset name identifies the dataset and cannot be changed. Omitted fields are kept; empty strings clear the supplied fields. At least one updatable field is required. Changes apply immediately. Do NOT use this for creating datasets (use create_datahub_dataset) or listing datasets (use list_datahub_datasets).",
     inputSchema: zodToMcpInputSchema(UpdateDatahubDatasetArgumentsSchema),
     annotations: {
         readOnlyHint: false,

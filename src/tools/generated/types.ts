@@ -10,6 +10,8 @@ export type OperationMetadata = {
     headerParams: string[];
     bodyEncoding: "json" | "multipart";
     contentType?: string;
+    /** Only operations opted in by an override wrap their text body with a pageToken. */
+    responsePageTokenHeader?: string;
     multipartFileFields: string[];
 };
 

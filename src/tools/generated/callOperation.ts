@@ -93,6 +93,8 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
             headers["Content-Type"] = metadata.contentType ?? "application/json";
         }
 
+        const pageTokenHeader = metadata.responsePageTokenHeader;
+        let pageToken: string | null = null;
         const data = await makeDoitRequest<string>(url, token, {
             method: metadata.method.toUpperCase(),
             body,
@@ -103,12 +105,19 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
             parseAs: "text",
             timeoutMs: GENERATED_REQUEST_TIMEOUT_MS,
             headers: Object.keys(headers).length > 0 ? headers : undefined,
+            ...(pageTokenHeader
+                ? {
+                      onResponseHeaders: (responseHeaders: Headers) => {
+                          pageToken = responseHeaders.get(pageTokenHeader) || null;
+                      },
+                  }
+                : {}),
         });
 
         if (data === null) {
             return createErrorResponse(`Failed to call ${metadata.method.toUpperCase()} ${metadata.pathTemplate}`);
         }
-        return createSuccessResponse(data);
+        return createSuccessResponse(metadata.responsePageTokenHeader ? JSON.stringify({ data, pageToken }) : data);
     } catch (error) {
         if (error instanceof z.ZodError) {
             return createErrorResponse(formatZodError(error));

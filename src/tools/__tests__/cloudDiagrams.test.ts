@@ -411,7 +411,7 @@ describe("get_cloud_diagram_cost_snapshot", () => {
         currency: "USD",
         timeRange: { startDate: "2026-04-01", endDate: "2026-04-30", interval: "day" },
         total: 1234.56,
-        trendingPct: 12.5,
+        trendingPct: 0.125,
         topResources: [{ id: "node-1", name: "web-server", type: "AWS::EC2::Instance", amount: 500 }],
         byService: [{ service: "EC2", amount: 800 }],
         trend: [{ bucketStart: "2026-04-01", amount: 40 }],
@@ -570,32 +570,31 @@ describe("get_cloud_diagram_resource_relationships", () => {
 describe("get_cloud_diagram_components", () => {
     const mockToken = "fake-token";
 
-    const mockSchemes = [
-        {
-            _id: "scheme-1",
-            name: "Production VPC",
-            type: "infrastructure",
-            account_name: "prod-account",
-            statussheet: {
-                "sheet-1": { _id: "sheet-1", account_name: "prod-account" },
+    const mockSchemes = {
+        scheme: {
+            "scheme-1": {
+                _id: "scheme-1",
+                name: "Production VPC",
+                type: "infrastructure",
+                statussheet: [{ _id: "sheet-1", ssid: "sheet-1" }, { _id: "sheet-2" }],
             },
         },
-    ];
+    };
 
     it("should POST to scheme/get URL and return schemes", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockSchemes);
 
         const response = await handleGetCloudDiagramComponentsRequest({}, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SCHEME_GET_URL, mockToken, {
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUD_DIAGRAMS_SCHEME_GET_URL}?components=false`, mockToken, {
             method: "POST",
             body: {},
             customerContext: undefined,
         });
         const parsed = JSON.parse(response.content[0].text);
-        expect(parsed).toHaveLength(1);
-        expect(parsed[0]._id).toBe("scheme-1");
-        expect(parsed[0].statussheet["sheet-1"]._id).toBe("sheet-1");
+        expect(Object.keys(parsed.scheme)).toHaveLength(1);
+        expect(parsed.scheme["scheme-1"]._id).toBe("scheme-1");
+        expect(parsed.scheme["scheme-1"].statussheet[0]._id).toBe("sheet-1");
     });
 
     it("should pass scheme_ids and layer_ids in the request body", async () => {
@@ -603,9 +602,9 @@ describe("get_cloud_diagram_components", () => {
 
         await handleGetCloudDiagramComponentsRequest({ scheme_ids: ["scheme-1"], layer_ids: ["sheet-1"] }, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SCHEME_GET_URL, mockToken, {
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUD_DIAGRAMS_SCHEME_GET_URL}?components=false`, mockToken, {
             method: "POST",
-            body: { scheme_ids: ["scheme-1"], layer_ids: ["sheet-1"] },
+            body: { scheme: ["scheme-1"], statussheet: ["sheet-1"] },
             customerContext: undefined,
         });
     });
@@ -641,5 +640,72 @@ describe("get_cloud_diagram_components", () => {
             content: [{ type: "text", text: expect.stringContaining("diagram components") }],
             isError: true,
         });
+    });
+});
+
+describe("diagram component selection semantics", () => {
+    const discovery = {
+        scheme: {
+            a: { _id: "a", statussheet: [{ _id: "layer-a" }, { _id: "layer-a" }, { _id: "alias", ssid: "layer-b" }] },
+        },
+    };
+    it.each([{}, { scheme_ids: ["a"] }, { scheme_ids: [], layer_ids: [] }])(
+        "resolves selected diagram layers when include_components=true: %j",
+        async (selectors) => {
+            const layers = {
+                statussheet: { "layer-a": { statussheet: { _id: "layer-a" }, node: { n: { _id: "n" } } } },
+            };
+            vi.mocked(makeDoitRequest).mockResolvedValueOnce(discovery).mockResolvedValueOnce(layers);
+            const response = await handleGetCloudDiagramComponentsRequest(
+                { ...selectors, include_components: true, customerContext: "selected-customer" },
+                "token"
+            );
+            expect(makeDoitRequest).toHaveBeenCalledTimes(2);
+            expect(makeDoitRequest).toHaveBeenLastCalledWith(
+                `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?components=true`,
+                "token",
+                { method: "POST", body: { statussheet: ["layer-a", "layer-b"] }, customerContext: "selected-customer" }
+            );
+            expect(JSON.parse(response.content[0].text)).toEqual({ ...discovery, ...layers });
+        }
+    );
+    it.each([undefined, false, true])(
+        "honors include_components=%j for explicit layers",
+        async (include_components) => {
+            vi.mocked(makeDoitRequest).mockResolvedValue({});
+            await handleGetCloudDiagramComponentsRequest({ layer_ids: ["layer-a"], include_components }, "token");
+            expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?components=${include_components ?? false}`,
+                "token",
+                { method: "POST", body: { statussheet: ["layer-a"] }, customerContext: undefined }
+            );
+        }
+    );
+    it("does not expand explicitly selected layers to all layers of their diagrams", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue(discovery);
+        await handleGetCloudDiagramComponentsRequest(
+            { scheme_ids: ["a"], layer_ids: ["layer-b"], include_components: true },
+            "token"
+        );
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            "token",
+            expect.objectContaining({
+                body: { scheme: ["a"], statussheet: ["layer-b"] },
+            })
+        );
+    });
+    it("skips the second read when discovery contains no layers", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({});
+        const response = await handleGetCloudDiagramComponentsRequest({ include_components: true }, "token");
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+        expect(response.isError).not.toBe(true);
+    });
+    it("reports a failed layer fetch instead of returning metadata as component success", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValueOnce(discovery).mockResolvedValueOnce(null);
+        const response = await handleGetCloudDiagramComponentsRequest({ include_components: true }, "token");
+        expect(response.isError).toBe(true);
     });
 });

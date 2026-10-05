@@ -31,7 +31,7 @@ export const FindCloudDiagramsArgumentsSchema = z.object({
     resources: z
         .array(z.string())
         .min(1, "At least one resource ID is required.")
-        .describe("Resource IDs to find diagrams for."),
+        .describe("Cloud resource IDs matched against cld_id or props.id; these are not diagram component IDs."),
 });
 
 export const findCloudDiagramsTool = {
@@ -39,10 +39,10 @@ export const findCloudDiagramsTool = {
     title: "Find cloud diagrams",
     coversEndpoint: "post:/clouddiagrams/v1/scheme/find",
     description:
-        "Use this when the user wants to find architecture diagrams or cloud infrastructure diagrams. Returns matching diagram files. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
+        "Use this when the user wants to find architecture diagrams or cloud infrastructure diagrams. Matches cloud resource IDs (cld_id or props.id) and returns diagram viewer URLs and image URLs. Creates a sheet filter and queues image rendering. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(FindCloudDiagramsArgumentsSchema),
     annotations: {
-        readOnlyHint: true,
+        readOnlyHint: false,
         destructiveHint: false,
         openWorldHint: true,
     },
@@ -136,8 +136,16 @@ export async function handleGetCloudDiagramsStatsRequest(args: any, token: strin
 
 export const SearchCloudDiagramsArgumentsSchema = z.object({
     query: z.string().min(1, "A search query string is required.").describe("Search query string."),
-    ss_id: z.string().optional().describe("Limit search to components within this layer (layer ID)."),
-    from: z.number().int().min(0).optional().describe("Pagination offset (default 0)."),
+    ss_id: z
+        .string()
+        .optional()
+        .describe("Scope only the component and prop categories to this layer ID; scheme results remain unscoped."),
+    from: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Pagination offset applied independently to each result category (default 0)."),
     size: z.number().int().min(1).optional().describe("Maximum number of results per category (default 20)."),
 });
 
@@ -146,7 +154,7 @@ export const searchCloudDiagramsTool = {
     title: "Search cloud diagrams",
     coversEndpoint: "post:/clouddiagrams/v1/scheme/search",
     description:
-        "Use this when the user wants to search their cloud infrastructure diagrams and components by name or property. Returns matching diagram layers (scheme), components, and components matched by property value (prop). Optionally scope to a single layer with ss_id and page with from/size. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
+        "Use this when the user wants to search their cloud infrastructure diagrams and components by name or property. Returns matching diagram layers (scheme), components, and components matched by property value (prop). ss_id scopes only component and prop results, not scheme results. from/size page each category independently. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(SearchCloudDiagramsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -197,11 +205,11 @@ export const GetCloudDiagramCostSnapshotArgumentsSchema = z.object({
     startDate: z
         .string()
         .regex(ISO_DATE, "startDate must be a calendar date in YYYY-MM-DD format, e.g. 2026-04-01")
-        .describe("Start of the period (calendar date, YYYY-MM-DD, e.g. 2026-04-01)."),
+        .describe("Inclusive start date (YYYY-MM-DD, e.g. 2026-04-01)."),
     endDate: z
         .string()
         .regex(ISO_DATE, "endDate must be a calendar date in YYYY-MM-DD format, e.g. 2026-04-30")
-        .describe("End of the period (calendar date, YYYY-MM-DD, e.g. 2026-04-30)."),
+        .describe("Inclusive end date (YYYY-MM-DD, e.g. 2026-04-30)."),
     interval: z
         .enum(["day", "week", "month"])
         .optional()
@@ -213,7 +221,7 @@ export const getCloudDiagramCostSnapshotTool = {
     title: "Get cloud diagram cost snapshot",
     coversEndpoint: "get:/clouddiagrams/v1/statussheet/{id}/costs",
     description:
-        "Use this when the user wants a cost snapshot for a specific cloud infrastructure diagram layer over a time period — total spend, period-over-period trend percentage, the top resources and services by cost, and a cost trend over time. Requires the diagram layer ID and a startDate/endDate (YYYY-MM-DD). Do NOT use this for account-wide cost analysis (use run_query) or budgets (use list_budgets).",
+        "Use this when the user wants a cost snapshot for a specific cloud infrastructure diagram layer over a time period — the API-reported total, trendingPct as a fractional change (0.1 means 10%, null when no prior value is available), the top five resources and top five services by cost, and the last twelve trend buckets. Both dates are inclusive. Requires the diagram layer ID and a startDate/endDate (YYYY-MM-DD). Do NOT use this for account-wide cost analysis (use run_query) or budgets (use list_budgets).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramCostSnapshotArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -287,7 +295,7 @@ export const getCloudDiagramResourceRelationshipsTool = {
     title: "Get cloud diagram resource relationships",
     coversEndpoint: "get:/clouddiagrams/v1/statussheet/{id}/resources/{rid}/relationships",
     description:
-        "Use this when the user wants to understand how a specific resource in a cloud infrastructure diagram is connected to other resources — its upstream/downstream edges and group membership. Returns the anchor resource plus related resources with their relation type and hop distance. Requires the diagram layer ID and the resource ID. Do NOT use this for cost analysis (use get_cloud_diagram_cost_snapshot or run_query).",
+        "Use this when the user wants to understand how a specific resource in a cloud infrastructure diagram is connected to other resources — its upstream/downstream edges and optional group membership (only when kind is group_members or both). Returns the anchor resource plus up to 200 relations with their type and hop distance; truncated is true when more than 200 relations exist. Requires the diagram layer ID and the resource ID. Do NOT use this for cost analysis (use get_cloud_diagram_cost_snapshot or run_query).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramResourceRelationshipsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -336,7 +344,10 @@ export const ListCloudDiagramActivityGroupsArgumentsSchema = z.object({
     ss_id: z.string().min(1, "A layer ID (ss_id) is required.").describe("Layer ID to list activity groups for."),
     limit: z.number().int().min(1).optional().describe("Maximum number of groups to return (default 10)."),
     offset: z.number().int().min(0).optional().describe("Number of groups to skip (default 0)."),
-    tags: z.array(z.string()).optional().describe("Filter activity groups by tags."),
+    tags: z
+        .array(z.string())
+        .optional()
+        .describe("Filter by snapshot tags; supplying non-empty tags restricts results to SNAPSHOT groups."),
 });
 
 export const listCloudDiagramActivityGroupsTool = {
@@ -344,7 +355,7 @@ export const listCloudDiagramActivityGroupsTool = {
     title: "List cloud diagram activity groups",
     coversEndpoint: "get:/clouddiagrams/v1/activity",
     description:
-        "Use this when the user wants the change history of a cloud diagram layer grouped by snapshot. Returns snapshot activity groups for the given layer (ss_id), ordered by timestamp descending; each group references a snapshot and contains the individual activity records (node/link/group/attachment create/update/delete) that belong to it. Page with offset/limit and filter with tags. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
+        "Use this when the user wants the activity history of a cloud diagram layer. Without tags, returns ALARM, COMMIT, EVENT, and SNAPSHOT activity groups for the given layer (ss_id), ordered by timestamp descending; snapshot groups reference a snapshot and contain their individual activity records. Supplying non-empty tags restricts results to snapshots. Page with offset/limit and filter with tags. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(ListCloudDiagramActivityGroupsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -401,7 +412,7 @@ export const listCloudDiagramNodeActivitiesTool = {
     title: "List cloud diagram node activities",
     coversEndpoint: "get:/clouddiagrams/v1/activity/node-activities",
     description:
-        "Use this when the user wants the change history of a single component node in a cloud diagram layer. Returns individual activity records (NODE_CREATE/NODE_UPDATE/NODE_DELETE) for the given node (ss_id + nodeId), ordered by timestamp descending, each including the user who made the change. Page with offset/limit. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
+        "Use this when the user wants the change history of a single component node in a cloud diagram layer. Returns individual activity records (NODE_CREATE/NODE_UPDATE/NODE_DELETE) for the given node (ss_id + nodeId), ordered by timestamp descending, each including user as the ID of the user who made the change. Page with offset/limit. Do NOT use this for cost analysis (use run_query) or incidents (use get_cloud_incidents).",
     inputSchema: zodToMcpInputSchema(ListCloudDiagramNodeActivitiesArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -445,18 +456,25 @@ export async function handleListCloudDiagramNodeActivitiesRequest(args: any, tok
 }
 
 export const GetCloudDiagramComponentsArgumentsSchema = z.object({
-    scheme_ids: z.array(z.string()).optional().describe("Filter to specific diagram IDs. Omit to return all diagrams."),
+    scheme_ids: z
+        .array(z.string())
+        .optional()
+        .describe(
+            "Select these diagram IDs. When combined with layer_ids, also returns the diagrams owning those layers."
+        ),
     layer_ids: z
         .array(z.string())
         .optional()
-        .describe("Filter to specific layer (statussheet) IDs. Omit to return all layers."),
+        .describe(
+            "Select these layer (statussheet) IDs and their owning diagrams. Component data is loaded only for selected layers, or resolved diagram layers when include_components is true."
+        ),
     include_components: z
         .boolean()
         .optional()
         .describe(
-            "Include component data (nodes, elements, groups, links, etc.) in the response. Defaults to false for lighter responses. The component IDs it returns are the inputs other diagram tools take."
+            "Load component maps for selected layers, or all layers of selected diagrams when layer_ids is omitted. With no IDs, first discovers accessible application/infrastructure diagrams. Defaults to false. Component fields use API projections, not full resource properties."
         ),
-    skip_empty: z.boolean().optional().describe("Exclude layers that have no components. Defaults to false."),
+    skip_empty: z.boolean().optional().describe("Omit diagrams with no components. Defaults to false."),
 });
 
 export const getCloudDiagramComponentsTool = {
@@ -464,7 +482,7 @@ export const getCloudDiagramComponentsTool = {
     title: "Get cloud diagram components",
     coversEndpoint: "post:/clouddiagrams/v1/scheme/get",
     description:
-        "Use this when the user wants to discover all cloud infrastructure diagrams and their layers (statussheets), or to look up layer IDs needed for other diagram endpoints. Returns all diagrams with their connected layers and optionally their component data. The layer IDs required by other diagram tools come from this tool. Optionally filter by diagram IDs (scheme_ids) or layer IDs (layer_ids), and set include_components=true to get full component lists. Do NOT use this for cost analysis (use run_query) or diagram search (use search_cloud_diagrams).",
+        "Use this when the user wants to discover all cloud infrastructure diagrams and their layers (statussheets), or to look up layer IDs needed for other diagram endpoints. With no filters, returns accessible application and infrastructure diagrams with layer metadata and no component data. Returns maps keyed by diagram and layer IDs. scheme_ids and the diagrams owning layer_ids are combined, not intersected. The layer IDs required by other diagram tools come from this tool. Optionally filter by diagram IDs (scheme_ids) or layer IDs (layer_ids), and set include_components=true to load projected component maps for the requested layers, or all layers of the selected diagrams when layer_ids is omitted. Do NOT use this for cost analysis (use run_query) or diagram search (use search_cloud_diagrams).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramComponentsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -484,25 +502,46 @@ export async function handleGetCloudDiagramComponentsRequest(args: any, token: s
             GetCloudDiagramComponentsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
-        const params = new URLSearchParams();
-        if (include_components) params.append("components", "true");
-        if (skip_empty) params.append("skip_empty", "true");
-
-        const query = params.toString();
-        const url = query ? `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?${query}` : CLOUD_DIAGRAMS_SCHEME_GET_URL;
-
+        // Empty arrays behave like omitted selectors; an empty DTO is the API's
+        // discovery branch, which never loads components even with components=true.
+        const schemes = scheme_ids?.length ? scheme_ids : undefined;
+        const layers = layer_ids?.length ? layer_ids : undefined;
         const body: Record<string, unknown> = {};
-        if (scheme_ids !== undefined) body.scheme_ids = scheme_ids;
-        if (layer_ids !== undefined) body.layer_ids = layer_ids;
+        if (schemes) body.scheme = schemes;
+        if (layers) body.statussheet = layers;
 
-        const data = await makeDoitRequest<GetCloudDiagramComponentsResponse>(url, token, {
+        const params = new URLSearchParams();
+        // The populated DTO branch defaults to components=true, unlike discovery.
+        params.set("components", String(include_components ?? false));
+        if (skip_empty) params.set("skip_empty", "true");
+        const url = `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?${params}`;
+
+        let data = await makeDoitRequest<GetCloudDiagramComponentsResponse>(url, token, {
             method: "POST",
             body,
             customerContext,
         });
+        if (!data) return createErrorResponse("Failed to retrieve cloud diagram components");
 
-        if (!data) {
-            return createErrorResponse("Failed to retrieve cloud diagram components");
+        if (include_components && !layers) {
+            // Selecting a scheme does not select its statussheets in the API DTO.
+            // Resolve their IDs from metadata, then explicitly request those sheets.
+            const layerIds = [
+                ...new Set(
+                    Object.values(data.scheme ?? {}).flatMap((scheme) =>
+                        (scheme.statussheet ?? []).map((sheet) => sheet.ssid ?? sheet._id)
+                    )
+                ),
+            ];
+            if (layerIds.length > 0) {
+                const components = await makeDoitRequest<GetCloudDiagramComponentsResponse>(url, token, {
+                    method: "POST",
+                    body: { statussheet: layerIds },
+                    customerContext,
+                });
+                if (!components) return createErrorResponse("Failed to retrieve cloud diagram components");
+                data = { ...data, statussheet: components.statussheet };
+            }
         }
 
         return createSuccessResponse(JSON.stringify(data, null, 2));
