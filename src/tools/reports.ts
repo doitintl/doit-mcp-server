@@ -37,7 +37,7 @@ export const ReportsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            "Filter string in format 'key:value|key:value'; every key must match. Supported keys: reportName (exact, case-sensitive full name), owner (owner's email, exact), type (custom, preset, or managed), updateTime (milliseconds since epoch; matches reports updated at or after it), folderId (exact; 'root' for reports outside any folder). Any other key is rejected with an error. Example: 'type:custom|owner:jane@example.com'"
+            "Filter string in format 'key:value|key:value'. Different keys are combined with AND; each key can be used once. Supported keys: reportName (exact, case-sensitive full name), owner (owner's email, exact), type (custom, preset, or managed), updateTime (milliseconds since epoch; matches reports updated at or after it), folderId (exact; 'root' for reports outside any folder). Any other key is rejected with an error. Example: 'type:custom|owner:jane@example.com'"
         ),
     pageToken: z
         .string()
@@ -133,7 +133,7 @@ export const reportsTool = {
             filter: {
                 type: "string",
                 description:
-                    "Filter string in format 'key:value|key:value'; every key must match. Supported keys: reportName (exact, case-sensitive full name), owner (owner's email, exact), type (custom, preset, or managed), updateTime (milliseconds since epoch; matches reports updated at or after it), folderId (exact; 'root' for reports outside any folder). Any other key is rejected with an error. Example: 'type:custom|owner:jane@example.com'",
+                    "Filter string in format 'key:value|key:value'. Different keys are combined with AND; each key can be used once. Supported keys: reportName (exact, case-sensitive full name), owner (owner's email, exact), type (custom, preset, or managed), updateTime (milliseconds since epoch; matches reports updated at or after it), folderId (exact; 'root' for reports outside any folder). Any other key is rejected with an error. Example: 'type:custom|owner:jane@example.com'",
             },
             pageToken: {
                 type: "string",
