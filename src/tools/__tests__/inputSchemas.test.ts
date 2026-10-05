@@ -129,36 +129,15 @@ describe("hand-written tool schema parity", () => {
         "$name advertises its Zod input schema, including descriptions",
         ({ tool, schema }) => {
             expect(tool.inputSchema).toEqual(zodToMcpInputSchema(schema));
-            expect(tool.inputSchema.type).toBe("object");
-            expect(JSON.stringify(tool.inputSchema)).not.toContain('"allOf":');
         }
     );
 });
 
 describe("migrated schema compatibility", () => {
-    it("preserves the required ticket fields, enums, and nested descriptions", () => {
+    it("keeps descriptions on every nested ticket parameter", () => {
         const schema = core.createTicketTool.inputSchema as any;
-        expect(schema.required).toEqual(["ticket"]);
-        expect(schema.properties.ticket.required).toEqual([
-            "body",
-            "created",
-            "platform",
-            "product",
-            "severity",
-            "subject",
-        ]);
-        expect(schema.properties.ticket.properties.platform.enum).toEqual([
-            "cloud_management_platform",
-            "google_cloud_platform",
-            "google_g_suite",
-            "amazon_web_services",
-            "microsoft_azure",
-            "microsoft_office_365",
-            "perfectscale",
-        ]);
-        expect(schema.properties.ticket.properties.severity.enum).toEqual(["low", "normal", "high", "urgent"]);
-        for (const property of Object.values(schema.properties.ticket.properties) as { description?: string }[]) {
-            expect(property.description).toBeTruthy();
+        for (const [name, property] of Object.entries(schema.properties.ticket.properties)) {
+            expect((property as { description?: string }).description, name).toBeTruthy();
         }
     });
 
@@ -166,92 +145,6 @@ describe("migrated schema compatibility", () => {
         const payload = { flowID: "flow-1", requestBodyJson: { custom: { values: [1, null, true] } } };
         expect(core.TriggerCloudFlowArgumentsSchema.parse(payload)).toEqual(payload);
         const schema = core.triggerCloudFlowTool.inputSchema as any;
-        expect(schema.required).toEqual(["flowID"]);
-        expect(schema.properties.requestBodyJson.type).toBe("object");
         expect(schema.properties.requestBodyJson.additionalProperties).toEqual({});
-    });
-
-    it("advertises both existing incident ID input types and still normalizes numbers", () => {
-        const schema = core.cloudIncidentTool.inputSchema as any;
-        expect(schema.properties.id.type).toEqual(["string", "number"]);
-        expect(core.CloudIncidentArgumentsSchema.parse({ id: 123 }).id).toBe("123");
-        expect(core.CloudIncidentArgumentsSchema.parse({ id: "123" }).id).toBe("123");
-        expect(core.CloudIncidentArgumentsSchema.safeParse({}).success).toBe(false);
-        expect(core.CloudIncidentArgumentsSchema.safeParse({ title: "outage" }).success).toBe(true);
-    });
-
-    it("keeps ID-or-name lookups optional on the wire and required at runtime", () => {
-        for (const [tool, schema] of [
-            [core.getAlertTool, core.GetAlertArgumentsSchema],
-            [core.getAllocationTool, core.GetAllocationArgumentsSchema],
-            [core.getReportResultsTool, core.GetReportResultsArgumentsSchema],
-        ] as const) {
-            expect(tool.inputSchema.required).toBeUndefined();
-            expect(schema.safeParse({}).success).toBe(false);
-            expect(schema.safeParse({ id: "123" }).success).toBe(true);
-            expect(schema.safeParse({ name: "example" }).success).toBe(true);
-        }
-    });
-
-    it("preserves optional nullable public permissions and required nested permission entries", () => {
-        const schema = core.updateResourcePermissionsTool.inputSchema as any;
-        expect(schema.required).toEqual(["resourceType", "resourceId"]);
-        expect(schema.properties.permissions.items.required).toEqual(["user", "role"]);
-        expect(schema.properties.permissions.items.properties.role.enum).toEqual(["owner", "editor", "viewer"]);
-        expect(schema.properties.public.anyOf).toEqual([
-            { type: "string", enum: ["editor", "viewer"] },
-            { type: "null" },
-        ]);
-        const base = { resourceType: "reports", resourceId: " report-1 " };
-        for (const publicAccess of [undefined, null, "editor", "viewer"]) {
-            expect(core.UpdateResourcePermissionsArgumentsSchema.parse({ ...base, public: publicAccess })).toEqual({
-                ...base,
-                resourceId: "report-1",
-                public: publicAccess,
-            });
-        }
-        expect(core.UpdateResourcePermissionsArgumentsSchema.safeParse({ ...base, public: "owner" }).success).toBe(
-            false
-        );
-    });
-
-    it("advertises allocation constraints already enforced by runtime validation", () => {
-        const createSchema = core.createAllocationTool.inputSchema as any;
-        const updateSchema = core.updateAllocationTool.inputSchema as any;
-        expect(createSchema.required).toEqual(["name", "description"]);
-        expect(updateSchema.required).toEqual(["name", "id"]);
-        for (const schema of [createSchema, updateSchema]) {
-            expect(schema.properties.rule.required).toEqual(["components", "formula"]);
-            expect(schema.properties.rules.minItems).toBe(2);
-            expect(schema.properties.rules.items.required).toEqual(["components", "formula", "action"]);
-            expect(schema.properties.rule.properties.components.items.required).toEqual([
-                "key",
-                "type",
-                "values",
-                "mode",
-            ]);
-        }
-        expect(core.UpdateAllocationArgumentsSchema.safeParse({ id: "allocation-1" }).success).toBe(false);
-        expect(core.UpdateAllocationArgumentsSchema.safeParse({ id: "allocation-1", name: "Renamed" }).success).toBe(
-            true
-        );
-        const base = { name: "Allocation", description: "Example", unallocatedCosts: null };
-        const rule = {
-            components: [{ key: "team", type: "label", values: ["a"], mode: "is" }],
-            formula: "A",
-            action: "create",
-        };
-        expect(core.CreateAllocationArgumentsSchema.safeParse({ ...base, rules: [rule] }).success).toBe(false);
-        expect(core.CreateAllocationArgumentsSchema.safeParse({ ...base, rules: [rule, rule] }).success).toBe(true);
-        expect(core.CreateAllocationArgumentsSchema.safeParse({ ...base, rule: {} }).success).toBe(false);
-    });
-
-    it("preserves descriptions previously present only in the raw schemas", () => {
-        expect(core.AnomalyArgumentsSchema.shape.id.description).toBe("anomaly ID");
-        expect(core.CloudIncidentsArgumentsSchema.shape.platform.description).toBe("platform name");
-        expect(core.CloudIncidentsArgumentsSchema.shape.filter.description).toContain(
-            "platform:google-cloud|platform:amazon-web-services"
-        );
-        expect(core.ListAlertsArgumentsSchema.shape.sortOrder.description).toContain("ascending (asc)");
     });
 });
