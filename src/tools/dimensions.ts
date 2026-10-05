@@ -17,7 +17,7 @@ export const DimensionsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. An empty filter returns all dimensions."
+            "Filter string in format 'key:value|key:value'. Exact, case-sensitive filters: type and label. Different keys combine with AND; repeated keys are rejected. The API accepts key but it currently matches no dimensions. An empty filter returns an unfiltered page."
         ),
     pageToken: z
         .string()
@@ -44,7 +44,7 @@ export const dimensionsTool = {
     title: "List dimensions",
     coversEndpoint: "get:/analytics/v1/dimensions",
     description:
-        "Use this when the user wants to see available dimensions for cost analysis queries. Returns a list of dimension types and values that can be used with run_query. Do NOT use this for running cost queries directly (use run_query) or viewing allocations (use list_allocations).",
+        "Use this when the user wants to see available dimensions for cost analysis queries. Returns id, label and type metadata only (no values), up to 200 dimensions per page, sorted by id. GKE dimensions are omitted. pageToken retrieves subsequent pages; rowCount counts this page. get_dimension retrieves values. Empty results return an error. Do NOT use this for running cost queries directly (use run_query) or viewing allocations (use list_allocations).",
     inputSchema: zodToMcpInputSchema(DimensionsArgumentsSchema),
     annotations: {
         readOnlyHint: true,

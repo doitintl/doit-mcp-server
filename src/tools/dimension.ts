@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DIMENSION_TYPE_VALUES } from "../types/reports.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
@@ -14,26 +15,17 @@ export const DIMENSION_BASE_URL = `${DOIT_API_BASE}/analytics/v1/dimension`;
 // Schema definitions
 export const DimensionArgumentsSchema = z.object({
     type: z
-        .enum([
-            "datetime",
-            "fixed",
-            "optional",
-            "label",
-            "tag",
-            "project_label",
-            "system_label",
-            "attribution",
-            "attribution_group",
-            "gke",
-            "gke_label",
-        ])
-        .describe("Dimension type"),
-    id: z.string().describe("Dimension id"),
+        .enum(DIMENSION_TYPE_VALUES)
+        .describe(
+            "Dimension type paired with id; use the type returned by list_dimensions. Includes allocation and allocation_rule and legacy attribution types."
+        ),
+    id: z.string().describe("Dimension identifier paired with type, from list_dimensions"),
 });
 
 // Interfaces
 export interface DimensionValue {
     value: string;
+    cloud?: string;
 }
 
 export interface DimensionResponse {
@@ -49,7 +41,7 @@ export const dimensionTool = {
     title: "Get dimension values",
     coversEndpoint: "get:/analytics/v1/dimension",
     description:
-        "Use this when the valid filter values for a specific dimension are needed, such as for a run_query filter, or when the user wants to view dimension details. For example, get_dimension({type: 'fixed', id: 'cloud_provider'}) returns the exact provider IDs available for this customer. Do NOT use this for listing all dimensions (use list_dimensions) or running queries (use run_query).",
+        "Use this when the valid filter values for a specific dimension are needed, such as for a run_query filter, or when the user wants to view dimension details. Returns id, label, type and all available value/cloud pairs in one response, without pagination. For example, get_dimension({type: 'fixed', id: 'cloud_provider'}) returns the exact provider IDs available for this customer. Do NOT use this for listing all dimensions (use list_dimensions) or running queries (use run_query).",
     inputSchema: zodToMcpInputSchema(DimensionArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -88,6 +80,7 @@ export async function handleDimensionRequest(args: any, token: string) {
     try {
         // Validate arguments
         const { type, id } = DimensionArgumentsSchema.parse(args);
+        const { customerContext } = args;
 
         // Create API URL for retrieving a specific dimension
         const dimensionUrl = `${DIMENSION_BASE_URL}?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`;
@@ -96,6 +89,7 @@ export async function handleDimensionRequest(args: any, token: string) {
             const dimensionData = await makeDoitRequest<DimensionResponse>(dimensionUrl, token, {
                 method: "GET",
                 appendParams: true,
+                customerContext,
             });
 
             if (!dimensionData) {

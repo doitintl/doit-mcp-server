@@ -66,8 +66,10 @@ export const LAYOUT_VALUES = [
     "table_heatmap",
     "table_row_heatmap",
     "table_col_heatmap",
-    "csv_export",
-    "sheets_export",
+    "sankey_chart",
+    "column_and_line_chart",
+    "trend_board",
+    "cumulative_comparison",
 ] as const;
 
 export const REPORT_CURRENCY_VALUES = [

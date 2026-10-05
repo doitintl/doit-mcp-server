@@ -148,3 +148,26 @@ describe("migrated schema compatibility", () => {
         expect(schema.properties.requestBodyJson.additionalProperties).toEqual({});
     });
 });
+
+describe("report input contracts", () => {
+    it.each([core.runQueryTool, core.createReportTool, core.updateReportTool])(
+        "$name advertises custom dates at config level and optional filter mode",
+        (tool) => {
+            const config = (tool.inputSchema as any).properties.config;
+            expect(config.properties.customTimeRange.properties.from.format).toBe("date-time");
+            expect(config.properties.timeRange.properties.customTimeRange).toBeUndefined();
+            expect(config.properties.timeRange.additionalProperties).toBe(false);
+            expect(config.properties.filters.items.required).not.toContain("mode");
+            expect(config.properties.layout.enum).toEqual(
+                expect.arrayContaining([
+                    "sankey_chart",
+                    "column_and_line_chart",
+                    "trend_board",
+                    "cumulative_comparison",
+                ])
+            );
+            expect(config.properties.layout.enum).not.toContain("csv_export");
+            expect(config.properties.layout.enum).not.toContain("sheets_export");
+        }
+    );
+});

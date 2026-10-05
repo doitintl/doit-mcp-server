@@ -52,7 +52,9 @@ export const GetReportResultsArgumentsSchema = z
         name: z
             .string()
             .optional()
-            .describe("Partial report name match (case-insensitive). Used to find the report when ID is unknown."),
+            .describe(
+                "Case-insensitive substring lookup within the first 200 newest reports only. Multiple matches return an ambiguity error; id takes precedence when both are provided."
+            ),
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
@@ -126,7 +128,7 @@ export const reportsTool = {
     title: "List reports",
     coversEndpoint: "get:/analytics/v1/reports",
     description:
-        "Use this when the user wants to see their saved Cloud Analytics reports or browse available reports. Returns a paginated list of reports with their IDs and metadata. Do NOT use this for running queries (use run_query) or getting report results (use get_report_results).",
+        "Use this when the user wants to see their saved Cloud Analytics reports or browse available reports. Returns pages of up to 40 reports with IDs and metadata, newest creation first. rowCount counts this page; pageToken retrieves the next page and is null at the end. Empty results return an error. There is no partial-name search parameter. Do NOT use this for running queries (use run_query) or getting report results (use get_report_results).",
     inputSchema: zodToMcpInputSchema(ReportsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -145,7 +147,7 @@ export const getReportResultsTool = {
     title: "Get report results",
     coversEndpoint: "get:/analytics/v1/reports/{id}",
     description:
-        "Use this when the user wants to retrieve the data results of a specific saved report. Accepts either the report ID or a partial name (case-insensitive). Do NOT use this for listing all reports (use list_reports) or running ad-hoc queries (use run_query).",
+        "Use this when the user wants to retrieve the data results of a specific saved report. Uses the report's saved time range, resolved at execution for relative ranges. Accepts an ID or a case-insensitive substring name lookup within the first 200 newest reports; multiple matches return an ambiguity error and id takes precedence. Do NOT use this for listing all reports (use list_reports) or running ad-hoc queries (use run_query).",
     inputSchema: zodToMcpInputSchema(GetReportResultsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -191,12 +193,30 @@ const ReportDimensionSchema = z.object({
         .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
 });
 
-const TimeSettingsSchema = z
+export const CustomTimeRangeSchema = z
     .object({
+        from: z
+            .string()
+            .datetime({ offset: true })
+            .describe("Start timestamp in RFC3339 format, with Z or a UTC offset. The API uses the UTC calendar day."),
+        to: z
+            .string()
+            .datetime({ offset: true })
+            .describe(
+                "End timestamp in RFC3339 format, with Z or a UTC offset. The API includes this UTC calendar day."
+            ),
+    })
+    .refine((value) => Date.parse(value.to) >= Date.parse(value.from), {
+        path: ["to"],
+        message: "to must be on or after from.",
+    });
+
+const TimeSettingsSchema = z
+    .strictObject({
         mode: z
             .enum(TIME_RANGE_MODE_VALUES)
             .describe(
-                `Time range mode. Accepted values: ${formatEnumValues(TIME_RANGE_MODE_VALUES)}. Use 'custom' with customTimeRange for specific dates.`
+                "Time range mode: 'last' selects N calendar periods; 'current' selects the current calendar period through its end; 'custom' requires dates in config.customTimeRange, alongside timeRange."
             ),
         amount: z
             .number()
@@ -204,45 +224,33 @@ const TimeSettingsSchema = z
             .min(0)
             .max(5000)
             .optional()
-            .describe("Number of time units (0–5000). Required when mode is 'last'."),
+            .describe("Number of calendar periods (0–5000). Required for 'last'."),
         unit: z
             .enum(TIME_UNIT_VALUES)
             .optional()
             .describe(
-                `Time unit. Accepted values: ${formatEnumValues(TIME_UNIT_VALUES)}. Required when mode is 'last'.`
+                `Time unit. Accepted values: ${formatEnumValues(TIME_UNIT_VALUES)}. Required for 'last' and 'current'; forbidden for 'custom'.`
             ),
-        includeCurrent: z.boolean().optional().describe("Whether to include the current (in-progress) period."),
-        customTimeRange: z
-            .object({
-                from: z.string().describe("Start date in RFC3339 format."),
-                to: z.string().describe("End date in RFC3339 format."),
-            })
+        includeCurrent: z
+            .boolean()
             .optional()
-            .describe("Custom date range. Required when mode is 'custom'."),
+            .describe(
+                "For 'last', true includes the current partial period in amount; false (default) selects completed periods. With amount 1 and unit month, true means month-to-date and false means the previous full month. Ignored for 'current' and 'custom'."
+            ),
     })
     .superRefine((value, ctx) => {
-        if (value.mode === "last") {
-            if (value.amount == null) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ["amount"],
-                    message: "amount is required when mode is 'last'.",
-                });
-            }
-            if (value.unit == null) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ["unit"],
-                    message: "unit is required when mode is 'last'.",
-                });
-            }
+        if (value.mode === "last" && value.amount == null) {
+            ctx.addIssue({ code: "custom", path: ["amount"], message: "amount is required when mode is 'last'." });
         }
-        if (value.mode === "custom" && !value.customTimeRange) {
+        if (value.mode !== "custom" && value.unit == null) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ["customTimeRange"],
-                message: "customTimeRange is required when mode is 'custom'.",
+                code: "custom",
+                path: ["unit"],
+                message: "unit is required when mode is 'last' or 'current'.",
             });
+        }
+        if (value.mode === "custom" && value.unit != null) {
+            ctx.addIssue({ code: "custom", path: ["unit"], message: "unit must not be set when mode is 'custom'." });
         }
     });
 
@@ -274,9 +282,17 @@ const ExternalConfigFilterSchema = z.object({
         .describe(`Dimension type of the filter field. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
     mode: z
         .enum(FILTER_MODE_VALUES)
-        .describe(`Filter match mode. Accepted values: ${formatEnumValues(FILTER_MODE_VALUES)}.`),
+        .optional()
+        .describe(
+            `Filter match mode. Defaults to 'is' (exact match). Accepted values: ${formatEnumValues(FILTER_MODE_VALUES)}.`
+        ),
     inverse: z.boolean().optional().describe("Set to true to exclude the matched values (negation)."),
-    values: z.array(z.string()).optional().describe("Values to filter on."),
+    values: z
+        .array(z.string())
+        .optional()
+        .describe(
+            "Stored dimension values to match exactly in 'is' mode (case-sensitive): provider IDs for cloud_provider, service names for service_description. get_dimension returns available values."
+        ),
 });
 
 const ExternalConfigMetricFilterSchema = z.object({
@@ -294,7 +310,12 @@ const LimitSchema = z.object({
     sort: z
         .enum(SORT_VALUES)
         .describe(`Sort order for the limit ranking. Accepted values: ${formatEnumValues(SORT_VALUES)}.`),
-    value: z.number().int().describe("Number of items to show."),
+    value: z
+        .number()
+        .int()
+        .describe(
+            "Number of dimension values to select per parent group, not a cap on returned rows; time dimensions can produce multiple rows per selected value."
+        ),
 });
 
 const GroupSchema = z.object({
@@ -302,7 +323,9 @@ const GroupSchema = z.object({
     type: z
         .enum(DIMENSION_TYPE_VALUES)
         .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
-    limit: LimitSchema.optional().describe("Limit to top/bottom N results."),
+    limit: LimitSchema.optional().describe(
+        "Select top/bottom N values of this dimension per parent group, ranked across the query range. Time dimensions still split result rows."
+    ),
 });
 
 const AdvancedAnalysisSchema = z.object({
@@ -368,17 +391,21 @@ const ExternalSplitSchema = z
         }
     });
 
-export const ReportConfigSchema = z
+const ReportConfigPatchSchema = z
     .object({
         dataSource: z
             .enum(DATA_SOURCE_VALUES)
             .optional()
-            .describe(`Data source for the report. Accepted values: ${formatEnumValues(DATA_SOURCE_VALUES)}.`),
+            .describe(
+                `Data source; defaults to billing, or billing-datahub when the customer has DataHub metrics. Accepted values: ${formatEnumValues(DATA_SOURCE_VALUES)}.`
+            ),
         metrics: z
             .array(ExternalMetricSchema)
             .max(4)
             .optional()
-            .describe("List of metrics to apply (max 4). Preferred over the deprecated 'metric' field."),
+            .describe(
+                "List of metrics to apply (max 4). Defaults to basic cost on new reports/queries. Non-empty arrays replace stored metrics on update; [] leaves metrics unchanged. Preferred over the deprecated 'metric' field."
+            ),
         metric: ExternalMetricSchema.optional().describe("Deprecated: use 'metrics' instead."),
         metricFilter: ExternalConfigMetricFilterSchema.optional().describe(
             "Filter to limit report rows by metric value."
@@ -391,22 +418,22 @@ export const ReportConfigSchema = z
         timeInterval: z
             .enum(TIME_INTERVAL_VALUES)
             .optional()
-            .describe(`Time interval for grouping data. Accepted values: ${formatEnumValues(TIME_INTERVAL_VALUES)}.`),
+            .describe(
+                `Time interval for grouping data (default day). On update, supplying this with dimensions omitted resets time columns to this interval. Accepted values: ${formatEnumValues(TIME_INTERVAL_VALUES)}.`
+            ),
         dimensions: z
             .array(ReportDimensionSchema)
             .optional()
             .describe("Dimensions to break down data by (columns in table view)."),
-        timeRange: TimeSettingsSchema.optional().describe("Time range for the report. Preferred over customTimeRange."),
+        timeRange: TimeSettingsSchema.optional().describe(
+            "Time range; defaults to the last 7 days including today on new reports/queries. For custom dates use {mode: 'custom'} and sibling config.customTimeRange."
+        ),
         secondaryTimeRange: TimeSettingsSecondarySchema.optional().describe(
             "Secondary time range for comparative reports."
         ),
-        customTimeRange: z
-            .object({
-                from: z.string().describe("Start timestamp in RFC3339 format. Example: '2024-03-10T23:00:00Z'."),
-                to: z.string().describe("End timestamp in RFC3339 format. Example: '2024-03-12T23:00:00Z'."),
-            })
-            .optional()
-            .describe("Custom time range. Only use when timeRange mode is 'custom'."),
+        customTimeRange: CustomTimeRangeSchema.optional().describe(
+            "Explicit dates, alongside timeRange (not nested inside it). Required for new custom queries/reports. On update, omitted dates or timeRange preserve their stored values; the effective mode must be 'custom'. The API uses inclusive UTC calendar days."
+        ),
         includePromotionalCredits: z
             .boolean()
             .optional()
@@ -448,6 +475,13 @@ export const ReportConfigSchema = z
         splits: z.array(ExternalSplitSchema).optional().describe("Cost splits to apply to the report."),
     })
     .superRefine((data, ctx) => {
+        if (data.customTimeRange && data.timeRange && data.timeRange.mode !== "custom") {
+            ctx.addIssue({
+                code: "custom",
+                path: ["timeRange", "mode"],
+                message: "timeRange.mode must be 'custom' when config.customTimeRange is provided.",
+            });
+        }
         if (data.metric && data.metrics && data.metrics.length > 0) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -456,6 +490,23 @@ export const ReportConfigSchema = z
             });
         }
     });
+
+export const ReportConfigSchema = ReportConfigPatchSchema.superRefine((data, ctx) => {
+    if (data.timeRange?.mode === "custom" && !data.customTimeRange) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["customTimeRange"],
+            message: "config.customTimeRange is required when timeRange.mode is 'custom'.",
+        });
+    }
+    if (data.customTimeRange && !data.timeRange) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["timeRange"],
+            message: "timeRange.mode must be 'custom' when config.customTimeRange is provided.",
+        });
+    }
+});
 
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -471,10 +522,10 @@ export const runQueryTool = {
     title: "Run Cloud Analytics query",
     coversEndpoint: "post:/analytics/v1/reports/query",
     description: `Use this when the user wants to analyze cloud costs, generate a cost breakdown, view spending trends, or run a custom analytics query across their cloud providers. Runs the config through the DoiT Cloud Analytics API query endpoint (https://developer.doit.com/reference/query) and returns the result rows. Accepts a structured config with data source, metrics, dimensions, time range, and filters. Do NOT use this for listing saved reports (use list_reports), checking anomalies (use get_anomalies), or viewing budgets (use list_budgets).
-    Unpopulated fields take their API defaults.
-    Rows per group are capped by the \`limit.value\` field inside each \`config.group[]\` entry (maximum 25).
-    \`timeRange\` covers relative periods ("last 3 months"); \`customTimeRange\` is for explicit dates.
-    "includeCurrent": true includes the current in-progress period; false limits the range to fully completed periods.
+    Unpopulated fields take API defaults: basic cost, last 7 days including today, daily time rows (year/month/day), and billing (or billing-datahub for customers with DataHub metrics).
+    Each \`config.group[].limit.value\` selects top/bottom N dimension values per parent group, ranked across the range; it does not cap result rows and has no tool-enforced maximum of 25. Time columns can produce multiple rows per group.
+    \`timeRange\` covers relative periods; explicit dates require \`timeRange: {mode: "custom"}\` and sibling \`config.customTimeRange: {from, to}\`, with no unit.
+    For mode "last", "includeCurrent": true includes the current partial period within amount; false selects fully completed periods. One month with true is current month-to-date.
     "metrics" (array) supersedes the deprecated "metric" (object).
 
     A "group" with id "service_description" and type "fixed" returns a per-service cost breakdown, the most common shape for cost questions.
@@ -484,7 +535,7 @@ export const runQueryTool = {
       "project_id"          — GCP project / AWS account / Azure subscription
       "cloud_provider"      — cloud provider (AWS / GCP / Azure)
 
-    Filter values are dimension IDs, not display names. get_dimension({type, id}) returns the valid values for a dimension for this customer.
+    In default mode "is", filter values must exactly match stored dimension values (case-sensitive): cloud_provider uses provider IDs, while service_description uses service names. Common cloud-provider aliases such as aws/gcp/azure are normalized by run_query. get_dimension({type, id}) returns the valid values for a dimension for this customer.
     Known cloud provider IDs (cloud_provider, type "fixed"):
       "amazon-web-services" = AWS, "google-cloud" = GCP, "microsoft-azure" = Azure
 
@@ -493,7 +544,7 @@ export const runQueryTool = {
       "config": {
         "dataSource": "billing",
         "metrics": [{"type": "basic", "value": "cost"}],
-        "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": true},
+        "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": false},
         "filters": [{"id": "cloud_provider", "type": "fixed", "values": ["amazon-web-services"]}],
         "group": [{"id": "service_description", "type": "fixed", "limit": {"metric": {"type": "basic", "value": "cost"}, "sort": "desc", "value": 10}}]
       }
@@ -515,7 +566,10 @@ export const runQueryTool = {
 export const CreateReportArgumentsSchema = z.object({
     name: z.string().min(1).describe("The name of the report (required, non-empty)."),
     description: z.string().optional().describe("A brief description of the report."),
-    labels: z.array(z.string()).optional().describe("Optional list of label IDs to assign to the report."),
+    labels: z
+        .array(z.string())
+        .optional()
+        .describe("Optional DoiT console label IDs to assign. System labels are rejected."),
     config: ReportConfigSchema.describe(
         "Configuration for the report. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
@@ -535,11 +589,11 @@ export const createReportTool = {
     title: "Create report",
     coversEndpoint: "post:/analytics/v1/reports",
     description:
-        "Use this when the user wants to save a new Cloud Analytics report with a specific configuration. Changes apply immediately. Do NOT use this for one-time queries without saving (use run_query).",
+        "Use this when the user wants to save a new Cloud Analytics report with a specific configuration. Creates a new custom report immediately without replacing existing reports. Omitted config fields take API defaults: basic cost, last 7 days including today, daily time rows, and billing (or billing-datahub when the customer has DataHub metrics). System labels are rejected. Do NOT use this for one-time queries without saving (use run_query).",
     inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
     annotations: {
         readOnlyHint: false,
-        destructiveHint: true,
+        destructiveHint: false,
         openWorldHint: true,
     },
     _meta: {
@@ -554,9 +608,14 @@ export const UpdateReportArgumentsSchema = z.object({
     id: z.string().min(1).describe("The ID of the report to update (required)."),
     name: z.string().min(1).optional().describe("Report name."),
     description: z.string().optional().describe("Report description."),
-    labels: z.array(z.string()).optional().describe("Array of label IDs to assign to the report."),
-    config: ReportConfigSchema.optional().describe(
-        "Configuration for the report. Only specified fields will be updated. Valid dimension IDs come from list_dimensions or get_dimension."
+    labels: z
+        .array(z.string())
+        .optional()
+        .describe(
+            "Replaces non-system DoiT console labels; [] clears them, omission preserves them. System labels are rejected."
+        ),
+    config: ReportConfigPatchSchema.optional().describe(
+        "Partial configuration. Supplied filters, group, dimensions, and splits arrays replace stored arrays ([] clears); non-empty metrics replaces metrics ([] leaves it unchanged). Any config without dataSource resets the source to billing or billing-datahub according to customer defaults. timeInterval with dimensions omitted resets time columns. For custom dates, the effective timeRange.mode must be 'custom'; omitted dates or timeRange preserve stored values. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
 });
 
@@ -565,7 +624,7 @@ export const updateReportTool = {
     title: "Update report",
     coversEndpoint: "patch:/analytics/v1/reports/{id}",
     description:
-        "Use this when the user wants to modify an existing saved Cloud Analytics report. Supports partial updates. Changes apply immediately. Do NOT use this for running ad-hoc queries (use run_query).",
+        "Use this when the user wants to modify an existing saved Cloud Analytics report. Only custom reports the caller can edit are supported. Supports partial updates with array replacement and config reset semantics described on config. Omitted top-level fields are unchanged; labels replaces non-system labels. Changes apply immediately. Do NOT use this for running ad-hoc queries (use run_query).",
     inputSchema: zodToMcpInputSchema(UpdateReportArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -730,9 +789,9 @@ export async function handleRunQueryRequest(args: any, token: string) {
 
             if (!queryResponse?.result || queryResponse?.error) {
                 const base = `Failed to run query. Try one of the following:
-  1. Use 'list_dimensions' with a filter like 'filter:type:fixed' to get relevant dimensions or 'list_allocations' to get relevant allocations
+  1. Use 'list_dimensions' with a filter like 'type:fixed' to get relevant dimensions or 'list_allocations' to get relevant allocations
   2. Check the specific error from the API: ${queryResponse?.error || "Unknown error"}
-  3. For a cost report, you need at least: metric, timeRange, and dataSource fields`;
+  3. Check supplied metrics, dimensions, filters, and date range; omitted config fields use API defaults`;
                 if (rawConfig?.timeRange?.mode === "custom") {
                     return createErrorResponse(
                         `${base}\n  4. For custom time ranges, ensure customTimeRange has 'from' and 'to' in ISO 8601 format (e.g. '2026-01-01T00:00:00Z').`

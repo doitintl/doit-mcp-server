@@ -17,7 +17,7 @@ export const cloudOverviewTool = {
     description:
         "Use this when the user wants a high-level overview or dashboard of their entire cloud infrastructure. " +
         "Returns cost by cloud provider, top services per cloud, top projects per cloud, recent cost anomalies, " +
-        "and recent cloud incidents — all in a single call. " +
+        "and recent cloud incidents — all in a single call. Costs cover the last 30 days including today, with daily rows; services and projects are limited to top 5 values per cloud across that range. Returns at most 5 anomalies and 5 AWS/Google Cloud provider incidents (not account-specific incidents). Failed sections silently return empty arrays, so empty data does not establish zero spend or no incidents. " +
         "Do NOT use this for detailed drill-downs (use run_query), single-provider analysis, or anomaly-only queries.",
     inputSchema: zodToMcpInputSchema(CloudOverviewArgumentsSchema),
     annotations: {

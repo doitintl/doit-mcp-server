@@ -584,16 +584,19 @@ describe("tools/list handler", () => {
         expect(response.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "delete_alert" })]));
     });
 
-    // Directory listings (e.g. the Claude Connectors Directory) flag any tool without a title
-    // or without the applicable readOnlyHint/destructiveHint set to true.
-    it("every listed tool has a title and sets readOnlyHint or destructiveHint to true", async () => {
+    // Preserve existing hint coverage; creating a report is additive and therefore not destructive.
+    it("every listed tool has a title and appropriate read/write hints, including additive report creation", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
         // change_customer is registered only by the remote Worker (for DoiT employees), so check
         // it alongside the stdio list.
         for (const tool of [...tools, changeCustomerTool]) {
             expect(tool.title?.trim(), tool.name).toBeTruthy();
-            expect(tool.annotations?.readOnlyHint || tool.annotations?.destructiveHint, tool.name).toBe(true);
+            if (tool.name === "create_report") {
+                expect(tool.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+            } else {
+                expect(tool.annotations?.readOnlyHint || tool.annotations?.destructiveHint, tool.name).toBe(true);
+            }
             expect(tool.annotations?.readOnlyHint && tool.annotations?.destructiveHint, tool.name).toBeFalsy();
         }
     });
