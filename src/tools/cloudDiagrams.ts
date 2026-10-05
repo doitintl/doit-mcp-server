@@ -454,7 +454,7 @@ export const GetCloudDiagramComponentsArgumentsSchema = z.object({
         .boolean()
         .optional()
         .describe(
-            "Include component data (nodes, elements, groups, links, etc.) in the response. Defaults to false for lighter responses. Enable when you need component IDs for other diagram endpoints."
+            "Include component data (nodes, elements, groups, links, etc.) in the response. Defaults to false for lighter responses. The component IDs it returns are the inputs other diagram tools take."
         ),
     skip_empty: z.boolean().optional().describe("Exclude layers that have no components. Defaults to false."),
 });
