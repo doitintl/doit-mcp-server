@@ -1,4 +1,4 @@
-export const ANNOTATION_SORT_BY_VALUES = ["id", "content", "timestamp", "timeCreated", "timeModified"] as const;
+export const ANNOTATION_SORT_BY_VALUES = ["id", "content", "timestamp"] as const;
 
 export const ANNOTATION_SORT_ORDER_VALUES = ["asc", "desc"] as const;
 

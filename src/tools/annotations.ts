@@ -22,7 +22,9 @@ export const ListAnnotationsArgumentsSchema = z.object({
     maxResults: z
         .string()
         .optional()
-        .describe(`The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS}.`),
+        .describe(
+            `The maximum number of results per page, as an integer string (1-500). Out-of-range integers fall back to 50; non-integers are rejected. This tool defaults to ${DEFAULT_MAX_RESULTS}.`
+        ),
     pageToken: z
         .string()
         .optional()
@@ -31,7 +33,7 @@ export const ListAnnotationsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            "An expression for filtering the results. Valid fields: content, timestamp, labels. Example: content:budget"
+            "Filter using key:value, with different keys joined by | (AND). Repeated keys are rejected (400); values match exactly and case-sensitively. Only content is supported; timestamp and labels are not filter keys. Example: content:budget"
         ),
     sortBy: z
         .enum(ANNOTATION_SORT_BY_VALUES)
@@ -106,7 +108,9 @@ export const GetAnnotationArgumentsSchema = z
         content: z
             .string()
             .optional()
-            .describe("Partial content match (case-insensitive). Used to find the annotation when ID is unknown."),
+            .describe(
+                "Case-insensitive substring search of only the first 200 annotations. Multiple matches return an ambiguity error listing content; id takes precedence."
+            ),
     })
     .refine((d) => d.id || d.content, { message: "Either id or content must be provided." });
 
@@ -115,7 +119,7 @@ export const getAnnotationTool = {
     title: "Get annotation",
     coversEndpoint: "get:/analytics/v1/annotations/{id}",
     description:
-        "Use this when the user wants to view details of a specific annotation. Accepts either the annotation ID or a partial content match (case-insensitive). Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
+        "Use this when the user wants to view details of a specific annotation. Accepts either the annotation ID or a partial content match (case-insensitive) within the first 200 annotations. Multiple matches return an ambiguity error listing content; id takes precedence. Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
     inputSchema: zodToMcpInputSchema(GetAnnotationArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -166,8 +170,15 @@ export const CreateAnnotationArgumentsSchema = z.object({
     timestamp: z
         .string()
         .min(1, "Timestamp is required and cannot be empty.")
-        .datetime({ message: "Timestamp must be a valid ISO 8601 date-time string (e.g. 2026-01-15T00:00:00.000Z)." })
-        .describe("The date associated with the annotation in ISO 8601 date-time format (required)."),
+        .datetime({
+            offset: true,
+            message:
+                "Timestamp must be a valid RFC 3339 timestamp with seconds and Z or a numeric timezone offset (e.g. 2026-01-15T00:00:00.000Z).",
+        })
+        .regex(/T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/, "Timestamp requires seconds and a timezone.")
+        .describe(
+            "Required RFC 3339 timestamp with seconds and a timezone: Z or ±HH:MM (e.g. 2026-01-15T00:00:00Z). Fractional seconds are supported."
+        ),
     reports: z.array(z.string()).optional().describe("List of report IDs to associate with the annotation."),
     labels: z
         .array(z.string())
@@ -227,29 +238,34 @@ export const UpdateAnnotationArgumentsSchema = z.object({
     content: z
         .string()
         .min(1)
-        .nullable()
-        .optional()
-        .describe("The content of the annotation. Set to null to clear. Must be non-empty if provided as a string."),
+        .describe("Required nonempty content on every update, even when only changing associations or timestamp."),
     timestamp: z
         .string()
         .min(1)
         .datetime({
-            message: "Timestamp must be a valid ISO 8601 date-time string (e.g. 2026-01-15T00:00:00.000Z).",
+            offset: true,
+            message:
+                "Timestamp must be a valid RFC 3339 timestamp with seconds and Z or a numeric timezone offset (e.g. 2026-01-15T00:00:00.000Z).",
         })
+        .regex(/T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/, "Timestamp requires seconds and a timezone.")
         .nullable()
         .optional()
-        .describe("The date associated with the annotation in ISO 8601 date-time format. Set to null to clear."),
+        .describe(
+            "RFC 3339 timestamp with seconds and Z or ±HH:MM timezone; fractional seconds are supported. Omit or set null to leave unchanged."
+        ),
     reports: z
         .array(z.string())
         .nullable()
         .optional()
-        .describe("List of report IDs to associate with the annotation. Set to null to clear."),
+        .describe(
+            "Replacement list of report IDs. Omission or null leaves unchanged; [] clears all report associations."
+        ),
     labels: z
         .array(z.string())
         .nullable()
         .optional()
         .describe(
-            "List of label IDs to associate with the annotation. Set to null to clear. Labels must already exist."
+            "Replacement list of existing console label IDs. Omission or null leaves unchanged; [] clears all labels."
         ),
 });
 
@@ -258,7 +274,7 @@ export const updateAnnotationTool = {
     title: "Update annotation",
     coversEndpoint: "patch:/analytics/v1/annotations/{id}",
     description:
-        "Use this when the user wants to modify an existing annotation. Changes apply immediately. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
+        "Use this when the user wants to modify an existing annotation. Nonempty content is required on every update. Omitted or null timestamp/reports/labels remain unchanged; reports and labels replace their lists, and [] clears them. Changes apply immediately. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
     inputSchema: zodToMcpInputSchema(UpdateAnnotationArgumentsSchema),
     annotations: {
         readOnlyHint: false,

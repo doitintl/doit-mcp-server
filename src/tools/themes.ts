@@ -69,7 +69,9 @@ export const GetThemeArgumentsSchema = z
         name: z
             .string()
             .optional()
-            .describe("Partial name match (case-insensitive). Used to find the theme when ID is unknown."),
+            .describe(
+                "Case-insensitive substring search across the custom themes returned by list_themes (not paginated). Multiple matches return an ambiguity error listing names; id takes precedence."
+            ),
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
@@ -78,7 +80,7 @@ export const getThemeTool = {
     title: "Get theme",
     coversEndpoint: "get:/analytics/v1/settings/themes/{id}",
     description:
-        "Use this when the user wants to view details of a specific custom color theme. Accepts either the theme ID or a partial name (case-insensitive). Do NOT use this for listing all themes (use list_themes).",
+        "Use this when the user wants to view details of a specific custom color theme. Accepts either the custom theme ID or a partial name (case-insensitive) across all custom themes. Multiple matches return an error listing names; id takes precedence. Preset themes cannot be fetched with this tool. Do NOT use this for listing all themes (use list_themes).",
     inputSchema: zodToMcpInputSchema(GetThemeArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -129,7 +131,7 @@ export const getActiveThemeTool = {
     title: "Get active theme",
     coversEndpoint: "get:/analytics/v1/settings/active-theme",
     description:
-        'Use this when the user wants to know which color theme is currently active for their account (the theme applied to Cloud Analytics reports). Returns the active theme id; the reserved sentinel "default" means no custom or preset theme is selected and the built-in default is in use. Do NOT use this to list all themes (use list_themes) or to fetch a specific theme by id (use get_theme).',
+        'Use this when the user wants to know which color theme is currently active for the authenticated user (the theme applied to Cloud Analytics reports). Returns the active theme id; the reserved sentinel "default" means no custom or preset theme is selected and the built-in default is in use. Do NOT use this to list all themes (use list_themes) or to fetch a specific theme by id (use get_theme).',
     inputSchema: zodToMcpInputSchema(GetActiveThemeArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -170,7 +172,7 @@ export const SetActiveThemeArgumentsSchema = z.object({
         .string()
         .min(1)
         .describe(
-            'The ID of the theme to set as active, or the reserved sentinel "default" to revert to the built-in default (no custom theme).'
+            'The ID of a custom theme or a supported preset theme to set as active for the authenticated user, or the reserved sentinel "default" to revert to the built-in default (no custom theme).'
         ),
 });
 
@@ -179,7 +181,7 @@ export const setActiveThemeTool = {
     title: "Set active theme",
     coversEndpoint: "put:/analytics/v1/settings/active-theme",
     description:
-        'Use this when the user wants to change or activate a custom color theme for their Cloud Analytics reports. Accepts a theme ID or the sentinel "default" to revert to the built-in default. Changes apply immediately. Do NOT use this to retrieve the current active theme (use get_active_theme) or to update theme colors (use update_theme).',
+        'Use this when the user wants to change the authenticated user’s active Cloud Analytics color theme. Accepts a custom theme ID or supported preset ID or the sentinel "default" to revert to the built-in default. Changes apply immediately. Requires Cloud Analytics edit permission. Create new themes with create_custom_theme. Do NOT use this to retrieve the current active theme (use get_active_theme) or to update theme colors (use update_theme).',
     inputSchema: zodToMcpInputSchema(SetActiveThemeArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -216,9 +218,19 @@ export async function handleSetActiveThemeRequest(args: any, token: string) {
 }
 
 // Schema and metadata for update theme
+const HexColorSchema = z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/);
+
 const ThemeColorsSchema = z.object({
-    light: z.array(z.string()).describe("Array of hex color values for light mode."),
-    dark: z.array(z.string()).describe("Array of hex color values for dark mode."),
+    light: z
+        .array(HexColorSchema)
+        .min(1)
+        .max(32)
+        .describe("Replacement light palette: 1-32 colors in #RGB, #RRGGBB or #RRGGBBAA format."),
+    dark: z
+        .array(HexColorSchema)
+        .min(1)
+        .max(32)
+        .describe("Replacement dark palette: 1-32 colors in #RGB, #RRGGBB or #RRGGBBAA format."),
 });
 
 export const UpdateThemeArgumentsSchema = z
@@ -232,9 +244,19 @@ export const UpdateThemeArgumentsSchema = z
         name: z
             .string()
             .optional()
-            .describe("Partial name match (case-insensitive) used to find the theme when ID is unknown."),
-        newName: z.string().min(1).optional().describe("New display name for the theme."),
-        primaryColor: z.string().optional().describe("New primary hex color for the theme (e.g. #1A73E8)."),
+            .describe(
+                "Case-insensitive substring search across all custom themes. Multiple matches return an ambiguity error listing names; id takes precedence."
+            ),
+        newName: z
+            .string()
+            .trim()
+            .min(1)
+            .max(200)
+            .optional()
+            .describe("New display name for the theme (1-200 characters). Omit to preserve."),
+        primaryColor: HexColorSchema.optional().describe(
+            "New primary color: #RGB, #RRGGBB or #RRGGBBAA. Omit to preserve."
+        ),
         colors: ThemeColorsSchema.optional().describe(
             "New color palette for the theme. Provide both light and dark arrays."
         ),
@@ -249,7 +271,7 @@ export const updateThemeTool = {
     title: "Update theme",
     coversEndpoint: "patch:/analytics/v1/settings/themes/{id}",
     description:
-        "Use this when the user wants to modify an existing custom color theme — rename it, change its primary color, or update its color palette. Accepts either the theme ID or a partial name match. Changes apply immediately. Do NOT use this for creating a new theme or changing which theme is active (use set_active_theme).",
+        "Use this when the user wants to modify an existing custom color theme — rename it, change its primary color, or update its color palette. Accepts either the theme ID or a partial name match across all custom themes; ambiguous matches return an error, and id takes precedence. Requires Cloud Analytics Admin; preset themes cannot be updated. Changes apply immediately to all users who have this theme active. Omitted fields are preserved; colors replaces both palettes. Create new themes with create_custom_theme; change the current user's active theme with set_active_theme.",
     inputSchema: zodToMcpInputSchema(UpdateThemeArgumentsSchema),
     annotations: {
         readOnlyHint: false,
