@@ -57,6 +57,52 @@ describe("AVA_TIMEOUT_MS parsing", () => {
 });
 
 describe("handleAskAvaSyncRequest", () => {
+    it.each([
+        "Backend temporarily unavailable",
+        { code: "generation_failed", message: "Backend temporarily unavailable" },
+    ])("returns an MCP error for an HTTP-200 error envelope: %j", async (error) => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ error, answer: "not a successful answer" });
+        const response = await handleAskAvaSyncRequest({ question: "test" }, mockToken);
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("Backend temporarily unavailable");
+        expect(response.content[0].text).not.toContain("not a successful answer");
+    });
+
+    it("redacts credentials, URLs and control characters and bounds error detail", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({
+            error: {
+                code: "generation_failed",
+                message: `failure ${mockToken} Bearer private-bearer apiKey=private-key {"password":"quoted secret with spaces"} https://private.example/?secret=value\n${"x".repeat(2000)}`,
+                stack: "private stack",
+                request: { apiKey: "private request" },
+            },
+        });
+        const response = await handleAskAvaSyncRequest({ question: "test" }, mockToken);
+        const text = response.content[0].text;
+        expect(response.isError).toBe(true);
+        expect(text).toContain("generation_failed");
+        for (const secret of [
+            mockToken,
+            "private-bearer",
+            "private-key",
+            "quoted secret with spaces",
+            "private.example",
+            "private stack",
+            "private request",
+            "\n",
+        ]) {
+            expect(text).not.toContain(secret);
+        }
+        expect(text.length).toBeLessThan(1100);
+    });
+
+    it.each([null, "", {}, false])("treats even an empty error envelope as failure: %j", async (error) => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ error });
+        const response = await handleAskAvaSyncRequest({ question: "test" }, mockToken);
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("No error detail provided");
+    });
+
     it("should call makeDoitRequest with POST and question, returning the answer", async () => {
         const mockResponse = {
             answer: "Based on your cloud spending, your biggest cost driver is compute.",

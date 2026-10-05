@@ -17,12 +17,22 @@ export type ToolOverride = {
  * operation upstream fails the build instead of silently dropping the guidance.
  */
 export const toolOverrides: Record<string, ToolOverride> = {
-    import_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
+    import_cloudflow_flow: {
+        descriptionSuffix:
+            "Idempotency-Key is required even with dryRun. Same key/request replays within 24 hours; different request fails with 422, an in-progress match with 409. Dry-runs validate existing fingerprints without storing a replay. " +
+            CLOUDFLOW_CODENODE_HINT,
+    },
     export_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
     test_run_cloudflow_flow: {
         descriptionSuffix:
-            "Generated codeNode code is frequently broken in ways that pass validation and fail silently " +
-            "at run time. With dryRun this call shows only that the flow is well-formed; a completed run's " +
-            "per-node output (get_cloudflow_flow_run) shows whether it works.",
+            "Generated codeNode code may fail silently or error at run time despite passing validation. " +
+            "With dryRun this call shows only that the flow is well-formed; without dryRun it executes real actions even on drafts. " +
+            "A completed run's per-node output (get_cloudflow_flow_run) shows whether it works. " +
+            "The current generated MCP schema exposes no arbitrary trigger payload field; the API uses an empty payload when omitted. " +
+            "Idempotency-Key is required even with dryRun. Same key/request replays within 24 hours; different request fails with 422, an in-progress match with 409. Dry-runs validate existing fingerprints without storing a replay.",
+    },
+    trigger_cloudflow_flow: {
+        descriptionSuffix:
+            "The current generated MCP schema exposes no arbitrary trigger payload field; the API uses an empty payload when omitted. trigger_cloud_flow accepts a webhook payload for published webhook flows.",
     },
 };

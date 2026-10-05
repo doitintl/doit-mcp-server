@@ -1670,10 +1670,10 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({ name: "list_cloudflow_connections", arguments: {} });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
-            expect(parsed.connections).toHaveLength(2);
-            expect(parsed.connections[0].connectionId).toBe("conn-1");
-            expect(parsed.connections[0].name).toBe("GCP Org Connection");
-            expect(parsed.nextPageToken).toBe("next-page-token");
+            expect(parsed.items).toHaveLength(2);
+            expect(parsed.items[0].connectionId).toBe("conn-1");
+            expect(parsed.items[0].name).toBe("GCP Org Connection");
+            expect(parsed.pageToken).toBe("next-page-token");
         });
 
         it("accepts maxResults and pageToken parameters", async () => {
@@ -1683,7 +1683,7 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
-            expect(parsed.connections).toHaveLength(2);
+            expect(parsed.items).toHaveLength(2);
         });
     });
 
@@ -1713,6 +1713,7 @@ describe("MCP Tools Integration", () => {
                 name: "create_cloudflow_connection",
                 arguments: {
                     name: "New GCP Connection",
+                    idempotencyKey: "integration-create-1",
                     gcpConfig: { projectId: "my-project", level: "project" },
                 },
             });
@@ -1737,6 +1738,7 @@ describe("MCP Tools Integration", () => {
                 name: "create_cloudflow_connection",
                 arguments: {
                     name: "Both configs",
+                    idempotencyKey: "integration-create-2",
                     gcpConfig: { projectId: "my-project" },
                     awsConfig: { roleName: "role" },
                 },
@@ -1750,7 +1752,12 @@ describe("MCP Tools Integration", () => {
         it("returns the updated connection from mock API", async () => {
             const result = await client.callTool({
                 name: "update_cloudflow_connection",
-                arguments: { connectionId: "conn-1", name: "Renamed Connection", enabled: false },
+                arguments: {
+                    connectionId: "conn-1",
+                    ifMatch: '"version-1"',
+                    name: "Renamed Connection",
+                    enabled: false,
+                },
             });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
@@ -1773,6 +1780,7 @@ describe("MCP Tools Integration", () => {
                 name: "update_cloudflow_connection",
                 arguments: {
                     connectionId: "conn-1",
+                    ifMatch: '"version-1"',
                     gcpConfig: { projectId: "my-project" },
                     awsConfig: { roleName: "role" },
                 },

@@ -43,6 +43,7 @@ export type CloudFlowCollaborator = {
 
 export type CloudFlowConnection = {
     connectionId: string;
+    etag?: string;
     name?: string;
     description?: string;
     gcpConfig?: CloudFlowGcpConfig;
@@ -55,8 +56,9 @@ export type CloudFlowConnection = {
 };
 
 export type CloudFlowConnectionsResponse = {
-    connections: CloudFlowConnection[];
-    nextPageToken?: string;
+    items: CloudFlowConnection[];
+    pageToken: string | null;
+    rowCount: number | null;
 };
 
 export type CloudFlowTemplate = {

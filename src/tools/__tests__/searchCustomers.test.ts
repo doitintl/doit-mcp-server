@@ -19,6 +19,18 @@ afterEach(() => {
 const mockToken = "test-token";
 
 describe("handleSearchCustomersRequest", () => {
+    it("preserves a continuation token and scan-cap flag on an empty filtered page", async () => {
+        const page = { customers: [], nextPageToken: "continue-after-cap", truncated: true };
+        vi.mocked(makeConsoleRequest).mockResolvedValue(page);
+        const response = await handleSearchCustomersRequest({ pageToken: "prior-page", pageSize: 10 }, mockToken);
+        expect(response.isError).not.toBe(true);
+        expect(JSON.parse(response.content[0].text)).toEqual(page);
+        expect(makeConsoleRequest).toHaveBeenCalledWith(SEARCH_CUSTOMERS_PATH, mockToken, {
+            method: "POST",
+            body: { filters: {}, pageToken: "prior-page", pageSize: 10 },
+        });
+    });
+
     it("posts assembled filters to the console search endpoint and returns JSON", async () => {
         const apiResponse = {
             customers: [{ id: "c1", name: "Acme", primaryDomain: "acme.com" }],
