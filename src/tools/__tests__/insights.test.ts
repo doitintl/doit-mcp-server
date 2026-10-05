@@ -140,6 +140,7 @@ describe("postInsightResultTool metadata", () => {
         expect(postInsightResultTool.coversEndpoint).toBe(
             "post:/insights/v1/results/source/{sourceID}/insight/{insightKey}"
         );
+        expect(postInsightResultTool.description).toContain("replaces");
     });
 });
 
@@ -223,6 +224,7 @@ describe("updateInsightStatusTool metadata", () => {
         expect(updateInsightStatusTool.coversEndpoint).toBe(
             "put:/insights/v1/results/source/{sourceID}/insight/{insightKey}/status"
         );
+        expect(updateInsightStatusTool.description).toContain("status-only");
     });
 });
 
@@ -346,7 +348,7 @@ describe("recommendation pagination and response semantics", () => {
     it("continues a sparse empty page without inventing results or losing its cursor", async () => {
         vi.mocked(makeDoitRequest)
             .mockResolvedValueOnce({ results: [], pagination: { rowCount: 0, pageToken: "opaque/+=?" } })
-            .mockResolvedValueOnce({ results: [mockInsight], pagination: { rowCount: 1 } });
+            .mockResolvedValueOnce({ results: [mockInsight], pagination: { rowCount: 1, pageToken: "" } });
         const first = JSON.parse((await handleListInsightsRequest({ maxResults: 1 }, "token")).content[0].text);
         expect(first).toEqual({ insights: [], rowCount: 0, pageToken: "opaque/+=?" });
         const last = JSON.parse(
@@ -367,12 +369,44 @@ describe("recommendation pagination and response semantics", () => {
         expect(params.getAll("category")).toEqual(["FinOps"]);
     });
 
+    it("filters spaced categories locally while preserving sparse pages and the API cursor", async () => {
+        vi.mocked(makeDoitRequest)
+            .mockResolvedValueOnce({
+                results: [{ ...mockInsight, categories: ["FinOps"] }],
+                pagination: { rowCount: 1, pageToken: "next" },
+            })
+            .mockResolvedValueOnce({
+                results: [{ ...mockInsight, categories: ["Operational excellence"] }],
+                pagination: { rowCount: 1, pageToken: "" },
+            });
+        const first = JSON.parse(
+            (await handleListInsightsRequest({ category: "OperationalExcellence", maxResults: 1 }, "token")).content[0]
+                .text
+        );
+        expect(first).toEqual({ insights: [], rowCount: 0, pageToken: "next" });
+        const last = JSON.parse(
+            (
+                await handleListInsightsRequest(
+                    { category: "Operational excellence", maxResults: 1, pageToken: first.pageToken },
+                    "token"
+                )
+            ).content[0].text
+        );
+        expect(last.insights).toHaveLength(1);
+        expect(last.pageToken).toBeNull();
+        for (const [url] of vi.mocked(makeDoitRequest).mock.calls) {
+            expect(new URL(url).searchParams.has("category")).toBe(false);
+        }
+        expect(new URL(vi.mocked(makeDoitRequest).mock.calls[1][0]).searchParams.get("pageToken")).toBe("next");
+    });
+
     it.each([
         { category: ["FinOps", "Security"] },
         { page: 1 },
         { page: 0.5 },
         { maxResults: 501 },
         { maxResults: 1.5 },
+        { pageToken: "" },
     ])("rejects unsupported pagination or multiple categories: %j", (args) => {
         expect(ListInsightsArgumentsSchema.safeParse(args).success).toBe(false);
     });

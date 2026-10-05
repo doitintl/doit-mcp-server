@@ -294,21 +294,31 @@ export async function handleCreateAlertRequest(args: any, token: string) {
     }
 }
 
-export const UpdateAlertArgumentsSchema = z.object({
-    id: z.string().min(1).describe("The ID of the alert to update (required)."),
-    config: AlertConfigSchema.partial()
-        .optional()
-        .describe(
-            "Only configuration fields to change. Omitted fields are preserved; a supplied metric requires both type and value."
-        ),
-    name: z.string().min(1).optional().describe("Alert name. Must be non-empty if provided."),
-    recipients: z
-        .array(z.string().email())
-        .optional()
-        .describe(
-            "Email addresses to notify when triggered. On create, defaults to the caller's email; omitted on update preserves recipients. The API requires at least one email or existing Slack destination."
-        ),
-});
+export const UpdateAlertArgumentsSchema = z
+    .object({
+        id: z.string().min(1).describe("The ID of the alert to update (required)."),
+        config: AlertConfigSchema.partial()
+            .optional()
+            .describe(
+                "Only configuration fields to change. Omitted fields are preserved; a supplied metric requires both type and value."
+            ),
+        name: z.string().min(1).optional().describe("Alert name. Must be non-empty if provided."),
+        recipients: z
+            .array(z.string().email())
+            .optional()
+            .describe(
+                "Email addresses to notify when triggered. On create, defaults to the caller's email; omitted on update preserves recipients. The API requires at least one email or existing Slack destination."
+            ),
+    })
+    .refine(
+        (data) =>
+            data.name !== undefined ||
+            data.recipients !== undefined ||
+            (data.config !== undefined && Object.keys(data.config).length > 0),
+        {
+            message: "Provide at least one field to update: name, recipients, or a config field.",
+        }
+    );
 
 export const updateAlertTool = {
     name: "update_alert",

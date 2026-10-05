@@ -17,7 +17,7 @@ describe("insights and alert contracts over MCP", () => {
                     url.searchParams.has("pageToken")
                         ? {
                               results: [{ key: "second", cloudProvider: "aws", easyWinDescription: "" }],
-                              pagination: { rowCount: 1 },
+                              pagination: { rowCount: 1, pageToken: "" },
                           }
                         : { results: [], pagination: { rowCount: 0, pageToken: "opaque/+=" } }
                 );
@@ -51,6 +51,53 @@ describe("insights and alert contracts over MCP", () => {
                         url.searchParams.get("cloudProvider") === "aws" && url.searchParams.get("maxResults") === "1"
                 )
             ).toBe(true);
+        } finally {
+            await cleanup();
+        }
+    });
+
+    it("filters operational excellence across API pages without sending an unsupported category", async () => {
+        const seen: URL[] = [];
+        mswServer.use(
+            http.get(`${API}/insights/v1/results`, ({ request }) => {
+                const url = new URL(request.url);
+                seen.push(url);
+                return HttpResponse.json(
+                    url.searchParams.has("pageToken")
+                        ? {
+                              results: [{ key: "matching", categories: ["Operational excellence"] }],
+                              pagination: { rowCount: 1, pageToken: "" },
+                          }
+                        : {
+                              results: [{ key: "other", categories: ["FinOps"] }],
+                              pagination: { rowCount: 1, pageToken: "next" },
+                          }
+                );
+            })
+        );
+        const { rawClient, cleanup } = await createTestClient();
+        try {
+            const first = JSON.parse(
+                getTextContent(
+                    await rawClient.callTool({
+                        name: "list_optimization_recommendations",
+                        arguments: { category: "OperationalExcellence", maxResults: 1 },
+                    })
+                )
+            );
+            expect(first).toEqual({ insights: [], rowCount: 0, pageToken: "next" });
+            const last = JSON.parse(
+                getTextContent(
+                    await rawClient.callTool({
+                        name: "list_optimization_recommendations",
+                        arguments: { category: "Operational excellence", maxResults: 1, pageToken: first.pageToken },
+                    })
+                )
+            );
+            expect(last.insights.map((insight: { key: string }) => insight.key)).toEqual(["matching"]);
+            expect(last.pageToken).toBeNull();
+            expect(seen.every((url) => !url.searchParams.has("category"))).toBe(true);
+            expect(seen[1].searchParams.get("pageToken")).toBe("next");
         } finally {
             await cleanup();
         }

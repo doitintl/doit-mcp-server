@@ -698,6 +698,11 @@ describe("update_alert", () => {
 
 describe("alert API contracts", () => {
     const config = { metric: { type: "basic", value: "cost" }, timeInterval: "day", operator: "gt", value: 10 };
+    it("rejects an empty alert patch", () => {
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test" }).success).toBe(false);
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", config: {} }).success).toBe(false);
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", recipients: [] }).success).toBe(true);
+    });
     it("requires the create operator, accepts API defaults without inserting patch defaults", () => {
         const { operator: _, ...missingOperator } = config;
         expect(CreateAlertArgumentsSchema.safeParse({ name: "test", config: missingOperator }).success).toBe(false);

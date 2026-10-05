@@ -68,7 +68,9 @@ export interface ResourceResultsResponse {
 const InsightCategoryEnum = z.enum([
     "FinOps",
     "OperationalExcellence",
+    "Operational excellence",
     "PerformanceEfficiency",
+    "Performance efficiency",
     "Reliability",
     "Security",
     "Sustainability",
@@ -83,7 +85,7 @@ export const ListInsightsArgumentsSchema = z.object({
         .union([InsightCategoryEnum, z.array(InsightCategoryEnum).max(1)])
         .optional()
         .describe(
-            "Filter by a single insight category; a legacy one-element array is also accepted. Possible values: FinOps, OperationalExcellence, PerformanceEfficiency, Reliability, Security, Sustainability."
+            "Filter by one category; a legacy one-element array is accepted. OperationalExcellence/Operational excellence and PerformanceEfficiency/Performance efficiency are filtered within each returned page because the API's category filter cannot match them. An empty page can still have a next cursor."
         ),
     priority: z
         .array(InsightPriorityEnum)
@@ -111,7 +113,11 @@ export const ListInsightsArgumentsSchema = z.object({
         .max(0, "Numeric pages are unsupported; use pageToken from the previous response.")
         .optional()
         .describe("Deprecated: only 0 (first page) is accepted. Use pageToken for continuation."),
-    pageToken: z.string().optional().describe("Opaque cursor from the previous response. Omit for the first page."),
+    pageToken: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Non-empty opaque cursor from the previous response. Omit for the first page."),
     maxResults: z
         .number()
         .int()
@@ -318,9 +324,8 @@ export const postInsightResultTool = {
     description:
         "Use this when the user wants to create a new custom insight or update an existing one's metadata " +
         "(title, description, categories, status, remediation links). Only insights owned by the " +
-        "'public-api' source can be managed (the default source). Requires key, title, shortDescription, cloudProvider and categories on every call. This manages the insight's metadata only — the individual " +
-        "affected resources are managed separately (post_insight_resource_results). Do NOT use this only to " +
-        "change an insight's status without also supplying the required metadata.",
+        "'public-api' source can be managed (the default source). Requires key, title, shortDescription, cloudProvider and categories on every call. This replaces insight metadata: omitted optional fields such as detailedDescriptionMdx, reportUrl, easyWinDescription and cloudFlowTemplateId are cleared. " +
+        "Affected resources are managed separately (post_insight_resource_results). For a status-only change, use update_insight_status to preserve metadata despite that endpoint's deprecation.",
     inputSchema: zodToMcpInputSchema(PostInsightResultArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -340,7 +345,7 @@ export const updateInsightStatusTool = {
     coversEndpoint: "put:/insights/v1/results/source/{sourceID}/insight/{insightKey}/status",
     description:
         "Use this when the user wants to change the display status of an existing insight (e.g. mark it " +
-        "acknowledged, in progress, optimized, or dismissed). This endpoint is deprecated; prefer status on post_insight_result with its required metadata. Only insights owned by the 'public-api' " +
+        "acknowledged, in progress, optimized, or dismissed). This endpoint is deprecated but remains the safe choice for status-only changes because it preserves optional insight metadata; post_insight_result replaces it. Only insights owned by the 'public-api' " +
         "source can be managed. When dismissing, dismissalDetails.reason is required; comment is optional. Do NOT " +
         "use this to edit an insight's title/description or create one (use post_insight_result).",
     inputSchema: zodToMcpInputSchema(UpdateInsightStatusArgumentsSchema),
@@ -365,12 +370,15 @@ export async function handleListInsightsRequest(args: any, token: string) {
         const { customerContext } = args;
 
         const params = new URLSearchParams();
+        const selectedCategory = typeof category === "string" ? category : category?.[0];
+        const clientSideCategory =
+            selectedCategory === "OperationalExcellence" || selectedCategory === "Operational excellence"
+                ? "Operational excellence"
+                : selectedCategory === "PerformanceEfficiency" || selectedCategory === "Performance efficiency"
+                  ? "Performance efficiency"
+                  : undefined;
 
-        if (category) {
-            for (const c of typeof category === "string" ? [category] : category) {
-                params.append("category", c);
-            }
-        }
+        if (selectedCategory && !clientSideCategory) params.append("category", selectedCategory);
         if (priority) {
             for (const p of priority) {
                 params.append("priority", p);
@@ -409,7 +417,9 @@ export async function handleListInsightsRequest(args: any, token: string) {
                 return createErrorResponse("Failed to retrieve insights data");
             }
 
-            const results = data.results || [];
+            const results = clientSideCategory
+                ? (data.results ?? []).filter((result) => result.categories?.includes(clientSideCategory))
+                : data.results || [];
 
             const formatted = results
                 .map((r) => ({
@@ -432,7 +442,7 @@ export async function handleListInsightsRequest(args: any, token: string) {
                 JSON.stringify({
                     rowCount: formatted.length,
                     insights: formatted,
-                    pageToken: data.pagination?.pageToken ?? null,
+                    pageToken: data.pagination?.pageToken || null,
                 })
             );
         } catch (error) {
