@@ -84,7 +84,7 @@ export const triggerCloudFlowTool = {
     title: "Trigger CloudFlow flow",
     coversEndpoint: "post:/cloudflow/v1/trigger/{flowId}",
     description:
-        "Use this when the user wants to trigger an automated CloudFlow workflow by its flow ID. This executes automation that may modify cloud resources externally. Ask the user to confirm the flow ID and any parameters before executing. Do NOT use this for viewing CloudFlow definitions or checking available flows.",
+        "Use this when the user wants to trigger an automated CloudFlow workflow by its flow ID. This executes automation that may modify cloud resources externally. The flow starts immediately. Do NOT use this for viewing CloudFlow definitions or checking available flows.",
     inputSchema: {
         type: "object",
         properties: {
@@ -599,7 +599,7 @@ export const createCloudFlowConnectionTool = {
     name: "create_cloudflow_connection",
     title: "Create CloudFlow connection",
     description:
-        "Use this when the user wants to create a new CloudFlow cloud provider connection (a GCP or AWS account connected for automation). Exactly one of gcpConfig or awsConfig must be supplied. Ask the user to confirm the connection details before executing. Do NOT use this to update an existing connection (use update_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
+        "Use this when the user wants to create a new CloudFlow cloud provider connection (a GCP or AWS account connected for automation). Exactly one of gcpConfig or awsConfig must be supplied. Changes apply immediately. Do NOT use this to update an existing connection (use update_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
     coversEndpoint: "post:/cloudflow/v1/connections",
     inputSchema: zodToMcpInputSchema(CreateCloudFlowConnectionArgumentsSchema),
     annotations: {
@@ -666,7 +666,7 @@ export const updateCloudFlowConnectionTool = {
     name: "update_cloudflow_connection",
     title: "Update CloudFlow connection",
     description:
-        "Use this when the user wants to update an existing CloudFlow cloud provider connection — rename it, change its description, enable/disable it, update its GCP/AWS configuration, or change collaborators. All fields except connectionId are optional; at most one of gcpConfig or awsConfig may be set per request. Ask the user to confirm the changes before executing. Do NOT use this to create a new connection (use create_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
+        "Use this when the user wants to update an existing CloudFlow cloud provider connection — rename it, change its description, enable/disable it, update its GCP/AWS configuration, or change collaborators. All fields except connectionId are optional; at most one of gcpConfig or awsConfig may be set per request. Changes apply immediately. Do NOT use this to create a new connection (use create_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
     coversEndpoint: "patch:/cloudflow/v1/connections/{connectionId}",
     inputSchema: zodToMcpInputSchema(UpdateCloudFlowConnectionArgumentsSchema),
     annotations: {

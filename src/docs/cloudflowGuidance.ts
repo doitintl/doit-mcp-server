@@ -32,17 +32,23 @@ export const CLOUDFLOW_CODENODE_HINT =
 /**
  * Appended to the two builder tools. Their generated code is wrong often enough that "it built"
  * is not evidence of anything, and every validation gate passes on the broken shapes.
+ *
+ * States what each signal proves rather than prescribing a sequence of calls: directory review
+ * rejects tool descriptions that tell the model to always call other tools.
  */
 export const CLOUDFLOW_BUILDER_HINT =
     "Generated codeNode code is frequently broken in ways that pass validation and fail silently " +
-    "at run time. Always export_cloudflow_flow and test-run the result, and check the per-node " +
-    "output, before reporting success.";
+    "at run time, so a successful build shows only that a draft was saved. export_cloudflow_flow " +
+    "returns the saved code; a completed test run's per-node output shows whether it works.";
 
-/** The ~12-line tier: server `instructions`. Kept to what changes behavior. */
+/**
+ * The ~12-line tier: server `instructions`. Kept to the runtime facts that matter across the
+ * domain, stated as facts about the platform rather than rules for the model.
+ */
 export const CLOUDFLOW_INSTRUCTIONS = `CloudFlow authoring: nothing runs or publishes until a human publishes, so a draft never has to
-be perfect. Build or clone -> export and inspect -> dry-run import -> test-run -> read the
-per-node output. Prefer cloning an existing flow over generating from scratch: a real export is
-the only ground truth for node parameter shapes and in-node reference syntax.
+be perfect. The authoring loop is build or clone -> export and inspect -> dry-run import ->
+test-run -> read the per-node output. Cloning an existing flow is more reliable than generating
+from scratch: a real export is the only ground truth for node parameter shapes and reference syntax.
 
 codeNode is where generated flows break, and it breaks silently. Upstream data comes only from
 \`nodes["<node name>"]\`, a dict of lists — there is no injected \`input\` variable. The code body is
@@ -50,8 +56,8 @@ executed directly: end it with a top-level \`return\`. A \`schema\` (JSON Schema
 Code that defines an uncalled function, reads a bare \`input\`, or assigns \`output\` instead of
 returning completes with \`{message: null}\` — no error, no result, and every validation gate passes.
 
-Only claim a flow works after a test run completed and the per-node output matched intent. Before
-that, say it validated and imported.`;
+Validation and a clean import show only that a flow is well-formed. A completed test run whose
+per-node output matches intent is what shows the flow works.`;
 
 /** The full guide, served as an MCP resource for depth on request. */
 export const CLOUDFLOW_AUTHORING_GUIDE = `# CloudFlow authoring over MCP
@@ -70,12 +76,13 @@ perfect to be useful. The reliable loop is:
 1. **Build or clone.** \`build_cloud_flow\` creates a new draft from a natural-language
    \`question\`; \`refine_cloudflow\` modifies an existing flow (same \`conversationId\` to continue
    a session). Both stream progress and return the created/updated \`flowId\`, the builder's
-   \`answer\`, and the \`steps\` that ran. Prefer cloning the closest existing flow
-   (\`list_cloudflows\` → \`export_cloudflow_flow\`) over generating from scratch — a real export
-   is the only ground truth for node parameter shapes and in-node reference syntax.
-2. **Export and inspect.** Always \`export_cloudflow_flow\` the result and read it before
-   trusting it. A \`refine_cloudflow\` round can answer with a plan yet save nothing — re-export
-   and diff rather than believing the change happened.
+   \`answer\`, and the \`steps\` that ran. Cloning the closest existing flow
+   (\`list_cloudflows\` → \`export_cloudflow_flow\`) is more reliable than generating from
+   scratch — a real export is the only ground truth for node parameter shapes and in-node
+   reference syntax.
+2. **Export and inspect.** \`export_cloudflow_flow\` shows what was actually saved. A
+   \`refine_cloudflow\` round can answer with a plan yet save nothing, so a re-export diffed
+   against the previous one is the evidence that the change happened.
 3. **Dry-run import.** \`import_cloudflow_flow\` with \`dryRun\` writes nothing and returns every
    validation error at once, plus each requirement's resolution and candidate IDs. Fix and
    repeat until the plan is clean.
@@ -83,9 +90,9 @@ perfect to be useful. The reliable loop is:
    server-side validator (accepts drafts, returns \`valid: true\` or a 422 listing every invalid
    node). The same call without \`dryRun\` starts one test run.
 5. **Read the run.** \`list_cloudflow_flow_runs\` lists a flow's runs; \`get_cloudflow_flow_run\`
-   returns per-node \`input\`/\`output\` once each node reaches a terminal status. Only claim "the
-   flow works" after a test run completed and the per-node outputs matched intent. Before that,
-   say it validated and imported.
+   returns per-node \`input\`/\`output\` once each node reaches a terminal status. Validation and
+   import show a flow is well-formed; a completed test run whose per-node outputs match intent
+   shows it works.
 
 ## Idempotency-key retry semantics
 
@@ -94,8 +101,8 @@ Mutating CloudFlow requests (real import, \`test_run_cloudflow_flow\`) require a
 safety line, not a formality:
 
 - Retrying with the **same** key can never start a second run. On a 5xx, the run may have
-  started even though the response failed — check \`list_cloudflow_flow_runs\` (mode \`test\`)
-  before minting a new key.
+  started even though the response failed — \`list_cloudflow_flow_runs\` (mode \`test\`) shows
+  whether it did, before a new key is minted.
 - A genuine infrastructure failure inside a run (e.g. a transient BigQuery error) is retryable
   with a **new** key. A flow bug is not — fix the flow first.
 

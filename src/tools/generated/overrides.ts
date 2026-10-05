@@ -1,4 +1,4 @@
-import { CLOUDFLOW_BUILDER_HINT, CLOUDFLOW_CODENODE_HINT } from "../../docs/cloudflowGuidance.js";
+import { CLOUDFLOW_CODENODE_HINT } from "../../docs/cloudflowGuidance.js";
 
 export type ToolOverride = {
     /** Appended to the description composed from the OpenAPI spec, separated by a space. */
@@ -19,5 +19,10 @@ export type ToolOverride = {
 export const toolOverrides: Record<string, ToolOverride> = {
     import_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
     export_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
-    test_run_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_BUILDER_HINT },
+    test_run_cloudflow_flow: {
+        descriptionSuffix:
+            "Generated codeNode code is frequently broken in ways that pass validation and fail silently " +
+            "at run time. With dryRun this call shows only that the flow is well-formed; a completed run's " +
+            "per-node output (get_cloudflow_flow_run) shows whether it works.",
+    },
 };

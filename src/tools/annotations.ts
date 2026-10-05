@@ -190,7 +190,7 @@ export const createAnnotationTool = {
     title: "Create annotation",
     coversEndpoint: "post:/analytics/v1/annotations",
     description:
-        "Use this when the user wants to add a new annotation to mark a specific date or event in cost data. Ask the user to confirm the annotation details before executing. Do NOT use this for creating labels (use create_label) or alerts (use create_alert).",
+        "Use this when the user wants to add a new annotation to mark a specific date or event in cost data. Changes apply immediately. Do NOT use this for creating labels (use create_label) or alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateAnnotationArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -268,7 +268,7 @@ export const updateAnnotationTool = {
     title: "Update annotation",
     coversEndpoint: "patch:/analytics/v1/annotations/{id}",
     description:
-        "Use this when the user wants to modify an existing annotation. Ask the user to confirm changes before executing. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
+        "Use this when the user wants to modify an existing annotation. Changes apply immediately. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
     inputSchema: zodToMcpInputSchema(UpdateAnnotationArgumentsSchema),
     annotations: {
         readOnlyHint: false,

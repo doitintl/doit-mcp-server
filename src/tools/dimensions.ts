@@ -16,9 +16,12 @@ export const DimensionsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty."
+            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. An empty filter returns all dimensions."
         ),
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 // Interfaces
@@ -46,12 +49,11 @@ export const dimensionsTool = {
         properties: {
             filter: {
                 type: "string",
-                description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key.
-          use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty.`,
+                description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. An empty filter returns all dimensions.`,
             },
             pageToken: {
                 type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
+                description: "Token for pagination, from a previous response; returns the next page of results.",
             },
         },
     },

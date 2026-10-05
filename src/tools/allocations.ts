@@ -35,7 +35,10 @@ type AllocationComponentMode = (typeof ALLOCATION_COMPONENT_MODES)[number];
 
 // Schema definitions
 export const ListAllocationsArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
     name: z
         .string()
         .optional()
@@ -189,7 +192,7 @@ export const listAllocationsTool = {
         properties: {
             pageToken: {
                 type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
+                description: "Token for pagination, from a previous response; returns the next page of results.",
             },
             name: {
                 type: "string",
@@ -355,7 +358,7 @@ export const createAllocationTool = {
     title: "Create allocation",
     coversEndpoint: "post:/analytics/v1/allocations",
     description:
-        "Use this when the user wants to create a new cost allocation rule. Ask the user to confirm the allocation parameters before executing. Do NOT use this for viewing existing allocations (use list_allocations) or labels (use create_label).",
+        "Use this when the user wants to create a new cost allocation rule. Changes apply immediately. Do NOT use this for viewing existing allocations (use list_allocations) or labels (use create_label).",
     inputSchema: createAllocationInputSchema,
     annotations: {
         readOnlyHint: false,
@@ -386,7 +389,7 @@ export const updateAllocationTool = {
     title: "Update allocation",
     coversEndpoint: "patch:/analytics/v1/allocations/{id}",
     description:
-        "Use this when the user wants to modify an existing cost allocation. Ask the user to confirm changes before executing. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
+        "Use this when the user wants to modify an existing cost allocation. Changes apply immediately. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
     inputSchema: updateAllocationInputSchema,
     annotations: {
         readOnlyHint: false,

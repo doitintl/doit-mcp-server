@@ -454,7 +454,7 @@ export const GetCloudDiagramComponentsArgumentsSchema = z.object({
         .boolean()
         .optional()
         .describe(
-            "Include component data (nodes, elements, groups, links, etc.) in the response. Defaults to false for lighter responses. Enable when you need component IDs for other diagram endpoints."
+            "Include component data (nodes, elements, groups, links, etc.) in the response. Defaults to false for lighter responses. The component IDs it returns are the inputs other diagram tools take."
         ),
     skip_empty: z.boolean().optional().describe("Exclude layers that have no components. Defaults to false."),
 });
@@ -464,7 +464,7 @@ export const getCloudDiagramComponentsTool = {
     title: "Get cloud diagram components",
     coversEndpoint: "post:/clouddiagrams/v1/scheme/get",
     description:
-        "Use this when the user wants to discover all cloud infrastructure diagrams and their layers (statussheets), or to look up layer IDs needed for other diagram endpoints. Returns all diagrams with their connected layers and optionally their component data. This is the primary discovery endpoint — use it before calling endpoints that require a layer ID. Optionally filter by diagram IDs (scheme_ids) or layer IDs (layer_ids), and set include_components=true to get full component lists. Do NOT use this for cost analysis (use run_query) or diagram search (use search_cloud_diagrams).",
+        "Use this when the user wants to discover all cloud infrastructure diagrams and their layers (statussheets), or to look up layer IDs needed for other diagram endpoints. Returns all diagrams with their connected layers and optionally their component data. The layer IDs required by other diagram tools come from this tool. Optionally filter by diagram IDs (scheme_ids) or layer IDs (layer_ids), and set include_components=true to get full component lists. Do NOT use this for cost analysis (use run_query) or diagram search (use search_cloud_diagrams).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramComponentsArgumentsSchema),
     annotations: {
         readOnlyHint: true,

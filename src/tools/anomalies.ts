@@ -12,7 +12,10 @@ export const ANOMALIES_BASE_URL = `${DOIT_API_BASE}/anomalies/v1`;
 
 // Schema definitions
 export const AnomaliesArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 export const AnomalyArgumentsSchema = z.object({
@@ -61,7 +64,7 @@ export const anomaliesTool = {
         properties: {
             pageToken: {
                 type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
+                description: "Token for pagination, from a previous response; returns the next page of results.",
             },
         },
     },

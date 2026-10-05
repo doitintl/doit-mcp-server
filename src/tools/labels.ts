@@ -186,7 +186,7 @@ export const createLabelTool = {
     title: "Create label",
     coversEndpoint: "post:/analytics/v1/labels",
     description:
-        "Use this when the user wants to create a new resource label. Ask the user to confirm the label details before executing. Do NOT use this for viewing existing labels (use list_labels) or annotations (use create_annotation).",
+        "Use this when the user wants to create a new resource label. Changes apply immediately. Do NOT use this for viewing existing labels (use list_labels) or annotations (use create_annotation).",
     inputSchema: zodToMcpInputSchema(CreateLabelArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -246,7 +246,7 @@ export const updateLabelTool = {
     title: "Update label",
     coversEndpoint: "patch:/analytics/v1/labels/{id}",
     description:
-        "Use this when the user wants to modify an existing label. Supports partial updates. Ask the user to confirm changes before executing. Do NOT use this for creating new labels (use create_label) or annotations (use update_annotation).",
+        "Use this when the user wants to modify an existing label. Supports partial updates. Changes apply immediately. Do NOT use this for creating new labels (use create_label) or annotations (use update_annotation).",
     inputSchema: zodToMcpInputSchema(UpdateLabelArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -365,7 +365,7 @@ export const assignObjectsToLabelTool = {
     title: "Assign objects to label",
     coversEndpoint: "post:/analytics/v1/labels/{id}/assignments",
     description:
-        "Use this when the user wants to assign or unassign cloud resources to a label. Ask the user to confirm the assignments before executing. Do NOT use this for creating labels (use create_label) or viewing assignments (use get_label_assignments).",
+        "Use this when the user wants to assign or unassign cloud resources to a label. Changes apply immediately. Do NOT use this for creating labels (use create_label) or viewing assignments (use get_label_assignments).",
     inputSchema: zodToMcpInputSchema(AssignObjectsToLabelArgumentsSchema),
     annotations: {
         readOnlyHint: false,

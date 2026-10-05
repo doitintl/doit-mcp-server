@@ -37,7 +37,10 @@ export const CloudIncidentsArgumentsSchema = z.object({
         .describe(
             "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active'"
         ),
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 export const CloudIncidentArgumentsSchema = z
@@ -95,7 +98,7 @@ export const cloudIncidentsTool = {
             },
             pageToken: {
                 type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
+                description: "Token for pagination, from a previous response; returns the next page of results.",
             },
         },
     },

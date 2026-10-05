@@ -26,11 +26,11 @@ export const confirmActionTool = {
     title: "Confirm pending action",
     coversEndpoint: null,
     description:
-        "Finalizes a pending write action (e.g. creating, updating, or deleting a resource) " +
-        "that was previously staged by another tool. Only call this after the user has " +
-        "explicitly confirmed the action summary returned by the previous tool call. If the " +
-        "user declined, do not call this tool — the token will expire automatically. Pass the " +
-        "token exactly as it was returned.",
+        "Runs a write action (e.g. creating, updating, or deleting a resource) that another " +
+        'tool staged and returned as `status: "approval_required"` with a summary and a ' +
+        "one-time approval token. Intended for use after the user approves that summary. A token " +
+        "that is never confirmed expires after 5 minutes, and the staged action does not run. " +
+        "The token must match the returned value exactly.",
     inputSchema: zodToMcpInputSchema(ConfirmActionArgumentsSchema),
     annotations: {
         readOnlyHint: false,
