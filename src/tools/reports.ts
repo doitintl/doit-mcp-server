@@ -31,14 +31,14 @@ import {
 
 export const REPORTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/reports`;
 
+// Shared by the Zod schema (registered by the hosted server) and the raw inputSchema (stdio).
+// Keys match the API spec for GET /analytics/v1/reports.
+const REPORTS_FILTER_DESCRIPTION =
+    "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Supported filter keys: reportName, owner, type, updateTime, folderId. Example: 'type:billing|owner:john@example.com'";
+
 // Schema definitions
 export const ReportsArgumentsSchema = z.object({
-    filter: z
-        .string()
-        .optional()
-        .describe(
-            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'"
-        ),
+    filter: z.string().optional().describe(REPORTS_FILTER_DESCRIPTION),
     pageToken: z
         .string()
         .optional()
@@ -132,8 +132,7 @@ export const reportsTool = {
         properties: {
             filter: {
                 type: "string",
-                description:
-                    "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Supported filter keys: reportName, owner, type, updateTime, folderId.",
+                description: REPORTS_FILTER_DESCRIPTION,
             },
             pageToken: {
                 type: "string",

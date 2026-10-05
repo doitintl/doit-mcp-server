@@ -41,7 +41,7 @@ export const ListBudgetsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            'An expression for filtering the results. Syntax: "key:[<value>]". Available keys: owner, lastModified in ms (>lastModified). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in "AND," while using the same key multiple times in the same filter results in "OR".'
+            'An expression for filtering the results. Syntax: "key:[<value>]". Available keys: owner, budgetName, lastModified in ms (>lastModified), riskStatus (one of atRisk, onTrack, unknown). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in "AND," while using the same key multiple times in the same filter results in "OR" (except riskStatus, where only the first occurrence is honored).'
         ),
     name: z
         .string()
