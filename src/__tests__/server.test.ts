@@ -5,6 +5,7 @@ import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../docs/serverInstructions.js";
 import { prompts } from "../prompts/index.js";
 import { SERVER_VERSION } from "../utils/consts.js";
+import { BEHAVIORAL_TEXT, schemaDescriptions } from "./behavioralText.js";
 
 // Only the Server class is mocked, for two reasons:
 //
@@ -571,34 +572,18 @@ describe("tools/list handler", () => {
     it("no tool description or server instruction prescribes model behavior", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
-        const behavioral =
-            /\bALWAYS\b|\bAlways (call|use|include|export)\b|\bIMPORTANT\b|Ask the user|before reporting|Only claim|proactively|Only call this|\b(should|must) (call|present|ask|tell|respond|reply)\b|[Dd]o not guess|only if you know/;
         // Generated from the upstream OpenAPI spec, whose description says "Agents should present
         // consentUrl … and poll". The fix belongs in the spec; remove this once it is refreshed.
         const upstreamSpecExceptions = new Set(["create_signup_request"]);
 
-        // Every description a client sees: the tool's own and each input property's, recursively.
-        const descriptions = (schema: any, path: string): [string, string][] => {
-            if (!schema || typeof schema !== "object") return [];
-            const own: [string, string][] = typeof schema.description === "string" ? [[path, schema.description]] : [];
-            const nested = [
-                ...Object.entries(schema.properties ?? {}).map(([key, value]) => descriptions(value, `${path}.${key}`)),
-                descriptions(schema.items, `${path}[]`),
-                ...[...(schema.anyOf ?? []), ...(schema.oneOf ?? []), ...(schema.allOf ?? [])].map((alt) =>
-                    descriptions(alt, path)
-                ),
-            ].flat();
-            return [...own, ...nested];
-        };
-
         for (const tool of [...tools, changeCustomerTool]) {
             if (upstreamSpecExceptions.has(tool.name)) continue;
-            expect(tool.description, tool.name).not.toMatch(behavioral);
-            for (const [path, text] of descriptions(tool.inputSchema, tool.name)) {
-                expect(text, path).not.toMatch(behavioral);
+            expect(tool.description, tool.name).not.toMatch(BEHAVIORAL_TEXT);
+            for (const [path, text] of schemaDescriptions(tool.inputSchema, tool.name)) {
+                expect(text, path).not.toMatch(BEHAVIORAL_TEXT);
             }
         }
-        expect(SERVER_INSTRUCTIONS).not.toMatch(behavioral);
+        expect(SERVER_INSTRUCTIONS).not.toMatch(BEHAVIORAL_TEXT);
     });
 
     it("run_query names the DoiT Cloud Analytics API it calls", async () => {
