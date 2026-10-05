@@ -32,9 +32,13 @@ import {
 export const REPORTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/reports`;
 
 // Shared by the Zod schema (registered by the hosted server) and the raw inputSchema (stdio).
-// Keys match the API spec for GET /analytics/v1/reports.
+// Keys and matching follow the API's allowlist for GET /analytics/v1/reports; unknown keys get a 400.
 const REPORTS_FILTER_DESCRIPTION =
-    "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Supported filter keys: reportName, owner, type, updateTime, folderId. Example: 'type:billing|owner:john@example.com'";
+    "Filter string in format 'key:value|key:value'; every key must match. Supported keys: " +
+    "reportName (exact, case-sensitive full name), owner (owner's email, exact), type (custom, preset, or managed), " +
+    "updateTime (milliseconds since epoch; matches reports updated at or after it), " +
+    "folderId (exact; 'root' for reports outside any folder). Any other key is rejected with an error. " +
+    "Example: 'type:custom|owner:jane@example.com'";
 
 // Schema definitions
 export const ReportsArgumentsSchema = z.object({
