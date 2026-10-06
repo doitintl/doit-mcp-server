@@ -96,7 +96,7 @@ Type: datetime`;
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 "https://api.doit.com/analytics/v1/dimension?type=fixed&id=service_description",
                 mockToken,
-                { appendParams: true, method: "GET" }
+                { appendParams: true, method: "GET", customerContext: undefined }
             );
             expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("service_description"));
             expect(response).toEqual({
@@ -109,6 +109,38 @@ Type: datetime`;
             });
         });
 
+        it.each([
+            ["allocation", "dimension", "attribution_group", "dimension"],
+            ["allocation_rule", "allocation_rule", "attribution", "attribution"],
+            ["attribution", "attribution", "attribution", "attribution"],
+            ["attribution_group", "dimension", "attribution_group", "dimension"],
+        ])(
+            "looks up %s using the metadata keys and forwards switched-customer context",
+            async (type, id, apiType, apiId) => {
+                const values = [{ value: "value", cloud: "google-cloud" }];
+                vi.mocked(makeDoitRequest).mockResolvedValue({ id: apiId, type: apiType, values });
+                const result = await handleDimensionRequest(
+                    { type, id, customerContext: "switched-customer" },
+                    mockToken
+                );
+                expect(makeDoitRequest).toHaveBeenCalledWith(
+                    expect.stringContaining(`type=${apiType}&id=${apiId}`),
+                    mockToken,
+                    { method: "GET", appendParams: true, customerContext: "switched-customer" }
+                );
+                expect(JSON.parse(result.content[0].text)).toEqual({ type, id, values });
+            }
+        );
+
+        it("does not replace an unknown allocation_rule id with the global dimension key", async () => {
+            await handleDimensionRequest({ type: "allocation_rule", id: "unknown" }, mockToken);
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                expect.stringContaining("type=attribution&id=unknown"),
+                mockToken,
+                expect.any(Object)
+            );
+        });
+
         it("should handle API request failure", async () => {
             const mockArgs = { type: "fixed", id: "service_description" };
             (makeDoitRequest as vi.Mock).mockResolvedValue(null);
@@ -118,7 +150,7 @@ Type: datetime`;
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 "https://api.doit.com/analytics/v1/dimension?type=fixed&id=service_description",
                 mockToken,
-                { appendParams: true, method: "GET" }
+                { appendParams: true, method: "GET", customerContext: undefined }
             );
             expect(createErrorResponse).toHaveBeenCalledWith(
                 "Failed to retrieve dimension with type: fixed and id: service_description"

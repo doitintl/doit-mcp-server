@@ -110,8 +110,8 @@ it.each([
             config: {
                 timeRange: {
                     mode: "custom",
-                    customTimeRange: { from: "2026-01-01T00:00:00Z", to: "2026-02-01T00:00:00Z" },
                 },
+                customTimeRange: { from: "2026-01-01T00:00:00Z", to: "2026-02-01T00:00:00Z" },
             },
         },
         "ISO 8601",

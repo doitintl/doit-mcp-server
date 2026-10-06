@@ -584,9 +584,8 @@ describe("tools/list handler", () => {
         expect(response.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "delete_alert" })]));
     });
 
-    // Directory listings (e.g. the Claude Connectors Directory) flag any tool without a title
-    // or without the applicable readOnlyHint/destructiveHint set to true.
-    it("every listed tool has a title and sets readOnlyHint or destructiveHint to true", async () => {
+    // The connector directory requires an applicable true hint for both reads and writes.
+    it("every listed tool has a title and appropriate read/write hints", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
         // change_customer is registered only by the remote Worker (for DoiT employees), so check
