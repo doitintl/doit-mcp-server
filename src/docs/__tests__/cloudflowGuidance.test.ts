@@ -10,9 +10,14 @@ import {
 import { SERVER_INSTRUCTIONS } from "../serverInstructions.js";
 
 describe("CloudFlow guidance", () => {
-    it("states the codeNode contract in every tier — it is the one silent failure", () => {
+    it("states both language runtimes in every tier", () => {
         for (const tier of [CLOUDFLOW_CODENODE_HINT, CLOUDFLOW_INSTRUCTIONS, CLOUDFLOW_AUTHORING_GUIDE]) {
             expect(tier).toContain("nodes[");
+            expect(tier).toContain("JavaScript");
+            expect(tier).toContain("Python");
+            expect(tier).toContain("$variables");
+            expect(tier).toContain("{}");
+            expect(tier).toContain("fails the node");
             expect(tier).toContain("{message: null}");
         }
     });
@@ -28,6 +33,25 @@ describe("CloudFlow guidance", () => {
 
     it("serves the instructions as the server instructions", () => {
         expect(SERVER_INSTRUCTIONS).toBe(CLOUDFLOW_INSTRUCTIONS);
+    });
+
+    it("distinguishes structural validation from draft execution in all execution guidance", () => {
+        for (const tier of [CLOUDFLOW_BUILDER_HINT, CLOUDFLOW_INSTRUCTIONS, CLOUDFLOW_AUTHORING_GUIDE]) {
+            expect(tier).toMatch(/real\s+(?:cloud\s+)?actions/);
+            expect(tier).toContain("draft");
+        }
+        expect(CLOUDFLOW_INSTRUCTIONS).toContain("dryRun validates without dispatching");
+        expect(CLOUDFLOW_AUTHORING_GUIDE).toContain("Only action nodes record `input`");
+    });
+
+    it("states dry-run fingerprint, replay, conflict, and tenant scoping semantics", () => {
+        expect(CLOUDFLOW_AUTHORING_GUIDE).toContain("including dry-runs");
+        expect(CLOUDFLOW_AUTHORING_GUIDE).toContain("24-hour");
+        expect(CLOUDFLOW_AUTHORING_GUIDE).toContain("fails with 422");
+        expect(CLOUDFLOW_AUTHORING_GUIDE).toContain("fails with 409");
+        expect(CLOUDFLOW_AUTHORING_GUIDE).toContain("do not reserve a key");
+        expect(CLOUDFLOW_AUTHORING_GUIDE).toContain("targets that customer's tenant");
+        expect(CLOUDFLOW_AUTHORING_GUIDE).not.toContain("flows land in the token's own tenant");
     });
 
     it("carries the whole guide, backticks and code fences intact", () => {

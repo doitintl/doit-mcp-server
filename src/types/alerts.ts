@@ -1,7 +1,7 @@
 export const ALERTS_SORT_BY_VALUES = ["name", "createTime", "updateTime", "lastAlerted"] as const;
 export const ALERTS_SORT_ORDER_VALUES = ["asc", "desc"] as const;
 
-export const ALERT_TIME_INTERVAL_VALUES = ["hour", "day", "week", "month", "quarter", "year"] as const;
+export const ALERT_TIME_INTERVAL_VALUES = ["day", "week", "month", "quarter", "year"] as const;
 export const ALERT_OPERATOR_VALUES = ["gt", "lt"] as const;
 export const ALERT_SCOPE_TYPE_VALUES = [
     "datetime",
@@ -45,7 +45,7 @@ export type AlertScopeMode = "is" | "starts_with" | "ends_with" | "contains" | "
 export type AlertScope = {
     id: string;
     type: AlertScopeType;
-    mode: AlertScopeMode;
+    mode?: AlertScopeMode;
     inverse?: boolean;
     values?: string[];
 };

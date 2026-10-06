@@ -35,6 +35,10 @@ export interface Anomaly {
     billingAccount: string;
     attribution: string;
     costOfAnomaly: number;
+    actualCost?: number;
+    expectedMaxCost?: number;
+    resourceData?: Record<string, unknown>[];
+    allocations?: unknown[];
     platform: string;
     scope: string;
     serviceName: string;
@@ -217,21 +221,9 @@ export async function handleAnomalyRequest(args: any, token: string) {
 
             return createSuccessResponse(
                 JSON.stringify({
-                    id: anomaly.id,
-                    billingAccount: anomaly.billingAccount,
-                    attribution: anomaly.attribution,
-                    costOfAnomaly: anomaly.costOfAnomaly,
-                    platform: anomaly.platform,
-                    scope: anomaly.scope,
-                    serviceName: anomaly.serviceName,
-                    top3SKUs: anomaly.top3SKUs,
-                    severityLevel: anomaly.severityLevel,
-                    timeFrame: anomaly.timeFrame,
+                    ...anomaly,
                     startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
                     endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
-                    status: anomaly.status,
-                    acknowledged: anomaly.acknowledged,
-                    anomalyChartUrl: anomaly.anomalyChartUrl,
                 })
             );
         } catch (error) {

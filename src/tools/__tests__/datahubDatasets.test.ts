@@ -308,3 +308,24 @@ describe("handleUpdateDatahubDatasetRequest", () => {
         expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });
+
+describe("dataset metadata update fields", () => {
+    it.each([{ displayName: "Displayed" }, { logoName: "aws" }, { description: "", displayName: "", logoName: "" }])(
+        "preserves supplied values and omits other fields: %j",
+        async (fields) => {
+            vi.mocked(makeDoitRequest).mockResolvedValue({ name: "Dataset" });
+            const response = await handleUpdateDatahubDatasetRequest({ name: "Dataset", ...fields }, "token");
+            expect(response.isError).not.toBe(true);
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                expect.any(String),
+                "token",
+                expect.objectContaining({ method: "PATCH", body: fields })
+            );
+        }
+    );
+    it("rejects null instead of claiming it clears fields", async () => {
+        const response = await handleUpdateDatahubDatasetRequest({ name: "Dataset", logoName: null }, "token");
+        expect(response.isError).toBe(true);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+});

@@ -40,12 +40,14 @@ export const ListAssetsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            'An expression for filtering the results. Uses key:[value] syntax, e.g. "type:g-suite". Multiple filters can be connected using a pipe |. Different keys result in AND; same key multiple times results in OR.'
+            'Server-side filter with type as the only supported key. Exact, case-sensitive values without brackets, e.g. "type:g-suite". Repeating type with pipe | matches any listed type (OR), e.g. "type:g-suite|type:office-365".'
         ),
     name: z
         .string()
         .optional()
-        .describe("Partial name filter (case-insensitive). Returns only assets whose name contains this string."),
+        .describe(
+            "Case-insensitive substring filter on the returned API page only. Other pages are not searched. pageToken and rowCount retain the API's unfiltered page values, even when no assets match."
+        ),
 });
 
 export const listAssetsTool = {
@@ -53,7 +55,7 @@ export const listAssetsTool = {
     title: "List assets",
     coversEndpoint: "get:/billing/v1/assets",
     description:
-        "Use this when the user wants to browse their cloud assets, subscriptions, or resources. Returns a paginated list of assets. Supports partial name filtering. Do NOT use this for cost analysis (use run_query) or checking invoices (use list_invoices).",
+        "Use this when the user wants to browse their cloud assets, subscriptions, or resources. Returns a paginated list of assets. Name filtering is case-insensitive and applies only to the returned page. The API cursor and unfiltered rowCount are preserved, including on pages with no matches. Do NOT use this for cost analysis (use run_query) or checking invoices (use list_invoices).",
     inputSchema: zodToMcpInputSchema(ListAssetsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -110,11 +112,13 @@ export const GetAssetArgumentsSchema = z
             .transform((val) => val.trim())
             .pipe(z.string().min(1))
             .optional()
-            .describe("The ID of the asset to retrieve."),
+            .describe("The ID of the asset to retrieve. Takes precedence when both id and name are provided."),
         name: z
             .string()
             .optional()
-            .describe("Partial name match (case-insensitive). Used to find the asset when ID is unknown."),
+            .describe(
+                "Case-insensitive substring lookup within the first 249 assets only. Multiple matches return an ambiguity error; id takes precedence."
+            ),
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
@@ -123,7 +127,7 @@ export const getAssetTool = {
     title: "Get asset",
     coversEndpoint: "get:/billing/v1/assets/{id}",
     description:
-        "Use this when the user wants to view details of a specific cloud asset. Accepts either the asset ID or a partial name (case-insensitive). Do NOT use this for listing all assets (use list_assets) or cost analysis (use run_query).",
+        "Use this when the user wants to view details of a specific cloud asset. Accepts an asset ID, which takes precedence over name, or a case-insensitive partial name lookup within the first 249 assets only. Multiple name matches return an ambiguity error. Do NOT use this for listing all assets (use list_assets) or cost analysis (use run_query).",
     inputSchema: zodToMcpInputSchema(GetAssetArgumentsSchema),
     annotations: {
         readOnlyHint: true,

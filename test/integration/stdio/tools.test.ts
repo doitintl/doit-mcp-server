@@ -972,7 +972,7 @@ describe("MCP Tools Integration", () => {
         it("rejects invalid arguments before calling the API", async () => {
             const result = await client.callTool({
                 name: "update_alert",
-                arguments: { id: "alert-1" }, // missing config
+                arguments: { id: "alert-1" }, // no patch fields
             });
             const text = getTextContent(result);
             expect(text).toContain("Invalid arguments");
@@ -1451,7 +1451,7 @@ describe("MCP Tools Integration", () => {
             expect(parsed).toHaveLength(2);
             expect(parsed[0]._id).toBe("act-1");
             expect(parsed[0].activity).toBe("NODE_UPDATE");
-            expect(parsed[0].user).toBe("alice@example.com");
+            expect(parsed[0].user).toBe("user-1");
         });
 
         it("returns a validation error when nodeId is missing", async () => {
@@ -1670,10 +1670,10 @@ describe("MCP Tools Integration", () => {
             const result = await client.callTool({ name: "list_cloudflow_connections", arguments: {} });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
-            expect(parsed.connections).toHaveLength(2);
-            expect(parsed.connections[0].connectionId).toBe("conn-1");
-            expect(parsed.connections[0].name).toBe("GCP Org Connection");
-            expect(parsed.nextPageToken).toBe("next-page-token");
+            expect(parsed.items).toHaveLength(2);
+            expect(parsed.items[0].connectionId).toBe("conn-1");
+            expect(parsed.items[0].name).toBe("GCP Org Connection");
+            expect(parsed.pageToken).toBe("next-page-token");
         });
 
         it("accepts maxResults and pageToken parameters", async () => {
@@ -1683,7 +1683,7 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
-            expect(parsed.connections).toHaveLength(2);
+            expect(parsed.items).toHaveLength(2);
         });
     });
 
@@ -1713,6 +1713,7 @@ describe("MCP Tools Integration", () => {
                 name: "create_cloudflow_connection",
                 arguments: {
                     name: "New GCP Connection",
+                    idempotencyKey: "integration-create-1",
                     gcpConfig: { projectId: "my-project", level: "project" },
                 },
             });
@@ -1737,6 +1738,7 @@ describe("MCP Tools Integration", () => {
                 name: "create_cloudflow_connection",
                 arguments: {
                     name: "Both configs",
+                    idempotencyKey: "integration-create-2",
                     gcpConfig: { projectId: "my-project" },
                     awsConfig: { roleName: "role" },
                 },
@@ -1750,7 +1752,12 @@ describe("MCP Tools Integration", () => {
         it("returns the updated connection from mock API", async () => {
             const result = await client.callTool({
                 name: "update_cloudflow_connection",
-                arguments: { connectionId: "conn-1", name: "Renamed Connection", enabled: false },
+                arguments: {
+                    connectionId: "conn-1",
+                    ifMatch: '"version-1"',
+                    name: "Renamed Connection",
+                    enabled: false,
+                },
             });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
@@ -1773,6 +1780,7 @@ describe("MCP Tools Integration", () => {
                 name: "update_cloudflow_connection",
                 arguments: {
                     connectionId: "conn-1",
+                    ifMatch: '"version-1"',
                     gcpConfig: { projectId: "my-project" },
                     awsConfig: { roleName: "role" },
                 },
@@ -1968,10 +1976,10 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
-            expect(parsed).toHaveLength(2);
-            expect(parsed[0]._id).toBe("scheme-1");
-            expect(parsed[0].name).toBe("Production VPC");
-            expect(parsed[0].statussheet["sheet-1"]._id).toBe("sheet-1");
+            expect(Object.keys(parsed.scheme)).toHaveLength(2);
+            expect(parsed.scheme["scheme-1"]._id).toBe("scheme-1");
+            expect(parsed.scheme["scheme-1"].name).toBe("Production VPC");
+            expect(parsed.scheme["scheme-1"].statussheet[0]._id).toBe("sheet-1");
         });
 
         it("returns schemes when filtered by scheme_ids", async () => {
@@ -1981,8 +1989,8 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
-            expect(parsed).toHaveLength(2);
-            expect(parsed[0]._id).toBe("scheme-1");
+            expect(Object.keys(parsed.scheme)).toHaveLength(2);
+            expect(parsed.scheme["scheme-1"]._id).toBe("scheme-1");
         });
 
         it("returns validation error for invalid argument type", async () => {

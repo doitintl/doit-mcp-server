@@ -143,13 +143,14 @@ describe("update_resource_permissions", () => {
         public: null,
     };
 
-    it("should PATCH the permissions endpoint with the provided body", async () => {
+    it("should PUT the permissions endpoint with the provided body", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedPermissions);
 
         const response = await handleUpdateResourcePermissionsRequest(
             {
                 resourceType: "budgets",
                 resourceId: "budget-123",
+                customerContext: "switched-customer",
                 permissions: [
                     { user: "owner@company.com", role: "owner" },
                     { user: "editor@company.com", role: "editor" },
@@ -160,7 +161,7 @@ describe("update_resource_permissions", () => {
         );
 
         expect(makeDoitRequest).toHaveBeenCalledWith(`${SHARING_BASE_URL}/budgets/budget-123`, mockToken, {
-            method: "PATCH",
+            method: "PUT",
             body: {
                 permissions: [
                     { user: "owner@company.com", role: "owner" },
@@ -168,7 +169,7 @@ describe("update_resource_permissions", () => {
                 ],
                 public: null,
             },
-            customerContext: undefined,
+            customerContext: "switched-customer",
         });
         const parsed = JSON.parse(response.content[0].text);
         expect(parsed.id).toBe("budget-123");
@@ -183,31 +184,25 @@ describe("update_resource_permissions", () => {
             {
                 resourceType: "reports",
                 resourceId: "report-1",
-                permissions: [{ user: "viewer@company.com", role: "viewer" }],
+                permissions: [{ user: "owner@company.com", role: "owner" }],
             },
             mockToken
         );
 
         expect(makeDoitRequest).toHaveBeenCalledWith(`${SHARING_BASE_URL}/reports/report-1`, mockToken, {
-            method: "PATCH",
-            body: { permissions: [{ user: "viewer@company.com", role: "viewer" }] },
+            method: "PUT",
+            body: { permissions: [{ user: "owner@company.com", role: "owner" }] },
             customerContext: undefined,
         });
     });
 
-    it("should send only public when permissions is omitted", async () => {
-        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedPermissions);
-
-        await handleUpdateResourcePermissionsRequest(
-            { resourceType: "alerts", resourceId: "alert-1", public: "viewer" },
+    it.each([undefined, []])("rejects missing or empty permissions (%s) before sending", async (permissions) => {
+        const response = await handleUpdateResourcePermissionsRequest(
+            { resourceType: "alerts", resourceId: "alert-1", public: "viewer", permissions },
             mockToken
         );
-
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${SHARING_BASE_URL}/alerts/alert-1`, mockToken, {
-            method: "PATCH",
-            body: { public: "viewer" },
-            customerContext: undefined,
-        });
+        expect(response.isError).toBe(true);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 
     it("should return validation error for invalid resourceType", async () => {
@@ -224,7 +219,12 @@ describe("update_resource_permissions", () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
         const response = await handleUpdateResourcePermissionsRequest(
-            { resourceType: "budgets", resourceId: "budget-123", public: "viewer" },
+            {
+                resourceType: "budgets",
+                resourceId: "budget-123",
+                permissions: [{ user: "owner@company.com", role: "owner" }],
+                public: "viewer",
+            },
             mockToken
         );
 

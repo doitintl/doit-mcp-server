@@ -184,3 +184,23 @@ describe("get_cloud_connect_supported_features", () => {
         expect(response.isError).toBe(true);
     });
 });
+
+describe("supported feature AWS account validation", () => {
+    it.each(["123", "1234567890123", "abc123456789", "01234567-89ab-cdef-0123-456789abcdef"])(
+        "rejects non-AWS account ID %j before requesting",
+        async (accountID) => {
+            const response = await handleGetCloudConnectSupportedFeaturesRequest({ accountID }, "token");
+            expect(response.isError).toBe(true);
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        }
+    );
+    it("trims the AWS ID and preserves leading zeroes", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ supportedFeatures: [] });
+        await handleGetCloudConnectSupportedFeaturesRequest({ accountID: " 012345678901 " }, "token");
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${CLOUDCONNECT_BASE_URL}/supportedFeatures/012345678901`,
+            "token",
+            expect.any(Object)
+        );
+    });
+});

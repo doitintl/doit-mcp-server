@@ -22,14 +22,12 @@ const ALLOCATION_COMPONENT_TYPES = [
     "project_label",
     "system_label",
     "attribution",
-    "attribution_group",
+    "allocation_rule",
     "gke",
     "gke_label",
 ] as const;
 
-const ALLOCATION_COMPONENT_MODES = ["is", "contains", "starts_with", "ends_with"] as const;
-
-const GROUP_ALLOCATION_ACTIONS = ["create", "update", "select"] as const;
+const ALLOCATION_COMPONENT_MODES = ["is", "contains", "starts_with", "ends_with", "regexp"] as const;
 
 type AllocationComponentType = (typeof ALLOCATION_COMPONENT_TYPES)[number];
 type AllocationComponentMode = (typeof ALLOCATION_COMPONENT_MODES)[number];
@@ -43,7 +41,9 @@ export const ListAllocationsArgumentsSchema = z.object({
     name: z
         .string()
         .optional()
-        .describe("Partial name filter (case-insensitive). Returns only allocations whose name contains this string."),
+        .describe(
+            "Partial name filter (case-insensitive). Returns only allocations on the returned page whose name contains this string."
+        ),
 });
 
 export const GetAllocationArgumentsSchema = z
@@ -52,40 +52,69 @@ export const GetAllocationArgumentsSchema = z
         name: z
             .string()
             .optional()
-            .describe("Partial name match (case-insensitive). Used to find the allocation when ID is unknown."),
+            .describe(
+                "Case-insensitive substring search of only the first 200 allocations. Multiple matches return an ambiguity error listing names; id takes precedence."
+            ),
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 // Zod schema for an allocation component (matches AllocationComponent interface)
 const AllocationComponentSchema = z.object({
-    key: z.string().describe("Key of an existing dimension, label, or tag key"),
+    key: z
+        .string()
+        .describe(
+            "Key of an existing dimension, label or tag. For type allocation_rule, use key allocation_rule and existing rule IDs as values"
+        ),
     type: z.enum(ALLOCATION_COMPONENT_TYPES).describe("The type of the component"),
     values: z.array(z.string()).describe("Values to match against"),
     inverse_selection: z.boolean().optional().describe("If true, exclude matching values instead of including them"),
     include_null: z.boolean().optional().describe("If true, include resources with no value for this dimension"),
-    mode: z.enum(ALLOCATION_COMPONENT_MODES).describe("The matching mode for values"),
+    mode: z
+        .enum(ALLOCATION_COMPONENT_MODES)
+        .describe(
+            "Required matching mode; regexp requires exactly one pattern in values and a dimension that supports regular expressions"
+        ),
 });
 
 // Schema for a single allocation rule (used with 'rule' param)
 const SingleRuleInputSchema = z.object({
     components: z.array(AllocationComponentSchema).describe("Array of allocation components that define this rule"),
-    formula: z.string().describe("Logical formula combining components (e.g., 'A AND B')"),
+    formula: z
+        .string()
+        .describe(
+            "Logical formula combining components by array order: A is the first component, B the second (e.g., 'A AND B')"
+        ),
 });
 
 // Schema for a group allocation rule (used within 'rules' array)
-const GroupRuleInputSchema = SingleRuleInputSchema.extend({
-    name: z.string().optional().describe("Name of the rule"),
-    description: z.string().optional().describe("Description of the rule"),
-    action: z
-        .enum(GROUP_ALLOCATION_ACTIONS)
-        .describe("Required action for this rule (e.g., 'create', 'update', 'select')"),
-    id: z.string().optional().describe("Rule ID (for existing rules), required for 'update' and 'select' actions"),
-});
+const GroupRuleInputSchema = z.discriminatedUnion("action", [
+    SingleRuleInputSchema.extend({
+        action: z.literal("create").describe("Create a new rule and include it in the group; omit id."),
+        name: z.string().min(1).describe("Required name for the new rule."),
+        description: z.string().optional().describe("Description of the new rule."),
+        id: z.never().optional().describe("Must be absent for create."),
+    }),
+    SingleRuleInputSchema.extend({
+        action: z.literal("update").describe("Update an existing rule and include it in the group."),
+        id: z.string().min(1).describe("Required ID of the existing rule to update."),
+        name: z.string().min(1).optional().describe("New name for the updated rule; omit to preserve its name."),
+        description: z.string().optional().describe("Description of the updated rule."),
+    }),
+    z.object({
+        action: z.literal("select").describe("Include an existing rule unchanged; only id is needed."),
+        id: z.string().min(1).describe("Required ID of the existing rule to select."),
+    }),
+]);
 
 // Base object schema shared by create and update allocation
 const AllocationBaseMutationSchema = z.object({
-    name: z.string().describe("Human-readable name of the allocation"),
-    description: z.string().optional().describe("Description of the allocation's purpose"),
+    name: z.string().min(1).describe("Human-readable name of the allocation"),
+    description: z
+        .string()
+        .optional()
+        .describe(
+            "Description of the allocation. On update omission or an empty string preserves the stored description; the API does not support clearing it"
+        ),
     rule: SingleRuleInputSchema.optional().describe(
         "A single allocation rule that defines one grouping. Provide this for a single-rule allocation. Mutually exclusive with 'rules'"
     ),
@@ -94,57 +123,45 @@ const AllocationBaseMutationSchema = z.object({
         .min(2)
         .optional()
         .describe(
-            "Ordered list of allocation rules for a group allocation. Must include at least two rules. Mutually exclusive with 'rule'"
+            "Ordered list of at least two group rules. create creates a rule, update edits a rule, select includes it unchanged. On update this replaces the entire list; include every rule to retain. Mutually exclusive with rule; allocation type cannot change"
         ),
     unallocatedCosts: z
         .string()
         .nullable()
         .optional()
         .describe(
-            "Custom label for values that do not fit into any allocation rule (required when using 'rules' for group allocations)"
+            "Group-only label for unmatched costs. On update omission or null preserves the stored label; a string updates it independently of rules"
         ),
 });
 
-// Refinements for the create allocation arguments schema to apply validations on the input
-const createAllocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
-    schema
-        .refine((data: any) => (data.rule && !data.rules) || (!data.rule && data.rules), {
-            message:
-                "Provide either 'rule' (for a single-rule allocation) or 'rules' (for a group allocation), not both",
-        })
-        .refine((data: any) => !data.rules || data.unallocatedCosts !== undefined, {
-            message: "'unallocatedCosts' is required when using 'rules' for a group allocation",
-        });
+export const CreateAllocationArgumentsSchema = AllocationBaseMutationSchema.refine(
+    (data) => Boolean(data.rule) !== Boolean(data.rules),
+    { message: "Provide exactly one of 'rule' (single allocation) or 'rules' (group allocation)." }
+).refine((data) => !data.rule || data.unallocatedCosts == null, {
+    message: "unallocatedCosts is only supported for group allocations.",
+});
 
-// Refinements for the update allocation arguments schema to apply validations on the input
-const updateAllocationRefinements = <T extends z.ZodTypeAny>(schema: T) =>
-    schema
-        .refine((data: any) => !(data.rule && data.rules), {
-            message: "Provide at most one of 'rule' or 'rules', not both",
-        })
-        .refine((data: any) => !data.rules || data.unallocatedCosts !== undefined, {
-            message: "'unallocatedCosts' is required when using 'rules' for a group allocation",
-        });
-
-export const CreateAllocationArgumentsSchema = createAllocationRefinements(
-    AllocationBaseMutationSchema.extend({
-        description: z.string().describe("Description of the allocation's purpose"),
+export const UpdateAllocationArgumentsSchema = AllocationBaseMutationSchema.extend({
+    id: z.string().min(1).describe("The ID of the allocation to update"),
+    name: AllocationBaseMutationSchema.shape.name.optional().describe("New name; omit to keep the current name."),
+})
+    .refine((data) => !(data.rule && data.rules), {
+        message: "Provide at most one of 'rule' or 'rules'; use the existing allocation's type.",
     })
-);
-
-export const UpdateAllocationArgumentsSchema = updateAllocationRefinements(
-    AllocationBaseMutationSchema.extend({
-        id: z.string().describe("The ID of the allocation to update"),
-    })
-);
+    .refine((data) => !data.rule || data.unallocatedCosts == null, {
+        message: "unallocatedCosts is only supported for group allocations.",
+    });
 
 // Interfaces
 export interface AllocationComponent {
     key: string;
     type: AllocationComponentType;
     values: string[];
-    inverse_selection: boolean;
-    include_null: boolean;
+    inverse_selection?: boolean;
+    include_null?: boolean;
+    inverse?: boolean;
+    includeNull?: boolean;
+    caseInsensitive?: boolean;
     mode: AllocationComponentMode;
 }
 
@@ -164,6 +181,16 @@ export interface AllocationListItem {
     urlUI: string;
 }
 
+export interface AllocationGroupRule {
+    id: string;
+    name: string;
+    owner: string;
+    description: string;
+    type: string;
+    createTime: number;
+    updateTime: number;
+}
+
 export interface AllocationDetails {
     id: string;
     name: string;
@@ -172,12 +199,14 @@ export interface AllocationDetails {
     allocationType: "single" | "multiple";
     createTime: number;
     updateTime: number;
-    anomalyDetection: boolean;
-    rule: AllocationRule;
+    anomalyDetection?: boolean;
+    rule?: AllocationRule;
+    rules?: AllocationGroupRule[];
+    unallocatedCosts?: string | null;
 }
 
 export interface AllocationsResponse {
-    pageToken?: string;
+    pageToken?: string | null;
     allocations: AllocationListItem[];
 }
 
@@ -187,7 +216,7 @@ export const listAllocationsTool = {
     title: "List allocations",
     coversEndpoint: "get:/analytics/v1/allocations",
     description:
-        "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Supports partial name filtering. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
+        "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Returns pages of 40; pass the returned pageToken for another page (null means no next page). The case-insensitive partial name filter applies only to that returned page. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
     inputSchema: zodToMcpInputSchema(ListAllocationsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -206,7 +235,7 @@ export const getAllocationTool = {
     title: "Get allocation",
     coversEndpoint: "get:/analytics/v1/allocations/{id}",
     description:
-        "Use this when the user wants to view details of a specific cost allocation. Accepts either the allocation ID or a partial name (case-insensitive). Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
+        "Use this when the user wants to view details of a specific cost allocation. Accepts either the allocation ID or a case-insensitive partial name. Name lookup searches only the first 200 allocations; multiple matches return an error listing names, and id takes precedence. Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
     inputSchema: zodToMcpInputSchema(GetAllocationArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -244,7 +273,7 @@ export const updateAllocationTool = {
     title: "Update allocation",
     coversEndpoint: "patch:/analytics/v1/allocations/{id}",
     description:
-        "Use this when the user wants to modify an existing cost allocation. Changes apply immediately. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
+        "Use this when the user wants to modify an existing cost allocation. Omitted fields are preserved. Use rule for an existing single allocation and rules for an existing group; the type cannot change. A supplied rules list replaces the entire group membership. Changes apply immediately. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
     inputSchema: zodToMcpInputSchema(UpdateAllocationArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -338,7 +367,7 @@ export async function handleCreateAllocationRequest(args: any, token: string) {
             name: parsed.name,
         };
 
-        if (parsed.description) {
+        if (parsed.description !== undefined) {
             requestBody.description = parsed.description;
         }
 
@@ -383,20 +412,7 @@ export async function handleUpdateAllocationRequest(args: any, token: string) {
 
         const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(parsed.id)}`;
 
-        const requestBody: Record<string, any> = {
-            name: parsed.name,
-        };
-
-        if (parsed.description) {
-            requestBody.description = parsed.description;
-        }
-
-        if (parsed.rules) {
-            requestBody.rules = parsed.rules;
-            requestBody.unallocatedCosts = parsed.unallocatedCosts;
-        } else if (parsed.rule) {
-            requestBody.rule = parsed.rule;
-        }
+        const { id: _id, ...requestBody } = parsed;
 
         try {
             const responseData = await makeDoitRequest<{
@@ -466,6 +482,8 @@ export async function handleGetAllocationRequest(args: any, token: string) {
                 updateTime: allocationData.updateTime,
                 anomalyDetection: allocationData.anomalyDetection,
                 rule: allocationData.rule,
+                rules: allocationData.rules,
+                unallocatedCosts: allocationData.unallocatedCosts,
             };
 
             return createSuccessResponse(JSON.stringify(formattedAllocation, null, 2));

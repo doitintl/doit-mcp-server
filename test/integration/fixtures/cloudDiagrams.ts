@@ -65,7 +65,7 @@ export const cloudDiagramNodeActivitiesFixture = [
         activity: "NODE_UPDATE",
         metadata: { field: "name", from: "old", to: "web-server" },
         timestamp: "2026-04-28T12:05:00Z",
-        user: "alice@example.com",
+        user: "user-1",
         statussheet: "sheet-1",
     },
     {
@@ -73,7 +73,7 @@ export const cloudDiagramNodeActivitiesFixture = [
         activity: "NODE_CREATE",
         metadata: { nodeId: "node-1" },
         timestamp: "2026-04-28T12:00:00Z",
-        user: "alice@example.com",
+        user: "user-1",
         statussheet: "sheet-1",
     },
 ];
@@ -126,27 +126,25 @@ export const cloudDiagramCostSnapshotFixture = {
     ],
 };
 
-export const cloudDiagramComponentsFixture = [
-    {
-        _id: "scheme-1",
-        name: "Production VPC",
-        type: "infrastructure",
-        account_name: "prod-account",
-        statussheet: {
-            "sheet-1": { _id: "sheet-1", account_name: "prod-account" },
-            "sheet-2": { _id: "sheet-2", account_name: "staging-account" },
+export const cloudDiagramComponentsFixture = {
+    scheme: {
+        "scheme-1": {
+            _id: "scheme-1",
+            name: "Production VPC",
+            type: "infrastructure",
+            statussheet: [
+                { _id: "sheet-1", ssid: "sheet-1" },
+                { _id: "sheet-2", ssid: "sheet-2" },
+            ],
+        },
+        "scheme-2": {
+            _id: "scheme-2",
+            name: "Dev Environment",
+            type: "application",
+            statussheet: [{ _id: "sheet-3", ssid: "sheet-3" }],
         },
     },
-    {
-        _id: "scheme-2",
-        name: "Dev Environment",
-        type: "application",
-        account_name: "dev-account",
-        statussheet: {
-            "sheet-3": { _id: "sheet-3", account_name: "dev-account" },
-        },
-    },
-];
+};
 
 export const cloudDiagramResourceRelationshipsFixture = {
     anchor: { id: "node-1", type: "node", name: "web-server", serviceType: "AWS::EC2::Instance" },

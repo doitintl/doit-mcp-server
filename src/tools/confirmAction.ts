@@ -8,7 +8,7 @@ export const ConfirmActionArgumentsSchema = z.object({
         .string()
         .min(1, "token is required and cannot be empty.")
         .describe(
-            "The approval token returned by a previous write/mutating tool call. Exactly as received, no quoting changes."
+            "The one-time, user-bound approval token returned by a staged generated DELETE call. Expires after five minutes. Exactly as received, no quoting changes."
         ),
 });
 
@@ -26,11 +26,11 @@ export const confirmActionTool = {
     title: "Confirm pending action",
     coversEndpoint: null,
     description:
-        "Runs a write action (e.g. creating, updating, or deleting a resource) that another " +
+        "Runs a generated DELETE operation that another " +
         'tool staged and returned as `status: "approval_required"` with a summary and a ' +
         "one-time approval token. Intended for use after the user approves that summary. A token " +
         "that is never confirmed expires after 5 minutes, and the staged action does not run. " +
-        "The token must match the returned value exactly.",
+        "The token is bound to the authenticated caller and must match exactly. An attempted confirmation consumes it even if the caller differs or execution fails. Creates and updates are not staged by the current tool registry.",
     inputSchema: zodToMcpInputSchema(ConfirmActionArgumentsSchema),
     annotations: {
         readOnlyHint: false,

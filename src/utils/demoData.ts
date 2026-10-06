@@ -647,7 +647,11 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     }
     // reports — list
     if (path.includes("/analytics/v1/reports") && GET) {
-        return { rowCount: DEMO_REPORTS.length, reports: DEMO_REPORTS };
+        const name = new URL(url, "https://api.doit.com").searchParams.get("nameContains")?.toLowerCase();
+        const reports = name
+            ? DEMO_REPORTS.filter((report) => report.reportName.toLowerCase().includes(name))
+            : DEMO_REPORTS;
+        return { rowCount: reports.length, reports };
     }
 
     // anomalies — individual
@@ -670,7 +674,11 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     }
     // budgets — list
     if (path.includes("/analytics/v1/budgets")) {
-        return { rowCount: DEMO_BUDGETS.length, budgets: DEMO_BUDGETS };
+        const name = new URL(url, "https://api.doit.com").searchParams.get("nameContains")?.toLowerCase();
+        const budgets = name
+            ? DEMO_BUDGETS.filter((budget) => budget.budgetName.toLowerCase().includes(name))
+            : DEMO_BUDGETS;
+        return { rowCount: budgets.length, budgets };
     }
 
     // alerts — individual
@@ -777,7 +785,17 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     }
     // cloud incidents — list
     if (path.includes("/core/v1/cloudincidents")) {
-        return { rowCount: DEMO_INCIDENTS.length, incidents: DEMO_INCIDENTS };
+        const filters = new URL(url, "https://api.doit.com").searchParams.getAll("filter");
+        const platforms = filters.flatMap((filter) =>
+            filter
+                .split("|")
+                .filter((part) => part.startsWith("platform:"))
+                .map((part) => part.slice("platform:".length))
+        );
+        const incidents = platforms.length
+            ? DEMO_INCIDENTS.filter((incident) => platforms.includes(incident.platform))
+            : DEMO_INCIDENTS;
+        return { rowCount: incidents.length, incidents };
     }
 
     // users

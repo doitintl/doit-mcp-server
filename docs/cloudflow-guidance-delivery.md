@@ -1,11 +1,15 @@
 # Delivering CloudFlow authoring guidance to the model
 
-Status: **implemented** (steps 1 and 2 of §8; Worker adoption still outstanding). Implementation
+Status: **implemented** in this package; companion Worker delivery is covered by consumer tests. Implementation
 spec for one change: making the CloudFlow runtime contract reach the model that is writing flows,
 through this server. Kept in the repo as the record of what was decided and why — the code it
 describes lives in `src/docs/cloudflowGuidance.ts`.
 
 Scope: `doitintl/doit-mcp-server` only. No API change, no change to the flow builder.
+
+This document records the original delivery design. Runtime wording is maintained only in
+[`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts): JavaScript is the default,
+bare upstream input access fails the node, and test runs can execute real actions on drafts.
 
 ## 1. The problem
 
@@ -88,23 +92,9 @@ this server — see the risk in §6.
 
 ### C1 — `src/docs/cloudflowGuidance.ts` (new)
 
-```ts
-/** Appended to the CloudFlow tool descriptions where the rule is actionable at call time. */
-export const CLOUDFLOW_CODENODE_HINT =
-    "codeNode contract: upstream data comes only from `nodes[\"<node name>\"]` (a dict of lists); " +
-    "the code body must end in a top-level `return`; `schema` is required. Code that defines an " +
-    "uncalled function, reads a bare `input`, or assigns `output` completes with `{message: null}` " +
-    "— no error, no result.";
-
-/** Appended to build_cloud_flow / refine_cloudflow. */
-export const CLOUDFLOW_BUILDER_HINT =
-    "Generated codeNode code is frequently broken in ways that pass validation and fail silently " +
-    "at run time, so a successful build shows only that a draft was saved. export_cloudflow_flow " +
-    "returns the saved code; a completed test run's per-node output shows whether it works.";
-
-export const CLOUDFLOW_INSTRUCTIONS = `...`; // §5
-export const CLOUDFLOW_AUTHORING_GUIDE = `...`; // the full guide
-```
+The module exports `CLOUDFLOW_CODENODE_HINT`, `CLOUDFLOW_BUILDER_HINT`,
+`CLOUDFLOW_INSTRUCTIONS`, and `CLOUDFLOW_AUTHORING_GUIDE`. Their current text lives in the
+module, so this design record does not duplicate the runtime contract.
 
 ### C2 — `src/core.ts`
 
@@ -187,15 +177,9 @@ override hook** — unlike the sibling external-API MCP repo, which has exactly 
 never used it. Add one here, because the spec is the API's contract and not the place to write
 prompts:
 
-```ts
-export type ToolOverride = { descriptionSuffix?: string };
-
-export const toolOverrides: Record<string, ToolOverride> = {
-    import_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
-    export_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
-    test_run_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_BUILDER_HINT },
-};
-```
+`toolOverrides` adds the codeNode hint to import/export. Import and test-run also explain
+idempotency and dry-run semantics. Test-run has its own validation/execution warning, rather
+than the builder hint about a saved draft. See `src/tools/generated/overrides.ts`.
 
 Hook it into the existing composition (keyed by the snake_cased tool name from `toolNameFor`):
 
@@ -236,21 +220,9 @@ Kept to what changes behavior; everything else lives in the resource. All three 
 about the platform rather than rules for the model: directory review (e.g. the Claude Connectors
 Directory) rejects tool text that tells the model to always call other tools or what it may claim.
 
-```
-CloudFlow authoring: nothing runs or publishes until a human publishes, so a draft never has to
-be perfect. The authoring loop is build or clone → export and inspect → dry-run import →
-test-run → read the per-node output. Cloning an existing flow is more reliable than generating
-from scratch: a real export is the only ground truth for node parameter shapes and reference syntax.
-
-codeNode is where generated flows break, and it breaks silently. Upstream data comes only from
-`nodes["<node name>"]`, a dict of lists — there is no injected `input` variable. The code body is
-executed directly: end it with a top-level `return`. A `schema` (JSON Schema string) is required.
-Code that defines an uncalled function, reads a bare `input`, or assigns `output` instead of
-returning completes with `{message: null}` — no error, no result, and every validation gate passes.
-
-Validation and a clean import show only that a flow is well-formed. A completed test run whose
-per-node output matches intent is what shows the flow works.
-```
+The current instruction text is `CLOUDFLOW_INSTRUCTIONS` in
+[`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts). It distinguishes both
+codeNode languages, validation from real draft execution, and build/refine results.
 
 ## 6. Risks and limits
 

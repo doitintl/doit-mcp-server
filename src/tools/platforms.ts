@@ -19,7 +19,7 @@ export const listPlatformsTool = {
     title: "List platforms",
     coversEndpoint: "get:/support/v1/metadata/platforms",
     description:
-        "Use this when the user wants to see available cloud platforms in their DoiT account. Returns a list of platforms. Do NOT use this for cloud incidents (use get_cloud_incidents) or products (use list_products).",
+        "Use this when the user wants to see the support-ticket platform catalog. Returns platform IDs and display names for create_ticket; this catalog does not list connected cloud accounts. Do NOT use this for cloud incidents (use get_cloud_incidents) or products (use list_products).",
     inputSchema: zodToMcpInputSchema(ListPlatformsArgumentsSchema),
     annotations: {
         readOnlyHint: true,

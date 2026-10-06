@@ -25,6 +25,16 @@ afterEach(() => {
 describe("users", () => {
     const mockToken = "fake-token";
 
+    it("retains pending invites and roleId values for resolution via list_roles", async () => {
+        const users = [
+            { id: "active", status: "active", roleId: "support-user" },
+            { id: "pending", status: "invited", roleId: "support-user" },
+        ];
+        vi.mocked(makeDoitRequest).mockResolvedValue({ users, rowCount: 2 });
+        const result = await handleListUsersRequest({}, mockToken);
+        expect(JSON.parse(result.content[0].text)).toEqual({ users, rowCount: 2 });
+    });
+
     const mockUser = {
         id: "user-1",
         email: "alice@example.com",

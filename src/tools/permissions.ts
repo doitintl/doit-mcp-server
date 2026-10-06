@@ -86,19 +86,21 @@ export const UpdateResourcePermissionsArgumentsSchema = z.object({
     permissions: z
         .array(
             z.object({
-                user: z.string().describe("Email address of the user."),
+                user: z
+                    .string()
+                    .describe("Email in an organization or DoiT domain; Slack/Teams addresses may only be viewers."),
                 role: ResourcePermissionRoleSchema.describe("Role to grant: owner, editor, or viewer."),
             })
         )
-        .optional()
+        .min(1)
         .describe(
-            "List of per-user permission entries to set. Each entry has a user (email) and a role (owner, editor, or viewer)."
+            "Required nonempty replacement list, not a merge. Include every permission to retain and exactly one owner."
         ),
     public: z
         .union([z.enum(["editor", "viewer"]), z.null()])
         .optional()
         .describe(
-            "Public visibility level. Set to 'editor' or 'viewer' to share with all users, or null to make private."
+            "Public visibility: editor or viewer shares with all users in the organization. For reports, alerts and budgets, omission or null makes the resource private; omission does not preserve prior public access. Allocations require editor or viewer and reject omission/null."
         ),
 });
 
@@ -107,7 +109,7 @@ export const updateResourcePermissionsTool = {
     title: "Update resource permissions",
     coversEndpoint: "put:/sharing/v1/{resourceType}/{resourceId}",
     description:
-        "Use this when the user wants to change who a Cloud Analytics resource is shared with or update access levels. Updates the sharing settings (per-user roles and/or public visibility) for a specific alert, budget, report, or allocation. Requires resourceType and resourceId; at least one of permissions or public should be provided. Do NOT use this to view current permissions (use get_resource_permissions).",
+        "Use this when the user wants to change who a Cloud Analytics resource is shared with or update access levels. Replaces sharing settings with PUT for a specific alert, budget, custom report, or allocation. Requires resourceType, resourceId and a nonempty permissions list with exactly one owner. Read current permissions first and retain all intended entries. Only the current owner or a user with Ownership assignment permission may transfer ownership. Omitted public makes reports, alerts and budgets private; allocations reject omitted/null public. Do NOT use this to view current permissions (use get_resource_permissions).",
     inputSchema: zodToMcpInputSchema(UpdateResourcePermissionsArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -133,12 +135,11 @@ export async function handleUpdateResourcePermissionsRequest(args: any, token: s
 
         const url = `${SHARING_BASE_URL}/${encodeURIComponent(resourceType)}/${encodeURIComponent(resourceId)}`;
 
-        const body: UpdateResourcePermissionsRequest = {};
-        if (permissions !== undefined) body.permissions = permissions;
+        const body: UpdateResourcePermissionsRequest = { permissions };
         if (publicAccess !== undefined) body.public = publicAccess;
 
         const data = await makeDoitRequest<ResourcePermissionsResponse>(url, token, {
-            method: "PATCH",
+            method: "PUT",
             body,
             customerContext,
         });

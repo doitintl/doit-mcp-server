@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CLOUDFLOW_BUILDER_HINT } from "../docs/cloudflowGuidance.js";
+import { CLOUDFLOW_BUILDER_HINT, CLOUDFLOW_RETRY_HINT } from "../docs/cloudflowGuidance.js";
 import type {
     CloudFlowConnection,
     CloudFlowConnectionsResponse,
@@ -29,11 +29,11 @@ export const DEFAULT_MAX_RESULTS_CLOUDFLOW_TEMPLATES = "50";
 export const DEFAULT_MAX_RESULTS_CLOUDFLOW_FLOWS = "50";
 
 export const TriggerCloudFlowArgumentsSchema = z.object({
-    flowID: z.string().describe("The ID of the CloudFlow flow to trigger"),
+    flowID: z.string().describe("The ID or CloudFlow trigger URL of a published flow with a webhook trigger."),
     requestBodyJson: z
         .record(z.string(), z.unknown())
         .optional()
-        .describe("Optional JSON object to pass as the request body to the flow if the flow requires it"),
+        .describe("Webhook payload passed to the flow. Defaults to an empty object."),
 });
 
 const CLOUDFLOW_TRIGGER_PATH = new URL(CLOUDFLOW_TRIGGER_BASE_URL).pathname.replace(/\/+$/, "");
@@ -84,7 +84,7 @@ export const triggerCloudFlowTool = {
     title: "Trigger CloudFlow flow",
     coversEndpoint: "post:/cloudflow/v1/trigger/{flowId}",
     description:
-        "Use this when the user wants to trigger an automated CloudFlow workflow by its flow ID. This executes automation that may modify cloud resources externally. The flow starts immediately. Do NOT use this for viewing CloudFlow definitions or checking available flows.",
+        "Triggers a published CloudFlow with a webhook trigger by flow ID or trigger URL. Executes real actions immediately and returns executionLink. Drafts fail with 403, flows without a webhook trigger with 400, and already-running flows with 409. Manual or scheduled flows use trigger_cloudflow_flow instead. This may modify external cloud resources.",
     inputSchema: zodToMcpInputSchema(TriggerCloudFlowArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -109,7 +109,7 @@ export const refineCloudflowTool = {
     title: "Refine CloudFlow flow",
     coversEndpoint: "post:/cloudflow/v1/flows/{flowId}/actions/refine",
     description:
-        "Use this when the user wants to refine or rebuild an existing CloudFlow automation using natural language. Streams real-time progress updates while the AI builds the flow, then returns the final result. " +
+        "Refines an existing CloudFlow using natural language. Streams progress and returns the answer and conversationId; normally no flowId is returned. A plan or clarification question may save nothing. Reusing conversationId continues that conversation. " +
         CLOUDFLOW_BUILDER_HINT,
     inputSchema: zodToMcpInputSchema(RefineCloudflowArgumentsSchema),
     annotations: {
@@ -134,7 +134,7 @@ export const buildCloudflowTool = {
     title: "Build CloudFlow flow",
     coversEndpoint: "post:/cloudflow/v1/flows/actions/build",
     description:
-        "Use this when the user wants to build a brand-new CloudFlow automation from scratch using natural language. Streams real-time progress while the AI builds the flow, then returns the newly created flow's ID, the builder's answer, and the build steps that ran. Use refine_cloudflow to change an existing flow; use this only to create a new one. " +
+        "Use this when the user wants to build a brand-new CloudFlow automation from scratch using natural language. Creates the draft before planning, so flowId can be returned even if the builder stops early. Streams progress and returns flowId, conversationId, the answer, and any build steps. Reusing conversationId continues the conversation but this endpoint still creates a new draft; refine_cloudflow targets an existing flow. " +
         CLOUDFLOW_BUILDER_HINT,
     inputSchema: zodToMcpInputSchema(BuildCloudflowArgumentsSchema),
     annotations: {
@@ -385,7 +385,7 @@ export const ListCloudFlowConnectionsArgumentsSchema = z.object({
     pageToken: z
         .string()
         .optional()
-        .describe("Pagination cursor returned by a previous call, to request the next page of results."),
+        .describe("Pagination cursor returned by a previous call. Expires after five minutes."),
 });
 
 export const listCloudFlowConnectionsTool = {
@@ -537,6 +537,14 @@ const CloudFlowCollaboratorSchema = z.object({
 
 // Schema and metadata for create a CloudFlow connection
 export const CreateCloudFlowConnectionArgumentsSchema = z.object({
+    idempotencyKey: z
+        .string()
+        .min(1)
+        .regex(/^[\x21-\x7e]+$/, "Idempotency key must contain only visible ASCII characters.")
+        .describe(
+            "Idempotency-Key for this create attempt. Reuse the same key and body for retries within 24 hours; a different body with the same key fails with 422, an in-progress request with 409. A new key starts a separate create. " +
+                CLOUDFLOW_RETRY_HINT
+        ),
     name: z.string().min(1).describe("Human-readable connection name (required, non-empty)."),
     description: z.string().optional().describe("Optional description of the connection."),
     gcpConfig: CloudFlowGcpConfigSchema.optional().describe(
@@ -573,7 +581,7 @@ export const createCloudFlowConnectionTool = {
 
 export async function handleCreateCloudFlowConnectionRequest(args: any, token: string) {
     try {
-        const parsed = CreateCloudFlowConnectionArgumentsSchema.parse(args);
+        const { idempotencyKey, ...parsed } = CreateCloudFlowConnectionArgumentsSchema.parse(args);
         const { customerContext } = args;
 
         if (Boolean(parsed.gcpConfig) === Boolean(parsed.awsConfig)) {
@@ -582,6 +590,7 @@ export async function handleCreateCloudFlowConnectionRequest(args: any, token: s
 
         const data = await makeDoitRequest<CloudFlowConnection>(CLOUDFLOW_CONNECTIONS_BASE_URL, token, {
             method: "POST",
+            headers: { "Idempotency-Key": idempotencyKey },
             body: parsed,
             customerContext,
         });
@@ -599,6 +608,12 @@ export async function handleCreateCloudFlowConnectionRequest(args: any, token: s
 
 // Schema and metadata for update a CloudFlow connection
 export const UpdateCloudFlowConnectionArgumentsSchema = z.object({
+    ifMatch: z
+        .string()
+        .regex(/^(?:W\/)?"[\x21\x23-\x7e]+"$/, "ifMatch must be a quoted resource ETag, not a wildcard.")
+        .describe(
+            "ETag from the connection's last read or write response (etag), including quotes. Sent as If-Match; a stale version fails with 412. Wildcards are rejected. The API checks before writing; simultaneous updates can still race. Serialize updates and read the result before another change."
+        ),
     connectionId: z
         .string()
         .transform((val) => val.trim())
@@ -608,22 +623,27 @@ export const UpdateCloudFlowConnectionArgumentsSchema = z.object({
     description: z.string().optional().describe("New description for the connection."),
     enabled: z.boolean().optional().describe("Set to false to disable the connection, true to re-enable it."),
     gcpConfig: CloudFlowGcpConfigSchema.optional().describe(
-        "Updated GCP configuration. At most one of gcpConfig or awsConfig may be set per request."
+        "Full replacement GCP configuration, not a merge. At most one of gcpConfig or awsConfig may be set per request."
     ),
     awsConfig: CloudFlowAwsConfigSchema.optional().describe(
-        "Updated AWS configuration. At most one of gcpConfig or awsConfig may be set per request."
+        "Full replacement AWS configuration, not a merge. At most one of gcpConfig or awsConfig may be set per request."
     ),
     collaborators: z
         .array(CloudFlowCollaboratorSchema)
+        .refine((collaborators) => collaborators.filter((collaborator) => collaborator.role === "owner").length === 1, {
+            message: "Replacement collaborators must include exactly one owner.",
+        })
         .optional()
-        .describe("Updated list of collaborators and their roles on the connection."),
+        .describe(
+            "Full replacement list of collaborators and roles; retain exactly one owner. Omitted leaves unchanged; an empty list is invalid."
+        ),
 });
 
 export const updateCloudFlowConnectionTool = {
     name: "update_cloudflow_connection",
     title: "Update CloudFlow connection",
     description:
-        "Use this when the user wants to update an existing CloudFlow cloud provider connection — rename it, change its description, enable/disable it, update its GCP/AWS configuration, or change collaborators. All fields except connectionId are optional; at most one of gcpConfig or awsConfig may be set per request. Changes apply immediately. Do NOT use this to create a new connection (use create_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
+        "Updates a CloudFlow connection immediately using connectionId and the last observed ETag (ifMatch). A stale ETag fails with 412. Other fields are optional; supplied gcpConfig/awsConfig and collaborators replace their stored values wholesale. Retain exactly one owner when replacing collaborators. At most one provider config may be supplied. Serialize updates because the API version check is not atomic with the write. If an HTTP failure has only generic text, do not infer its status or retry automatically.",
     coversEndpoint: "patch:/cloudflow/v1/connections/{connectionId}",
     inputSchema: zodToMcpInputSchema(UpdateCloudFlowConnectionArgumentsSchema),
     annotations: {
@@ -642,7 +662,7 @@ export async function handleUpdateCloudFlowConnectionRequest(args: any, token: s
     try {
         const parsed = UpdateCloudFlowConnectionArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const { connectionId, ...body } = parsed;
+        const { connectionId, ifMatch, ...body } = parsed;
 
         if (body.gcpConfig && body.awsConfig) {
             return createErrorResponse("At most one of gcpConfig or awsConfig may be set per request.");
@@ -652,6 +672,7 @@ export async function handleUpdateCloudFlowConnectionRequest(args: any, token: s
 
         const data = await makeDoitRequest<CloudFlowConnection>(url, token, {
             method: "PATCH",
+            headers: { "If-Match": ifMatch },
             body,
             customerContext,
         });
@@ -678,7 +699,7 @@ export const ListCloudFlowTemplatesArgumentsSchema = z.object({
     pageToken: z
         .string()
         .optional()
-        .describe("Pagination cursor returned by a previous call, to request the next page of results."),
+        .describe("Pagination cursor returned by a previous call. Expires after five minutes."),
 });
 
 export const listCloudFlowTemplatesTool = {
@@ -787,7 +808,7 @@ export const ListCloudFlowsArgumentsSchema = z.object({
     pageToken: z
         .string()
         .optional()
-        .describe("Pagination cursor returned by a previous call, to request the next page of results."),
+        .describe("Pagination cursor returned by a previous call. Expires after five minutes."),
 });
 
 export const listCloudFlowsTool = {

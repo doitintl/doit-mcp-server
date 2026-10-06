@@ -397,11 +397,11 @@ describe("create_annotation", () => {
         });
     });
 
-    it("should return error when timestamp is not a valid ISO 8601 date-time", async () => {
+    it("should return error when timestamp is not a valid RFC 3339 date-time", async () => {
         const response = await handleCreateAnnotationRequest({ content: "Test", timestamp: "not-a-date" }, mockToken);
 
         expect(response).toEqual({
-            content: [{ type: "text", text: expect.stringContaining("ISO 8601") }],
+            content: [{ type: "text", text: expect.stringContaining("RFC 3339") }],
             isError: true,
         });
     });
@@ -439,14 +439,14 @@ describe("update_annotation", () => {
     it("should send only provided fields in body", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
 
-        await handleUpdateAnnotationRequest({ id: "annotation-1", labels: ["label-2"] }, mockToken);
+        await handleUpdateAnnotationRequest({ id: "annotation-1", content: "Keep", labels: ["label-2"] }, mockToken);
 
         expect(makeDoitRequest).toHaveBeenCalledWith(
             expect.stringContaining("/annotation-1"),
             mockToken,
             expect.objectContaining({
                 method: "PATCH",
-                body: { labels: ["label-2"] },
+                body: { content: "Keep", labels: ["label-2"] },
             })
         );
     });
@@ -512,63 +512,45 @@ describe("update_annotation", () => {
         });
     });
 
-    it("should forward null content to clear the field", async () => {
+    it("rejects null content before sending", async () => {
+        const response = await handleUpdateAnnotationRequest({ id: "annotation-1", content: null }, mockToken);
+        expect(response.isError).toBe(true);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("should forward null labels as unchanged", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
 
-        await handleUpdateAnnotationRequest({ id: "annotation-1", content: null }, mockToken);
+        await handleUpdateAnnotationRequest({ id: "annotation-1", content: "Keep", labels: null }, mockToken);
 
         expect(makeDoitRequest).toHaveBeenCalledWith(
             expect.stringContaining("/annotation-1"),
             mockToken,
             expect.objectContaining({
                 method: "PATCH",
-                body: { content: null },
+                body: { content: "Keep", labels: null },
             })
         );
     });
 
-    it("should forward null labels to clear the field", async () => {
+    it("should forward null timestamp as unchanged", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
 
-        await handleUpdateAnnotationRequest({ id: "annotation-1", labels: null }, mockToken);
+        await handleUpdateAnnotationRequest({ id: "annotation-1", content: "Keep", timestamp: null }, mockToken);
 
         expect(makeDoitRequest).toHaveBeenCalledWith(
             expect.stringContaining("/annotation-1"),
             mockToken,
             expect.objectContaining({
                 method: "PATCH",
-                body: { labels: null },
+                body: { content: "Keep", timestamp: null },
             })
         );
     });
 
-    it("should forward null timestamp to clear the field", async () => {
-        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
-
-        await handleUpdateAnnotationRequest({ id: "annotation-1", timestamp: null }, mockToken);
-
-        expect(makeDoitRequest).toHaveBeenCalledWith(
-            expect.stringContaining("/annotation-1"),
-            mockToken,
-            expect.objectContaining({
-                method: "PATCH",
-                body: { timestamp: null },
-            })
-        );
-    });
-
-    it("should send empty body when only id is provided", async () => {
-        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedAnnotation);
-
-        await handleUpdateAnnotationRequest({ id: "annotation-1" }, mockToken);
-
-        expect(makeDoitRequest).toHaveBeenCalledWith(
-            expect.stringContaining("/annotation-1"),
-            mockToken,
-            expect.objectContaining({
-                method: "PATCH",
-                body: {},
-            })
-        );
+    it("rejects missing content before sending", async () => {
+        const response = await handleUpdateAnnotationRequest({ id: "annotation-1" }, mockToken);
+        expect(response.isError).toBe(true);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });

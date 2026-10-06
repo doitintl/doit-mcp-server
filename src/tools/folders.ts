@@ -22,7 +22,7 @@ export const ListFoldersArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            `The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS_FOLDERS}.`
+            `The maximum number of results per page, as an integer string (1-500). Out-of-range integers fall back to 50; non-integers are rejected. This tool defaults to ${DEFAULT_MAX_RESULTS_FOLDERS}.`
         ),
     pageToken: z
         .string()
@@ -88,7 +88,9 @@ export const GetFolderArgumentsSchema = z
         name: z
             .string()
             .optional()
-            .describe("Partial name match (case-insensitive). Used to find the folder when ID is unknown."),
+            .describe(
+                "Case-insensitive substring search of only the first 200 folders. Multiple matches return an ambiguity error listing names; id takes precedence."
+            ),
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
@@ -97,7 +99,7 @@ export const getFolderTool = {
     title: "Get folder",
     coversEndpoint: "get:/analytics/v1/folders/{id}",
     description:
-        "Use this when the user wants to view details of a specific Cloud Analytics folder. Accepts either the folder ID or a partial name (case-insensitive). Do NOT use this for listing all folders (use list_folders) or viewing reports (use get_report_config).",
+        "Use this when the user wants to view details of a specific Cloud Analytics folder. Accepts either the folder ID or a case-insensitive partial name. Name lookup searches only the first 200 folders; multiple matches return an error listing names, and id takes precedence. Do NOT use this for listing all folders (use list_folders) or viewing reports (use get_report_config).",
     inputSchema: zodToMcpInputSchema(GetFolderArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -155,7 +157,7 @@ export const createFolderTool = {
     title: "Create folder",
     coversEndpoint: "post:/analytics/v1/folders",
     description:
-        "Use this when the user wants to create a new Cloud Analytics folder to organize reports and allocations. Changes apply immediately. Do NOT use this for creating reports (use create_report) or labels (use create_label).",
+        "Use this when the user wants to create a new Cloud Analytics folder to organize reports and allocations. A duplicate sibling name or invalid parent is rejected. Changes apply immediately. Do NOT use this for creating reports (use create_report) or labels (use create_label).",
     inputSchema: zodToMcpInputSchema(CreateFolderArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -200,7 +202,11 @@ export const UpdateFolderArgumentsSchema = z.object({
         .pipe(z.string().min(1, "Folder ID is required and cannot be empty."))
         .describe("The ID of the folder to update (required)."),
     name: z.string().min(1).optional().describe("New name for the folder."),
-    description: z.string().nullable().optional().describe("New description for the folder. Set to null to clear."),
+    description: z
+        .string()
+        .nullable()
+        .optional()
+        .describe("New description for the folder. Empty string clears; omission or null leaves unchanged."),
     parentFolderId: z
         .string()
         .optional()
@@ -212,7 +218,7 @@ export const updateFolderTool = {
     title: "Update folder",
     coversEndpoint: "patch:/analytics/v1/folders/{id}",
     description:
-        "Use this when the user wants to rename, re-describe, or move (reparent) an existing Cloud Analytics folder. Changes apply immediately. Note: if a sibling folder at the target parent already has the same name, the folder will be auto-renamed by the API. Do NOT use this for creating new folders (use create_folder) or updating reports (use update_report).",
+        "Use this when the user wants to rename, re-describe, or move (reparent) an existing Cloud Analytics folder. Changes apply immediately. Auto-renaming on collision applies only when moving to another parent; a rename that collides with a sibling is rejected. Invalid parents and moves into self or a descendant are rejected. Do NOT use this for creating new folders (use create_folder) or updating reports (use update_report).",
     inputSchema: zodToMcpInputSchema(UpdateFolderArgumentsSchema),
     annotations: {
         readOnlyHint: false,

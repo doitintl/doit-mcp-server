@@ -1,0 +1,611 @@
+{
+  "date": "2026-10-05",
+  "baseline": "15b6b1cb058751858d8792d631f59f8d97577c23",
+  "scope": [
+    "insights",
+    "alerts",
+    "budgets",
+    "anomalies",
+    "cloud incidents"
+  ],
+  "implementation": [
+    "Recommendation provider input maps to cloudProvider; response provider reads cloudProvider.",
+    "Recommendations use maxResults/pageToken and return pagination.pageToken. Numeric page 0 remains accepted; nonzero pages fail with cursor migration guidance. pageSize remains an alias; maxResults wins. The tool retains its advertised default of 20.",
+    "Category accepts a single value or a legacy array of at most one value. Multiple categories fail validation.",
+    "easyWin follows the verified API predicate easyWinDescription != empty string; missing description returns null. The description is also returned.",
+    "Resource pages accept maxResults (1\u20135000, default 1000) and pageToken and preserve resourceResults/rowCount/pageToken.",
+    "Anomaly detail preserves all API fields, including resourceData, actualCost, expectedMaxCost and allocations, while retaining ISO date formatting.",
+    "Alert PATCH config and all its fields are optional; only supplied fields are sent. Create requires operator; both create and update reject hour, accept the API condition/dataSource enums, and permit omitted scope mode without inserting defaults.",
+    "Budget name filtering sends nameContains to the API before pagination.",
+    "Incident platform constraints are sent in filter; legacy google-cloud-project input is normalized. Only AWS and Google Cloud are advertised. The endpoint-specific parser allows one repeated key for OR and rejects conflicting platform constraints. Empty pages retain their cursor.",
+    "Descriptions cover title-only search, page-local savings ordering, all-status defaults, easyWin false, lookup caps and ambiguity, deprecated insight-status writes and dismissal reason, alert defaults/limits, and budget owner-filter and conditional-write requirements."
+  ],
+  "deterministicValidation": {
+    "packageManager": "Yarn 1.22.22; frozen lockfile installation for root and integration projects",
+    "runtimes": [
+      "Node 20.20.2",
+      "Node 22.23.2"
+    ],
+    "unitTests": {
+      "passed": 1137,
+      "files": 52,
+      "bothRuntimes": true
+    },
+    "integrationTests": {
+      "passed": 261,
+      "files": 14,
+      "bothRuntimes": true
+    },
+    "schemaParity": {
+      "passed": 106,
+      "existingSuitePreserved": true
+    },
+    "checks": [
+      "yarn check:dev",
+      "yarn check:ci",
+      "yarn build (Node 20 and Node 22)",
+      "git diff --check",
+      "node --check test/integration/live/insightsAlertsReads.mjs"
+    ],
+    "coverage": [
+      "Sparse and empty pages with real cursors",
+      "Unknown easyWin versus false",
+      "API enums and partial alert bodies",
+      "Anomaly resource and cost field preservation",
+      "Mocked MCP partial-update readback preserves recipients and config",
+      "Shared dispatcher propagates injected customer context to X-Tenant-Id and customerContext"
+    ]
+  },
+  "liveValidation": {
+    "transport": "MCP tools/call through rebuilt local dist/index.js over stdio; no published package",
+    "authentication": "Own-customer key passed only as DOIT_API_KEY in the child environment",
+    "commandFromIntegrationDirectory": "RUN_DOIT_LIVE_READS=1 yarn node live/insightsAlertsReads.mjs",
+    "finalRun": {
+      "calls": 22,
+      "successfulCalls": 21,
+      "toolFailures": 1,
+      "semanticAssertionFailures": 0
+    },
+    "diagnostics": [
+      {
+        "method": "GET",
+        "path": "/analytics/v1/alerts?maxResults=2",
+        "status": 500,
+        "purpose": "Diagnose the failed MCP alert read; raw HTTP is not substituted for tool validation."
+      }
+    ],
+    "evidence": [
+      {
+        "tool": "list_optimization_recommendations",
+        "input": {
+          "maxResults": 2
+        },
+        "ok": true,
+        "rowCount": 2,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "insights",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "recommendations bounded and provider/easyWin fields usable",
+        "passed": true
+      },
+      {
+        "tool": "list_optimization_recommendations",
+        "input": {
+          "maxResults": 2,
+          "pageToken": "<returned cursor>"
+        },
+        "ok": true,
+        "rowCount": 2,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "insights",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "list_optimization_recommendations: continuation envelope",
+        "passed": true
+      },
+      {
+        "tool": "assertion",
+        "input": "list_optimization_recommendations: continuation advances",
+        "passed": true
+      },
+      {
+        "tool": "get_insight",
+        "input": {
+          "source": "<returned source>",
+          "key": "<returned key>"
+        },
+        "ok": true,
+        "hasNextPage": false,
+        "fields": [
+          "categories",
+          "cloudFlowTemplateId",
+          "cloudProvider",
+          "detailedDescriptionMdx",
+          "displayStatus",
+          "easyWinDescription",
+          "key",
+          "lastStatusChange",
+          "lastUpdated",
+          "reportUrl",
+          "shortDescription",
+          "source",
+          "summary",
+          "tags",
+          "title"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "recommendation provider matches detail cloudProvider",
+        "passed": true
+      },
+      {
+        "tool": "get_insight_resources",
+        "input": {
+          "source": "<returned source>",
+          "key": "<returned key>",
+          "maxResults": 2
+        },
+        "ok": true,
+        "rowCount": 0,
+        "hasNextPage": false,
+        "fields": [
+          "resourceResults",
+          "rowCount"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "resource envelope and bound",
+        "passed": true
+      },
+      {
+        "tool": "get_insight_resources",
+        "input": {
+          "source": "<returned source>",
+          "key": "<returned key>",
+          "maxResults": 2
+        },
+        "limitation": "No next cursor available; continuation unverified live"
+      },
+      {
+        "tool": "list_optimization_recommendations",
+        "input": {
+          "provider": "<returned provider>",
+          "searchTerm": "<returned title>",
+          "maxResults": 2
+        },
+        "ok": true,
+        "rowCount": 1,
+        "hasNextPage": false,
+        "fields": [
+          "rowCount",
+          "insights",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "provider and title filters match",
+        "passed": true
+      },
+      {
+        "tool": "list_optimization_recommendations",
+        "input": {
+          "easyWin": true,
+          "maxResults": 2
+        },
+        "ok": true,
+        "rowCount": 2,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "insights",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "easyWin=true excludes opposite values",
+        "passed": true
+      },
+      {
+        "tool": "list_optimization_recommendations",
+        "input": {
+          "easyWin": false,
+          "maxResults": 2
+        },
+        "ok": true,
+        "rowCount": 2,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "insights",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "easyWin=false excludes opposite values",
+        "passed": true
+      },
+      {
+        "tool": "list_optimization_recommendations",
+        "input": {
+          "category": "FinOps",
+          "maxResults": 2
+        },
+        "ok": true,
+        "rowCount": 2,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "insights",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "single category filter",
+        "passed": true
+      },
+      {
+        "tool": "list_optimization_recommendations",
+        "input": {
+          "displayStatus": [
+            "actionable"
+          ],
+          "maxResults": 1
+        },
+        "ok": true,
+        "rowCount": 1,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "insights",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "status filter",
+        "passed": true
+      },
+      {
+        "tool": "get_insight_resources",
+        "input": {
+          "source": "<actionable source>",
+          "key": "<actionable key>",
+          "maxResults": 1
+        },
+        "ok": true,
+        "rowCount": 1,
+        "hasNextPage": true,
+        "fields": [
+          "pageToken",
+          "resourceResults",
+          "rowCount"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "actionable resource page bounded",
+        "passed": true
+      },
+      {
+        "tool": "get_insight_resources",
+        "input": {
+          "source": "<actionable source>",
+          "key": "<actionable key>",
+          "maxResults": 1,
+          "pageToken": "<returned cursor>"
+        },
+        "ok": true,
+        "rowCount": 1,
+        "hasNextPage": true,
+        "fields": [
+          "pageToken",
+          "resourceResults",
+          "rowCount"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "get_insight_resources: continuation envelope",
+        "passed": true
+      },
+      {
+        "tool": "assertion",
+        "input": "get_insight_resources: continuation advances",
+        "passed": true
+      },
+      {
+        "tool": "get_anomalies",
+        "input": {},
+        "ok": true,
+        "rowCount": 20,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "anomalies",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "get_anomaly",
+        "input": {
+          "id": "<returned anomaly id>"
+        },
+        "ok": true,
+        "hasNextPage": false,
+        "fields": [
+          "anomalyChartUrl",
+          "billingAccount",
+          "attribution",
+          "allocations",
+          "costOfAnomaly",
+          "actualCost",
+          "expectedMaxCost",
+          "platform",
+          "scope",
+          "serviceName",
+          "top3SKUs",
+          "monitorLevel",
+          "severityLevel",
+          "timeFrame",
+          "startTime",
+          "status",
+          "endTime",
+          "deactivationReason",
+          "acknowledged",
+          "resourceData",
+          "notifications",
+          "linkedAnomalies",
+          "id"
+        ]
+      },
+      {
+        "tool": "get_anomaly",
+        "input": "optional fields",
+        "present": [
+          "resourceData",
+          "actualCost",
+          "expectedMaxCost",
+          "allocations"
+        ],
+        "absent": []
+      },
+      {
+        "tool": "list_alerts",
+        "input": {
+          "maxResults": "2"
+        },
+        "ok": false,
+        "limitation": "Tool returned a non-JSON response; customer content withheld"
+      },
+      {
+        "tool": "list_budgets",
+        "input": {
+          "maxResults": "2"
+        },
+        "ok": true,
+        "rowCount": 2,
+        "hasNextPage": true,
+        "fields": [
+          "pageToken",
+          "rowCount",
+          "budgets",
+          "riskAggregations"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "list_budgets: bounded page",
+        "passed": true
+      },
+      {
+        "tool": "list_budgets",
+        "input": {
+          "maxResults": "2",
+          "pageToken": "<returned cursor>"
+        },
+        "ok": true,
+        "rowCount": 2,
+        "hasNextPage": true,
+        "fields": [
+          "pageToken",
+          "rowCount",
+          "budgets",
+          "riskAggregations"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "list_budgets: continuation envelope",
+        "passed": true
+      },
+      {
+        "tool": "assertion",
+        "input": "list_budgets: continuation advances",
+        "passed": true
+      },
+      {
+        "tool": "get_budget",
+        "input": {
+          "id": "<returned id>"
+        },
+        "ok": true,
+        "hasNextPage": false,
+        "fields": [
+          "id",
+          "name",
+          "description",
+          "public",
+          "alerts",
+          "collaborators",
+          "recipients",
+          "recipientsSlackChannels",
+          "scopes",
+          "amount",
+          "usePrevSpend",
+          "currency",
+          "growthPerPeriod",
+          "metric",
+          "timeInterval",
+          "type",
+          "endPeriod",
+          "startPeriod",
+          "createTime",
+          "updateTime",
+          "currentUtilization",
+          "forecastedUtilization",
+          "dataSource"
+        ]
+      },
+      {
+        "tool": "list_budgets",
+        "input": {
+          "name": "<returned name>",
+          "maxResults": "1"
+        },
+        "ok": true,
+        "rowCount": 1,
+        "hasNextPage": false,
+        "fields": [
+          "rowCount",
+          "budgets",
+          "riskAggregations"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "list_budgets: name filter matches",
+        "passed": true
+      },
+      {
+        "tool": "get_cloud_incidents",
+        "input": {
+          "platform": "google-cloud",
+          "filter": "status:active"
+        },
+        "ok": true,
+        "rowCount": 6,
+        "hasNextPage": false,
+        "fields": [
+          "rowCount",
+          "incidents",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "incident platform and status filter",
+        "passed": true
+      },
+      {
+        "tool": "get_cloud_incidents",
+        "input": {
+          "platform": "google-cloud",
+          "filter": "status:active"
+        },
+        "limitation": "No next cursor available; continuation unverified live"
+      },
+      {
+        "tool": "get_cloud_incidents",
+        "input": {
+          "filter": "platform:google-cloud|platform:amazon-web-services|status:archived"
+        },
+        "ok": true,
+        "rowCount": 40,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "incidents",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "incident repeated platform OR plus status AND",
+        "passed": true
+      },
+      {
+        "tool": "get_cloud_incidents",
+        "input": {
+          "filter": "platform:google-cloud|platform:amazon-web-services|status:archived",
+          "pageToken": "<returned cursor>"
+        },
+        "ok": true,
+        "rowCount": 40,
+        "hasNextPage": true,
+        "fields": [
+          "rowCount",
+          "incidents",
+          "pageToken"
+        ]
+      },
+      {
+        "tool": "assertion",
+        "input": "get_cloud_incidents: continuation envelope",
+        "passed": true
+      },
+      {
+        "tool": "assertion",
+        "input": "get_cloud_incidents: continuation advances",
+        "passed": true
+      },
+      {
+        "tool": "get_cloud_incident",
+        "input": {
+          "id": "<returned incident id>"
+        },
+        "ok": true,
+        "hasNextPage": false,
+        "fields": [
+          "id",
+          "createTime",
+          "platform",
+          "product",
+          "title",
+          "status",
+          "summary",
+          "description",
+          "symptoms",
+          "workaround"
+        ]
+      },
+      {
+        "tool": "validation",
+        "input": "summary",
+        "calls": 22,
+        "failures": 1,
+        "writes": 0,
+        "cleanupRequired": false
+      }
+    ]
+  },
+  "limitations": [
+    "Live alert listing returned an error. A bounded raw read confirmed HTTP 500, so alert detail, filtering and cursor continuation remain unverified live. The shared request utility hides API errors; changing it belongs to separate work.",
+    "No notification-safe disposable alert or budget fixtures were configured. No live creates, updates or readbacks were attempted; write preservation is covered deterministically.",
+    "Hosted OAuth and live switched-customer behavior were not exercised. Deterministic context propagation tests cover the shared handler path, not OAuth itself.",
+    "The first sampled insight had an empty resource page without a cursor, and active Google Cloud incidents had no next page. Continuation was subsequently verified on an actionable insight and archived incidents.",
+    "The dedicated insight-status endpoint validates five user statuses and requires a dismissal reason; the metadata-post endpoint keeps its existing wider status schema. No insight writes were performed."
+  ],
+  "cleanup": {
+    "liveWrites": 0,
+    "resourcesCreated": 0,
+    "notificationsSent": 0,
+    "cleanupRequired": false
+  }
+}

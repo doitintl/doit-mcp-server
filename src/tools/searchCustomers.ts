@@ -26,20 +26,22 @@ export const SearchCustomersArgumentsSchema = z.object({
         .array(z.string())
         .optional()
         .describe(
-            "Match any of these customer types, e.g. 'procurement-only', 'product-only', 'procurement-and-product'."
+            "Exact, case-insensitive match on any of these customer types, e.g. 'procurement-only', 'product-only', 'procurement-and-product'."
         ),
     segment: z
         .array(z.string())
         .optional()
-        .describe("Match any of these customer segments, e.g. 'Invest', 'Incubate', 'Accelerate'."),
+        .describe(
+            "Exact, case-insensitive match on any of these customer segments, e.g. 'Invest', 'Incubate', 'Accelerate'."
+        ),
     tierPackages: z
         .array(z.string())
         .optional()
-        .describe("Match customers subscribed to any of these tier packages, e.g. 'navigator', 'solve'."),
+        .describe("Exact, case-insensitive match on any subscribed tier package, e.g. 'navigator', 'solve'."),
     domains: z
         .array(z.string())
         .optional()
-        .describe("Match customers whose primary or secondary domain is any of these."),
+        .describe("Exact, case-insensitive match on the primary or secondary customer domain."),
     assetPlatforms: z
         .array(z.enum(ASSET_PLATFORMS))
         .optional()
@@ -69,8 +71,18 @@ export const SearchCustomersArgumentsSchema = z.object({
         .string()
         .optional()
         .describe("End month (YYYY-MM) for the invoiced-total spend filter. Requires invoicedFromMonth."),
-    invoicedMinTotal: z.number().optional().describe("Minimum summed invoice total over the invoiced month range."),
-    invoicedMaxTotal: z.number().optional().describe("Maximum summed invoice total over the invoiced month range."),
+    invoicedMinTotal: z
+        .number()
+        .optional()
+        .describe(
+            "Minimum summed invoice total over the invoiced month range. Requires both invoicedFromMonth and invoicedToMonth."
+        ),
+    invoicedMaxTotal: z
+        .number()
+        .optional()
+        .describe(
+            "Maximum summed invoice total over the invoiced month range. Requires both invoicedFromMonth and invoicedToMonth."
+        ),
     contractsActive: z
         .boolean()
         .optional()
@@ -93,7 +105,7 @@ export const searchCustomersTool = {
     title: "Search customers",
     coversEndpoint: null,
     description:
-        "DoiT-internal (doer) tool: search across ALL DoiT customers by what they have — classification/kind, customer type, segment, tier package, domains, cloud asset platforms (AWS, GCP, Google Workspace, Office 365, Azure), Flexsave, standalone (direct self-serve) cloud assets, monthly cloud spend, invoiced spend over a month range, and active contracts. All provided conditions are AND-combined; within a list field the match is any-of. Returns matching customers with a summary and a nextPageToken for paging. Requires DoiT employee access (non-doers get an authorization error). Use this to FIND customers across the base; use other tools to drill into a specific customer.",
+        "DoiT-internal (doer) tool: search across ALL DoiT customers by what they have — classification/kind, customer type, segment, tier package, domains, cloud asset platforms (AWS, GCP, Google Workspace, Office 365, Azure), Flexsave, standalone (direct self-serve) cloud assets, monthly cloud spend, invoiced spend over a month range, and active contracts. All provided conditions are AND-combined; within a list field the match is any-of. Returns matching customers with a summary and nextPageToken. Pages can be short or empty with a non-empty nextPageToken because spend/contract filters run after page assembly. Each request scans at most 5,000 customer records; truncated indicates that cap was reached before exhausting the collection. An empty nextPageToken marks the end. Requires DoiT employee access (non-doers get an authorization error). Use this to FIND customers across the base; use other tools to drill into a specific customer.",
     inputSchema: zodToMcpInputSchema(SearchCustomersArgumentsSchema),
     annotations: {
         readOnlyHint: true,

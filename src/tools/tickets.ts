@@ -35,13 +35,22 @@ export interface TicketsResponse {
 
 // Arguments schema for listing tickets
 export const ListTicketsArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Page token for pagination"),
-    pageSize: z.number().optional().describe("Number of tickets to return per page"),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Page token from a previous response; keep the same pageSize when paging."),
+    pageSize: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(40)
+        .describe("Number of tickets per API page, from 1 to 100. Defaults to 40; sent as maxResults."),
     subject: z
         .string()
         .optional()
         .describe(
-            "Partial subject filter (case-insensitive). Returns only tickets whose subject contains this string."
+            "Case-insensitive substring filter on the returned API page only. Other pages are not searched. pageToken and rowCount retain the API's unfiltered page values, even when no tickets match."
         ),
 });
 
@@ -51,7 +60,7 @@ export const listTicketsTool = {
     title: "List support tickets",
     coversEndpoint: "get:/support/v1/tickets",
     description:
-        "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, priority, and platform. Supports partial subject filtering. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
+        "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, severity, and platform. Customers see their own tickets; organization tickets are visible when ticket sharing is enabled. Subject filtering is case-insensitive and applies only to the returned page. The API cursor and unfiltered rowCount are preserved, including on pages with no matches. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(ListTicketsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -72,7 +81,7 @@ export async function handleListTicketsRequest(args: any, token: string) {
         const { subject, pageToken, pageSize } = ListTicketsArgumentsSchema.parse(args);
         const params = new URLSearchParams();
         if (pageToken) params.append("pageToken", pageToken);
-        if (pageSize) params.append("pageSize", pageSize.toString());
+        params.append("maxResults", pageSize.toString());
         const url = `${TICKETS_BASE_URL}?${params.toString()}`;
         const data = await makeDoitRequest<TicketsResponse>(url, token, {
             method: "GET",
@@ -97,10 +106,19 @@ export async function handleListTicketsRequest(args: any, token: string) {
 export const CreateTicketArgumentsSchema = z.object({
     ticket: z.object({
         body: z.string().describe("The body of the ticket (can include html formatting)"),
-        created: z.string().describe("Ticket create time"),
-        platform: z.nativeEnum(TicketPlatform).describe("Platform of the ticket"),
-        product: z.string().describe("Ticket product details"),
-        severity: z.nativeEnum(TicketSeverity).describe("Ticket severity"),
+        created: z
+            .string()
+            .optional()
+            .describe("Deprecated compatibility field. Ignored; the server sets the ticket creation time."),
+        platform: z
+            .nativeEnum(TicketPlatform)
+            .describe("Support platform ID from list_platforms (id), rather than an asset type or display name."),
+        product: z
+            .string()
+            .describe(
+                "Support product displayName from list_products for the selected platform, e.g. Invoice Management. Forwarded unchanged to the API; routing depends on the display name, not the catalog id."
+            ),
+        severity: z.nativeEnum(TicketSeverity).describe("Ticket severity: low, normal, high, or urgent."),
         subject: z.string().describe("The subject of the ticket."),
     }),
 });
@@ -138,11 +156,12 @@ export const createTicketTool = {
 export async function handleCreateTicketRequest(args: any, token: string) {
     try {
         const parsed = CreateTicketArgumentsSchema.parse(args);
+        const { created: _created, ...ticket } = parsed.ticket;
         const { customerContext } = args;
         const url = TICKETS_BASE_URL;
         const response = await makeDoitRequest(url, token, {
             method: "POST",
-            body: { ticket: parsed.ticket },
+            body: { ticket },
             customerContext,
             timeoutMs: 60_000,
         });

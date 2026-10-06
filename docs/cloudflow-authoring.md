@@ -10,7 +10,7 @@ the CloudFlow tool descriptions, as the server's `instructions`, and as the
 `doit://docs/cloudflow-authoring` MCP resource.
 
 Read the module for the full contract: the authoring loop, idempotency-key retry semantics, the
-`codeNode` runtime contract (the one that fails silently), what an exported bundle cannot carry,
+language-specific `codeNode` runtime contract, what an exported bundle cannot carry,
 and the tenant-scoping caveat.
 
 See [`docs/cloudflow-guidance-delivery.md`](./cloudflow-guidance-delivery.md) for why the

@@ -127,6 +127,8 @@ describe("MCP Prompts Integration", () => {
             });
             const text = result.messages[0].content.type === "text" ? result.messages[0].content.text : "";
             expect(text).toContain("list_tickets");
+            expect(text).toContain("pageToken and the same pageSize=100 on every subsequent call");
+            expect(text).toContain("Do not retrieve more than 5 pages");
         });
     });
 });

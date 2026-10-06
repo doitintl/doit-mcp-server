@@ -13,7 +13,12 @@ import {
 export const PRODUCTS_BASE_URL = `${DOIT_API_BASE}/support/v1/metadata/products`;
 
 export const ListProductsArgumentsSchema = z.object({
-    platform: z.string().optional().describe("Filter products by platform"),
+    platform: z
+        .string()
+        .optional()
+        .describe(
+            "Support platform ID, not a display name. Accepted IDs: google_g_suite, amazon_web_services, microsoft_office_365, finance___billing, google_cloud_platform, microsoft_azure, cloud_management_platform, credits___request, perfectscale. Availability depends on the customer."
+        ),
 });
 
 export const listProductsTool = {
@@ -21,7 +26,7 @@ export const listProductsTool = {
     title: "List products",
     coversEndpoint: "get:/support/v1/metadata/products",
     description:
-        "Use this when the user wants to see available DoiT products or services. Returns a list of products. Do NOT use this for cloud incidents (use get_cloud_incidents) or platforms (use list_platforms).",
+        "Use this when the user wants to see the support-ticket product catalog. Returns product IDs, display names, and platform IDs. create_ticket uses the product displayName and the platform ID. Customers do not see private products. This catalog does not list products purchased by the account. Do NOT use this for cloud incidents (use get_cloud_incidents) or platforms (use list_platforms).",
     inputSchema: zodToMcpInputSchema(ListProductsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
