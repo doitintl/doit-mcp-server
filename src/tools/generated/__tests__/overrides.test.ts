@@ -46,15 +46,24 @@ describe("generated tool overrides", () => {
         expect(description).not.toContain(CLOUDFLOW_BUILDER_HINT);
     });
 
+    it("states the current generated trigger-payload limitation without adding a fictitious body schema", () => {
+        for (const name of ["trigger_cloudflow_flow", "test_run_cloudflow_flow"]) {
+            const tool = byName.get(name);
+            expect(tool?.description).toContain("no arbitrary trigger payload field");
+            expect(tool?.zodSchema.shape).not.toHaveProperty("body");
+        }
+    });
+
     it("keeps the spec's own description ahead of the suffix", () => {
         const description = byName.get("export_cloudflow_flow")?.description ?? "";
         expect(description.indexOf(CLOUDFLOW_CODENODE_HINT)).toBeGreaterThan(0);
         expect(description.endsWith(CLOUDFLOW_CODENODE_HINT)).toBe(true);
     });
 
-    it("leaves a non-overridden tool's description untouched", () => {
+    it("preserves the run read contract from the spec", () => {
         const description = byName.get("get_cloudflow_flow_run")?.description ?? "";
-        expect(description).not.toBe("");
+        expect(description).toContain("Only action nodes");
+        expect(description).toContain("always null");
         expect(description).not.toContain(CLOUDFLOW_CODENODE_HINT);
         expect(description).not.toContain(CLOUDFLOW_BUILDER_HINT);
     });

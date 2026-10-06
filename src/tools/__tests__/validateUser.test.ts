@@ -26,6 +26,20 @@ describe("validateUser", () => {
             vi.clearAllMocks();
         });
 
+        it("preserves the scoped customer's domain rather than deriving it from the caller email", async () => {
+            vi.mocked(makeDoitRequest).mockResolvedValue({ domain: "customer.example", email: "employee@doit.com" });
+            const response = await handleValidateUserRequest({ customerContext: "customer-id" }, mockToken);
+            expect(JSON.parse(response.content[0].text)).toEqual({
+                domain: "customer.example",
+                email: "employee@doit.com",
+            });
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/auth/v1/validate",
+                mockToken,
+                expect.objectContaining({ customerContext: "customer-id" })
+            );
+        });
+
         it("should call makeDoitRequest with correct parameters and return success response", async () => {
             const mockArgs = {}; // No arguments expected
             const mockApiResponse = {

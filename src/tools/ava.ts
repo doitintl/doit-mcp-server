@@ -13,6 +13,27 @@ export const AVA_BASE_URL = `${DOIT_API_BASE}/ava/v1`;
 
 export const AVA_DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
 
+/** Keep application-error detail useful without echoing credentials or arbitrary payloads. */
+function avaErrorDetail(error: unknown, token: string): string {
+    const fields =
+        typeof error === "string"
+            ? [error]
+            : error && typeof error === "object"
+              ? ["code", "message", "detail"].map((key) => (error as Record<string, unknown>)[key])
+              : [];
+    const detail = fields.filter((value): value is string => typeof value === "string").join(": ");
+    const redacted = (token ? detail.split(token).join("[redacted]") : detail)
+        .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+        .replace(
+            /((?:api[_-]?key|access[_-]?token|authorization|password|secret)["']?\s*[=:]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi,
+            "$1[redacted]"
+        )
+        .replace(/https?:\/\/\S+/gi, "[redacted URL]")
+        .replace(/\p{Cc}/gu, " ")
+        .trim();
+    return redacted.slice(0, 1024) || "No error detail provided";
+}
+
 function parseTimeoutMs(envValue: string | undefined, fallback: number): number {
     if (envValue === undefined) return fallback;
     const parsed = Number(envValue);
@@ -49,7 +70,7 @@ export const askAvaSyncTool = {
     title: "Ask Ava",
     coversEndpoint: "post:/ava/v1/askSync",
     description:
-        "Ask DoiT AVA, DoiT's AI assistant for cloud cost and infrastructure, a question about the user's DoiT account, cloud spending, anomalies, or optimization opportunities. AVA has access to the customer's billing data, usage patterns, and DoiT-specific features. It answers DoiT and cloud-specific questions, not general-purpose ones. Note: AVA can take a long time to respond for complex questions. If it does not respond in time, a clear error is returned with guidance to retry or simplify the question.",
+        "Ask DoiT AVA, DoiT's AI assistant for cloud cost and infrastructure, a question about the user's DoiT account, cloud spending, anomalies, or optimization opportunities. AVA has access to the customer's billing data, usage patterns, and DoiT-specific features. It answers DoiT and cloud-specific questions, not general-purpose ones. Complex questions may take a long time. Timeouts and application error envelopes (including HTTP 200) return MCP errors.",
     inputSchema: zodToMcpInputSchema(AskAvaSyncArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -78,6 +99,12 @@ export async function handleAskAvaSyncRequest(args: any, token: string) {
         if (!data) {
             return createErrorResponse(
                 "AVA request failed or timed out. Try simplifying your question or try again later."
+            );
+        }
+
+        if (typeof data === "object" && Object.getOwnPropertyDescriptor(data, "error")) {
+            return createErrorResponse(
+                `AVA request failed: ${avaErrorDetail((data as Record<string, unknown>).error, token)}`
             );
         }
 

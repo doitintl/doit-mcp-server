@@ -22,7 +22,7 @@ export const cloudflowConnectionFixture = {
 };
 
 export const cloudflowConnectionsFixture = {
-    connections: [
+    items: [
         cloudflowConnectionFixture,
         {
             connectionId: "conn-2",
@@ -36,7 +36,8 @@ export const cloudflowConnectionsFixture = {
             status: "active",
         },
     ],
-    nextPageToken: "next-page-token",
+    pageToken: "next-page-token",
+    rowCount: null,
 };
 
 export const cloudflowConnectionCreatedFixture = {

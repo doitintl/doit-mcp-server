@@ -327,7 +327,7 @@ describe("cloudflow", () => {
         const mockToken = "fake-token";
 
         const mockResponse = {
-            connections: [
+            items: [
                 {
                     connectionId: "conn-1",
                     name: "GCP Org Connection",
@@ -335,7 +335,8 @@ describe("cloudflow", () => {
                     status: "active",
                 },
             ],
-            nextPageToken: "next-page",
+            pageToken: "next-page",
+            rowCount: null,
         };
 
         beforeEach(() => {
@@ -476,6 +477,7 @@ describe("cloudflow", () => {
             (makeDoitRequest as vi.Mock).mockResolvedValue(mockConnection);
 
             const args = {
+                idempotencyKey: "create-attempt-1",
                 name: "New GCP Connection",
                 gcpConfig: { organizationId: "123456789", level: "organization" },
             };
@@ -483,6 +485,7 @@ describe("cloudflow", () => {
 
             expect(makeDoitRequest).toHaveBeenCalledWith(CLOUDFLOW_CONNECTIONS_BASE_URL, mockToken, {
                 method: "POST",
+                headers: { "Idempotency-Key": "create-attempt-1" },
                 body: {
                     name: "New GCP Connection",
                     gcpConfig: { organizationId: "123456789", level: "organization" },
@@ -498,7 +501,12 @@ describe("cloudflow", () => {
             (makeDoitRequest as vi.Mock).mockResolvedValue(mockConnection);
 
             await handleCreateCloudFlowConnectionRequest(
-                { name: "New GCP Connection", gcpConfig: { projectId: "p-1" }, customerContext: "customer-ctx" },
+                {
+                    idempotencyKey: "create-attempt-1",
+                    name: "New GCP Connection",
+                    gcpConfig: { projectId: "p-1" },
+                    customerContext: "customer-ctx",
+                },
                 mockToken
             );
 
@@ -511,7 +519,12 @@ describe("cloudflow", () => {
 
         it("rejects when both gcpConfig and awsConfig are supplied", async () => {
             const response = await handleCreateCloudFlowConnectionRequest(
-                { name: "Both", gcpConfig: { projectId: "p-1" }, awsConfig: { roleName: "r" } },
+                {
+                    idempotencyKey: "create-attempt-1",
+                    name: "Both",
+                    gcpConfig: { projectId: "p-1" },
+                    awsConfig: { roleName: "r" },
+                },
                 mockToken
             );
 
@@ -528,7 +541,10 @@ describe("cloudflow", () => {
         });
 
         it("rejects when neither gcpConfig nor awsConfig is supplied", async () => {
-            const response = await handleCreateCloudFlowConnectionRequest({ name: "Neither" }, mockToken);
+            const response = await handleCreateCloudFlowConnectionRequest(
+                { idempotencyKey: "create-attempt-1", name: "Neither" },
+                mockToken
+            );
 
             expect(makeDoitRequest).not.toHaveBeenCalled();
             expect(response).toEqual({
@@ -559,7 +575,7 @@ describe("cloudflow", () => {
             (makeDoitRequest as vi.Mock).mockResolvedValue(null);
 
             const response = await handleCreateCloudFlowConnectionRequest(
-                { name: "New GCP Connection", awsConfig: { roleName: "role" } },
+                { idempotencyKey: "create-attempt-1", name: "New GCP Connection", awsConfig: { roleName: "role" } },
                 mockToken
             );
 
@@ -588,12 +604,13 @@ describe("cloudflow", () => {
             (makeDoitRequest as vi.Mock).mockResolvedValue(mockConnection);
 
             const response = await handleUpdateCloudFlowConnectionRequest(
-                { connectionId: "conn-1", name: "Renamed Connection", enabled: false },
+                { connectionId: "conn-1", ifMatch: '"version-1"', name: "Renamed Connection", enabled: false },
                 mockToken
             );
 
             expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUDFLOW_CONNECTIONS_BASE_URL}/conn-1`, mockToken, {
                 method: "PATCH",
+                headers: { "If-Match": '"version-1"' },
                 body: { name: "Renamed Connection", enabled: false },
                 customerContext: undefined,
             });
@@ -602,9 +619,33 @@ describe("cloudflow", () => {
             });
         });
 
+        it.each([
+            { collaborators: [] },
+            { collaborators: [{ email: "editor@example.com", role: "editor" }] },
+            {
+                collaborators: [
+                    { email: "owner1@example.com", role: "owner" },
+                    { email: "owner2@example.com", role: "owner" },
+                ],
+            },
+        ])("rejects a replacement without exactly one owner: %j", async ({ collaborators }) => {
+            const response = await handleUpdateCloudFlowConnectionRequest(
+                { connectionId: "conn-1", ifMatch: '"version-1"', collaborators },
+                mockToken
+            );
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("exactly one owner");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
         it("rejects when both gcpConfig and awsConfig are set", async () => {
             const response = await handleUpdateCloudFlowConnectionRequest(
-                { connectionId: "conn-1", gcpConfig: { projectId: "p-1" }, awsConfig: { roleName: "r" } },
+                {
+                    connectionId: "conn-1",
+                    ifMatch: '"version-1"',
+                    gcpConfig: { projectId: "p-1" },
+                    awsConfig: { roleName: "r" },
+                },
                 mockToken
             );
 
@@ -622,7 +663,7 @@ describe("cloudflow", () => {
 
         it("returns a formatted Zod error when connectionId is empty", async () => {
             const response = await handleUpdateCloudFlowConnectionRequest(
-                { connectionId: "   ", name: "x" },
+                { connectionId: "   ", ifMatch: '"version-1"', name: "x" },
                 mockToken
             );
 
@@ -637,7 +678,7 @@ describe("cloudflow", () => {
             (makeDoitRequest as vi.Mock).mockResolvedValue(null);
 
             const response = await handleUpdateCloudFlowConnectionRequest(
-                { connectionId: "conn-1", name: "Renamed Connection" },
+                { connectionId: "conn-1", ifMatch: '"version-1"', name: "Renamed Connection" },
                 mockToken
             );
 

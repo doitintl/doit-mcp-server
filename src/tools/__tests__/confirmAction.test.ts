@@ -86,6 +86,28 @@ describe("handleConfirmActionRequest", () => {
 
         expect(runOriginal).not.toHaveBeenCalled();
         expect(result.isError).toBe(true);
+        const retry = await handleConfirmActionRequest(
+            { token: "tok-mismatch" },
+            apiToken,
+            userKey,
+            store,
+            runOriginal
+        );
+        expect(retry.isError).toBe(true);
+        expect(runOriginal).not.toHaveBeenCalled();
+    });
+
+    it("consumes the token even when execution fails", async () => {
+        const store = new MemoryApprovalStore();
+        await stash(store, "tok-failed");
+        const runOriginal = vi.fn().mockResolvedValue({ isError: true, content: [{ type: "text", text: "Failed" }] });
+        expect(
+            (await handleConfirmActionRequest({ token: "tok-failed" }, apiToken, userKey, store, runOriginal)).isError
+        ).toBe(true);
+        expect(
+            (await handleConfirmActionRequest({ token: "tok-failed" }, apiToken, userKey, store, runOriginal)).isError
+        ).toBe(true);
+        expect(runOriginal).toHaveBeenCalledTimes(1);
     });
 
     it("is single-use: a second confirm_action with the same token is rejected", async () => {
