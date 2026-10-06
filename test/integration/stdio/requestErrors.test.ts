@@ -106,6 +106,17 @@ describe.each([
         expect(getTextContent(result)).not.toContain("private-data");
     });
 
+    it.each([429, 503])("keeps read-only POST retry guidance through tools/call for HTTP %s", async (status) => {
+        mswServer.use(
+            http.post("https://api.doit.com/analytics/v1/reports/query", () => new HttpResponse(null, { status }))
+        );
+        const result = await session.rawClient.callTool({ name: "run_query", arguments: { config: {} } });
+        expect(result.isError).toBe(true);
+        expect(getTextContent(result)).toContain(`HTTP ${status}:`);
+        expect(getTextContent(result)).toContain("Try again later.");
+        expect(getTextContent(result)).not.toContain("may already have been applied");
+    });
+
     it("still returns successful reads", async () => {
         const result = await session.rawClient.callTool({ name: "list_organizations", arguments: {} });
         expect(result.isError).not.toBe(true);

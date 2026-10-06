@@ -726,6 +726,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
             // Use enhanced makeDoitRequest for POST request
             const queryResponse = await makeDoitRequest<QueryResponse>(queryUrl, token, {
                 method: "POST",
+                readOnly: true,
                 body: { config },
                 appendParams: true,
                 customerContext,

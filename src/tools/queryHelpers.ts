@@ -37,6 +37,7 @@ async function executeQuery(rawConfig: Record<string, unknown>, token: string, c
     const config = normalizeConfig(rawConfig);
     const response = await makeDoitRequest<QueryResponse>(QUERY_URL, token, {
         method: "POST",
+        readOnly: true,
         body: { config },
         appendParams: true,
         customerContext,
@@ -336,12 +337,14 @@ export async function handleCompareSpendRequest(args: any, token: string) {
         const [r1, r2] = await Promise.all([
             makeDoitRequest<QueryResponse>(QUERY_URL, token, {
                 method: "POST",
+                readOnly: true,
                 body: { config: config1 },
                 appendParams: true,
                 customerContext,
             }),
             makeDoitRequest<QueryResponse>(QUERY_URL, token, {
                 method: "POST",
+                readOnly: true,
                 body: { config: config2 },
                 appendParams: true,
                 customerContext,

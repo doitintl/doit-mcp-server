@@ -10,8 +10,8 @@ export class DoitRequestError extends Error {
 }
 
 // A transport failure cannot establish whether a mutation reached the API.
-export function requestRecoveryGuidance(method: string): string {
-    return ["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase())
+export function requestRecoveryGuidance(method: string, readOnly = false): string {
+    return readOnly || ["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase())
         ? "Try again later."
         : "The operation may already have been applied. Check its state before retrying; do not repeat it blindly.";
 }
@@ -93,13 +93,17 @@ export async function createHttpError(
     response: Response,
     token: string,
     headers: Record<string, string>,
-    method: string
+    method: string,
+    readOnly = false
 ): Promise<DoitRequestError> {
     const redactions: Redactions = { secrets: [token], headerValues: [] };
     for (const [name, value] of Object.entries(headers)) {
         // Standard media types are useful validation hints, not credential material.
         if (/^(accept|content-type)$/i.test(name)) continue;
-        if (/authorization|cookie|token|secret|key|credential/i.test(name)) {
+        // Idempotency keys identify a caller-chosen operation; they are not credentials.
+        if (/^(?:x-)?idempotency-key$/i.test(name)) {
+            redactions.headerValues.push(value);
+        } else if (/authorization|cookie|token|secret|key|credential/i.test(name)) {
             redactions.secrets.push(value, value.replace(/^(Bearer|Basic)\s+/i, ""));
         } else {
             redactions.headerValues.push(value);
@@ -131,7 +135,13 @@ export async function createHttpError(
             // The known HTTP status is still sufficient to report this failure.
         }
     }
-    const recovery = response.status >= 500 || response.status === 429 ? ` ${requestRecoveryGuidance(method)}` : "";
+    // A rate-limit rejection does not leave an uncertain mutation outcome.
+    const recovery =
+        response.status === 429
+            ? " Try again later."
+            : response.status >= 500
+              ? ` ${requestRecoveryGuidance(method, readOnly)}`
+              : "";
     return new DoitRequestError(
         `HTTP ${response.status}: ${(detail || fallback).slice(0, 1500)}${recovery}`,
         response.status

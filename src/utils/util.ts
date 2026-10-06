@@ -296,6 +296,8 @@ export async function makeDoitRequest<T>(
     token: string,
     options: {
         method?: string;
+        /** Explicitly identify a read-only endpoint that uses POST. Affects retry advice only. */
+        readOnly?: boolean;
         body?: any;
         appendParams?: boolean;
         customerContext?: string;
@@ -312,6 +314,7 @@ export async function makeDoitRequest<T>(
 ): Promise<T | null> {
     const {
         method = "GET",
+        readOnly = false,
         body = undefined,
         appendParams = true,
         customerContext,
@@ -379,7 +382,7 @@ export async function makeDoitRequest<T>(
         responseStatus = response.status;
 
         if (!response.ok) {
-            throw await createHttpError(response, token, headers, method);
+            throw await createHttpError(response, token, headers, method, readOnly);
         }
         if (!parseResponse) {
             return {} as T;
@@ -391,14 +394,14 @@ export async function makeDoitRequest<T>(
             return JSON.parse(text) as T;
         } catch {
             throw new DoitRequestError(
-                `HTTP ${response.status}: The API reported success, but returned an invalid JSON response. ${requestRecoveryGuidance(method)}`,
+                `HTTP ${response.status}: The API reported success, but returned an invalid JSON response. ${requestRecoveryGuidance(method, readOnly)}`,
                 response.status
             );
         }
     } catch (error) {
         const timedOut = error instanceof DOMException && error.name === "TimeoutError";
         // Log fixed metadata only: no URL, customer context, header, body, or upstream message.
-        debugLog("DoiT API request failed", DebugLevel.INFO, {
+        console.error("DoiT API request failed", {
             method: /^(GET|HEAD|OPTIONS|POST|PUT|PATCH|DELETE)$/.test(method) ? method : "OTHER",
             status: responseStatus ?? null,
             kind: timedOut
@@ -410,18 +413,21 @@ export async function makeDoitRequest<T>(
                     : "response",
         });
         if (timedOut) {
-            throw new DOMException(`DoiT API request timed out. ${requestRecoveryGuidance(method)}`, "TimeoutError");
+            throw new DOMException(
+                `DoiT API request timed out. ${requestRecoveryGuidance(method, readOnly)}`,
+                "TimeoutError"
+            );
         }
         if (error instanceof DoitRequestError) throw error;
         // Fetch errors may include credentials, URLs, headers, or runtime diagnostics.
         if (responseStatus !== undefined) {
             throw new DoitRequestError(
-                `HTTP ${responseStatus}: The API reported success, but its response could not be read. ${requestRecoveryGuidance(method)}`,
+                `HTTP ${responseStatus}: The API reported success, but its response could not be read. ${requestRecoveryGuidance(method, readOnly)}`,
                 responseStatus
             );
         }
         throw new DoitRequestError(
-            `Unable to reach the DoiT API or read its response. Check your connection. ${requestRecoveryGuidance(method)}`
+            `Unable to reach the DoiT API or read its response. Check your connection. ${requestRecoveryGuidance(method, readOnly)}`
         );
     }
 }

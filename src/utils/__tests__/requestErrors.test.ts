@@ -54,8 +54,8 @@ describe("request failures", () => {
         await expect(makeDoitRequest(URL, TOKEN)).rejects.toThrow("HTTP 500: The API is temporarily unavailable");
     });
 
-    it("redacts credentials and header values without logging request or response data, even at TRACE", async () => {
-        vi.stubEnv("DOIT_DEBUG_LEVEL", "3");
+    it.each(["", "0", "3"])("logs only fixed failure metadata at debug level %j", async (debugLevel) => {
+        vi.stubEnv("DOIT_DEBUG_LEVEL", debugLevel);
         vi.resetModules();
         const util = await import("../util.js");
         const log = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -92,7 +92,7 @@ describe("request failures", () => {
             expect(output).not.toContain(secret);
         }
         expect(error.cause).toBeUndefined();
-        expect(log).toHaveBeenCalledWith("[doit-mcp debug:INFO]", "DoiT API request failed", {
+        expect(log).toHaveBeenCalledWith("DoiT API request failed", {
             method: "POST",
             status: 400,
             kind: "http",
@@ -219,7 +219,6 @@ it.each(["POST", "PUT", "PATCH", "DELETE"])(
                 Promise.resolve({ ok: true, status: 201, text: () => Promise.reject(new Error("private-body-error")) }),
             () => Promise.resolve(new Response("private-invalid-json", { status: 201 })),
             () => Promise.resolve(new Response(null, { status: 502 })),
-            () => Promise.resolve(new Response(null, { status: 429 })),
             () => Promise.reject(new Error("private-transport-error")),
             () => Promise.reject(new DOMException("private-timeout", "TimeoutError")),
         ];
@@ -234,3 +233,65 @@ it.each(["POST", "PUT", "PATCH", "DELETE"])(
         }
     }
 );
+
+it.each(["Idempotency-Key", "x-IDEMPOTENCY-key"])(
+    "redacts short %s values without damaging validation text",
+    async (name) => {
+        for (const value of ["a", "in"]) {
+            respond(JSON.stringify({ message: `Invalid input: missing name; operation '${value}' rejected` }));
+            await expect(makeDoitRequest(URL, TOKEN, { headers: { [name]: value } })).rejects.toThrow(
+                "HTTP 400: Invalid input: missing name; operation '[redacted]' rejected"
+            );
+        }
+    }
+);
+
+it("still removes short credentials even when embedded in validation text", async () => {
+    respond(JSON.stringify({ message: "Invalid value prefix-xy-suffix" }));
+    await expect(makeDoitRequest(URL, TOKEN, { headers: { "X-API-Key": "xy" } })).rejects.toThrow(
+        "HTTP 400: Invalid value prefix-[redacted]-suffix"
+    );
+});
+
+it.each(["GET", "POST", "PUT", "PATCH", "DELETE"])("advises retrying a rejected %s rate limit", async (method) => {
+    respond(null, 429);
+    await expect(makeDoitRequest(URL, TOKEN, { method })).rejects.toThrow(
+        "HTTP 429: Rate limit exceeded. Try again later."
+    );
+    expect(fetch).toHaveBeenCalledOnce();
+});
+
+it("retains normal retry advice for read-only POSTs across uncertain outcomes", async () => {
+    const responses = [
+        () => Promise.resolve({ ok: true, status: 200, text: () => Promise.reject(new Error("private-body-error")) }),
+        () => Promise.resolve(new Response("private-invalid-json", { status: 200 })),
+        () => Promise.resolve(new Response(null, { status: 502 })),
+        () => Promise.reject(new Error("private-transport-error")),
+        () => Promise.reject(new DOMException("private-timeout", "TimeoutError")),
+    ];
+    for (const response of responses) {
+        vi.stubGlobal("fetch", vi.fn(response));
+        const error = await makeDoitRequest(URL, TOKEN, { method: "POST", readOnly: true }).catch((error) => error);
+        expect(error.message).toContain("Try again later.");
+        expect(error.message).not.toMatch(/may already have been applied|Check its state|private-/);
+        expect(fetch).toHaveBeenCalledOnce();
+    }
+});
+
+it("logs transport, timeout, and response failures without upstream diagnostics at the default debug level", async () => {
+    vi.stubEnv("DOIT_DEBUG_LEVEL", "");
+    vi.resetModules();
+    const util = await import("../util.js");
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const [response, status, kind] of [
+        [() => Promise.reject(new Error(TOKEN)), null, "transport"],
+        [() => Promise.reject(new DOMException(TOKEN, "TimeoutError")), null, "timeout"],
+        [() => Promise.resolve(new Response(TOKEN, { status: 200 })), 200, "response"],
+    ] as const) {
+        vi.stubGlobal("fetch", vi.fn(response));
+        await expect(util.makeDoitRequest(URL, TOKEN)).rejects.toThrow();
+        expect(log).toHaveBeenLastCalledWith("DoiT API request failed", { method: "GET", status, kind });
+    }
+    expect(log).toHaveBeenCalledTimes(3);
+    expect(JSON.stringify(log.mock.calls)).not.toContain(TOKEN);
+});

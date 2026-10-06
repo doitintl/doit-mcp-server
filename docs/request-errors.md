@@ -1,7 +1,7 @@
 # API request failures
 
-`makeDoitRequest` keeps its existing arguments and `Promise<T | null>` return type,
-but rejects on HTTP, transport, and malformed nonempty JSON responses. Callers
+`makeDoitRequest` keeps its `Promise<T | null>` return type but rejects on HTTP,
+transport, and malformed nonempty JSON responses. Callers
 must no longer interpret `null` as an HTTP or network failure. The rejection is an
 `Error` containing safe user-facing text, including `HTTP <status>` when known.
 No new error type is exported through the core entry point.
@@ -37,19 +37,23 @@ catch rejections explicitly; aggregate callers should use `Promise.allSettled`.
 Only recognized client-error message fields and field-validation entries are
 included. Messages are bounded and redact credentials, known request-header
 values, URLs, and email addresses. Public media types stay readable, and
-non-credential header values are matched as whole values rather than substrings.
+non-credential header values, including caller-chosen idempotency keys, are
+matched as whole values rather than substrings.
 Unknown objects, HTML, multiline diagnostics,
 and all server-error bodies are excluded; safe status-based guidance is used
 instead. Original exceptions, response objects, headers, and request bodies are
 not attached to request errors or logged. The console and SSE request helpers
 retain their separate existing behavior. Failures emit only fixed method, HTTP
-status (when known), and failure-category metadata at INFO debug level.
+status (when known), and failure-category metadata to stderr even with debug
+logging disabled. No upstream text is included.
 
-Transport failures, timeouts, server errors, rate limits, and unreadable/malformed
+Transport failures, timeouts, server errors, and unreadable/malformed
 success responses for POST/PUT/PATCH/DELETE advise checking the operation's state
 before retrying. A response failure does not establish that a write was rolled
-back. HTTP methods alone cannot identify read-only POST endpoints, so this guidance
-is deliberately conservative; the helper never retries automatically. Error
+back. Known read-only POST callers (queries and diagram lookups) explicitly pass
+`readOnly: true` to retain normal retry advice; GET/HEAD/OPTIONS are inferred as
+reads. Other methods remain conservative by default. HTTP 429 rejections always
+advise retrying later. The helper never retries automatically. Error
 results also bypass success adapters when approval validation or storage throws
 before a tool handler runs.
 
