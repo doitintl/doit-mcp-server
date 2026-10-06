@@ -19,6 +19,19 @@ The legacy SSE endpoint (`https://mcp.doit.com/sse`) is deprecated and should no
 
 Your DoiT plan must include API access. Tools follow the same permissions as the [DoiT API](https://developer.doit.com/).
 
+Tool results are capped at 140,000 serialized UTF-16 code units after response
+formatting, including structured content and metadata. Oversized reads return an
+actionable error; completed writes return a compact success receipt and must not
+be repeated just to retrieve their output. Errors remain errors. This is a response
+size policy, not a token limit or a bound on upstream downloads.
+
+Each dispatched call emits a payload-free JSON `mcp_tool_response` event to stderr
+on stdio; some clients display these logs. Hosts can supply `onResponseMetrics`
+to route the events elsewhere. Use `original.serializedChars` for response-size
+percentiles and `exceededLimit` for over-limit rates; `returned` measures the result
+after the guard. Metrics also include UTF-8 byte counts, duration, tool/client, and
+disposition, without tool arguments or response bodies.
+
 The Claude Desktop steps below are examples, not the only supported clients. Cursor, VS Code, Amazon Q, Claude Code, and others are covered in the [Connections](https://help.doit.com/docs/mcp/connections) guide.
 
 ## Remote (Streamable HTTP)

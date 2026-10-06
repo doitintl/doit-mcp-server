@@ -200,7 +200,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 override?.descriptionSuffix ? ` ${override.descriptionSuffix}` : ""
             }`;
 
-            const isReadOnly = method === "get";
+            const isReadOnly = override?.readOnly ?? method === "get";
             const zodSchema = z.object(shape);
 
             tools.push({
