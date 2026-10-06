@@ -155,3 +155,39 @@ This run does not establish atomicity of simultaneous ETag updates, cross-versio
 identity, or forced in-progress conflicts. Ava's forced HTTP-200 failure envelope remains
 covered by fixtures. No flows were built, refined, published, triggered, or executed, and
 no hosted OAuth session or employee customer switch was exercised.
+
+
+## Pre-change comparison (2026-10-06)
+
+A second run compared the isolated pre-change build at `15b6b1c` (the PR merge base)
+with the feature build at `30b213b`. Their package manifests and dependency locks were
+identical; the baseline compiled against the same installed dependency versions. Both
+builds were called over MCP stdio, with equivalent business inputs and the same real
+development backend. The forwarding relay recorded whether headers were present and the
+backend status/code, without exposing credentials, request data, or resource IDs.
+
+| Case | Pre-change build | Feature build | Evidence classification |
+| --- | --- | --- | --- |
+| Create a disabled disposable connection | HTTP 400, `idempotency_key_required`, MCP error; no Idempotency-Key header sent | HTTP 201, MCP success; caller key sent in header and excluded from body | Original defect reproduced and fixed against real dev |
+| Update the same connection with the same business changes | HTTP 428, `precondition_required`, MCP error; no If-Match header sent | HTTP 200, MCP success; observed ETag sent in header and excluded from body | Original defect reproduced and fixed against real dev |
+| Read back the update | No successful baseline update | Description persisted, collaborator list replaced with exactly one owner, ETag changed | Real dev state verification |
+| Reuse the stale ETag | Not applicable to baseline's missing-header failure | HTTP 412, MCP error | Real dev regression/protection check |
+| Empty collaborator replacement | Not isolated from baseline's earlier missing-header failure | Local MCP error with no HTTP request | Feature validation check |
+| Ephemeral Ava request | HTTP 200, MCP success | HTTP 200, MCP success | Live compatibility check; no live failure envelope reproduced |
+| Controlled HTTP-200 Ava error envelope | MCP success; envelope including simulated credential/stack data serialized | MCP error; useful error code retained, credential and stack excluded | Controlled before/after regression proof, not a dev-origin failure |
+
+The controlled Ava envelope was generated only by the relay. Connection calls and the
+successful Ava calls were forwarded unchanged to the real development API. This proves
+that the connection header fixes repair reproducible failures, rather than merely avoiding
+regressions. It also proves the Ava error classification/redaction change for the supplied
+failure contract, while retaining the live-failure coverage limitation.
+
+Cleanup reconciled the unique test prefix against connection lists, deleted the single
+disposable connection with a fresh ETag (204), and verified GET 404. **Zero test resources
+remain.** Both MCP processes and the relay closed; the baseline build and temporary encrypted
+credential cache were removed. Existing resources were not modified. There were no workflow
+executions, production writes, or deployments.
+
+Execution-guidance changes, simultaneous ETag writes, and cross-version replay are not
+established by this live before/after comparison. Description changes remain supported by
+the reviewed backend contracts and deterministic tests.
