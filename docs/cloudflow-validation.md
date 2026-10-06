@@ -191,3 +191,14 @@ executions, production writes, or deployments.
 Execution-guidance changes, simultaneous ETag writes, and cross-version replay are not
 established by this live before/after comparison. Description changes remain supported by
 the reviewed backend contracts and deterministic tests.
+
+## Merge conflict resolution (2026-10-06)
+
+Merged current public main at `0d2f856`. The single conflicting generated-tool override
+retains both the upstream read-only layer-components lookup and this branch's CloudFlow
+import guidance. Existing generated-tool tests verify both behaviors.
+
+The combined tree passes `yarn check:dev`, `yarn check:ci`, `yarn build`, all 1,218 unit
+tests, and all 284 integration tests. The live before/after results above remain evidence
+for their recorded builds; no additional development resources were created during this
+merge validation.

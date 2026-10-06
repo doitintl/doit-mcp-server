@@ -95,6 +95,10 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
 
         const data = await makeDoitRequest<string>(url, token, {
             method: metadata.method.toUpperCase(),
+            // This component lookup uses POST solely to carry read filters.
+            readOnly:
+                metadata.method.toLowerCase() === "post" &&
+                metadata.pathTemplate === "/clouddiagrams/v1/statussheet/{id}/get",
             body,
             appendParams: false,
             // URL params are built above (appendParams: false), but makeDoitRequest still

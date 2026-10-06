@@ -289,7 +289,8 @@ Cloud Storage,50`;
 
             expect(handleGeneralError).toHaveBeenCalledWith(
                 expect.any(Error),
-                expect.stringContaining("making DoiT API request")
+                expect.stringContaining("making DoiT API request"),
+                expect.stringContaining("filter parameter")
             );
             expect(response).toEqual({
                 content: [
@@ -379,7 +380,8 @@ Cloud Storage,50`;
 
             expect(handleGeneralError).toHaveBeenCalledWith(
                 expect.any(Error),
-                expect.stringContaining("making DoiT API query request")
+                expect.stringContaining("making DoiT API query request"),
+                expect.stringContaining("list_dimensions")
             );
             expect(response).toEqual({
                 content: [
