@@ -94,6 +94,8 @@ function recoveryHint(toolName: string): string {
             return "Use a smaller maxResults value or a narrower filter.";
         case "get_report_results":
             return "Use run_query with a narrower configuration, or retrieve the complete report in DoiT Console.";
+        case "get_statussheet_components":
+            return "Request fewer component IDs or fewer projection fields using the p parameter.";
         default:
             return "Use narrower filters or a smaller page where the tool supports them; otherwise retrieve the data in DoiT Console.";
     }

@@ -7,13 +7,29 @@ import { generateTools } from "../generateTools.js";
 import { loadGeneratedToolsSpec } from "../loadSpec.js";
 import { toolOverrides } from "../overrides.js";
 
-describe("generated tool description overrides", () => {
+describe("generated tool overrides", () => {
     const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
     const byName = new Map(tools.map((tool) => [tool.name, tool]));
 
     it("every override key matches a real generated tool name (no stale entries)", () => {
         const stale = Object.keys(toolOverrides).filter((name) => !byName.has(name));
         expect(stale).toEqual([]);
+    });
+
+    it("marks the POST layer-components lookup as read-only with read-only scopes", () => {
+        expect(byName.get("get_statussheet_components")).toMatchObject({
+            metadata: { method: "post", pathTemplate: "/clouddiagrams/v1/statussheet/{id}/get" },
+            annotations: { readOnlyHint: true, destructiveHint: false },
+            securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+        });
+    });
+
+    it.each(["async_run_inline", "async_run_report_by_id"])("keeps %s as a write because it creates a job", (name) => {
+        expect(byName.get(name)).toMatchObject({
+            metadata: { method: "post" },
+            annotations: { readOnlyHint: false, destructiveHint: true },
+            securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+        });
     });
 
     it("appends the codeNode contract to the import and export tools", () => {

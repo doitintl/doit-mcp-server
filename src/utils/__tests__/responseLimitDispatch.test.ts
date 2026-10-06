@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { generateTools } from "../../tools/generated/generateTools.js";
+import { loadGeneratedToolsSpec } from "../../tools/generated/loadSpec.js";
 import type { GeneratedTool } from "../../tools/generated/types.js";
+import { COVERED_ENDPOINTS } from "../../tools/handWrittenTools.js";
 import { MemoryApprovalStore } from "../approval.js";
 import { MAX_TOOL_RESULT_CHARS } from "../responseLimit.js";
 import { executeToolHandler } from "../toolsHandler.js";
@@ -77,6 +80,31 @@ describe("size guard through actual tool dispatch", () => {
         expect(response.isError).toBe(true);
         expect(makeDoitRequest).toHaveBeenCalledOnce();
         expect(onResponseMetrics).toHaveBeenCalledOnce();
+    });
+
+    it("returns narrowing guidance for an oversized generated POST layer-components lookup", async () => {
+        const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+        vi.mocked(makeDoitRequest).mockResolvedValue("x".repeat(MAX_TOOL_RESULT_CHARS));
+        const response = await executeToolHandler(
+            "get_statussheet_components",
+            { id: "layer-1", node: ["node-1"] },
+            "key",
+            { ...options, generatedTools: new Map(tools.map((tool) => [tool.name, tool])) }
+        );
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("RESPONSE_TOO_LARGE");
+        expect(response.content[0].text).toContain("fewer component IDs");
+        expect(response.content[0].text).toContain("projection fields using the p parameter");
+        expect(response.content[0].text).not.toContain("Do not repeat the write");
+        expect(makeDoitRequest).toHaveBeenCalledOnce();
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/clouddiagrams/v1/statussheet/layer-1/get"),
+            "key",
+            expect.objectContaining({ method: "POST", body: { node: ["node-1"] } })
+        );
+        expect(onResponseMetrics).toHaveBeenCalledWith(
+            expect.objectContaining({ toolName: "get_statussheet_components", disposition: "size_error" })
+        );
     });
 
     it("checks final converted results even if raw API data was small", async () => {
