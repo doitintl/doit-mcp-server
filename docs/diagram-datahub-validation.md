@@ -1,6 +1,7 @@
 # Diagram, DataHub, and AWS contract validation
 
-Validated on 2026-10-05 from an isolated checkout based on main.
+Initial validation on 2026-10-05 from an isolated checkout based on main.
+Review fixes validated on 2026-10-06.
 
 ## Changes
 
@@ -9,7 +10,15 @@ Validated on 2026-10-05 from an isolated checkout based on main.
   diagrams. Component loading is explicitly disabled by default, including on
   selected layers where the API otherwise defaults to enabling it. With component
   loading enabled and no layer selectors, the tool resolves layer IDs from diagram
-  metadata and makes a second read. Empty selector arrays behave like omission.
+  metadata and explicitly requests those layers. Component reads are limited to
+  five distinct layers per call; larger selections return a batching error before
+  component loading. Empty selector arrays behave like omission.
+- Filtered diagram reads first discover accessible diagrams with an empty DTO,
+  all diagram types, and the same authenticated customer context. Every supplied
+  diagram/layer ID must appear in that discovery. Failed discovery, unknown IDs,
+  and mixed accessible/inaccessible selections fail before a populated DTO read.
+  The access check includes empty layers; skip_empty only filters layers from the
+  returned diagram metadata and does not remove diagrams.
 - Component responses are typed as diagram/layer maps with an array of layer
   metadata on each diagram. Unfiltered discovery covers accessible application
   and infrastructure diagrams. Component fields retain the API's projections.
@@ -32,7 +41,8 @@ Validated on 2026-10-05 from an isolated checkout based on main.
   within 730 days of API time, and at most 255 metrics per event. The unsupported
   processing-time guarantee was removed.
 - Diagram descriptions cover cloud resource-ID lookup and viewer/image URLs,
-  category-specific search pagination and layer scope, fractional trendingPct,
+  category-specific search pagination and layer scope, percentage trendingPct
+  (25 means 25%),
   top-five resource/service results, twelve trend buckets, inclusive cost dates,
   the 200-relation cap, optional group membership, snapshot tag filtering, and
   activity user IDs. find_cloud_diagrams is a non-destructive mutation because it
@@ -59,7 +69,27 @@ change.
   selected customer context reached both the query and tenant header. This was
   a deterministic check, not live hosted OAuth coverage.
 
-## Redacted live evidence
+## Review follow-up validation (2026-10-06)
+
+All four review findings were addressed: access-scoped selector validation,
+five-layer component bounds, percentage trend units, and layer-only skip_empty
+semantics. Trend fixtures use 12.5 for 12.5%, with no output rescaling.
+
+- Node 20.20.2 and 22.23.2: 1,137 unit tests, 267 integration tests, and builds passed.
+- yarn check:dev, yarn check:ci, and git diff --check passed.
+- Regression tests cover unknown and mixed-access selectors, failed discovery,
+  prototype-key selectors, layer IDs outside the discovery result, deduplication,
+  the five-layer boundary, and automatic expansion beyond that boundary.
+- Legacy and modern MCP calls verify that foreign IDs never trigger a populated
+  DTO read, owned layers still load, and tenant headers/query scope are retained.
+
+These are deterministic checks. No live foreign-customer access was attempted.
+The MCP check relies on the API's access-scoped empty-DTO discovery; the API's
+populated-DTO authorization should also be enforced upstream. Filtered reads
+incur an additional discovery request. The component limit bounds layer count,
+not the size of an individual layer.
+
+## Redacted live evidence (2026-10-05)
 
 The built local CLI was connected over actual stdio with an MCP client. The key
 was taken from DOIT_OWN_CUSTOMER_API_KEY and passed as DOIT_API_KEY only in the

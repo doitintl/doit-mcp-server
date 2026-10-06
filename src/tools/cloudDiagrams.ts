@@ -221,7 +221,7 @@ export const getCloudDiagramCostSnapshotTool = {
     title: "Get cloud diagram cost snapshot",
     coversEndpoint: "get:/clouddiagrams/v1/statussheet/{id}/costs",
     description:
-        "Use this when the user wants a cost snapshot for a specific cloud infrastructure diagram layer over a time period — the API-reported total, trendingPct as a fractional change (0.1 means 10%, null when no prior value is available), the top five resources and top five services by cost, and the last twelve trend buckets. Both dates are inclusive. Requires the diagram layer ID and a startDate/endDate (YYYY-MM-DD). Do NOT use this for account-wide cost analysis (use run_query) or budgets (use list_budgets).",
+        "Use this when the user wants a cost snapshot for a specific cloud infrastructure diagram layer over a time period — the API-reported total, trendingPct as a percentage (25 means 25%, null when no prior value is available), the top five resources and top five services by cost, and the last twelve trend buckets. Both dates are inclusive. Requires the diagram layer ID and a startDate/endDate (YYYY-MM-DD). Do NOT use this for account-wide cost analysis (use run_query) or budgets (use list_budgets).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramCostSnapshotArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -455,6 +455,8 @@ export async function handleListCloudDiagramNodeActivitiesRequest(args: any, tok
     }
 }
 
+const MAX_COMPONENT_LAYERS = 5;
+
 export const GetCloudDiagramComponentsArgumentsSchema = z.object({
     scheme_ids: z
         .array(z.string())
@@ -472,9 +474,14 @@ export const GetCloudDiagramComponentsArgumentsSchema = z.object({
         .boolean()
         .optional()
         .describe(
-            "Load component maps for selected layers, or all layers of selected diagrams when layer_ids is omitted. With no IDs, first discovers accessible application/infrastructure diagrams. Defaults to false. Component fields use API projections, not full resource properties."
+            "Load component maps for up to five selected layers, or resolved diagram layers when layer_ids is omitted. Larger selections return an error; discover layer IDs with this option false, then request batches of at most five layer_ids. With no IDs, first discovers accessible application/infrastructure diagrams. Defaults to false. Component fields use API projections, not full resource properties."
         ),
-    skip_empty: z.boolean().optional().describe("Omit diagrams with no components. Defaults to false."),
+    skip_empty: z
+        .boolean()
+        .optional()
+        .describe(
+            "Omit empty layers from each diagram's layer metadata; diagrams remain in the result. Defaults to false."
+        ),
 });
 
 export const getCloudDiagramComponentsTool = {
@@ -482,7 +489,7 @@ export const getCloudDiagramComponentsTool = {
     title: "Get cloud diagram components",
     coversEndpoint: "post:/clouddiagrams/v1/scheme/get",
     description:
-        "Use this when the user wants to discover all cloud infrastructure diagrams and their layers (statussheets), or to look up layer IDs needed for other diagram endpoints. With no filters, returns accessible application and infrastructure diagrams with layer metadata and no component data. Returns maps keyed by diagram and layer IDs. scheme_ids and the diagrams owning layer_ids are combined, not intersected. The layer IDs required by other diagram tools come from this tool. Optionally filter by diagram IDs (scheme_ids) or layer IDs (layer_ids), and set include_components=true to load projected component maps for the requested layers, or all layers of the selected diagrams when layer_ids is omitted. Do NOT use this for cost analysis (use run_query) or diagram search (use search_cloud_diagrams).",
+        "Use this when the user wants to discover all cloud infrastructure diagrams and their layers (statussheets), or to look up layer IDs needed for other diagram endpoints. With no filters, returns accessible application and infrastructure diagrams with layer metadata and no component data. Returns maps keyed by diagram and layer IDs. Selectors must belong to diagrams accessible to the authenticated customer and user. scheme_ids and the diagrams owning layer_ids are combined, not intersected. The layer IDs required by other diagram tools come from this tool. Optionally filter by diagram IDs (scheme_ids) or layer IDs (layer_ids), and set include_components=true to load projected component maps for up to five requested or resolved layers. Larger selections return an error before loading components; discover metadata first, then request batches of at most five layer_ids. Do NOT use this for cost analysis (use run_query) or diagram search (use search_cloud_diagrams).",
     inputSchema: zodToMcpInputSchema(GetCloudDiagramComponentsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -504,15 +511,51 @@ export async function handleGetCloudDiagramComponentsRequest(args: any, token: s
 
         // Empty arrays behave like omitted selectors; an empty DTO is the API's
         // discovery branch, which never loads components even with components=true.
-        const schemes = scheme_ids?.length ? scheme_ids : undefined;
-        const layers = layer_ids?.length ? layer_ids : undefined;
+        const schemes = scheme_ids?.length ? [...new Set(scheme_ids)] : undefined;
+        const layers = layer_ids?.length ? [...new Set(layer_ids)] : undefined;
+        const limitError = () =>
+            createErrorResponse(
+                `Component loading is limited to ${MAX_COMPONENT_LAYERS} layers per call. Discover metadata with include_components=false, then request batches of at most ${MAX_COMPONENT_LAYERS} layer_ids.`
+            );
+        if (include_components && layers && layers.length > MAX_COMPONENT_LAYERS) return limitError();
+
+        // Only the empty DTO API branch scopes IDs to the authenticated tenant/user.
+        // Include every diagram type for validation, without filtering empty layers.
+        let accessibleLayerIds: Set<string> | undefined;
+        if (schemes || layers) {
+            const discoveryParams = new URLSearchParams({
+                components: "false",
+                type: "application,infrastructure,network,template",
+            });
+            const accessible = await makeDoitRequest<GetCloudDiagramComponentsResponse>(
+                `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?${discoveryParams}`,
+                token,
+                { method: "POST", body: {}, customerContext }
+            );
+            if (!accessible) return createErrorResponse("Failed to verify cloud diagram access");
+            const accessibleDiagramIds = new Set(Object.keys(accessible.scheme ?? {}));
+            accessibleLayerIds = new Set(
+                Object.values(accessible.scheme ?? {}).flatMap((scheme) =>
+                    (scheme.statussheet ?? []).map((sheet) => sheet.ssid ?? sheet._id)
+                )
+            );
+            if (
+                schemes?.some((id) => !accessibleDiagramIds.has(id)) ||
+                layers?.some((id) => !accessibleLayerIds?.has(id))
+            ) {
+                return createErrorResponse(
+                    "Requested diagrams or layers are not accessible to the authenticated customer and user"
+                );
+            }
+        }
+
         const body: Record<string, unknown> = {};
         if (schemes) body.scheme = schemes;
         if (layers) body.statussheet = layers;
 
         const params = new URLSearchParams();
         // The populated DTO branch defaults to components=true, unlike discovery.
-        params.set("components", String(include_components ?? false));
+        params.set("components", String(Boolean(include_components && layers)));
         if (skip_empty) params.set("skip_empty", "true");
         const url = `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?${params}`;
 
@@ -533,12 +576,23 @@ export async function handleGetCloudDiagramComponentsRequest(args: any, token: s
                     )
                 ),
             ];
+            if (layerIds.some((id) => accessibleLayerIds && !accessibleLayerIds.has(id))) {
+                return createErrorResponse(
+                    "Requested diagrams or layers are not accessible to the authenticated customer and user"
+                );
+            }
+            if (layerIds.length > MAX_COMPONENT_LAYERS) return limitError();
             if (layerIds.length > 0) {
-                const components = await makeDoitRequest<GetCloudDiagramComponentsResponse>(url, token, {
-                    method: "POST",
-                    body: { statussheet: layerIds },
-                    customerContext,
-                });
+                params.set("components", "true");
+                const components = await makeDoitRequest<GetCloudDiagramComponentsResponse>(
+                    `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?${params}`,
+                    token,
+                    {
+                        method: "POST",
+                        body: { statussheet: layerIds },
+                        customerContext,
+                    }
+                );
                 if (!components) return createErrorResponse("Failed to retrieve cloud diagram components");
                 data = { ...data, statussheet: components.statussheet };
             }

@@ -111,7 +111,7 @@ export const cloudDiagramCostSnapshotFixture = {
     currency: "USD",
     timeRange: { startDate: "2026-04-01", endDate: "2026-04-30", interval: "day" },
     total: 1234.56,
-    trendingPct: 0.125,
+    trendingPct: 12.5,
     topResources: [
         { id: "node-1", name: "web-server", type: "AWS::EC2::Instance", amount: 500.25 },
         { id: "node-2", name: "db", type: "AWS::RDS::DBInstance", amount: 320.1 },
