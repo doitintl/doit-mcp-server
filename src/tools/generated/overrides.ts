@@ -5,15 +5,16 @@ export type ToolOverride = {
     descriptionSuffix?: string;
     /** Preserve a cursor carried in a response header in an export-only result envelope. */
     responsePageTokenHeader?: string;
+    /** Explicit operation semantics when the HTTP method does not indicate whether it writes. */
+    readOnly?: boolean;
 };
 
 /**
- * Prompt-shaped additions to generated tool descriptions, keyed by the snake_cased tool name
+ * MCP-specific overrides, keyed by the snake_cased tool name
  * that `toolNameFor` derives (so `exportCloudflowFlow` → `export_cloudflow_flow`).
  *
- * A suffix rather than a replacement: the OpenAPI spec is the API's own contract and stays
- * authoritative about what an endpoint does. This file only adds what the spec has no business
- * carrying — runtime behavior a caller has to know to get a correct result.
+ * The OpenAPI spec remains authoritative about what an endpoint does. Description suffixes
+ * add runtime guidance, while explicit read-only semantics handle lookups sent as POST.
  *
  * Every key is asserted against the real generated tool names in the tests, so renaming an
  * operation upstream fails the build instead of silently dropping the guidance.
@@ -24,6 +25,8 @@ export const toolOverrides: Record<string, ToolOverride> = {
         descriptionSuffix:
             "This tool returns a JSON envelope with data (the unchanged CSV or JSONL page body) and pageToken (from X-Next-Page-Token). Pass a non-empty pageToken back as pageToken to advance; null means the final page. MCP does not expose the HTTP headers directly.",
     },
+    // Fetches selected layer components by ID; POST carries the component ID lists.
+    get_statussheet_components: { readOnly: true },
     import_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
     export_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
     test_run_cloudflow_flow: {
