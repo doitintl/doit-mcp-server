@@ -28,7 +28,7 @@ export const mockedDoitApiHandlers = [
         }
         return new HttpResponse(null, { status: 404 });
     }),
-    http.patch(`${API_BASE}/sharing/v1/:resourceType/:resourceId`, ({ params }) => {
+    http.put(`${API_BASE}/sharing/v1/:resourceType/:resourceId`, ({ params }) => {
         const { resourceType, resourceId } = params;
         const allowed = ["alerts", "budgets", "reports", "allocations"];
         if (allowed.includes(resourceType as string) && resourceId === "budget-1") {

@@ -293,17 +293,17 @@ describe("allocations", () => {
             expect(makeDoitRequest).not.toHaveBeenCalled();
         });
 
-        it("should return validation error when rules is provided without unallocatedCosts", async () => {
-            const invalidArgs = {
-                name: "Bad Group",
-                description: "Invalid group allocation",
-                rules: groupArgs.rules,
-            };
-
-            await handleCreateAllocationRequest(invalidArgs, mockToken);
-
-            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("Formatted Zod Error"));
-            expect(makeDoitRequest).not.toHaveBeenCalled();
+        it("allows group creation without an unmatched-cost label", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue({ id: "group" });
+            await handleCreateAllocationRequest({ name: "Group", rules: groupArgs.rules }, mockToken);
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                ALLOCATIONS_URL,
+                mockToken,
+                expect.objectContaining({
+                    method: "POST",
+                    body: { name: "Group", rules: groupArgs.rules, unallocatedCosts: undefined },
+                })
+            );
         });
     });
 

@@ -16,6 +16,6 @@ export type ResourcePermissionsResponse = {
 };
 
 export type UpdateResourcePermissionsRequest = {
-    permissions?: ResourcePermissionEntry[];
+    permissions: ResourcePermissionEntry[];
     public?: "editor" | "viewer" | null;
 };

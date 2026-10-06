@@ -28,7 +28,7 @@ export const ListLabelsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            `The maximum number of results to return in a single page. Defaults to ${DEFAULT_MAX_RESULTS_LABELS}.`
+            `The maximum number of results per page, as an integer string (1-500). Out-of-range integers fall back to 50; non-integers are rejected. This tool defaults to ${DEFAULT_MAX_RESULTS_LABELS}.`
         ),
     pageToken: z
         .string()
@@ -37,7 +37,9 @@ export const ListLabelsArgumentsSchema = z.object({
     filter: z
         .string()
         .optional()
-        .describe("An expression for filtering the results. Valid fields: name, type. Example: name:budget"),
+        .describe(
+            "Filter using key:value, with different keys joined by | (AND). Repeated keys are rejected (400); values match exactly and case-sensitively. Supported keys: name, type (custom or preset). Example: name:budget"
+        ),
     sortBy: z
         .enum(LABEL_SORT_BY_VALUES)
         .optional()
@@ -55,7 +57,7 @@ export const listLabelsTool = {
     title: "List labels",
     coversEndpoint: "get:/analytics/v1/labels",
     description:
-        "Use this when the user wants to see their resource labels or label configurations. Returns a list of labels with their metadata. Do NOT use this for annotations (use list_annotations) or label assignments (use get_label_assignments).",
+        "Use this when the user wants to see their DoiT console labels for organizing reports, budgets, alerts, allocations, metrics and annotations. Returns label metadata; these are not cloud resource labels. Do NOT use this for annotations (use list_annotations) or label assignments (use get_label_assignments).",
     inputSchema: zodToMcpInputSchema(ListLabelsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -111,7 +113,9 @@ export const GetLabelArgumentsSchema = z
         name: z
             .string()
             .optional()
-            .describe("Partial name match (case-insensitive). Used to find the label when ID is unknown."),
+            .describe(
+                "Case-insensitive substring search of only the first 200 labels. Multiple matches return an ambiguity error listing names; id takes precedence."
+            ),
     })
     .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
@@ -120,7 +124,7 @@ export const getLabelTool = {
     title: "Get label",
     coversEndpoint: "get:/analytics/v1/labels/{id}",
     description:
-        "Use this when the user wants to view details of a specific label. Accepts either the label ID or a partial name (case-insensitive). Do NOT use this for listing all labels (use list_labels) or annotations (use list_annotations).",
+        "Use this when the user wants to view details of a specific DoiT console label (not a cloud resource label). Accepts either the label ID or a case-insensitive partial name. Name lookup searches only the first 200 labels; multiple matches return an error listing names, and id takes precedence. Do NOT use this for listing all labels (use list_labels) or annotations (use list_annotations).",
     inputSchema: zodToMcpInputSchema(GetLabelArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -177,7 +181,7 @@ export const createLabelTool = {
     title: "Create label",
     coversEndpoint: "post:/analytics/v1/labels",
     description:
-        "Use this when the user wants to create a new resource label. Changes apply immediately. Do NOT use this for viewing existing labels (use list_labels) or annotations (use create_annotation).",
+        "Use this when the user wants to create a new DoiT console label for organizing analytics objects. Names must be unique within the customer. Requires Cloud Analytics Admin. Changes apply immediately. Do NOT use this for viewing existing labels (use list_labels) or annotations (use create_annotation).",
     inputSchema: zodToMcpInputSchema(CreateLabelArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -212,32 +216,39 @@ export async function handleCreateLabelRequest(args: any, token: string) {
 }
 
 // Schema and metadata for update label
-const UpdateLabelBaseSchema = CreateLabelArgumentsSchema.partial();
-
-export const UpdateLabelArgumentsSchema = UpdateLabelBaseSchema.extend({
-    id: z
-        .string()
-        .transform((val) => val.trim())
-        .pipe(z.string().min(1, "Label ID is required and cannot be empty."))
-        .describe("The ID of the label to update (required)."),
-    name: UpdateLabelBaseSchema.shape.name
-        .nullable()
-        .describe("The name of the label. Must be non-empty if provided, or null to clear."),
-    color: UpdateLabelBaseSchema.shape.color
-        .nullable()
-        .describe(
-            `The color of the label. Accepted values: ${formatEnumValues(LABEL_COLOR_VALUES)}, or null to clear.`
-        ),
-}).refine((data) => data.name !== undefined || data.color !== undefined, {
-    message: "At least one of 'name' or 'color' must be provided for an update.",
-});
+export const UpdateLabelArgumentsSchema = z
+    .object({
+        id: z
+            .string()
+            .transform((val) => val.trim())
+            .pipe(z.string().min(1, "Label ID is required and cannot be empty."))
+            .describe("The ID of the label to update (required)."),
+        name: z
+            .string()
+            .min(1)
+            .nullable()
+            .optional()
+            .describe(
+                "The name of the label. Must be non-empty and unique if provided; omission or null leaves unchanged."
+            ),
+        color: z
+            .enum(LABEL_COLOR_VALUES)
+            .nullable()
+            .optional()
+            .describe(
+                `The color of the label. Accepted values: ${formatEnumValues(LABEL_COLOR_VALUES)}. Omission or null leaves unchanged.`
+            ),
+    })
+    .refine((data) => data.name !== undefined || data.color !== undefined, {
+        message: "At least one of 'name' or 'color' must be provided for an update.",
+    });
 
 export const updateLabelTool = {
     name: "update_label",
     title: "Update label",
     coversEndpoint: "patch:/analytics/v1/labels/{id}",
     description:
-        "Use this when the user wants to modify an existing label. Supports partial updates. Changes apply immediately. Do NOT use this for creating new labels (use create_label) or annotations (use update_annotation).",
+        "Use this when the user wants to modify an existing custom DoiT console label. Requires Cloud Analytics Admin; preset labels cannot be edited. Supports partial updates; null leaves a field unchanged. Changes apply immediately. Do NOT use this for creating new labels (use create_label) or annotations (use update_annotation).",
     inputSchema: zodToMcpInputSchema(UpdateLabelArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -286,7 +297,7 @@ export const getLabelAssignmentsTool = {
     title: "Get label assignments",
     coversEndpoint: "get:/analytics/v1/labels/{id}/assignments",
     description:
-        "Use this when the user wants to see which resources are assigned to a specific label. Returns a list of assigned objects. Do NOT use this for viewing label details (use get_label) or allocations (use list_allocations).",
+        "Use this when the user wants to see which DoiT console objects are assigned to a label. Returns objectId and objectType pairs, without object details. Do NOT use this for viewing label details (use get_label) or allocations (use list_allocations).",
     inputSchema: zodToMcpInputSchema(GetLabelAssignmentsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -356,7 +367,7 @@ export const assignObjectsToLabelTool = {
     title: "Assign objects to label",
     coversEndpoint: "post:/analytics/v1/labels/{id}/assignments",
     description:
-        "Use this when the user wants to assign or unassign cloud resources to a label. Changes apply immediately. Do NOT use this for creating labels (use create_label) or viewing assignments (use get_label_assignments).",
+        "Use this when the user wants to assign or unassign DoiT console objects (reports, budgets, alerts, allocations, metrics or annotations) to a custom console label. Preset labels cannot be assigned. Requires edit permission on every object; validation is all-or-nothing. add/remove modify associations, not a replacement list. Changes apply immediately. Do NOT use this for creating labels (use create_label) or viewing assignments (use get_label_assignments).",
     inputSchema: zodToMcpInputSchema(AssignObjectsToLabelArgumentsSchema),
     annotations: {
         readOnlyHint: false,
