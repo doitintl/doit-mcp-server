@@ -58,11 +58,20 @@ describe("allocation contracts", () => {
             expect(schema.safeParse({ id: "group", name: "Group", rules: selected }).success).toBe(true);
         }
     });
+    it("updates a group member without requiring or inventing its name", async () => {
+        const rules = [{ action: "update", id: "first", ...rule }, selected[1]];
+        const response = await allocations.handleUpdateAllocationRequest({ id: "group", rules }, token);
+        expect(response.isError).not.toBe(true);
+        expect(request).toHaveBeenCalledWith(expect.stringContaining("/group"), token, {
+            method: "PATCH",
+            body: { rules },
+            customerContext: undefined,
+        });
+    });
     it.each([
         { action: "create", ...rule },
         { action: "create", name: "Rule", id: "existing", ...rule },
         { action: "update", name: "Rule", ...rule },
-        { action: "update", id: "first", ...rule },
         { action: "select" },
         { action: "create", name: "Rule", components: rule.components },
         { action: "update", id: "first", name: "Rule", formula: "A" },

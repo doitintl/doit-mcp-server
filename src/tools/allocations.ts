@@ -97,7 +97,7 @@ const GroupRuleInputSchema = z.discriminatedUnion("action", [
     SingleRuleInputSchema.extend({
         action: z.literal("update").describe("Update an existing rule and include it in the group."),
         id: z.string().min(1).describe("Required ID of the existing rule to update."),
-        name: z.string().min(1).describe("Name for the updated rule."),
+        name: z.string().min(1).optional().describe("New name for the updated rule; omit to preserve its name."),
         description: z.string().optional().describe("Description of the updated rule."),
     }),
     z.object({
