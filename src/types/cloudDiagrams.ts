@@ -155,7 +155,8 @@ export type CloudDiagramSnapshotActivityGroup = {
     statussheet: string;
     timestamp: string;
     tags?: string[];
-    snapshot: string;
+    type?: "ALARM" | "COMMIT" | "EVENT" | "SNAPSHOT";
+    snapshot?: string;
     items: CloudDiagramActivityItem[];
 };
 
@@ -176,6 +177,7 @@ export type ListCloudDiagramNodeActivitiesResponse = CloudDiagramNodeActivity[];
 // Get diagram components — POST /clouddiagrams/v1/scheme/get
 export type CloudDiagramSchemeStatussheetInfo = {
     _id: string;
+    ssid?: string;
     account_name?: string;
     [key: string]: unknown;
 };
@@ -185,7 +187,21 @@ export type CloudDiagramScheme = {
     name?: string;
     type?: "application" | "infrastructure" | "network" | "template";
     account_name?: string;
-    statussheet?: Record<string, CloudDiagramSchemeStatussheetInfo>;
+    statussheet?: CloudDiagramSchemeStatussheetInfo[];
 };
 
-export type GetCloudDiagramComponentsResponse = CloudDiagramScheme[];
+export type CloudDiagramStatussheetComponents = {
+    statussheet: { _id: string; [key: string]: unknown };
+    node?: Record<string, Record<string, unknown>>;
+    element?: Record<string, Record<string, unknown>>;
+    group?: Record<string, Record<string, unknown>>;
+    link?: Record<string, Record<string, unknown>>;
+    attachment?: Record<string, Record<string, unknown>>;
+    combiner?: Record<string, Record<string, unknown>>;
+    note?: Record<string, Record<string, unknown>>;
+};
+
+export type GetCloudDiagramComponentsResponse = {
+    scheme?: Record<string, CloudDiagramScheme>;
+    statussheet?: Record<string, CloudDiagramStatussheetComponents>;
+};

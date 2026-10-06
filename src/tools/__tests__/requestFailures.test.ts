@@ -186,7 +186,6 @@ it.each([
     ["cost_breakdown", { groupBy: "service" }],
     ["cost_trend", {}],
     ["compare_spend", { period2: { from: "2026-01-01T00:00:00Z", to: "2026-02-01T00:00:00Z" } }],
-    ["find_cloud_diagrams", { resources: ["test-resource"] }],
     ["search_cloud_diagrams", { query: "test" }],
     ["get_cloud_diagram_components", {}],
     ["get_statussheet_components", { id: "test-layer" }],
@@ -204,9 +203,12 @@ it.each([
     expect(fetch).toHaveBeenCalled();
 });
 
-it("keeps mutation warnings for report creation after an uncertain failure", async () => {
+it.each([
+    ["create_report", { name: "test-report", config: {} }],
+    ["find_cloud_diagrams", { resources: ["test-resource"] }],
+])("keeps mutation warnings for %s after an uncertain failure", async (name, args) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
-    const result = await executeToolHandler("create_report", { name: "test-report", config: {} }, "secret");
+    const result = await executeToolHandler(name as string, args, "secret");
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("Check its state before retrying");
     expect(fetch).toHaveBeenCalledOnce();

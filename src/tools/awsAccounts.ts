@@ -22,7 +22,7 @@ export const getAwsAccountTool = {
     title: "Get AWS account",
     coversEndpoint: "get:/core/v1/cloudconnect/aws/accounts/{accountID}",
     description:
-        "Use this when the user wants the CloudConnect details of a specific connected AWS account, such as its IAM role ARN, billing S3 bucket, and which DoiT features are enabled or supported. Requires the 12-digit AWS account ID. Do NOT use this for Google Cloud or Azure accounts.",
+        "Use this when the user wants the CloudConnect details of a specific connected AWS account, such as its IAM role ARN, S3 bucket for real-time data, and which DoiT features are enabled or supported. Requires the 12-digit AWS account ID. Do NOT use this for Google Cloud or Azure accounts.",
     inputSchema: zodToMcpInputSchema(GetAwsAccountArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -60,8 +60,8 @@ export const GetCloudConnectSupportedFeaturesArgumentsSchema = z.object({
     accountID: z
         .string()
         .trim()
-        .min(1)
-        .describe("The cloud provider account ID (AWS account ID or Azure tenant ID) to check supported features for."),
+        .regex(/^\d{12}$/, "An AWS account ID must contain exactly 12 digits.")
+        .describe("The 12-digit AWS account ID to check supported features for (including AWS standalone accounts)."),
 });
 
 export const getCloudConnectSupportedFeaturesTool = {
@@ -69,7 +69,7 @@ export const getCloudConnectSupportedFeaturesTool = {
     title: "Get Cloud Connect supported features",
     coversEndpoint: "get:/core/v1/cloudconnect/supportedFeatures/{accountID}",
     description:
-        "Use this when the user wants to know which DoiT CloudConnect features a connected cloud account supports and whether the account currently has the required permissions for each feature. Accepts an AWS account ID or Azure tenant ID. Returns the list of supported features with their permission status.",
+        "Use this when the user wants to know which DoiT CloudConnect features a connected AWS account supports and whether the account currently has the required permissions for each feature. Accepts a 12-digit AWS account ID, including AWS standalone accounts. Azure tenant IDs are unsupported. Returns the list of supported features with their permission status.",
     inputSchema: zodToMcpInputSchema(GetCloudConnectSupportedFeaturesArgumentsSchema),
     annotations: {
         readOnlyHint: true,

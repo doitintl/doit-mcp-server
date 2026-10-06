@@ -1451,7 +1451,7 @@ describe("MCP Tools Integration", () => {
             expect(parsed).toHaveLength(2);
             expect(parsed[0]._id).toBe("act-1");
             expect(parsed[0].activity).toBe("NODE_UPDATE");
-            expect(parsed[0].user).toBe("alice@example.com");
+            expect(parsed[0].user).toBe("user-1");
         });
 
         it("returns a validation error when nodeId is missing", async () => {
@@ -1968,10 +1968,10 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
-            expect(parsed).toHaveLength(2);
-            expect(parsed[0]._id).toBe("scheme-1");
-            expect(parsed[0].name).toBe("Production VPC");
-            expect(parsed[0].statussheet["sheet-1"]._id).toBe("sheet-1");
+            expect(Object.keys(parsed.scheme)).toHaveLength(2);
+            expect(parsed.scheme["scheme-1"]._id).toBe("scheme-1");
+            expect(parsed.scheme["scheme-1"].name).toBe("Production VPC");
+            expect(parsed.scheme["scheme-1"].statussheet[0]._id).toBe("sheet-1");
         });
 
         it("returns schemes when filtered by scheme_ids", async () => {
@@ -1981,8 +1981,8 @@ describe("MCP Tools Integration", () => {
             });
             const text = getTextContent(result);
             const parsed = JSON.parse(text);
-            expect(parsed).toHaveLength(2);
-            expect(parsed[0]._id).toBe("scheme-1");
+            expect(Object.keys(parsed.scheme)).toHaveLength(2);
+            expect(parsed.scheme["scheme-1"]._id).toBe("scheme-1");
         });
 
         it("returns validation error for invalid argument type", async () => {

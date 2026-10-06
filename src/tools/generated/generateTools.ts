@@ -184,18 +184,22 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 );
 
             const name = toolNameFor(method, pathTemplate, operation.operationId);
+            const override = toolOverrides[name];
+            if (override?.responsePageTokenHeader) {
+                metadata.responsePageTokenHeader = override.responsePageTokenHeader;
+            }
 
             const baseDescription =
                 operation.description ?? operation.summary ?? `${method.toUpperCase()} ${pathTemplate}`;
             const tagDescription = tagDescriptions.get(operation.tags?.[0] ?? "");
             const isPaginated = queryParams.some((parameter) => parameter.name === "pageToken");
-            const paginationNote = isPaginated
-                ? " This endpoint is paginated: a response with a non-empty `pageToken` has more results, returned when that value is passed as the `pageToken` parameter. A missing, null, or empty `pageToken` marks the last page."
-                : "";
+            const paginationNote =
+                isPaginated && !override?.responsePageTokenHeader
+                    ? " This endpoint is paginated: a response with a non-empty `pageToken` has more results, returned when that value is passed as the `pageToken` parameter. A missing, null, or empty `pageToken` marks the last page."
+                    : "";
             // Guidance the spec cannot carry — see overrides.ts. Tool descriptions ride in every
             // tools/list response, which makes them the only guidance channel that reaches the
             // remote Worker transport from this repo alone.
-            const override = toolOverrides[name];
             const description = `${tagDescription ? `${tagDescription} ` : ""}${baseDescription}${paginationNote}${
                 override?.descriptionSuffix ? ` ${override.descriptionSuffix}` : ""
             }`;
