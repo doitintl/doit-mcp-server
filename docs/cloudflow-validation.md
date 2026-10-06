@@ -94,13 +94,13 @@ inputs, counts, and semantic assertions. It is outside the default Vitest test p
 
 ## Cleanup and limitations
 
-Live writes: **zero**. No flows were built, refined, published, draft-executed, or triggered;
+Production writes: **zero**. No flows were built, refined, published, draft-executed, or triggered;
 no external actions or existing-session customer switches occurred. All fixture HTTP servers
 and MCP child processes were closed; fixture resources existed only in memory. No production
-resource cleanup was needed.
+resource cleanup was needed. Later dev writes and their cleanup are recorded below.
 
-Production connection writes, ETag conflicts/replay, token expiry, and forced Ava error
-envelopes were not exercised live. Personal-key calls do not establish hosted OAuth or
+Production writes, token expiry, and forced Ava error envelopes were not exercised live.
+Development connection writes and ETag/replay checks are recorded in the follow-up below. Personal-key calls do not establish hosted OAuth or
 employee impersonation coverage; context propagation and consumer schema delivery were
 checked deterministically.
 
@@ -123,3 +123,35 @@ Remaining dependencies:
   tracking-context changes can conflict even with the same key/body. Excluding telemetry from
   replay identity requires a backend change; callers should verify the original outcome.
 - DataHub response-header pagination remains outside this change.
+
+
+## Live development API validation (2026-10-06)
+
+The built core at `44b64d3` was exercised through actual MCP `tools/call`, using locally
+loaded development credentials only in the child environment. A loopback forwarding relay
+sent requests to the real development API and recorded status/code assertions; it supplied
+no fixture responses. Credentials, authenticated identity values, and resource IDs were
+omitted from the evidence.
+
+| Case | Actual development result |
+| --- | --- |
+| Account and bounded lists | Account validation, connection list, and template list returned 200 through built MCP |
+| Connection create | One disabled disposable AWS connection returned 201; no cloud permissions were provisioned and no workflow ran |
+| Identical retry | Same caller key, body, and client/server context returned 201 and the identical resource/response |
+| Different body | Same key with a changed body returned 422 (`idempotency_key_reused`) and MCP `isError: true` |
+| Observed ETag | Read returned a quoted ETag; owner-preserving collaborator replacement returned 200 and a new ETag |
+| Stale ETag | Reusing the old ETag returned 412 (`precondition_failed`) and MCP `isError: true` |
+| Invalid owner replacements | Empty, ownerless, and multiple-owner lists returned local MCP errors without HTTP requests |
+| Weak ETag | The current observed ETag with a weak prefix was accepted with 200 |
+| Ava | A request with ephemeral enabled returned 200 and MCP success |
+| Cleanup | Direct authenticated DELETE with the freshly read ETag returned 204; a subsequent GET returned 404 |
+
+Cleanup completed in a `finally` block, with **zero remaining test connections**. The direct
+DELETE was used for cleanup because this baseline's generated deletion schema does not
+expose the required If-Match header. All MCP child processes and the forwarding relay were
+closed. The temporary encrypted credential cache was removed after validation.
+
+This run does not establish atomicity of simultaneous ETag updates, cross-version retry
+identity, or forced in-progress conflicts. Ava's forced HTTP-200 failure envelope remains
+covered by fixtures. No flows were built, refined, published, triggered, or executed, and
+no hosted OAuth session or employee customer switch was exercised.
