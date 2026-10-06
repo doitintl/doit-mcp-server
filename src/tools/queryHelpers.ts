@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import { createErrorResponse, createSuccessResponse, handleGeneralError, makeDoitRequest } from "../utils/util.js";
-import { CLOUD_PROVIDER_ALIASES, normalizeConfig, type QueryResponse, REPORTS_BASE_URL } from "./reports.js";
+import {
+    CLOUD_PROVIDER_ALIASES,
+    CustomTimeRangeSchema,
+    normalizeConfig,
+    type QueryResponse,
+    REPORTS_BASE_URL,
+} from "./reports.js";
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -75,7 +81,9 @@ export const CostBreakdownArgumentsSchema = z.object({
         .max(24)
         .optional()
         .default(1)
-        .describe("How many months to look back (default 1). The current in-progress month is always included."),
+        .describe(
+            "Number of calendar months, 1–24 (default 1): N-1 complete months plus the current month-to-date. 1 means current month-to-date."
+        ),
     topN: z
         .number()
         .int()
@@ -83,7 +91,9 @@ export const CostBreakdownArgumentsSchema = z.object({
         .max(25)
         .optional()
         .default(10)
-        .describe("Number of top results to return (default 10, max 25)."),
+        .describe(
+            "Top dimension values ranked across the range (default 10, max 25). Each value can have a row per month; this is not a row cap."
+        ),
 });
 
 export const costBreakdownTool = {
@@ -93,7 +103,7 @@ export const costBreakdownTool = {
     description:
         "Use this when the user wants a simple cost breakdown by service, project, or cloud provider " +
         "(e.g. 'What are my top services by cost?', 'Which projects cost the most?'). " +
-        "Returns the top-N items ranked by cost descending. " +
+        "Selects the top-N groups by total cost across the range and returns monthly rows for each. The range includes the partial current month; months=1 means month-to-date. Output row order is not a cost ranking. " +
         "For complex multi-filter or multi-metric queries, use run_query instead.",
     inputSchema: zodToMcpInputSchema(CostBreakdownArgumentsSchema),
     annotations: {
@@ -163,7 +173,9 @@ export const CostTrendArgumentsSchema = z.object({
         .max(36)
         .optional()
         .default(6)
-        .describe("How many months of history to include (default 6)."),
+        .describe(
+            "Number of calendar months, 1–36 (default 6): N-1 complete months plus the partial current month-to-date."
+        ),
     cloud: z
         .string()
         .optional()
@@ -178,7 +190,9 @@ export const CostTrendArgumentsSchema = z.object({
         .max(25)
         .optional()
         .default(5)
-        .describe("When groupBy is set, limit to top-N groups by cost (default 5)."),
+        .describe(
+            "When groupBy is set, select top-N groups by total cost across the range (default 5, max 25), not a row cap."
+        ),
 });
 
 export const costTrendTool = {
@@ -188,7 +202,7 @@ export const costTrendTool = {
     description:
         "Use this when the user wants to see monthly spend over time " +
         "(e.g. 'Show me my cost trend', 'How has my spend changed over the last 6 months?'). " +
-        "Returns monthly cost data points, optionally broken down by service/project/cloud. " +
+        "Returns monthly cost data points, optionally broken down by service/project/cloud. The last point is the partial current month; months=1 means month-to-date. " +
         "For daily granularity or custom time intervals, use run_query instead.",
     inputSchema: zodToMcpInputSchema(CostTrendArgumentsSchema),
     annotations: {
@@ -264,18 +278,21 @@ export const CompareSpendArgumentsSchema = z.object({
         .max(24)
         .optional()
         .default(3)
-        .describe("How many months to look back for period 1 (default 3). Includes the current month."),
-    period2: z
-        .object({
-            from: z.string().describe("Start date in RFC3339 format (e.g. '2025-01-01T00:00:00Z')."),
-            to: z.string().describe("End date in RFC3339 format (e.g. '2025-03-31T23:59:59Z')."),
-        })
-        .describe("The comparison period as an explicit date range."),
+        .describe(
+            "Period 1 covers N-1 full calendar months plus current month-to-date, 1–24 (default 3). It is not necessarily a calendar quarter."
+        ),
+    period2: CustomTimeRangeSchema.describe(
+        "Comparison period as explicit inclusive UTC calendar dates in RFC3339 format."
+    ),
     cloud: z
         .string()
         .optional()
         .describe('Filter to a specific cloud provider. Accepts aliases like "aws", "gcp", "azure".'),
-    groupBy: GroupByEnum.optional().default("service").describe('Dimension to group by (default "service").'),
+    groupBy: GroupByEnum.optional()
+        .default("service")
+        .describe(
+            'Grouping (default "service"): service = cloud service, project = project/account/subscription, cloud = cloud provider. Each period independently selects its top 10 groups.'
+        ),
 });
 
 export const compareSpendTool = {
@@ -284,8 +301,8 @@ export const compareSpendTool = {
     coversEndpoint: null,
     description:
         "Use this when the user wants to compare spend between two time periods " +
-        "(e.g. 'Compare my costs this quarter vs last quarter', 'How did January compare to February?'). " +
-        "Period 1 is a rolling lookback; period 2 is an explicit date range. " +
+        "(e.g. 'Compare the latest three months including this month with January through March'). " +
+        "Period 1 is N-1 full calendar months plus current month-to-date; period 2 is an explicit date range. Returns two separate sets of monthly rows, each independently limited to its top 10 groups across that period. Groups can differ; no difference or percentage change is computed. " +
         "For more than two periods or advanced comparative analysis, use run_query instead.",
     inputSchema: zodToMcpInputSchema(CompareSpendArgumentsSchema),
     annotations: {
@@ -330,7 +347,7 @@ export async function handleCompareSpendRequest(args: any, token: string) {
         });
         const config2 = normalizeConfig({
             ...baseConfig,
-            timeRange: { mode: "custom", unit: "month", amount: 1, includeCurrent: false },
+            timeRange: { mode: "custom" },
             customTimeRange: { from: period2.from, to: period2.to },
         });
 
@@ -351,7 +368,7 @@ export async function handleCompareSpendRequest(args: any, token: string) {
             }),
         ]);
 
-        if (!r1?.result || !r2?.result) {
+        if (!r1?.result || r1.error || !r2?.result || r2.error) {
             return createErrorResponse(
                 `One or both queries failed. ${r1?.error || ""} ${r2?.error || ""}`.trim() ||
                     "Try using the full run_query tool for more control."
@@ -361,13 +378,13 @@ export async function handleCompareSpendRequest(args: any, token: string) {
         return createSuccessResponse(
             JSON.stringify({
                 period1: {
-                    label: `Last ${period1Months} month${period1Months > 1 ? "s" : ""}`,
+                    label: `Last ${period1Months} month${period1Months > 1 ? "s" : ""} including current month-to-date`,
                     rowCount: r1.result.rows.length,
                     rows: r1.result.rows,
                     columns: r1.result.schema,
                 },
                 period2: {
-                    label: `${period2.from.slice(0, 10)} to ${period2.to.slice(0, 10)}`,
+                    label: `${new Date(period2.from).toISOString().slice(0, 10)} to ${new Date(period2.to).toISOString().slice(0, 10)}`,
                     rowCount: r2.result.rows.length,
                     rows: r2.result.rows,
                     columns: r2.result.schema,
