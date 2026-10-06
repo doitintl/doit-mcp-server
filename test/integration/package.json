@@ -5,7 +5,8 @@
   "description": "Integration tests for DoiT MCP Server",
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:live:request-errors": "node live/requestErrors.mjs"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.2.0",

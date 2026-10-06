@@ -180,6 +180,7 @@ export async function handleSearchCloudDiagramsRequest(args: any, token: string)
 
         const data = await makeDoitRequest<SearchCloudDiagramsResponse>(CLOUD_DIAGRAMS_SEARCH_URL, token, {
             method: "POST",
+            readOnly: true,
             body,
             customerContext,
         });
@@ -530,7 +531,7 @@ export async function handleGetCloudDiagramComponentsRequest(args: any, token: s
             const accessible = await makeDoitRequest<GetCloudDiagramComponentsResponse>(
                 `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?${discoveryParams}`,
                 token,
-                { method: "POST", body: {}, customerContext }
+                { method: "POST", readOnly: true, body: {}, customerContext }
             );
             if (!accessible) return createErrorResponse("Failed to verify cloud diagram access");
             const accessibleDiagramIds = new Set(Object.keys(accessible.scheme ?? {}));
@@ -561,6 +562,7 @@ export async function handleGetCloudDiagramComponentsRequest(args: any, token: s
 
         let data = await makeDoitRequest<GetCloudDiagramComponentsResponse>(url, token, {
             method: "POST",
+            readOnly: true,
             body,
             customerContext,
         });
@@ -589,6 +591,7 @@ export async function handleGetCloudDiagramComponentsRequest(args: any, token: s
                     token,
                     {
                         method: "POST",
+                        readOnly: true,
                         body: { statussheet: layerIds },
                         customerContext,
                     }

@@ -207,6 +207,7 @@ describe("search_cloud_diagrams", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SEARCH_URL, mockToken, {
             method: "POST",
+            readOnly: true,
             body: { query: "production" },
             customerContext: undefined,
         });
@@ -226,6 +227,7 @@ describe("search_cloud_diagrams", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SEARCH_URL, mockToken, {
             method: "POST",
+            readOnly: true,
             body: { query: "ec2", ss_id: "sheet-1", from: 0, size: 5 },
             customerContext: "customer-123",
         });
@@ -589,6 +591,7 @@ describe("get_cloud_diagram_components", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUD_DIAGRAMS_SCHEME_GET_URL}?components=false`, mockToken, {
             method: "POST",
+            readOnly: true,
             body: {},
             customerContext: undefined,
         });
@@ -605,6 +608,7 @@ describe("get_cloud_diagram_components", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(`${CLOUD_DIAGRAMS_SCHEME_GET_URL}?components=false`, mockToken, {
             method: "POST",
+            readOnly: true,
             body: { scheme: ["scheme-1"], statussheet: ["sheet-1"] },
             customerContext: undefined,
         });
@@ -627,6 +631,7 @@ describe("get_cloud_diagram_components", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
             method: "POST",
+            readOnly: true,
             body: {},
             customerContext: "cust-42",
         });
@@ -671,7 +676,12 @@ describe("diagram component selection semantics", () => {
             expect(makeDoitRequest).toHaveBeenLastCalledWith(
                 `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?components=true`,
                 "token",
-                { method: "POST", body: { statussheet: ["layer-a", "layer-b"] }, customerContext: "selected-customer" }
+                {
+                    method: "POST",
+                    readOnly: true,
+                    body: { statussheet: ["layer-a", "layer-b"] },
+                    customerContext: "selected-customer",
+                }
             );
             expect(JSON.parse(response.content[0].text)).toEqual({ ...discovery, ...layers });
         }
@@ -685,7 +695,7 @@ describe("diagram component selection semantics", () => {
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 `${CLOUD_DIAGRAMS_SCHEME_GET_URL}?components=${include_components ?? false}`,
                 "token",
-                { method: "POST", body: { statussheet: ["layer-a"] }, customerContext: undefined }
+                { method: "POST", readOnly: true, body: { statussheet: ["layer-a"] }, customerContext: undefined }
             );
         }
     );
@@ -734,7 +744,7 @@ describe("diagram component selection semantics", () => {
         expect(makeDoitRequest).toHaveBeenCalledWith(
             expect.stringContaining("components=false&type=application%2Cinfrastructure%2Cnetwork%2Ctemplate"),
             "service-account-token",
-            { method: "POST", body: {}, customerContext: "selected-customer" }
+            { method: "POST", readOnly: true, body: {}, customerContext: "selected-customer" }
         );
     });
 
@@ -793,6 +803,7 @@ describe("diagram component selection semantics", () => {
         expect(response.isError).not.toBe(true);
         expect(makeDoitRequest).toHaveBeenLastCalledWith(expect.stringContaining("components=true"), "token", {
             method: "POST",
+            readOnly: true,
             body: { statussheet: ids },
             customerContext: undefined,
         });

@@ -92,17 +92,37 @@ or merge was performed. The synthetic find input independently had no matches,
 so no filter/image cleanup was required. Temporary snapshot/build/auth dependency
 and redacted trace directories were removed after recording this evidence.
 
-No feature runtime defect was found in these comparisons. The update for this
-validation changes evidence only.
+No feature runtime defect was found in the initial development comparisons.
+
+## Final synchronization and recheck
+
+Before CI could start for the evidence commit, main advanced to
+`e5845c45c13e4c48ea63c4873e044e7aecfc4444` and the PR conflicted in a diagram
+request expectation. The branch was synchronized with main while retaining the
+corrected selector DTO. Component discovery/loading requests use the new safe
+read retry advice; `find_cloud_diagrams` retains the mutation warning because a
+matched lookup creates filters and queues rendering. A simulated 503 regression
+check covers that warning; no live rendering was forced to fail.
+
+Latest main was built as a new isolated baseline, alongside the synchronized
+feature source. Actual development MCP calls reproduced the same selector and
+CSV/JSONL cursor defects and confirmed their fixes again. Component defaults,
+six-layer rejection, unknown/mixed selectors, empty exports, invalid cursors,
+new-field 404 routing, invalid-logo 400, Azure-shaped ID rejection, and 401 MCP
+errors were rechecked. HTTP status details from main's new error handling were
+preserved. Negative PATCH targets remained 404 before and after, with no resource
+creation or successful update. The second set of temporary build/auth/trace
+directories was also removed. No dependency pins were changed relative to main.
 
 ## Repository checks (separate from live validation)
 
-The feature's implementation/review checks passed on Node 20.20.2 and 22.23.2:
-1,137 unit tests, 267 integration tests, and builds, retaining all 106 schema-parity
-cases. `yarn check:dev`, `yarn check:ci`, and diff checks passed. These tests include
+The synchronized feature passed on Node 20.20.2 and 22.23.2: 1,213 unit tests,
+289 integration tests, and builds, retaining all 106 schema-parity cases. The
+original feature snapshot passed 1,137 unit and 267 integration tests on both
+versions. `yarn check:dev`, `yarn check:ci`, and diff checks passed. These tests include
 mocked header handling and legacy/modern transport coverage and are not counted
 as real API validation above. The three live snapshots were built independently
-on Node 22.23.2. Required CI is checked on the evidence commit after pushing.
+on Node 22.23.2. Required CI is checked on the final synchronized head after pushing.
 
 ## Earlier live evidence — 2026-10-05
 

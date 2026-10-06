@@ -203,12 +203,12 @@ describe("makeDoitRequest timeout", () => {
         ).rejects.toMatchObject({ name: "TimeoutError" });
     });
 
-    it("should return null and not throw when fetch rejects with a non-timeout error", async () => {
+    it("throws a sanitized transport error instead of returning null", async () => {
         vi.stubGlobal("fetch", () => Promise.reject(new Error("Network error")));
 
-        const result = await makeDoitRequest("https://api.doit.com/test", "test-token");
-
-        expect(result).toBeNull();
+        await expect(makeDoitRequest("https://api.doit.com/test", "test-token")).rejects.toThrow(
+            "Unable to reach the DoiT API"
+        );
     });
 });
 
