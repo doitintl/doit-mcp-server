@@ -1,6 +1,6 @@
 # CloudFlow contract validation
 
-Validated on 2026-10-05 with Yarn 1.22.22 and Node 22.23.2. The implementation starts from
+Initially validated on 2026-10-05; review fixes revalidated on 2026-10-06 with Yarn 1.22.22 and Node 22.23.2. The implementation starts from
 public main at `15b6b1c`. Parameter descriptions remain inline in Zod; input schemas are
 derived with `zodToMcpInputSchema`. The existing schema parity suite is unchanged.
 
@@ -49,7 +49,7 @@ the production API's idempotency store or concurrency implementation.
 | In-progress retry | Fixture HTTP 409 becomes an MCP error; later same-key retry replays |
 | Update version | Observed ETag succeeds; stale version produces HTTP 412/MCP error without another change; weak ETag succeeds |
 | Missing/wildcard/header injection | Rejected before HTTP; no wildcard bypass |
-| Config/collaborator replacement | Full supplied config and empty collaborators reach and replace fixture state |
+| Config/collaborator replacement | Full supplied config and owner-preserving collaborators replace fixture state; invalid owner lists are rejected locally |
 | Generated dry-run | Key required, repeated validation creates no run; a real request with the same key starts one fixture run; retries replay; later matching dry-run returns validation |
 | Customer context | Environment context and an explicit overriding customer ID propagate through query and X-Tenant-Id on creates/updates |
 | Ava HTTP 200 failure | MCP `isError: true`, useful code/message retained, credentials and stacks absent |
@@ -68,7 +68,7 @@ Commands run successfully:
   checkout. No consumer dependency pin is changed.
 - `git diff --check` and the repository's committed npm-lockfile guard.
 
-Final counts: 1,114 unit tests, 258 integration tests, and 74 targeted consumer tests.
+Final counts: 1,117 unit tests, 258 integration tests, and 74 targeted consumer tests.
 Checks ran on Node 22; the Node 20 CI matrix leg was not reproduced locally.
 
 ## Redacted live MCP evidence
@@ -108,7 +108,8 @@ Remaining dependencies:
 
 - Shared HTTP-error propagation belongs to a separate change. On this baseline, CloudFlow
   HTTP errors still have generic text; these tests assert the MCP error flag and separately
-  observe fixture HTTP status codes. No shared request utility was modified here.
+  observe fixture HTTP status codes. No shared request utility was modified here. Hosted
+  error-flag preservation also depends on that change; this baseline's success adapter can otherwise hide `isError`.
 - The shared generator flattens named request-body properties and drops unknown arguments.
   Generated CloudFlow trigger/test-run schemas consequently expose no arbitrary trigger
   payload, despite the API supporting one. This was verified against the built core and
@@ -116,4 +117,9 @@ Remaining dependencies:
   webhook tool already accepts payloads.
 - The companion consumer needs a released core version and dependency bump before adopting
   the new fixture contract in its normal suite. No package was published or deployed.
+- The API version check precedes the write; atomic compare-and-write is a backend dependency.
+  The MCP tool requires an observed ETag but cannot prevent simultaneous updates from racing.
+- The API fingerprints MCP tracking query parameters. Retries after client/server version or
+  tracking-context changes can conflict even with the same key/body. Excluding telemetry from
+  replay identity requires a backend change; callers should verify the original outcome.
 - DataHub response-header pagination remains outside this change.

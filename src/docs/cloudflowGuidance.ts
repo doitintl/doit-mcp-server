@@ -30,6 +30,11 @@ export const CLOUDFLOW_BUILDER_HINT =
     "Generated codeNode code can pass validation and fail silently or error at run time, so a successful build shows only that a draft was saved. " +
     "export_cloudflow_flow returns the saved code; a completed test run's per-node output shows whether it works. Test runs execute real actions, including on drafts.";
 
+/** Retry limits shared by hand-written and generated resource-creating tools. */
+export const CLOUDFLOW_RETRY_HINT =
+    "The API fingerprints MCP tracking parameters; a changed client/server version can cause a same-key conflict. " +
+    "Keep the original request context and key. If an HTTP failure has only generic text, do not infer a status or retry automatically.";
+
 /** Shared server instructions, kept within the global instruction budget. */
 export const CLOUDFLOW_INSTRUCTIONS = `CloudFlow builds and imports save drafts; publishing activates schedules. Test runs execute real
 cloud actions even on drafts; dryRun validates without dispatching. Approval-gated actions still
@@ -101,9 +106,16 @@ and path. Within the 24-hour retention window:
   dry-run and real request can share a key.
 - \`create_cloudflow_connection\` takes a caller-supplied \`idempotencyKey\`; it never
   regenerates the key. A new key represents a separate create attempt. A lost response
-  or 5xx may follow real side effects; retaining the key allows a safe retry. Test-run
-  history (mode test) can also show whether a run started. A replayed failure may require
+  or 5xx may follow real side effects; retries must retain the key and full request context.
+  Test-run history (mode test) can also show whether a run started. A replayed failure may require
   a new attempt after its cause is resolved.
+- The current API fingerprints query parameters, including MCP tracking parameters.
+  Changing the client/server version or other tracking context can cause a same-key
+  conflict despite an identical body. Do not rotate the key to bypass such a conflict;
+  verify the original outcome first.
+- HTTP failures can return generic MCP error text. Without an explicit status, callers
+  cannot distinguish 409, 412, or 422 from that text. Do not infer a status or retry
+  automatically; verify the saved state before another write.
 
 ## The \`codeNode\` runtime contract
 
@@ -126,8 +138,11 @@ an uncalled function is not an entry point.
 
 \`update_cloudflow_connection\` requires the connection's last observed \`etag\` as
 \`ifMatch\`, including quotes. A stale version fails with 412; the MCP tool rejects wildcard
-ETags. Supplied gcpConfig/awsConfig and collaborators replace stored values wholesale,
-not field by field. Omitted values stay unchanged; an empty collaborator list clears it.
+ETags. The API currently checks the version before writing rather than atomically with
+its write, so simultaneous updates can still race. Serialize updates and read the result
+before another change. Supplied gcpConfig/awsConfig and collaborators replace stored values
+wholesale, not field by field. Omitted values stay unchanged; a replacement collaborator
+list must retain exactly one owner. An empty list is invalid.
 CloudFlow list page tokens expire after five minutes. A missing, null, or empty pageToken
 marks the last page.
 

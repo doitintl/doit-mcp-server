@@ -149,7 +149,10 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built CloudFlow/A
                 idempotencyKey: "fixture-create-2",
                 name: "Disposable",
                 awsConfig: { roleName: "old-role" },
-                collaborators: [{ email: "fixture@example.com", role: "owner" }],
+                collaborators: [
+                    { email: "fixture@example.com", role: "owner" },
+                    { email: "removed@example.com", role: "editor" },
+                ],
             },
         });
         const read = (await client.callTool({
@@ -160,13 +163,14 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built CloudFlow/A
             connectionId: "fixture-1",
             ifMatch: JSON.parse(textOf(read)).etag,
             awsConfig: { roleName: "new-role" },
-            collaborators: [],
+            collaborators: [{ email: "fixture@example.com", role: "owner" }],
         };
         const call = (arguments_: Record<string, unknown>) =>
             client.callTool({ name: "update_cloudflow_connection", arguments: arguments_ }) as Promise<Result>;
         const updated = await call(args);
         expect(updated.isError).not.toBe(true);
-        expect(connection).toMatchObject({ etag: '"v2"', awsConfig: { roleName: "new-role" }, collaborators: [] });
+        expect(connection).toMatchObject({ etag: '"v2"', awsConfig: { roleName: "new-role" } });
+        expect(connection?.collaborators).toEqual(args.collaborators);
         expect(seen.at(-1)).toMatchObject({ ifMatch: '"v1"', tenant: "fixture-customer", context: "fixture-customer" });
         expect(seen.at(-1)?.body).not.toHaveProperty("ifMatch");
         expect(seen.at(-1)?.body).not.toHaveProperty("connectionId");
@@ -177,6 +181,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built CloudFlow/A
         for (const ifMatch of [undefined, "*", "", "v2", '"v2"\r\nInjected: true']) {
             expect((await call({ ...args, ifMatch })).isError).toBe(true);
         }
+        expect((await call({ ...args, ifMatch: '"v2"', collaborators: [] })).isError).toBe(true);
         expect(seen).toHaveLength(before);
         expect((await call({ ...args, ifMatch: 'W/"v2"', name: "renamed" })).isError).not.toBe(true);
     });

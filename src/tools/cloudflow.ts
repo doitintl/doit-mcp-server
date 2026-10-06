@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CLOUDFLOW_BUILDER_HINT } from "../docs/cloudflowGuidance.js";
+import { CLOUDFLOW_BUILDER_HINT, CLOUDFLOW_RETRY_HINT } from "../docs/cloudflowGuidance.js";
 import type {
     CloudFlowConnection,
     CloudFlowConnectionsResponse,
@@ -542,7 +542,8 @@ export const CreateCloudFlowConnectionArgumentsSchema = z.object({
         .min(1)
         .regex(/^[\x21-\x7e]+$/, "Idempotency key must contain only visible ASCII characters.")
         .describe(
-            "Idempotency-Key for this create attempt. Reuse the same key and body for retries within 24 hours; a different body with the same key fails with 422, an in-progress request with 409. A new key starts a separate create."
+            "Idempotency-Key for this create attempt. Reuse the same key and body for retries within 24 hours; a different body with the same key fails with 422, an in-progress request with 409. A new key starts a separate create. " +
+                CLOUDFLOW_RETRY_HINT
         ),
     name: z.string().min(1).describe("Human-readable connection name (required, non-empty)."),
     description: z.string().optional().describe("Optional description of the connection."),
@@ -611,7 +612,7 @@ export const UpdateCloudFlowConnectionArgumentsSchema = z.object({
         .string()
         .regex(/^(?:W\/)?"[\x21\x23-\x7e]+"$/, "ifMatch must be a quoted resource ETag, not a wildcard.")
         .describe(
-            "ETag from the connection's last read or write response (etag), including quotes. Sent as If-Match; a stale version fails with 412. Wildcards are rejected to preserve concurrency protection."
+            "ETag from the connection's last read or write response (etag), including quotes. Sent as If-Match; a stale version fails with 412. Wildcards are rejected. The API checks before writing; simultaneous updates can still race. Serialize updates and read the result before another change."
         ),
     connectionId: z
         .string()
@@ -629,9 +630,12 @@ export const UpdateCloudFlowConnectionArgumentsSchema = z.object({
     ),
     collaborators: z
         .array(CloudFlowCollaboratorSchema)
+        .refine((collaborators) => collaborators.filter((collaborator) => collaborator.role === "owner").length === 1, {
+            message: "Replacement collaborators must include exactly one owner.",
+        })
         .optional()
         .describe(
-            "Full replacement list of collaborators and roles. Omitted leaves unchanged; an empty list clears it."
+            "Full replacement list of collaborators and roles; retain exactly one owner. Omitted leaves unchanged; an empty list is invalid."
         ),
 });
 
@@ -639,7 +643,7 @@ export const updateCloudFlowConnectionTool = {
     name: "update_cloudflow_connection",
     title: "Update CloudFlow connection",
     description:
-        "Updates a CloudFlow connection immediately using connectionId and the last observed ETag (ifMatch). A stale ETag fails with 412. Other fields are optional; supplied gcpConfig/awsConfig and collaborators replace their stored values wholesale. At most one provider config may be supplied.",
+        "Updates a CloudFlow connection immediately using connectionId and the last observed ETag (ifMatch). A stale ETag fails with 412. Other fields are optional; supplied gcpConfig/awsConfig and collaborators replace their stored values wholesale. Retain exactly one owner when replacing collaborators. At most one provider config may be supplied. Serialize updates because the API version check is not atomic with the write. If an HTTP failure has only generic text, do not infer its status or retry automatically.",
     coversEndpoint: "patch:/cloudflow/v1/connections/{connectionId}",
     inputSchema: zodToMcpInputSchema(UpdateCloudFlowConnectionArgumentsSchema),
     annotations: {

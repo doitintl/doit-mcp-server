@@ -619,6 +619,25 @@ describe("cloudflow", () => {
             });
         });
 
+        it.each([
+            { collaborators: [] },
+            { collaborators: [{ email: "editor@example.com", role: "editor" }] },
+            {
+                collaborators: [
+                    { email: "owner1@example.com", role: "owner" },
+                    { email: "owner2@example.com", role: "owner" },
+                ],
+            },
+        ])("rejects a replacement without exactly one owner: %j", async ({ collaborators }) => {
+            const response = await handleUpdateCloudFlowConnectionRequest(
+                { connectionId: "conn-1", ifMatch: '"version-1"', collaborators },
+                mockToken
+            );
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("exactly one owner");
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
         it("rejects when both gcpConfig and awsConfig are set", async () => {
             const response = await handleUpdateCloudFlowConnectionRequest(
                 {
