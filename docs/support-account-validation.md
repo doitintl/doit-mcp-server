@@ -1,74 +1,85 @@
-# Support and account tool contracts
+# Support and account tool validation
 
-Validation performed on 2026-10-05 using the local build and Yarn 1.22.22 on Node 22.23.2.
+## Real development API comparison — 2026-10-06
 
-## Changes and contract decisions
+PR [#330](https://github.com/doitintl/doit-mcp-server/pull/330), branch
+`fix/support-account-contracts`, was compared at feature commit
+`dbf486226221f892d552ded8faacfdd841a7736d` against pre-change base
+`15b6b1cb058751858d8792d631f59f8d97577c23`.
 
-| Tools | Result |
-| --- | --- |
-| `list_tickets` | `pageSize` is an integer from 1 to 100 and is sent as `maxResults`. Omission preserves the tool's previous effective default of 40. Invalid values fail before HTTP. Responses describe severity and organization sharing visibility. |
-| `create_ticket` | `created` remains optional for compatibility and is omitted from HTTP requests because the server owns creation time. Platform uses the support catalog ID; product uses the catalog displayName, forwarded unchanged for API routing. Existing platform IDs were retained; `finance___billing` and `credits___request` were added after source and live catalog verification. |
-| `list_tickets`, `list_assets` | Subject/name substring matching is explicitly limited to the returned page. The API has no corresponding server-side substring filters: tickets support severity/status, assets support type. Cursors and server row counts remain available even when no local matches exist. No automatic page scanning was added. |
-| `list_assets`, `get_asset` | Descriptions identify type as the sole server filter key, exact case-sensitive values without brackets, and repeated type keys as OR. Asset name lookup searches the first 249 entries, errors on multiple matches, and gives ID precedence. |
-| `list_platforms`, `list_products` | Descriptions identify support-ticket catalogs, fixed platform IDs, and customer exclusion of private products. |
-| `list_users`, `invite_user` | Descriptions include pending invitations, roleId resolution via `list_roles`, the Support User invite default, customer domain policy, and existing-user/pending-invite duplicate restrictions. |
-| `list_commitments`, `get_commitment` | Descriptions cover spend commitments across Google Cloud, AWS and Azure. Provider filters use unbracketed exact values; `cloudProvider` aliases `provider`. Repeated keys or aliases are rejected. `maxResults` accepts 1–500; the API falls back to 50 for out-of-range integers and rejects non-integers. |
+Both exact Git snapshots were extracted into separate disposable directories, independently
+installed with Yarn 1.22.22 using frozen lockfiles, and built on Node 22.23.2. Existing
+checkouts were not switched or rebuilt. SDK stdio clients called each snapshot's actual
+`dist/index.js` against **https://api-dev.doit.com**, using the repository API-testing
+credential helper's DEV personas. Credentials were supplied only through process environments.
 
-The already accurate ticket detail/comment, invoice, role, organization, user update and account-team implementations were left unchanged. Parameter text remains inline in the exported Zod schemas; stdio schemas remain derived with `zodToMcpInputSchema`.
+**142 MCP tools/call requests produced 131 real API GET requests.** Eight create-tool dry runs
+were included: three failed local validation and five reached a hard write guard before the
+network. They are **not live write validation**. Additional tools/list and prompts/get calls
+checked metadata. No fixtures, published package, or synthetic API successes were used for
+live reads.
 
-## Deterministic validation
+A transparent fetch observer returned genuine API responses unchanged, recorded only limits,
+statuses, counts and boolean assertions, and blocked every non-GET request. API responses and
+MCP results were inspected separately. Customer text, emails, resource IDs, cursor values and
+credentials stayed in memory and were not recorded in this evidence.
 
-- Affected tools plus the existing schema parity suite: **250 tests passed**. The parity file was preserved unchanged, including its 106 tests.
-- Full root suite: **1,148 tests passed** across 53 files.
-- Full integration suite: **265 tests passed** across 14 files, including built CLI protocol checks and the new MCP request-contract tests.
-- `yarn check:dev`, `yarn check:ci`, `yarn build` and `git diff --check`: passed. No npm lockfiles were introduced.
-- Regression coverage verifies page-size boundaries/defaults, page-local matching with preserved cursors, asset lookup bounds/ambiguity/ID priority, optional ignored ticket timestamps, all nine support platform IDs, pending-user role IDs, invite omission/validation/API rejection handling, and concurrent explicit customer scopes through shared dispatch into both the query and `X-Tenant-Id` header.
+| Case | Baseline | Feature | Evidence |
+| --- | --- | --- | --- |
+| `list_tickets {pageSize:1/3/100}` | HTTP 200; `pageSize` plus default `maxResults=40`; API and MCP return 40. | HTTP 200; `maxResults=1/3/100`; API and MCP return exactly 1/3/100. | **Paging defect reproduced and fixed live.** |
+| Ticket sizes 0, 101, 1.5 | HTTP 200 and 40 tickets despite invalid input. | MCP validation errors; no HTTP. | Correct failure paths. Omitted size still returns 40 in both. |
+| Same ticket cursor and requested size | Returns 40. | Sizes 1/100 remain 1/100 on page two; IDs disjoint. | Live continuation. Prompt explicitly retains size 100; five-page bound preserved. |
+| Ticket subject / asset name substring | Matching already works. | Same implementation. | Uppercase and absent substrings verified. Raw API retains items; MCP filters them and preserves exact API cursor and unfiltered rowCount, including empty matches. |
+| Asset type filters | Bracketed type returns zero despite matching unbracketed results. | Corrected guidance uses unbracketed values; repeated g-suite/office-365 types return eight assets with both types present. | Documentation correction; **both builds behave identically for equivalent inputs**. Unsupported name server filter gives API 400 / MCP error in both. |
+| Asset lookup | Existing behavior. | Identical. | Disjoint pages, ID precedence, uppercase resolution, ambiguity and absent-name errors verified. Lookup requests 249 entries; only 70 available. |
+| Support catalogs | Nine platforms / 870 products; live finance/credits IDs fail create schema. | Same catalogs; finance/credits pass guarded create validation. | Live catalog compatibility plus local schema fix, **not successful creation**. Product filters return 193/18/3/56; invalid platform gives API 400 / MCP error; no private products returned. |
+| Created timestamp / product displayName | Missing timestamp fails locally; supplied timestamp forwarded. | Omission reaches guard; supplied timestamp stripped; Invoice Management displayName forwarded unchanged. | Built MCP dry-run evidence only. Live catalog confirms displayName differs from ID; routing and successful creation unverified. |
+| Users / roles | 158 users; 56 roles. | Identical; every user roleId resolves. | Compatibility only. No pending invitations present; invite behavior not exercised. |
+| Commitment filters / reads | Documented bracketed AWS provider returns zero; unbracketed provider returns three. | Corrected guidance uses unbracketed provider; provider/cloudProvider aliases return the same three AWS commitments. | Documentation correction; identical runtime for equivalent inputs. Detail ID, disjoint pages of two then one, duplicate-key/alias API 400 / MCP errors verified. |
+| API rejection vs MCP error | Bad cursor 400, invalid token 401, no-permission persona 403, missing commitment 404. | Same statuses and generic MCP `isError:true` responses. | Regression coverage. Shared HTTP helper swallows API details/status; neither build provides an MCP auth challenge for 401. |
+| Unchanged account reads | Four organizations, five account-team entries, 40 invoices with cursor. | Identical counts. | Compatibility only; no account resources changed. |
 
-Write-contract integration tests use `rawClient` against an intercepted synthetic API; no auto-confirming live client helper was used. Invite domain and duplicate checks remain server-authoritative. Rejections are exposed as tool errors; detailed API errors remain limited by the existing shared HTTP helper, outside this change's scope.
+Counts come from existing dev data, not fixtures. Identical-input pairs distinguish runtime
+fixes from corrected guidance: filter descriptions change what callers are instructed to
+send, not filter execution. No additional feature-code defect was found.
 
-## Redacted live evidence
+## Remaining coverage gaps
 
-The key was available as `DOIT_OWN_CUSTOMER_API_KEY` in the environment and passed only as `DOIT_API_KEY` in the child environment. The harness connected to the newly built `dist/index.js` via stdio and issued **27 read-only MCP `tools/call` requests with zero failures**. Two preliminary catalog reads identified the missing platform enum values. No raw HTTP calls or published package were used as validation evidence.
+- No live ticket/comment creation: no deletion endpoint; auto-closing probe tickets leaves
+  permanent resources. No invitations/user mutations: invitations send email immediately.
+  Successful writes, product routing, invite defaults, domain rules and duplicate/pending-invite
+  restrictions remain deterministic-test/source evidence.
+- Pending-user examples, organization ticket-sharing visibility and exhaustive account-specific
+  catalog availability were not established live.
+- Positive Google Cloud/Azure commitments were unavailable. Integer limits 0/501 returned all
+  three commitments; 1.5 gave API 400 / MCP error. This dataset cannot establish the exact
+  fallback page size of 50.
+- Lookup beyond 249 assets remains fixture coverage because dev had only 70. Hosted OAuth and
+  switched-customer authorization remain unverified; concurrent scope query/header forwarding
+  is deterministic coverage.
+- Upstream related-user lookup truncates combined requester/assignee IDs to 100. A live feature
+  page of 100 tickets had zero missing requester fields: the defect was **not reproduced**
+  in this sample. A separate API batching fix remains necessary.
 
-| Calls and redacted inputs | Outcome and semantic assertions |
-| --- | --- |
-| `list_tickets {pageSize:1}`, then `{pageSize:1,pageToken:<previous response>}` | One ticket per page, cursors present, distinct ticket IDs. |
-| `list_tickets {pageSize:3}` | Three tickets returned, confirming the requested size changes the API page. |
-| `list_tickets {pageSize:1,subject:<uppercase subject from page>}` and a synthetic absent subject | One and zero matches respectively; server rowCount remained 1 and the original cursor was preserved. |
-| `list_assets {maxResults:"2"}`, then `{maxResults:"2",pageToken:<previous response>}` | Two assets per page, distinct IDs, cursors present. |
-| `list_assets {maxResults:"2",name:<uppercase name from page>}` and a synthetic absent name | One and zero matches respectively; server rowCount remained 2 and the original cursor was preserved. |
-| `get_asset {id:<previous response>}` | Returned ID matched the requested ID. |
-| `list_assets {maxResults:"2",filter:"type:amazon-web-services"}` and repeated types including g-suite/office-365 | Both accepted, at most two results, all returned types within the exact requested set. This sample did not demonstrate nonempty results from multiple types. |
-| `list_platforms {}` | Nine IDs returned; every ID was accepted by the local create-ticket schema without `created`. No creation occurred. |
-| `list_products {}` and platform filters `google_cloud_platform`, `finance___billing`, `credits___request` | 817, 193, 18 and 3 products respectively. No private products; filtered products had the requested platform. |
-| `list_users {}`, `list_roles {}` | 42 users and 18 roles; every returned user roleId resolved to the role catalog. No pending invites were present. |
-| `list_organizations {}`, `list_account_team {}`, `list_invoices {}` | Five organizations; no account-team entries or invoices. |
-| `list_commitments {maxResults:"2"}` and provider filters for all three providers plus `cloudProvider:google-cloud` | All accepted with empty lists. No commitment cursor or ID was available. |
+## Cleanup and repository checks
 
-Customer text, emails, IDs, cursor values and credentials were neither logged nor saved. Only redacted inputs, counts, outcomes and semantic assertions were recorded.
+**Zero remote writes, zero created resources, remaining resource IDs: none.** MCP processes
+were closed in finally blocks; temporary encrypted credential caches were removed and absence
+independently verified. Disposable build directories were removed after recording redacted
+evidence; existing checkouts and lockfiles were preserved.
 
-## Reproducing the optional live reads
+Both isolated builds passed. Feature code previously passed 1,148 root tests, 266 integration
+tests, all 106 existing schema-parity tests, `yarn check:dev`, `yarn check:ci` and `yarn build`.
+Deterministic write tests use intercepted synthetic APIs and are not live evidence. This
+documentation update also passed `yarn check:dev`, `yarn check:ci` and `git diff --check`.
 
-Install both projects with the pinned Yarn 1, build at the repository root, and supply the own-customer key through the environment or your configured secret source. Then run from the repository root:
+Required CI is verified against the current head after publishing evidence; status is reported
+on the PR, not inferred from earlier commits.
 
-```sh
-DOIT_LIVE_READS=1 node test/integration/live/supportAccountReads.mjs
-```
+## Earlier validation
 
-The harness is excluded from the default test suites, allows only a fixed list of read tools, makes at most 30 calls, follows at most one additional page for tickets/assets/commitments, and suppresses child stderr to avoid leaking HTTP error content. Credentials and raw responses are never printed.
-
-## Coverage limits and cleanup
-
-- Live ticket creation, comments, invitations and user changes were **not exercised**. Their request contracts and validation use deterministic tests.
-- Empty account data prevented live commitment detail/pagination/positive provider matching, invoice detail/pagination, account-team content and pending-invitation examples.
-- Hosted OAuth and live switched-customer behavior were **not exercised**. Deterministic scope forwarding passed, but a personal API key does not establish those hosted behaviors. The hosted consumer must adopt a release containing these shared-core changes before deployment validation.
-- No resources were created or changed by the harness, so no resource cleanup was required. Child MCP processes were closed.
-- The initial PR revision passed the repository's Node 20/22 CI matrix. Local validation used Node 22.
-
-## Review follow-up
-
-- On 2026-10-06, the updated branch passed 1,148 root tests, 266 integration tests, schema parity, `yarn check:dev`, `yarn check:ci`, and `yarn build`.
-- Corrected product guidance to use `list_products.displayName`, while platform remains `list_platforms.id`. The API forwards product unchanged, and routing exemptions such as Invoice Management compare display names. A deterministic catalog-to-create test verifies the exact display name in the request; no live ticket creation is used.
-- The bounded ticket-search prompt preserves `pageSize=100` on each subsequent `pageToken` call, retaining its five-page limit.
-- Two read-only checks through the rebuilt stdio server passed: `list_products {platform:"cloud_management_platform"}` contained Invoice Management with distinct id/displayName values and its displayName passed the create schema; `prompts/get search_expert_inquiries` retained both pageSize and the five-page bound. No live creation was attempted.
-- Confirmed an upstream API dependency: the related-user lookup combines requester and assignee IDs, then truncates that set to 100. A ticket page with more than 100 distinct related users can therefore have incomplete requester fields. The API needs deduplicated lookup batches of at most 100 IDs and a combined result. This cannot be repaired in the MCP response formatter; it remains a separate API change outside this PR.
+Earlier 27 reads on 2026-10-05 and two review follow-up reads on 2026-10-06 used the
+own-customer production backend. They are separate compatibility evidence, not counted above.
+The existing opt-in `test/integration/live/supportAccountReads.mjs` performs bounded
+production reads. This dev comparison used isolated builds, an explicit dev API base and a
+GET-only network guard.
