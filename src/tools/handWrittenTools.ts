@@ -85,7 +85,11 @@ import {
 import { inviteUserTool, listUsersTool, updateUserTool } from "./users.js";
 import { validateUserTool } from "./validateUser.js";
 
-type HandWrittenTool = { name: string; coversEndpoint: string | null };
+type HandWrittenTool = {
+    name: string;
+    coversEndpoint: string | null;
+    annotations?: { readOnlyHint?: boolean };
+};
 
 /**
  * Every hand-written tool exposed via stdio's ListTools response (see src/server.ts).
