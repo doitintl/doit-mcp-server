@@ -96,7 +96,7 @@ describe("handleListCommitmentsRequest", () => {
             {
                 maxResults: "10",
                 pageToken: "token-1",
-                filter: "provider:[google-cloud]",
+                filter: "provider:google-cloud",
                 sortBy: "name",
                 sortOrder: "asc",
             },
@@ -123,7 +123,11 @@ describe("handleListCommitmentsRequest", () => {
             mockToken,
             expect.any(Object)
         );
-        expect(makeDoitRequest).toHaveBeenCalledWith(expect.stringContaining("filter="), mockToken, expect.any(Object));
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("filter=provider%3Agoogle-cloud"),
+            mockToken,
+            expect.any(Object)
+        );
     });
 
     it("should pass customerContext to makeDoitRequest", async () => {

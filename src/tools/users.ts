@@ -22,7 +22,7 @@ export const listUsersTool = {
     title: "List users",
     coversEndpoint: "get:/iam/v1/users",
     description:
-        "Use this when the user wants to see users in their DoiT organization or check who has access. Returns a list of users with roles. Do NOT use this for listing roles (use list_roles) or validating the current user (use validate_user).",
+        "Use this when the user wants to see users in their DoiT organization or check who has access. Includes active users and pending invitations. Returns roleId values, which resolve to role details in list_roles. Do NOT use this for listing roles (use list_roles) or validating the current user (use validate_user).",
     inputSchema: zodToMcpInputSchema(ListUsersArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -119,13 +119,18 @@ export const updateUserTool = {
 };
 
 export const InviteUserArgumentsSchema = z.object({
-    email: z.string().email().describe("The email address of the user to invite (required)."),
+    email: z
+        .string()
+        .email()
+        .describe(
+            "The email address of the user to invite (required). Its domain must be permitted by the customer's invitation policy; existing users and pending invitees cannot be re-invited."
+        ),
     roleId: z
         .string()
         .transform((val) => val.trim())
         .pipe(z.string().min(1, "Role ID cannot be empty or whitespace-only."))
         .optional()
-        .describe("The ID of the role to assign to the invited user."),
+        .describe("The role ID from list_roles to assign to the invited user. Omission defaults to Support User."),
     organizationId: z
         .string()
         .transform((val) => val.trim())
@@ -139,7 +144,7 @@ export const inviteUserTool = {
     title: "Invite user",
     coversEndpoint: "post:/iam/v1/users/invite",
     description:
-        "Use this when the user wants to invite a new person to the organization. The invitation email is sent immediately. Do NOT use this for updating existing users (use update_user) or listing users (use list_users).",
+        "Use this when the user wants to invite a new person to the organization. The invitation email is sent immediately. Omitted roleId defaults to Support User. The email domain must be permitted by the customer's invitation policy; existing users and pending invitees cannot be re-invited. Do NOT use this for updating existing users (use update_user) or listing users (use list_users).",
     inputSchema: zodToMcpInputSchema(InviteUserArgumentsSchema),
     annotations: {
         readOnlyHint: false,
