@@ -857,6 +857,8 @@ describe("prompts/get handler", () => {
         expect(response.messages[0].role).toBe("user");
         const text: string = response.messages[0].content.text;
         expect(text).toContain("list_tickets");
+        expect(text).toContain("pageToken and the same pageSize=100 on every subsequent call");
+        expect(text).toContain("Do not retrieve more than 5 pages");
     });
 
     it("appends arguments to search_expert_inquiries message", async () => {

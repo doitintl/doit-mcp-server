@@ -116,7 +116,7 @@ export const CreateTicketArgumentsSchema = z.object({
         product: z
             .string()
             .describe(
-                "Support product ID from list_products (id) for the selected platform, rather than its display name."
+                "Support product displayName from list_products for the selected platform, e.g. Invoice Management. Forwarded unchanged to the API; routing depends on the display name, not the catalog id."
             ),
         severity: z.nativeEnum(TicketSeverity).describe("Ticket severity: low, normal, high, or urgent."),
         subject: z.string().describe("The subject of the ticket."),

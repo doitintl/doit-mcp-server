@@ -45,7 +45,7 @@ const cases = [
                 subject: "Synthetic subject",
                 severity: "normal",
                 platform: "finance___billing",
-                product: "billing",
+                product: "Billing",
             },
         },
         data: { id: 123 },

@@ -26,7 +26,7 @@ export const listProductsTool = {
     title: "List products",
     coversEndpoint: "get:/support/v1/metadata/products",
     description:
-        "Use this when the user wants to see the support-ticket product catalog. Returns product IDs, display names, and platform IDs for create_ticket. Customers do not see private products. This catalog does not list products purchased by the account. Do NOT use this for cloud incidents (use get_cloud_incidents) or platforms (use list_platforms).",
+        "Use this when the user wants to see the support-ticket product catalog. Returns product IDs, display names, and platform IDs. create_ticket uses the product displayName and the platform ID. Customers do not see private products. This catalog does not list products purchased by the account. Do NOT use this for cloud incidents (use get_cloud_incidents) or platforms (use list_platforms).",
     inputSchema: zodToMcpInputSchema(ListProductsArgumentsSchema),
     annotations: {
         readOnlyHint: true,

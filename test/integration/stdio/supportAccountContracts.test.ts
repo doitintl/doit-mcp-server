@@ -47,7 +47,7 @@ describe("support and account request contracts over MCP", () => {
                 subject: "Synthetic",
                 severity: "normal",
                 platform: "finance___billing",
-                product: "billing",
+                product: "Billing",
             };
             const bodies: unknown[] = [];
             mswServer.use(
@@ -64,6 +64,45 @@ describe("support and account request contracts over MCP", () => {
             expect(bodies).toEqual([{ ticket }]);
         }
     );
+
+    it("advertises product displayName and forwards Invoice Management from the catalog unchanged", async () => {
+        const product = {
+            id: "cmp__invoice_management",
+            displayName: "Invoice Management",
+            platform: "cloud_management_platform",
+        };
+        const bodies: unknown[] = [];
+        mswServer.use(
+            http.get("https://api.doit.com/support/v1/metadata/products", () =>
+                HttpResponse.json({ products: [product] })
+            ),
+            http.post("https://api.doit.com/support/v1/tickets", async ({ request }) => {
+                bodies.push(await request.json());
+                return HttpResponse.json({ id: 123 });
+            })
+        );
+        const { tools } = await connection.client.listTools();
+        const schema = tools.find((tool) => tool.name === "create_ticket")?.inputSchema;
+        const ticketSchema = schema?.properties?.ticket as { properties: { product: { description: string } } };
+        expect(ticketSchema.properties.product.description).toContain("displayName");
+        expect(ticketSchema.properties.product.description).toContain("not the catalog id");
+
+        const catalog = await connection.rawClient.callTool({
+            name: "list_products",
+            arguments: { platform: product.platform },
+        });
+        const selectedProduct = JSON.parse(getTextContent(catalog)).products[0];
+        const ticket = {
+            body: "Synthetic",
+            subject: "Synthetic",
+            severity: "normal",
+            platform: selectedProduct.platform,
+            product: selectedProduct.displayName,
+        };
+        const result = await connection.rawClient.callTool({ name: "create_ticket", arguments: { ticket } });
+        expect(result.isError).not.toBe(true);
+        expect(bodies).toEqual([{ ticket: { ...ticket, product: "Invoice Management" } }]);
+    });
 
     it("preserves repeated asset type filters and the cursor on an empty name match", async () => {
         const requests: URL[] = [];
@@ -131,7 +170,7 @@ describe("support and account request contracts over MCP", () => {
                     subject: "Synthetic",
                     platform: "google-cloud",
                     severity: "normal",
-                    product: "billing",
+                    product: "Billing",
                 },
             },
         },

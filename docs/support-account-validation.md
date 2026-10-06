@@ -7,7 +7,7 @@ Validation performed on 2026-10-05 using the local build and Yarn 1.22.22 on Nod
 | Tools | Result |
 | --- | --- |
 | `list_tickets` | `pageSize` is an integer from 1 to 100 and is sent as `maxResults`. Omission preserves the tool's previous effective default of 40. Invalid values fail before HTTP. Responses describe severity and organization sharing visibility. |
-| `create_ticket` | `created` remains optional for compatibility and is omitted from HTTP requests because the server owns creation time. Platform and product values are support catalog IDs. Existing platform IDs were retained; `finance___billing` and `credits___request` were added after source and live catalog verification. |
+| `create_ticket` | `created` remains optional for compatibility and is omitted from HTTP requests because the server owns creation time. Platform uses the support catalog ID; product uses the catalog displayName, forwarded unchanged for API routing. Existing platform IDs were retained; `finance___billing` and `credits___request` were added after source and live catalog verification. |
 | `list_tickets`, `list_assets` | Subject/name substring matching is explicitly limited to the returned page. The API has no corresponding server-side substring filters: tickets support severity/status, assets support type. Cursors and server row counts remain available even when no local matches exist. No automatic page scanning was added. |
 | `list_assets`, `get_asset` | Descriptions identify type as the sole server filter key, exact case-sensitive values without brackets, and repeated type keys as OR. Asset name lookup searches the first 249 entries, errors on multiple matches, and gives ID precedence. |
 | `list_platforms`, `list_products` | Descriptions identify support-ticket catalogs, fixed platform IDs, and customer exclusion of private products. |
@@ -63,4 +63,12 @@ The harness is excluded from the default test suites, allows only a fixed list o
 - Empty account data prevented live commitment detail/pagination/positive provider matching, invoice detail/pagination, account-team content and pending-invitation examples.
 - Hosted OAuth and live switched-customer behavior were **not exercised**. Deterministic scope forwarding passed, but a personal API key does not establish those hosted behaviors. The hosted consumer must adopt a release containing these shared-core changes before deployment validation.
 - No resources were created or changed by the harness, so no resource cleanup was required. Child MCP processes were closed.
-- CI on the repository's Node 20/22 matrix was not run; local validation used Node 22.
+- The initial PR revision passed the repository's Node 20/22 CI matrix. Local validation used Node 22.
+
+## Review follow-up
+
+- On 2026-10-06, the updated branch passed 1,148 root tests, 266 integration tests, schema parity, `yarn check:dev`, `yarn check:ci`, and `yarn build`.
+- Corrected product guidance to use `list_products.displayName`, while platform remains `list_platforms.id`. The API forwards product unchanged, and routing exemptions such as Invoice Management compare display names. A deterministic catalog-to-create test verifies the exact display name in the request; no live ticket creation is used.
+- The bounded ticket-search prompt preserves `pageSize=100` on each subsequent `pageToken` call, retaining its five-page limit.
+- Two read-only checks through the rebuilt stdio server passed: `list_products {platform:"cloud_management_platform"}` contained Invoice Management with distinct id/displayName values and its displayName passed the create schema; `prompts/get search_expert_inquiries` retained both pageSize and the five-page bound. No live creation was attempted.
+- Confirmed an upstream API dependency: the related-user lookup combines requester and assignee IDs, then truncates that set to 100. A ticket page with more than 100 distinct related users can therefore have incomplete requester fields. The API needs deduplicated lookup batches of at most 100 IDs and a combined result. This cannot be repaired in the MCP response formatter; it remains a separate API change outside this PR.

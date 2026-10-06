@@ -152,7 +152,7 @@ describe("handleCreateTicketRequest", () => {
     const ticket = {
         body: "Synthetic body",
         platform: "google_cloud_platform",
-        product: "big_query",
+        product: "BigQuery",
         severity: "normal",
         subject: "Synthetic subject",
     };
@@ -178,16 +178,19 @@ describe("handleCreateTicketRequest", () => {
         }
     );
 
-    it.each(Object.values(TicketPlatform))("preserves support platform ID %s and product ID", async (platform) => {
-        vi.mocked(makeDoitRequest).mockResolvedValue({ id: 123 });
-        const response = await handleCreateTicketRequest({ ticket: { ...ticket, platform } }, "fake-token");
-        expect(response.isError).not.toBe(true);
-        expect(makeDoitRequest).toHaveBeenCalledWith(
-            TICKETS_BASE_URL,
-            "fake-token",
-            expect.objectContaining({ body: { ticket: { ...ticket, platform } } })
-        );
-    });
+    it.each(Object.values(TicketPlatform))(
+        "preserves support platform ID %s and product display name",
+        async (platform) => {
+            vi.mocked(makeDoitRequest).mockResolvedValue({ id: 123 });
+            const response = await handleCreateTicketRequest({ ticket: { ...ticket, platform } }, "fake-token");
+            expect(response.isError).not.toBe(true);
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                TICKETS_BASE_URL,
+                "fake-token",
+                expect.objectContaining({ body: { ticket: { ...ticket, platform } } })
+            );
+        }
+    );
 
     it.each([{ platform: "google-cloud" }, { severity: "critical" }, { created: 123 }])(
         "rejects invalid ticket values before an API call: %j",
