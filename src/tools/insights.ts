@@ -234,7 +234,7 @@ export const getInsightResourcesTool = {
     description:
         "Use this when the user wants to see which specific resources are affected by an optimization " +
         "insight. Returns resource IDs, accounts, potential savings, and remediation details. Do NOT " +
-        "use this for listing all insights (use list_insights).",
+        "use this for listing all insights (use list_optimization_recommendations).",
     inputSchema: zodToMcpInputSchema(GetInsightResourcesArgumentsSchema),
     annotations: {
         readOnlyHint: true,

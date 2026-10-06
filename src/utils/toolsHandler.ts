@@ -220,7 +220,8 @@ export async function executeToolHandler(
                 });
                 sourceResponse = result;
                 executedToolName = innerToolName;
-                return convertResponse ? convertResponse(result) : result;
+                // Success adapters (e.g. hosted widgets) must not erase MCP error flags or OAuth metadata.
+                return convertResponse && !result?.isError ? convertResponse(result) : result;
             };
 
             // Two-phase commit for write-gated tools.
@@ -273,11 +274,11 @@ export async function executeToolHandler(
             if (error instanceof z.ZodError) {
                 const errorResult = createErrorResponse(formatZodError(error));
                 sourceResponse = errorResult;
-                return convertResponse ? convertResponse(errorResult) : errorResult;
+                return errorResult;
             }
             const errorResult = handleGeneralError(error, "handling tool request");
             sourceResponse = errorResult;
-            return convertResponse ? convertResponse(errorResult) : errorResult;
+            return errorResult;
         }
     }); // end runWithTracking
     const effectiveToolName = executedToolName ?? toolName;

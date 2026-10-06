@@ -134,6 +134,26 @@ describe("size guard through actual tool dispatch", () => {
         expect(makeDoitRequest).toHaveBeenCalledOnce();
     });
 
+    it("bounds an oversized write error without adapting it or reporting success", async () => {
+        const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+        const convertResponse = vi.fn(() => ({ content: [{ type: "text", text: "adapted success" }] }));
+        try {
+            vi.mocked(makeDoitRequest).mockRejectedValue(new Error(`HTTP 401: ${"x".repeat(MAX_TOOL_RESULT_CHARS)}`));
+            const response = await executeToolHandler(write.name, {}, "key", { ...options, convertResponse });
+            expect(response.isError).toBe(true);
+            expect(response.content[0].text).toContain("RESPONSE_TOO_LARGE");
+            expect(response.content[0].text).toContain("The tool reported an error");
+            expect(JSON.stringify(response).length).toBeLessThan(MAX_TOOL_RESULT_CHARS);
+            expect(convertResponse).not.toHaveBeenCalled();
+            expect(makeDoitRequest).toHaveBeenCalledOnce();
+            expect(onResponseMetrics).toHaveBeenCalledWith(
+                expect.objectContaining({ toolName: write.name, isError: true, disposition: "size_error" })
+            );
+        } finally {
+            errorLog.mockRestore();
+        }
+    });
+
     it("uses the underlying write outcome for confirm_action and executes only once", async () => {
         const approvalStore = new MemoryApprovalStore();
         const gated = { ...options, approvalStore, userKey: "user" };

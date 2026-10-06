@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ResourcePermissionsResponse, UpdateResourcePermissionsRequest } from "../types/permissions.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -33,23 +34,7 @@ export const getResourcePermissionsTool = {
     coversEndpoint: "get:/sharing/v1/{resourceType}/{resourceId}",
     description:
         "Use this when the user wants to see who a Cloud Analytics resource is shared with and at what access level. Returns the sharing settings (per-user roles and public visibility) for a specific alert, budget, report, or allocation. Requires resourceType (alerts, budgets, reports, or allocations) and resourceId. Do NOT use this to list the resources themselves (use list_alerts, list_budgets, list_reports, or list_allocations).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            resourceType: {
-                type: "string",
-                enum: [...RESOURCE_PERMISSION_TYPES],
-                description:
-                    "The type of resource to inspect sharing settings for. One of: alerts, budgets, reports, allocations.",
-            },
-            resourceId: {
-                type: "string",
-                description:
-                    "The ID of the resource (alert, budget, report, or allocation) to retrieve permissions for.",
-            },
-        },
-        required: ["resourceType", "resourceId"],
-    },
+    inputSchema: zodToMcpInputSchema(GetResourcePermissionsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -123,45 +108,7 @@ export const updateResourcePermissionsTool = {
     coversEndpoint: "put:/sharing/v1/{resourceType}/{resourceId}",
     description:
         "Use this when the user wants to change who a Cloud Analytics resource is shared with or update access levels. Updates the sharing settings (per-user roles and/or public visibility) for a specific alert, budget, report, or allocation. Requires resourceType and resourceId; at least one of permissions or public should be provided. Do NOT use this to view current permissions (use get_resource_permissions).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            resourceType: {
-                type: "string",
-                enum: [...RESOURCE_PERMISSION_TYPES],
-                description:
-                    "The type of resource to update sharing settings for. One of: alerts, budgets, reports, allocations.",
-            },
-            resourceId: {
-                type: "string",
-                description: "The ID of the resource (alert, budget, report, or allocation) to update permissions for.",
-            },
-            permissions: {
-                type: "array",
-                items: {
-                    type: "object",
-                    properties: {
-                        user: { type: "string", description: "Email address of the user." },
-                        role: {
-                            type: "string",
-                            enum: ["owner", "editor", "viewer"],
-                            description: "Role to grant: owner, editor, or viewer.",
-                        },
-                    },
-                    required: ["user", "role"],
-                },
-                description:
-                    "List of per-user permission entries to set. Each entry has a user (email) and a role (owner, editor, or viewer).",
-            },
-            public: {
-                type: ["string", "null"],
-                enum: ["editor", "viewer", null],
-                description:
-                    "Public visibility level. Set to 'editor' or 'viewer' to share with all users, or null to make private.",
-            },
-        },
-        required: ["resourceType", "resourceId"],
-    },
+    inputSchema: zodToMcpInputSchema(UpdateResourcePermissionsArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,

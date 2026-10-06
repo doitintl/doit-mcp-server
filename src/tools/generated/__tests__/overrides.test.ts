@@ -38,8 +38,12 @@ describe("generated tool overrides", () => {
         }
     });
 
-    it("appends the builder warning to the test-run tool", () => {
-        expect(byName.get("test_run_cloudflow_flow")?.description).toContain(CLOUDFLOW_BUILDER_HINT);
+    // The builder hint talks about a build; a test run builds nothing, so it gets its own text.
+    it("appends a test-run warning to the test-run tool", () => {
+        const description = byName.get("test_run_cloudflow_flow")?.description ?? "";
+        expect(description).toContain("fail silently");
+        expect(description).toContain("get_cloudflow_flow_run");
+        expect(description).not.toContain(CLOUDFLOW_BUILDER_HINT);
     });
 
     it("keeps the spec's own description ahead of the suffix", () => {

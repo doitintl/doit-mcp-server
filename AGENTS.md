@@ -96,30 +96,25 @@ Use `yarn` for all package management and development tasks:
 
 Each tool file in `src/tools/` should follow this pattern:
 
-1. **Tool Definition**: Export a tool object with `name`, `description`, and `inputSchema`
+1. **Tool Definition**: Export a Zod argument schema with inline `.describe()` text and a tool object with `name`, `description`, and `inputSchema: zodToMcpInputSchema(ArgumentsSchema)`. Never write a separate JSON input schema.
 2. **Handler Function**: Export a handler function that processes the tool request
 3. **Tests**: Create corresponding test file in `__tests__/` directory in file name matching the module under test. vitest is used as testing framework
 
 Example structure:
 ```typescript
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 
-// Zod schema for runtime validation
-const MyToolSchema = z.object({
-    param1: z.string(),
+// Single source for runtime validation and parameter descriptions
+export const MyToolSchema = z.object({
+    param1: z.string().describe("Description of this parameter."),
 });
 
-// Tool definition with raw inputSchema for MCP registration
+// Derive the stdio schema from the same Zod schema exported for remote registration
 export const myTool = {
     name: "my_tool",
     description: "Description of what the tool does",
-    inputSchema: {
-        type: "object",
-        properties: {
-            param1: { type: "string", description: "..." },
-        },
-        required: ["param1"],
-    },
+    inputSchema: zodToMcpInputSchema(MyToolSchema),
 };
 
 // Handler: args typed as any, validated at runtime via Zod
@@ -145,7 +140,7 @@ Common utilities are located in `src/utils/util.ts`:
 When adding a new MCP tool:
 
 1. Create tool file in `src/tools/`
-2. Define a Zod schema for runtime validation and a raw `inputSchema` object for MCP registration (both are needed — see example below)
+2. Define and export one Zod argument schema with inline `.describe()` text, then derive `inputSchema` with `zodToMcpInputSchema` (see example above). Both transports must use this same schema.
 3. Implement handler function
 4. Register tool in `src/server.ts` (stdio transport) — via `src/tools/handWrittenTools.ts`'s `HAND_WRITTEN_TOOLS` array
 5. Export the tool and its schema from `src/core.ts` so the remote Worker (separate private repo) can register it

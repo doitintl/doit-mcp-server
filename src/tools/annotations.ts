@@ -116,17 +116,7 @@ export const getAnnotationTool = {
     coversEndpoint: "get:/analytics/v1/annotations/{id}",
     description:
         "Use this when the user wants to view details of a specific annotation. Accepts either the annotation ID or a partial content match (case-insensitive). Do NOT use this for listing all annotations (use list_annotations) or labels (use list_labels).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: { type: "string", description: "The ID of the annotation to retrieve." },
-            content: {
-                type: "string",
-                description:
-                    "Partial content match (case-insensitive). Used to find the annotation when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetAnnotationArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -190,7 +180,7 @@ export const createAnnotationTool = {
     title: "Create annotation",
     coversEndpoint: "post:/analytics/v1/annotations",
     description:
-        "Use this when the user wants to add a new annotation to mark a specific date or event in cost data. Ask the user to confirm the annotation details before executing. Do NOT use this for creating labels (use create_label) or alerts (use create_alert).",
+        "Use this when the user wants to add a new annotation to mark a specific date or event in cost data. Changes apply immediately. Do NOT use this for creating labels (use create_label) or alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateAnnotationArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -268,7 +258,7 @@ export const updateAnnotationTool = {
     title: "Update annotation",
     coversEndpoint: "patch:/analytics/v1/annotations/{id}",
     description:
-        "Use this when the user wants to modify an existing annotation. Ask the user to confirm changes before executing. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
+        "Use this when the user wants to modify an existing annotation. Changes apply immediately. Do NOT use this for creating new annotations (use create_annotation) or labels (use update_label).",
     inputSchema: zodToMcpInputSchema(UpdateAnnotationArgumentsSchema),
     annotations: {
         readOnlyHint: false,

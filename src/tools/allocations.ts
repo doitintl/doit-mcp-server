@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -35,7 +36,10 @@ type AllocationComponentMode = (typeof ALLOCATION_COMPONENT_MODES)[number];
 
 // Schema definitions
 export const ListAllocationsArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
     name: z
         .string()
         .optional()
@@ -54,12 +58,12 @@ export const GetAllocationArgumentsSchema = z
 
 // Zod schema for an allocation component (matches AllocationComponent interface)
 const AllocationComponentSchema = z.object({
-    key: z.string().describe("The dimension, label, or tag key"),
+    key: z.string().describe("Key of an existing dimension, label, or tag key"),
     type: z.enum(ALLOCATION_COMPONENT_TYPES).describe("The type of the component"),
     values: z.array(z.string()).describe("Values to match against"),
     inverse_selection: z.boolean().optional().describe("If true, exclude matching values instead of including them"),
     include_null: z.boolean().optional().describe("If true, include resources with no value for this dimension"),
-    mode: z.enum(ALLOCATION_COMPONENT_MODES).describe("The matching mode for values. Defaults to 'is'"),
+    mode: z.enum(ALLOCATION_COMPONENT_MODES).describe("The matching mode for values"),
 });
 
 // Schema for a single allocation rule (used with 'rule' param)
@@ -75,7 +79,7 @@ const GroupRuleInputSchema = SingleRuleInputSchema.extend({
     action: z
         .enum(GROUP_ALLOCATION_ACTIONS)
         .describe("Required action for this rule (e.g., 'create', 'update', 'select')"),
-    id: z.string().optional().describe("Rule ID (for existing rules)"),
+    id: z.string().optional().describe("Rule ID (for existing rules), required for 'update' and 'select' actions"),
 });
 
 // Base object schema shared by create and update allocation
@@ -184,20 +188,7 @@ export const listAllocationsTool = {
     coversEndpoint: "get:/analytics/v1/allocations",
     description:
         "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Supports partial name filtering. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-            name: {
-                type: "string",
-                description:
-                    "Partial name filter (case-insensitive). Returns only allocations whose name contains this string.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(ListAllocationsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -216,19 +207,7 @@ export const getAllocationTool = {
     coversEndpoint: "get:/analytics/v1/allocations/{id}",
     description:
         "Use this when the user wants to view details of a specific cost allocation. Accepts either the allocation ID or a partial name (case-insensitive). Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "The ID of the allocation to retrieve.",
-            },
-            name: {
-                type: "string",
-                description: "Partial name match (case-insensitive). Used to find the allocation when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetAllocationArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -241,122 +220,13 @@ export const getAllocationTool = {
     securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
-// Schema for a single allocation component (used within 'components' array) of
-// a single rule or a group rule
-const componentObjectSchema = {
-    type: "object",
-    properties: {
-        key: {
-            type: "string",
-            description: "Key of an existing dimension, label, or tag key",
-        },
-        type: {
-            type: "string",
-            enum: [...ALLOCATION_COMPONENT_TYPES],
-            description: "The type of the component",
-        },
-        values: {
-            type: "array",
-            items: { type: "string" },
-            description: "Values to match against",
-        },
-        inverse_selection: {
-            type: "boolean",
-            description: "If true, exclude matching values instead of including them",
-        },
-        include_null: {
-            type: "boolean",
-            description: "If true, include resources with no value for this dimension",
-        },
-        mode: {
-            type: "string",
-            enum: [...ALLOCATION_COMPONENT_MODES],
-            description: "The matching mode for values",
-        },
-    },
-    required: ["key", "type", "values", "mode"],
-};
-
-// Schema for a single allocation rule (used with 'rule' param)
-const singleRuleObjectSchema = {
-    type: "object",
-    properties: {
-        components: {
-            type: "array",
-            items: componentObjectSchema,
-            description: "Array of allocation components that define this rule",
-        },
-        formula: {
-            type: "string",
-            description: "Logical formula combining components (e.g., 'A AND B')",
-        },
-    },
-};
-
-// Schema for a group allocation rule (used within 'rules' array)
-const groupRuleObjectSchema = {
-    type: "object",
-    properties: {
-        ...singleRuleObjectSchema.properties,
-        name: {
-            type: "string",
-            description: "Name of the rule",
-        },
-        description: {
-            type: "string",
-            description: "Description of the rule",
-        },
-        action: {
-            type: "string",
-            enum: [...GROUP_ALLOCATION_ACTIONS],
-            description: "Required action for this rule (e.g., 'create', 'update', 'select')",
-        },
-        id: {
-            type: "string",
-            description: "Rule ID (for existing rules), required for 'update' and 'select' actions",
-        },
-    },
-};
-
-// Schema for the input of the create allocation tool
-const createAllocationInputSchema = {
-    type: "object",
-    properties: {
-        name: {
-            type: "string",
-            description: "Human-readable name of the allocation",
-        },
-        description: {
-            type: "string",
-            description: "Description of the allocation's purpose",
-        },
-        rule: {
-            ...singleRuleObjectSchema,
-            description:
-                "A single allocation rule that defines one grouping. Provide this for a single-rule allocation. Mutually exclusive with 'rules'",
-        },
-        rules: {
-            type: "array",
-            items: groupRuleObjectSchema,
-            description:
-                "Ordered list of allocation rules for a group allocation. Must include at least two rules. Mutually exclusive with 'rule'",
-        },
-        unallocatedCosts: {
-            type: ["string", "null"],
-            description:
-                "Custom label for values that do not fit into any allocation rule (required when using 'rules' for group allocations)",
-        },
-    },
-    required: ["name", "description"],
-} as const;
-
 export const createAllocationTool = {
     name: "create_allocation",
     title: "Create allocation",
     coversEndpoint: "post:/analytics/v1/allocations",
     description:
-        "Use this when the user wants to create a new cost allocation rule. Ask the user to confirm the allocation parameters before executing. Do NOT use this for viewing existing allocations (use list_allocations) or labels (use create_label).",
-    inputSchema: createAllocationInputSchema,
+        "Use this when the user wants to create a new cost allocation rule. Changes apply immediately. Do NOT use this for viewing existing allocations (use list_allocations) or labels (use create_label).",
+    inputSchema: zodToMcpInputSchema(CreateAllocationArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -369,25 +239,13 @@ export const createAllocationTool = {
     securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
-const updateAllocationInputSchema = {
-    type: "object",
-    properties: {
-        id: {
-            type: "string",
-            description: "The ID of the allocation to update",
-        },
-        ...createAllocationInputSchema.properties,
-    },
-    required: ["id"],
-} as const;
-
 export const updateAllocationTool = {
     name: "update_allocation",
     title: "Update allocation",
     coversEndpoint: "patch:/analytics/v1/allocations/{id}",
     description:
-        "Use this when the user wants to modify an existing cost allocation. Ask the user to confirm changes before executing. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
-    inputSchema: updateAllocationInputSchema,
+        "Use this when the user wants to modify an existing cost allocation. Changes apply immediately. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
+    inputSchema: zodToMcpInputSchema(UpdateAllocationArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,

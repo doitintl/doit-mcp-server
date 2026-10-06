@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
+
+import { BEHAVIORAL_TEXT, schemaDescriptions } from "./behavioralText.js";
 
 describe("core package API", () => {
     it("exposes transport-independent MCP building blocks", async () => {
@@ -31,5 +34,21 @@ describe("core package API", () => {
                 openapi: expect.stringMatching(/^3\./),
             }),
         });
+    });
+
+    // The remote Worker registers tools with these Zod schemas, so their `.describe()` text is what
+    // hosted clients see. The stdio inputSchema is derived from the same schema.
+    it("exported argument schemas carry no model-behavior instructions", async () => {
+        const core: Record<string, unknown> = await import("../core.js");
+        const schemas = Object.entries(core).filter(
+            (entry): entry is [string, z.ZodType] => entry[1] instanceof z.ZodType
+        );
+        expect(schemas.length).toBeGreaterThan(50);
+        for (const [name, schema] of schemas) {
+            const jsonSchema = z.toJSONSchema(schema, { io: "input", unrepresentable: "any" });
+            for (const [path, text] of schemaDescriptions(jsonSchema, name)) {
+                expect(text, path).not.toMatch(BEHAVIORAL_TEXT);
+            }
+        }
     });
 });
