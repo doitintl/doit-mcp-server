@@ -101,6 +101,7 @@ describe("custom date patch semantics", () => {
             expect(RunQueryArgumentsSchema.safeParse({ config }).success).toBe(false);
             expect(CreateReportArgumentsSchema.safeParse({ name: "Test", config }).success).toBe(false);
             expect(UpdateReportArgumentsSchema.parse({ id: "test", config }).config).toEqual(config);
+            vi.mocked(makeDoitRequest).mockResolvedValueOnce({ config: custom });
             await handleUpdateReportRequest({ id: "test", config }, "token");
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 expect.any(String),
@@ -109,6 +110,50 @@ describe("custom date patch semantics", () => {
             );
         }
     );
+
+    it.each([{}, { timeRange: { mode: "last", amount: 1, unit: "month" } }, { customTimeRange: { from: "invalid" } }])(
+        "rejects custom mode without valid saved dates before PATCH: %j",
+        async (config) => {
+            vi.mocked(makeDoitRequest).mockResolvedValueOnce({ config });
+            const result = await handleUpdateReportRequest(
+                { id: "test", config: { timeRange: { mode: "custom" } }, customerContext: "switched" },
+                "token"
+            );
+            expect(result.isError).toBe(true);
+            expect(result.content[0].text).toContain("config.customTimeRange is required");
+            expect(makeDoitRequest).toHaveBeenCalledExactlyOnceWith(
+                expect.stringContaining("/reports/test/config"),
+                "token",
+                { method: "GET", customerContext: "switched" }
+            );
+        }
+    );
+
+    it("rejects a date-only patch of a relative report without modifying it", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValueOnce({ config: { timeRange: { mode: "last" } } });
+        const result = await handleUpdateReportRequest({ id: "test", config: { customTimeRange: dates } }, "token");
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toContain("saved timeRange.mode");
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([null, {}])("does not PATCH when saved config is unavailable: %j", async (saved) => {
+        vi.mocked(makeDoitRequest).mockResolvedValueOnce(saved);
+        expect(
+            (await handleUpdateReportRequest({ id: "test", config: { timeRange: { mode: "custom" } } }, "token"))
+                .isError
+        ).toBe(true);
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it("propagates a failed preflight without attempting PATCH", async () => {
+        vi.mocked(makeDoitRequest).mockRejectedValueOnce(new Error("saved config unavailable"));
+        expect(
+            (await handleUpdateReportRequest({ id: "test", config: { timeRange: { mode: "custom" } } }, "token"))
+                .isError
+        ).toBe(true);
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+    });
 });
 
 describe("report examples and updates", () => {
@@ -146,8 +191,8 @@ describe("report examples and updates", () => {
             expect.objectContaining({ body: { name: "Renamed" } })
         );
     });
-    it("marks creation as additive without making it read-only", () => {
-        expect(createReportTool.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    it("provides the directory's write hint for report creation", () => {
+        expect(createReportTool.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     });
 });
 

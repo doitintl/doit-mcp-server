@@ -109,23 +109,37 @@ Type: datetime`;
             });
         });
 
-        it.each(["allocation", "allocation_rule", "attribution", "attribution_group"])(
-            "forwards switched-customer context for %s",
-            async (type) => {
+        it.each([
+            ["allocation", "dimension", "attribution_group", "dimension"],
+            ["allocation_rule", "allocation_rule", "attribution", "attribution"],
+            ["attribution", "attribution", "attribution", "attribution"],
+            ["attribution_group", "dimension", "attribution_group", "dimension"],
+        ])(
+            "looks up %s using the metadata keys and forwards switched-customer context",
+            async (type, id, apiType, apiId) => {
                 const values = [{ value: "value", cloud: "google-cloud" }];
-                vi.mocked(makeDoitRequest).mockResolvedValue({ id: "dimension", type, values });
+                vi.mocked(makeDoitRequest).mockResolvedValue({ id: apiId, type: apiType, values });
                 const result = await handleDimensionRequest(
-                    { type, id: "dimension", customerContext: "switched-customer" },
+                    { type, id, customerContext: "switched-customer" },
                     mockToken
                 );
                 expect(makeDoitRequest).toHaveBeenCalledWith(
-                    expect.stringContaining(`type=${type}&id=dimension`),
+                    expect.stringContaining(`type=${apiType}&id=${apiId}`),
                     mockToken,
                     { method: "GET", appendParams: true, customerContext: "switched-customer" }
                 );
-                expect(JSON.parse(result.content[0].text).values).toEqual(values);
+                expect(JSON.parse(result.content[0].text)).toEqual({ type, id, values });
             }
         );
+
+        it("does not replace an unknown allocation_rule id with the global dimension key", async () => {
+            await handleDimensionRequest({ type: "allocation_rule", id: "unknown" }, mockToken);
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                expect.stringContaining("type=attribution&id=unknown"),
+                mockToken,
+                expect.any(Object)
+            );
+        });
 
         it("should handle API request failure", async () => {
             const mockArgs = { type: "fixed", id: "service_description" };

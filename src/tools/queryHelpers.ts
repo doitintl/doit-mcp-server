@@ -384,7 +384,7 @@ export async function handleCompareSpendRequest(args: any, token: string) {
                     columns: r1.result.schema,
                 },
                 period2: {
-                    label: `${period2.from.slice(0, 10)} to ${period2.to.slice(0, 10)}`,
+                    label: `${new Date(period2.from).toISOString().slice(0, 10)} to ${new Date(period2.to).toISOString().slice(0, 10)}`,
                     rowCount: r2.result.rows.length,
                     rows: r2.result.rows,
                     columns: r2.result.schema,

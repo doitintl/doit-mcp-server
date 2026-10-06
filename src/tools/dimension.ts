@@ -19,7 +19,11 @@ export const DimensionArgumentsSchema = z.object({
         .describe(
             "Dimension type paired with id; use the type returned by list_dimensions. Includes allocation and allocation_rule and legacy attribution types."
         ),
-    id: z.string().describe("Dimension identifier paired with type, from list_dimensions"),
+    id: z
+        .string()
+        .describe(
+            "Dimension identifier paired with type, from list_dimensions. For allocation, use the group ID; for allocation_rule, use 'allocation_rule' (the dimension key, not an individual rule ID)."
+        ),
 });
 
 // Interfaces
@@ -83,7 +87,10 @@ export async function handleDimensionRequest(args: any, token: string) {
         const { customerContext } = args;
 
         // Create API URL for retrieving a specific dimension
-        const dimensionUrl = `${DIMENSION_BASE_URL}?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`;
+        // The dimension endpoint still stores allocation metadata under its legacy keys.
+        const apiType = type === "allocation" ? "attribution_group" : type === "allocation_rule" ? "attribution" : type;
+        const apiId = type === "allocation_rule" && id === "allocation_rule" ? "attribution" : id;
+        const dimensionUrl = `${DIMENSION_BASE_URL}?type=${encodeURIComponent(apiType)}&id=${encodeURIComponent(apiId)}`;
 
         try {
             const dimensionData = await makeDoitRequest<DimensionResponse>(dimensionUrl, token, {
@@ -96,7 +103,9 @@ export async function handleDimensionRequest(args: any, token: string) {
                 return createErrorResponse(`Failed to retrieve dimension with type: ${type} and id: ${id}`);
             }
 
-            return createSuccessResponse(JSON.stringify(dimensionData));
+            const result =
+                type === "allocation" || type === "allocation_rule" ? { ...dimensionData, type, id } : dimensionData;
+            return createSuccessResponse(JSON.stringify(result));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request for dimension");
         }

@@ -432,7 +432,7 @@ const ReportConfigPatchSchema = z
             "Secondary time range for comparative reports."
         ),
         customTimeRange: CustomTimeRangeSchema.optional().describe(
-            "Explicit dates, alongside timeRange (not nested inside it). Required for new custom queries/reports. On update, omitted dates or timeRange preserve their stored values; the effective mode must be 'custom'. The API uses inclusive UTC calendar days."
+            "Explicit dates, alongside timeRange (not nested inside it). Required for new custom queries/reports and when switching a saved relative report to custom mode. On update, omitted dates can reuse valid stored custom dates; omitted timeRange requires a stored custom mode. The API uses inclusive UTC calendar days."
         ),
         includePromotionalCredits: z
             .boolean()
@@ -593,7 +593,8 @@ export const createReportTool = {
     inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        // The connector directory requires this hint for every tool that modifies data.
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {
@@ -615,7 +616,7 @@ export const UpdateReportArgumentsSchema = z.object({
             "Replaces non-system DoiT console labels; [] clears them, omission preserves them. System labels are rejected."
         ),
     config: ReportConfigPatchSchema.optional().describe(
-        "Partial configuration. Supplied filters, group, dimensions, and splits arrays replace stored arrays ([] clears); non-empty metrics replaces metrics ([] leaves it unchanged). Any config without dataSource resets the source to billing or billing-datahub according to customer defaults. timeInterval with dimensions omitted resets time columns. For custom dates, the effective timeRange.mode must be 'custom'; omitted dates or timeRange preserve stored values. Valid dimension IDs come from list_dimensions or get_dimension."
+        "Partial configuration. Supplied filters, group, dimensions, and splits arrays replace stored arrays ([] clears); non-empty metrics replaces metrics ([] leaves it unchanged). Any config without dataSource resets the source to billing or billing-datahub according to customer defaults. timeInterval with dimensions omitted resets time columns. Switching to custom mode requires explicit or valid stored custom dates. A date-only patch requires a stored custom mode. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
 });
 
@@ -956,6 +957,27 @@ export async function handleUpdateReportRequest(args: any, token: string) {
 
         const { id, ...body } = parsed;
         const url = `${REPORTS_BASE_URL}/${encodeURIComponent(id)}`;
+
+        const config = body.config;
+        if (
+            (config?.timeRange?.mode === "custom" && !config.customTimeRange) ||
+            (config?.customTimeRange && !config.timeRange)
+        ) {
+            const saved = await makeDoitRequest<{ config: z.infer<typeof ReportConfigPatchSchema> }>(
+                `${url}/config`,
+                token,
+                { method: "GET", customerContext }
+            );
+            if (!saved?.config) return createErrorResponse("Failed to retrieve report configuration before update");
+            if (!config.customTimeRange && !CustomTimeRangeSchema.safeParse(saved.config.customTimeRange).success) {
+                return createErrorResponse(
+                    "config.customTimeRange is required when switching to custom mode without valid stored dates."
+                );
+            }
+            if (!config.timeRange && saved.config.timeRange?.mode !== "custom") {
+                return createErrorResponse("A date-only update requires the saved timeRange.mode to be 'custom'.");
+            }
+        }
 
         const data = await makeDoitRequest<CreateReportResponse>(url, token, {
             method: "PATCH",

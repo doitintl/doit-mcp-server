@@ -17,6 +17,19 @@ beforeEach(() => {
 });
 
 describe("compare_spend", () => {
+    it("labels offset timestamps using the UTC calendar days queried by the API", async () => {
+        const offsetRange = { from: "2026-09-01T01:00:00+05:00", to: "2026-09-02T01:00:00+05:00" };
+        const result = await handleCompareSpendRequest({ period2: offsetRange }, "token");
+        expect(result.isError).not.toBe(true);
+        expect(JSON.parse(result.content[0].text).period2.label).toBe("2026-08-31 to 2026-09-01");
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.any(String),
+            "token",
+            expect.objectContaining({
+                body: expect.objectContaining({ config: expect.objectContaining({ customTimeRange: offsetRange }) }),
+            })
+        );
+    });
     it.each([
         ["service", "service_description"],
         ["project", "project_id"],
