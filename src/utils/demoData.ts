@@ -647,7 +647,11 @@ export function getDemoResponse(url: string, method: string, body?: any): unknow
     }
     // reports — list
     if (path.includes("/analytics/v1/reports") && GET) {
-        return { rowCount: DEMO_REPORTS.length, reports: DEMO_REPORTS };
+        const name = new URL(url, "https://api.doit.com").searchParams.get("nameContains")?.toLowerCase();
+        const reports = name
+            ? DEMO_REPORTS.filter((report) => report.reportName.toLowerCase().includes(name))
+            : DEMO_REPORTS;
+        return { rowCount: reports.length, reports };
     }
 
     // anomalies — individual

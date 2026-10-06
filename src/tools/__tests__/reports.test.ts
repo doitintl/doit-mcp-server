@@ -221,6 +221,22 @@ Cloud Storage,50`;
             });
         });
 
+        it("passes a partial name to the API as nameContains", async () => {
+            const mockArgs = { name: "monthly cost" };
+            (makeDoitRequest as vi.Mock).mockResolvedValue({
+                rowCount: 1,
+                reports: [{ id: "report-1", reportName: "Monthly Cost Overview" }],
+            });
+
+            await handleReportsRequest(mockArgs, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports?nameContains=monthly+cost",
+                mockToken,
+                { method: "GET" }
+            );
+        });
+
         it("should handle no reports found", async () => {
             const mockArgs = { filter: "type:cost" };
             const mockApiResponse = {
