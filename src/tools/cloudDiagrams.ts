@@ -43,7 +43,8 @@ export const findCloudDiagramsTool = {
     inputSchema: zodToMcpInputSchema(FindCloudDiagramsArgumentsSchema),
     annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        // The connector directory requires confirmation annotations for data mutations.
+        destructiveHint: true,
         openWorldHint: true,
     },
     _meta: {

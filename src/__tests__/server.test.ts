@@ -584,21 +584,15 @@ describe("tools/list handler", () => {
         expect(response.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "delete_alert" })]));
     });
 
-    // Directory listings need titles and factual readOnlyHint/destructiveHint annotations.
-    it("every listed tool has a title and accurate mutation annotations", async () => {
+    // The connector directory requires an applicable true hint for both reads and writes.
+    it("every listed tool has a title and appropriate read/write hints", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
         const { tools } = await handler();
         // change_customer is registered only by the remote Worker (for DoiT employees), so check
         // it alongside the stdio list.
         for (const tool of [...tools, changeCustomerTool]) {
             expect(tool.title?.trim(), tool.name).toBeTruthy();
-            if (tool.name === "find_cloud_diagrams") {
-                // Creating a filter and queuing rendering mutates state without destroying data.
-                expect(tool.annotations?.readOnlyHint, tool.name).toBe(false);
-                expect(tool.annotations?.destructiveHint, tool.name).toBe(false);
-            } else {
-                expect(tool.annotations?.readOnlyHint || tool.annotations?.destructiveHint, tool.name).toBe(true);
-            }
+            expect(tool.annotations?.readOnlyHint || tool.annotations?.destructiveHint, tool.name).toBe(true);
             expect(tool.annotations?.readOnlyHint && tool.annotations?.destructiveHint, tool.name).toBeFalsy();
         }
     });
