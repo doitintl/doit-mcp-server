@@ -326,7 +326,7 @@ export async function handleListBudgetsRequest(args: any, token: string) {
             return createErrorResponse("Failed to retrieve budgets");
         }
 
-        return createSuccessResponse(JSON.stringify(data, null, 2));
+        return createSuccessResponse(JSON.stringify({ ...data, budgets: data.budgets ?? [] }, null, 2));
     } catch (error) {
         if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
         return handleGeneralError(error, "handling list budgets request");

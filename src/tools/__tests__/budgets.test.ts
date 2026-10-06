@@ -74,6 +74,14 @@ describe("budgets", () => {
         expect(parsed.rowCount).toBe(1);
     });
 
+    it("returns an empty budgets array when the API omits it for no matches", async () => {
+        (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ rowCount: 0 });
+
+        const response = await handleListBudgetsRequest({ name: "missing" }, mockToken);
+
+        expect(JSON.parse(response.content[0].text)).toEqual({ rowCount: 0, budgets: [] });
+    });
+
     it("should append all query params when provided", async () => {
         const mockApiResponse = { budgets: [mockBudget], pageToken: "next", rowCount: 1 };
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockApiResponse);
