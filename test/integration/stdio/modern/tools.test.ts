@@ -99,7 +99,8 @@ describe("MCP Tools Integration (2026-07-28 client)", () => {
 
             const result = await modern.client.callTool({ name: "list_organizations", arguments: {} });
 
-            expect(getTextContent(result)).toContain("Failed to retrieve organizations");
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("HTTP 500: The API is temporarily unavailable");
         });
 
         it("returns a validation error for missing required arguments", async () => {
