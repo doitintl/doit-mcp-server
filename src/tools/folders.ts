@@ -98,16 +98,7 @@ export const getFolderTool = {
     coversEndpoint: "get:/analytics/v1/folders/{id}",
     description:
         "Use this when the user wants to view details of a specific Cloud Analytics folder. Accepts either the folder ID or a partial name (case-insensitive). Do NOT use this for listing all folders (use list_folders) or viewing reports (use get_report_config).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: { type: "string", description: "The ID of the folder to retrieve." },
-            name: {
-                type: "string",
-                description: "Partial name match (case-insensitive). Used to find the folder when ID is unknown.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(GetFolderArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -164,7 +155,7 @@ export const createFolderTool = {
     title: "Create folder",
     coversEndpoint: "post:/analytics/v1/folders",
     description:
-        "Use this when the user wants to create a new Cloud Analytics folder to organize reports and allocations. Ask the user to confirm the folder details before executing. Do NOT use this for creating reports (use create_report) or labels (use create_label).",
+        "Use this when the user wants to create a new Cloud Analytics folder to organize reports and allocations. Changes apply immediately. Do NOT use this for creating reports (use create_report) or labels (use create_label).",
     inputSchema: zodToMcpInputSchema(CreateFolderArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -221,7 +212,7 @@ export const updateFolderTool = {
     title: "Update folder",
     coversEndpoint: "patch:/analytics/v1/folders/{id}",
     description:
-        "Use this when the user wants to rename, re-describe, or move (reparent) an existing Cloud Analytics folder. Ask the user to confirm changes before executing. Note: if a sibling folder at the target parent already has the same name, the folder will be auto-renamed by the API. Do NOT use this for creating new folders (use create_folder) or updating reports (use update_report).",
+        "Use this when the user wants to rename, re-describe, or move (reparent) an existing Cloud Analytics folder. Changes apply immediately. Note: if a sibling folder at the target parent already has the same name, the folder will be auto-renamed by the API. Do NOT use this for creating new folders (use create_folder) or updating reports (use update_report).",
     inputSchema: zodToMcpInputSchema(UpdateFolderArgumentsSchema),
     annotations: {
         readOnlyHint: false,

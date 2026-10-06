@@ -41,7 +41,7 @@ export const ListBudgetsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            'An expression for filtering the results. Syntax: "key:[<value>]". Available keys: owner, lastModified in ms (>lastModified). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in "AND," while using the same key multiple times in the same filter results in "OR".'
+            'An expression for filtering the results. Syntax: "key:[<value>]". Available keys: owner, budgetName, lastModified in ms (>lastModified), riskStatus (one of atRisk, onTrack, unknown). Multiple filters can be connected using a pipe |. Note that using different keys in the same filter results in "AND". The owner key can be repeated, and repeated owner values are combined with "OR"; for budgetName, lastModified and riskStatus only the first occurrence is honored.'
         ),
     name: z
         .string()
@@ -246,7 +246,7 @@ export const createBudgetTool = {
     title: "Create budget",
     coversEndpoint: "post:/analytics/v1/budgets",
     description:
-        "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires budget name, currency, type, and start period. Ask the user to confirm the budget parameters before executing. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
+        "Use this when the user wants to create a new cloud budget with spending limits and alert thresholds. Requires budget name, currency, type, and start period. Changes apply immediately. Do NOT use this for viewing existing budgets (use list_budgets or get_budget) or creating alerts (use create_alert).",
     inputSchema: zodToMcpInputSchema(CreateBudgetArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -412,7 +412,7 @@ export const updateBudgetTool = {
     title: "Update budget",
     coversEndpoint: "patch:/analytics/v1/budgets/{id}",
     description:
-        "Use this when the user wants to modify an existing budget. Supports partial updates. Ask the user to confirm the changes before executing. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
+        "Use this when the user wants to modify an existing budget. Supports partial updates. Changes apply immediately. Do NOT use this for viewing budgets (use list_budgets) or creating new budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateBudgetArgumentsSchema),
     annotations: {
         readOnlyHint: false,

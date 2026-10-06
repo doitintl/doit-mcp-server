@@ -99,8 +99,8 @@ export const CLOUDFLOW_CODENODE_HINT =
 /** Appended to build_cloud_flow / refine_cloudflow. */
 export const CLOUDFLOW_BUILDER_HINT =
     "Generated codeNode code is frequently broken in ways that pass validation and fail silently " +
-    "at run time. Always export_cloudflow_flow and test-run the result, and check the per-node " +
-    "output, before reporting success.";
+    "at run time, so a successful build shows only that a draft was saved. export_cloudflow_flow " +
+    "returns the saved code; a completed test run's per-node output shows whether it works.";
 
 export const CLOUDFLOW_INSTRUCTIONS = `...`; // §5
 export const CLOUDFLOW_AUTHORING_GUIDE = `...`; // the full guide
@@ -232,23 +232,24 @@ Following the repo's `__tests__` convention:
 
 ## 5. Proposed `CLOUDFLOW_INSTRUCTIONS` text
 
-Kept to what changes behavior; everything else lives in the resource.
+Kept to what changes behavior; everything else lives in the resource. All three tiers state facts
+about the platform rather than rules for the model: directory review (e.g. the Claude Connectors
+Directory) rejects tool text that tells the model to always call other tools or what it may claim.
 
 ```
 CloudFlow authoring: nothing runs or publishes until a human publishes, so a draft never has to
-be perfect. Build or clone → export and inspect → dry-run import → test-run → read the per-node
-output. Prefer cloning an existing flow over generating from scratch: a real export is the only
-ground truth for node parameter shapes and in-node reference syntax.
+be perfect. The authoring loop is build or clone → export and inspect → dry-run import →
+test-run → read the per-node output. Cloning an existing flow is more reliable than generating
+from scratch: a real export is the only ground truth for node parameter shapes and reference syntax.
 
 codeNode is where generated flows break, and it breaks silently. Upstream data comes only from
 `nodes["<node name>"]`, a dict of lists — there is no injected `input` variable. The code body is
 executed directly: end it with a top-level `return`. A `schema` (JSON Schema string) is required.
 Code that defines an uncalled function, reads a bare `input`, or assigns `output` instead of
-returning completes with `{message: null}` — no error, no result, and every validation gate
-passes.
+returning completes with `{message: null}` — no error, no result, and every validation gate passes.
 
-Only claim a flow works after a test run completed and the per-node output matched intent.
-Before that, say it validated and imported.
+Validation and a clean import show only that a flow is well-formed. A completed test run whose
+per-node output matches intent is what shows the flow works.
 ```
 
 ## 6. Risks and limits

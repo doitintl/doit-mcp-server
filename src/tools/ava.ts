@@ -49,7 +49,7 @@ export const askAvaSyncTool = {
     title: "Ask Ava",
     coversEndpoint: "post:/ava/v1/askSync",
     description:
-        "Ask DoiT AVA, the cloud cost and infrastructure expert, a question about the user's DoiT account, cloud spending, anomalies, or optimization opportunities. AVA has access to the customer's billing data, usage patterns, and DoiT-specific features. Use this for DoiT or cloud-specific questions only — not for general-purpose AI queries. Note: AVA can take a long time to respond for complex questions. If it does not respond in time, a clear error is returned with guidance to retry or simplify the question.",
+        "Ask DoiT AVA, DoiT's AI assistant for cloud cost and infrastructure, a question about the user's DoiT account, cloud spending, anomalies, or optimization opportunities. AVA has access to the customer's billing data, usage patterns, and DoiT-specific features. It answers DoiT and cloud-specific questions, not general-purpose ones. Note: AVA can take a long time to respond for complex questions. If it does not respond in time, a clear error is returned with guidance to retry or simplify the question.",
     inputSchema: zodToMcpInputSchema(AskAvaSyncArgumentsSchema),
     annotations: {
         readOnlyHint: true,

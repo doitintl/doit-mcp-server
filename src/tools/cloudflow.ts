@@ -84,21 +84,8 @@ export const triggerCloudFlowTool = {
     title: "Trigger CloudFlow flow",
     coversEndpoint: "post:/cloudflow/v1/trigger/{flowId}",
     description:
-        "Use this when the user wants to trigger an automated CloudFlow workflow by its flow ID. This executes automation that may modify cloud resources externally. Ask the user to confirm the flow ID and any parameters before executing. Do NOT use this for viewing CloudFlow definitions or checking available flows.",
-    inputSchema: {
-        type: "object",
-        properties: {
-            flowID: {
-                type: "string",
-                description: "The ID of the CloudFlow flow to trigger",
-            },
-            requestBodyJson: {
-                type: "object",
-                description: "Optional JSON object to pass as the request body to the flow if the flow requires it",
-            },
-        },
-        required: ["flowID"],
-    },
+        "Use this when the user wants to trigger an automated CloudFlow workflow by its flow ID. This executes automation that may modify cloud resources externally. The flow starts immediately. Do NOT use this for viewing CloudFlow definitions or checking available flows.",
+    inputSchema: zodToMcpInputSchema(TriggerCloudFlowArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -124,24 +111,7 @@ export const refineCloudflowTool = {
     description:
         "Use this when the user wants to refine or rebuild an existing CloudFlow automation using natural language. Streams real-time progress updates while the AI builds the flow, then returns the final result. " +
         CLOUDFLOW_BUILDER_HINT,
-    inputSchema: {
-        type: "object",
-        properties: {
-            question: {
-                type: "string",
-                description: "The instruction or question to refine or rebuild the flow",
-            },
-            flowId: {
-                type: "string",
-                description: "The ID of the CloudFlow flow to refine",
-            },
-            conversationId: {
-                type: "string",
-                description: "Optional conversation ID for multi-turn sessions",
-            },
-        },
-        required: ["question", "flowId"],
-    },
+    inputSchema: zodToMcpInputSchema(RefineCloudflowArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -166,20 +136,7 @@ export const buildCloudflowTool = {
     description:
         "Use this when the user wants to build a brand-new CloudFlow automation from scratch using natural language. Streams real-time progress while the AI builds the flow, then returns the newly created flow's ID, the builder's answer, and the build steps that ran. Use refine_cloudflow to change an existing flow; use this only to create a new one. " +
         CLOUDFLOW_BUILDER_HINT,
-    inputSchema: {
-        type: "object",
-        properties: {
-            question: {
-                type: "string",
-                description: "Natural language description of the CloudFlow to build from scratch.",
-            },
-            conversationId: {
-                type: "string",
-                description: "Optional conversation ID to continue an existing build session.",
-            },
-        },
-        required: ["question"],
-    },
+    inputSchema: zodToMcpInputSchema(BuildCloudflowArgumentsSchema),
     annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -599,7 +556,7 @@ export const createCloudFlowConnectionTool = {
     name: "create_cloudflow_connection",
     title: "Create CloudFlow connection",
     description:
-        "Use this when the user wants to create a new CloudFlow cloud provider connection (a GCP or AWS account connected for automation). Exactly one of gcpConfig or awsConfig must be supplied. Ask the user to confirm the connection details before executing. Do NOT use this to update an existing connection (use update_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
+        "Use this when the user wants to create a new CloudFlow cloud provider connection (a GCP or AWS account connected for automation). Exactly one of gcpConfig or awsConfig must be supplied. Changes apply immediately. Do NOT use this to update an existing connection (use update_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
     coversEndpoint: "post:/cloudflow/v1/connections",
     inputSchema: zodToMcpInputSchema(CreateCloudFlowConnectionArgumentsSchema),
     annotations: {
@@ -666,7 +623,7 @@ export const updateCloudFlowConnectionTool = {
     name: "update_cloudflow_connection",
     title: "Update CloudFlow connection",
     description:
-        "Use this when the user wants to update an existing CloudFlow cloud provider connection — rename it, change its description, enable/disable it, update its GCP/AWS configuration, or change collaborators. All fields except connectionId are optional; at most one of gcpConfig or awsConfig may be set per request. Ask the user to confirm the changes before executing. Do NOT use this to create a new connection (use create_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
+        "Use this when the user wants to update an existing CloudFlow cloud provider connection — rename it, change its description, enable/disable it, update its GCP/AWS configuration, or change collaborators. All fields except connectionId are optional; at most one of gcpConfig or awsConfig may be set per request. Changes apply immediately. Do NOT use this to create a new connection (use create_cloudflow_connection) or to trigger a flow (use trigger_cloud_flow).",
     coversEndpoint: "patch:/cloudflow/v1/connections/{connectionId}",
     inputSchema: zodToMcpInputSchema(UpdateCloudFlowConnectionArgumentsSchema),
     annotations: {

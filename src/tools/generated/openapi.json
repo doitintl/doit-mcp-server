@@ -615,6 +615,55 @@
               }
             }
           },
+          "403": {
+            "description": "New trial invitations are only available in production (code trial_invites_disabled).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "description": "RFC 9457 problem details for the Signup operations.",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "retryable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Machine-readable problem code (see each response description)."
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "signupRequestId": {
+                      "type": "string",
+                      "description": "The already-pending request for this domain (signup_already_pending)."
+                    },
+                    "signInUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Where an existing DoiT user or customer should sign in instead."
+                    }
+                  }
+                }
+              }
+            }
+          },
           "409": {
             "description": "Conflict. code is one of email_already_registered, domain_already_registered (both carry signInUrl), partner_domain_not_allowed, signup_already_pending (carries signupRequestId), trial_already_used.",
             "content": {
@@ -5250,6 +5299,29 @@
                         "type": "string",
                         "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
                         "example": "A AND B"
+                      },
+                      "validityPeriods": {
+                        "type": "array",
+                        "nullable": true,
+                        "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                        "items": {
+                          "type": "object",
+                          "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                          "properties": {
+                            "startDate": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                              "example": "2026-03-15"
+                            },
+                            "endDate": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                              "example": "2026-06-15"
+                            }
+                          }
+                        }
                       }
                     }
                   },
@@ -5369,6 +5441,92 @@
                           "type": "string",
                           "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
                           "example": "A AND B"
+                        },
+                        "valueExtraction": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "sources"
+                          ],
+                          "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+                          "properties": {
+                            "sources": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 5,
+                              "description": "Ordered extraction sources; the first non-empty value wins.",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "type",
+                                  "key"
+                                ],
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                                    "enum": [
+                                      "label",
+                                      "tag",
+                                      "project_label",
+                                      "system_label",
+                                      "gke_label",
+                                      "fixed"
+                                    ]
+                                  },
+                                  "key": {
+                                    "type": "string",
+                                    "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                                  },
+                                  "providers": {
+                                    "type": "array",
+                                    "nullable": true,
+                                    "description": "Optional cloud providers this source applies to.",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "onMissing": {
+                              "type": "string",
+                              "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                              "enum": [
+                                "useFallback",
+                                "nextRule"
+                              ],
+                              "default": "useFallback"
+                            },
+                            "fallback": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+                            }
+                          }
+                        },
+                        "validityPeriods": {
+                          "type": "array",
+                          "nullable": true,
+                          "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                          "items": {
+                            "type": "object",
+                            "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                            "properties": {
+                              "startDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                                "example": "2026-03-15"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                                "example": "2026-06-15"
+                              }
+                            }
+                          }
                         }
                       }
                     }
@@ -5530,6 +5688,29 @@
                           "type": "string",
                           "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
                           "example": "A AND B"
+                        },
+                        "validityPeriods": {
+                          "type": "array",
+                          "nullable": true,
+                          "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                          "items": {
+                            "type": "object",
+                            "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                            "properties": {
+                              "startDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                                "example": "2026-03-15"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                                "example": "2026-06-15"
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -5649,6 +5830,92 @@
                             "type": "string",
                             "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
                             "example": "A AND B"
+                          },
+                          "valueExtraction": {
+                            "type": "object",
+                            "nullable": true,
+                            "required": [
+                              "sources"
+                            ],
+                            "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+                            "properties": {
+                              "sources": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 5,
+                                "description": "Ordered extraction sources; the first non-empty value wins.",
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "type",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                                      "enum": [
+                                        "label",
+                                        "tag",
+                                        "project_label",
+                                        "system_label",
+                                        "gke_label",
+                                        "fixed"
+                                      ]
+                                    },
+                                    "key": {
+                                      "type": "string",
+                                      "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                                    },
+                                    "providers": {
+                                      "type": "array",
+                                      "nullable": true,
+                                      "description": "Optional cloud providers this source applies to.",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "onMissing": {
+                                "type": "string",
+                                "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                                "enum": [
+                                  "useFallback",
+                                  "nextRule"
+                                ],
+                                "default": "useFallback"
+                              },
+                              "fallback": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+                              }
+                            }
+                          },
+                          "validityPeriods": {
+                            "type": "array",
+                            "nullable": true,
+                            "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                            "items": {
+                              "type": "object",
+                              "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                              "properties": {
+                                "startDate": {
+                                  "type": "string",
+                                  "nullable": true,
+                                  "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                                  "example": "2026-03-15"
+                                },
+                                "endDate": {
+                                  "type": "string",
+                                  "nullable": true,
+                                  "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                                  "example": "2026-06-15"
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -5921,6 +6188,29 @@
                           "type": "string",
                           "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
                           "example": "A AND B"
+                        },
+                        "validityPeriods": {
+                          "type": "array",
+                          "nullable": true,
+                          "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                          "items": {
+                            "type": "object",
+                            "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                            "properties": {
+                              "startDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                                "example": "2026-03-15"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                                "example": "2026-06-15"
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -6040,6 +6330,92 @@
                             "type": "string",
                             "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
                             "example": "A AND B"
+                          },
+                          "valueExtraction": {
+                            "type": "object",
+                            "nullable": true,
+                            "required": [
+                              "sources"
+                            ],
+                            "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+                            "properties": {
+                              "sources": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 5,
+                                "description": "Ordered extraction sources; the first non-empty value wins.",
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "type",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                                      "enum": [
+                                        "label",
+                                        "tag",
+                                        "project_label",
+                                        "system_label",
+                                        "gke_label",
+                                        "fixed"
+                                      ]
+                                    },
+                                    "key": {
+                                      "type": "string",
+                                      "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                                    },
+                                    "providers": {
+                                      "type": "array",
+                                      "nullable": true,
+                                      "description": "Optional cloud providers this source applies to.",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "onMissing": {
+                                "type": "string",
+                                "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                                "enum": [
+                                  "useFallback",
+                                  "nextRule"
+                                ],
+                                "default": "useFallback"
+                              },
+                              "fallback": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+                              }
+                            }
+                          },
+                          "validityPeriods": {
+                            "type": "array",
+                            "nullable": true,
+                            "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                            "items": {
+                              "type": "object",
+                              "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                              "properties": {
+                                "startDate": {
+                                  "type": "string",
+                                  "nullable": true,
+                                  "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                                  "example": "2026-03-15"
+                                },
+                                "endDate": {
+                                  "type": "string",
+                                  "nullable": true,
+                                  "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                                  "example": "2026-06-15"
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -6421,6 +6797,29 @@
                         "type": "string",
                         "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
                         "example": "A AND B"
+                      },
+                      "validityPeriods": {
+                        "type": "array",
+                        "nullable": true,
+                        "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                        "items": {
+                          "type": "object",
+                          "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                          "properties": {
+                            "startDate": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                              "example": "2026-03-15"
+                            },
+                            "endDate": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                              "example": "2026-06-15"
+                            }
+                          }
+                        }
                       }
                     }
                   },
@@ -6540,6 +6939,92 @@
                           "type": "string",
                           "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
                           "example": "A AND B"
+                        },
+                        "valueExtraction": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "sources"
+                          ],
+                          "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+                          "properties": {
+                            "sources": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 5,
+                              "description": "Ordered extraction sources; the first non-empty value wins.",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "type",
+                                  "key"
+                                ],
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                                    "enum": [
+                                      "label",
+                                      "tag",
+                                      "project_label",
+                                      "system_label",
+                                      "gke_label",
+                                      "fixed"
+                                    ]
+                                  },
+                                  "key": {
+                                    "type": "string",
+                                    "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                                  },
+                                  "providers": {
+                                    "type": "array",
+                                    "nullable": true,
+                                    "description": "Optional cloud providers this source applies to.",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "onMissing": {
+                              "type": "string",
+                              "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                              "enum": [
+                                "useFallback",
+                                "nextRule"
+                              ],
+                              "default": "useFallback"
+                            },
+                            "fallback": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+                            }
+                          }
+                        },
+                        "validityPeriods": {
+                          "type": "array",
+                          "nullable": true,
+                          "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                          "items": {
+                            "type": "object",
+                            "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                            "properties": {
+                              "startDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                                "example": "2026-03-15"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                                "example": "2026-06-15"
+                              }
+                            }
+                          }
                         }
                       }
                     }
@@ -6701,6 +7186,29 @@
                           "type": "string",
                           "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
                           "example": "A AND B"
+                        },
+                        "validityPeriods": {
+                          "type": "array",
+                          "nullable": true,
+                          "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                          "items": {
+                            "type": "object",
+                            "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                            "properties": {
+                              "startDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                                "example": "2026-03-15"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                                "example": "2026-06-15"
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -6820,6 +7328,92 @@
                             "type": "string",
                             "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
                             "example": "A AND B"
+                          },
+                          "valueExtraction": {
+                            "type": "object",
+                            "nullable": true,
+                            "required": [
+                              "sources"
+                            ],
+                            "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+                            "properties": {
+                              "sources": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 5,
+                                "description": "Ordered extraction sources; the first non-empty value wins.",
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "type",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                                      "enum": [
+                                        "label",
+                                        "tag",
+                                        "project_label",
+                                        "system_label",
+                                        "gke_label",
+                                        "fixed"
+                                      ]
+                                    },
+                                    "key": {
+                                      "type": "string",
+                                      "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                                    },
+                                    "providers": {
+                                      "type": "array",
+                                      "nullable": true,
+                                      "description": "Optional cloud providers this source applies to.",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "onMissing": {
+                                "type": "string",
+                                "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                                "enum": [
+                                  "useFallback",
+                                  "nextRule"
+                                ],
+                                "default": "useFallback"
+                              },
+                              "fallback": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+                              }
+                            }
+                          },
+                          "validityPeriods": {
+                            "type": "array",
+                            "nullable": true,
+                            "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                            "items": {
+                              "type": "object",
+                              "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                              "properties": {
+                                "startDate": {
+                                  "type": "string",
+                                  "nullable": true,
+                                  "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                                  "example": "2026-03-15"
+                                },
+                                "endDate": {
+                                  "type": "string",
+                                  "nullable": true,
+                                  "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                                  "example": "2026-06-15"
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -127265,6 +127859,29 @@
                 "type": "string",
                 "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
                 "example": "A AND B"
+              },
+              "validityPeriods": {
+                "type": "array",
+                "nullable": true,
+                "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                "items": {
+                  "type": "object",
+                  "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                  "properties": {
+                    "startDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                      "example": "2026-03-15"
+                    },
+                    "endDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                      "example": "2026-06-15"
+                    }
+                  }
+                }
               }
             }
           },
@@ -127384,6 +128001,92 @@
                   "type": "string",
                   "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
                   "example": "A AND B"
+                },
+                "valueExtraction": {
+                  "type": "object",
+                  "nullable": true,
+                  "required": [
+                    "sources"
+                  ],
+                  "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+                  "properties": {
+                    "sources": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "description": "Ordered extraction sources; the first non-empty value wins.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "key"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                            "enum": [
+                              "label",
+                              "tag",
+                              "project_label",
+                              "system_label",
+                              "gke_label",
+                              "fixed"
+                            ]
+                          },
+                          "key": {
+                            "type": "string",
+                            "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                          },
+                          "providers": {
+                            "type": "array",
+                            "nullable": true,
+                            "description": "Optional cloud providers this source applies to.",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "onMissing": {
+                      "type": "string",
+                      "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                      "enum": [
+                        "useFallback",
+                        "nextRule"
+                      ],
+                      "default": "useFallback"
+                    },
+                    "fallback": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+                    }
+                  }
+                },
+                "validityPeriods": {
+                  "type": "array",
+                  "nullable": true,
+                  "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                  "items": {
+                    "type": "object",
+                    "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                    "properties": {
+                      "startDate": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                        "example": "2026-03-15"
+                      },
+                      "endDate": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                        "example": "2026-06-15"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -127513,6 +128216,29 @@
                 "type": "string",
                 "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
                 "example": "A AND B"
+              },
+              "validityPeriods": {
+                "type": "array",
+                "nullable": true,
+                "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                "items": {
+                  "type": "object",
+                  "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                  "properties": {
+                    "startDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                      "example": "2026-03-15"
+                    },
+                    "endDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                      "example": "2026-06-15"
+                    }
+                  }
+                }
               }
             }
           },
@@ -127632,6 +128358,92 @@
                   "type": "string",
                   "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
                   "example": "A AND B"
+                },
+                "valueExtraction": {
+                  "type": "object",
+                  "nullable": true,
+                  "required": [
+                    "sources"
+                  ],
+                  "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+                  "properties": {
+                    "sources": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "description": "Ordered extraction sources; the first non-empty value wins.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "key"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                            "enum": [
+                              "label",
+                              "tag",
+                              "project_label",
+                              "system_label",
+                              "gke_label",
+                              "fixed"
+                            ]
+                          },
+                          "key": {
+                            "type": "string",
+                            "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                          },
+                          "providers": {
+                            "type": "array",
+                            "nullable": true,
+                            "description": "Optional cloud providers this source applies to.",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "onMissing": {
+                      "type": "string",
+                      "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                      "enum": [
+                        "useFallback",
+                        "nextRule"
+                      ],
+                      "default": "useFallback"
+                    },
+                    "fallback": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+                    }
+                  }
+                },
+                "validityPeriods": {
+                  "type": "array",
+                  "nullable": true,
+                  "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                  "items": {
+                    "type": "object",
+                    "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                    "properties": {
+                      "startDate": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                        "example": "2026-03-15"
+                      },
+                      "endDate": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                        "example": "2026-06-15"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -127801,6 +128613,143 @@
             "type": "string",
             "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
             "example": "A AND B"
+          },
+          "validityPeriods": {
+            "type": "array",
+            "nullable": true,
+            "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+            "items": {
+              "type": "object",
+              "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+              "properties": {
+                "startDate": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                  "example": "2026-03-15"
+                },
+                "endDate": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                  "example": "2026-06-15"
+                }
+              }
+            }
+          }
+        }
+      },
+      "AllocationRulePeriod": {
+        "type": "object",
+        "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+            "example": "2026-03-15"
+          },
+          "endDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+            "example": "2026-06-15"
+          }
+        }
+      },
+      "AllocationValueExtraction": {
+        "type": "object",
+        "nullable": true,
+        "required": [
+          "sources"
+        ],
+        "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "description": "Ordered extraction sources; the first non-empty value wins.",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "key"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                  "enum": [
+                    "label",
+                    "tag",
+                    "project_label",
+                    "system_label",
+                    "gke_label",
+                    "fixed"
+                  ]
+                },
+                "key": {
+                  "type": "string",
+                  "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                },
+                "providers": {
+                  "type": "array",
+                  "nullable": true,
+                  "description": "Optional cloud providers this source applies to.",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "onMissing": {
+            "type": "string",
+            "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+            "enum": [
+              "useFallback",
+              "nextRule"
+            ],
+            "default": "useFallback"
+          },
+          "fallback": {
+            "type": "string",
+            "nullable": true,
+            "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+          }
+        }
+      },
+      "AllocationValueExtractionSource": {
+        "type": "object",
+        "required": [
+          "type",
+          "key"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+            "enum": [
+              "label",
+              "tag",
+              "project_label",
+              "system_label",
+              "gke_label",
+              "fixed"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+          },
+          "providers": {
+            "type": "array",
+            "nullable": true,
+            "description": "Optional cloud providers this source applies to.",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -135880,6 +136829,29 @@
                 "type": "string",
                 "description": "Formula for combining components (A is the first component, B is the second one, etc.).",
                 "example": "A AND B"
+              },
+              "validityPeriods": {
+                "type": "array",
+                "nullable": true,
+                "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                "items": {
+                  "type": "object",
+                  "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                  "properties": {
+                    "startDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                      "example": "2026-03-15"
+                    },
+                    "endDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                      "example": "2026-06-15"
+                    }
+                  }
+                }
               }
             }
           },
@@ -135999,6 +136971,92 @@
                   "type": "string",
                   "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
                   "example": "A AND B"
+                },
+                "valueExtraction": {
+                  "type": "object",
+                  "nullable": true,
+                  "required": [
+                    "sources"
+                  ],
+                  "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+                  "properties": {
+                    "sources": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "description": "Ordered extraction sources; the first non-empty value wins.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "key"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                            "enum": [
+                              "label",
+                              "tag",
+                              "project_label",
+                              "system_label",
+                              "gke_label",
+                              "fixed"
+                            ]
+                          },
+                          "key": {
+                            "type": "string",
+                            "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                          },
+                          "providers": {
+                            "type": "array",
+                            "nullable": true,
+                            "description": "Optional cloud providers this source applies to.",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "onMissing": {
+                      "type": "string",
+                      "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                      "enum": [
+                        "useFallback",
+                        "nextRule"
+                      ],
+                      "default": "useFallback"
+                    },
+                    "fallback": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+                    }
+                  }
+                },
+                "validityPeriods": {
+                  "type": "array",
+                  "nullable": true,
+                  "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+                  "items": {
+                    "type": "object",
+                    "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+                    "properties": {
+                      "startDate": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                        "example": "2026-03-15"
+                      },
+                      "endDate": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                        "example": "2026-06-15"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -136130,6 +137188,92 @@
             "type": "string",
             "description": "Formula for combining components (A is the first component, B is the second one, etc.)",
             "example": "A AND B"
+          },
+          "valueExtraction": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "sources"
+            ],
+            "description": "Makes the rule emit a value extracted from the first non-empty source instead of the rule name.",
+            "properties": {
+              "sources": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 5,
+                "description": "Ordered extraction sources; the first non-empty value wins.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "key"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "description": "The dimension type to read the value from. Label-map types (label, tag, project_label, system_label, gke_label) extract the value of the given key; \"fixed\" extracts a raw table dimension (for example project_id, service_description, region). Derived dimensions such as credits are not extractable.",
+                      "enum": [
+                        "label",
+                        "tag",
+                        "project_label",
+                        "system_label",
+                        "gke_label",
+                        "fixed"
+                      ]
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The label/tag key, or the fixed dimension ID, whose value is extracted."
+                    },
+                    "providers": {
+                      "type": "array",
+                      "nullable": true,
+                      "description": "Optional cloud providers this source applies to.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "onMissing": {
+                "type": "string",
+                "description": "What happens when every source is missing or empty on a matching row. \"useFallback\" (default) emits the fallback value, which is required in that mode; \"nextRule\" lets the row fall through to the next rule in the group.",
+                "enum": [
+                  "useFallback",
+                  "nextRule"
+                ],
+                "default": "useFallback"
+              },
+              "fallback": {
+                "type": "string",
+                "nullable": true,
+                "description": "Literal emitted when every source is missing. Required with onMissing \"useFallback\" (the default); not allowed with onMissing \"nextRule\"."
+              }
+            }
+          },
+          "validityPeriods": {
+            "type": "array",
+            "nullable": true,
+            "description": "Ordered, non-overlapping date ranges when this rule applies. Empty or absent means the rule always applies.",
+            "items": {
+              "type": "object",
+              "description": "A date range when a rule applies. startDate and endDate are both inclusive, so a handover between two rules needs a one-day gap: the first rule's endDate the day before, the second rule's startDate the handover day. Only the first period in the list may omit startDate, and only the last may omit endDate.",
+              "properties": {
+                "startDate": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Start date (YYYY-MM-DD, UTC), inclusive. Absent means no lower bound.",
+                  "example": "2026-03-15"
+                },
+                "endDate": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "End date (YYYY-MM-DD, UTC), inclusive. Absent means no upper bound.",
+                  "example": "2026-06-15"
+                }
+              }
+            }
           }
         }
       },

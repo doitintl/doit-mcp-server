@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import { createErrorResponse, createSuccessResponse, formatZodError, handleGeneralError } from "../utils/util.js";
 import { handleValidateUserRequest, parseValidatedUserResponse, type ValidateUserResponse } from "./validateUser.js";
 
@@ -19,16 +20,7 @@ export const changeCustomerTool = {
     title: "Switch customer context",
     description:
         "Use this when a DoiT employee needs to switch the active customer context for subsequent API calls. Allows switching between different customer accounts. Do NOT use this for regular user operations — this is an internal DoiT employee tool only.",
-    inputSchema: {
-        type: "object",
-        properties: {
-            customerContext: {
-                type: "string",
-                description: "The new customer context to set",
-            },
-        },
-        required: ["customerContext"],
-    },
+    inputSchema: zodToMcpInputSchema(ChangeCustomerArgumentsSchema),
     // Destructive: it writes no DoiT data itself, but it changes which customer every later
     // call targets, including writes and deletes, so clients should confirm before switching.
     annotations: {

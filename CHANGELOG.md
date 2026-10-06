@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Tool responses are capped at 140,000 serialized characters. Oversized reads return
+  actionable errors; completed writes return compact success receipts.
+- Each dispatched tool call now emits one JSON response-size metrics event to stderr
+  on stdio. Some clients display stderr in their logs or UI; stdout remains reserved
+  for MCP protocol messages. Metrics contain no tool arguments or response bodies.
+
 ## v2.2.0 (2026-10-02)
 
 **Full diff:** [`v2.1.1...v2.2.0`](../../compare/v2.1.1...v2.2.0)

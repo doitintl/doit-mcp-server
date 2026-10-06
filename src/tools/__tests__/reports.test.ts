@@ -90,6 +90,8 @@ Cloud Storage,50`;
             // The function also returns a string with schema and cache hit info
             expect(formattedResult).toContain("Query Results:");
             expect(formattedResult).toContain("Schema: service (string), cost (number)");
+            // Tool output carries data only, never instructions on how the model should respond.
+            expect(formattedResult).not.toMatch(/IMPORTANT|Artifacts/);
             expect(formattedResult).toContain("Cache Hit: true");
             expect(formattedResult).toContain("Rows (2 total):");
 
@@ -173,6 +175,8 @@ Cloud Storage,50`;
             expect(formattedResult).toContain("ID: report-123");
             expect(formattedResult).toContain("Name: Cost Overview");
             expect(formattedResult).toContain("Schema: service (string), cost (number)");
+            // Tool output carries data only, never instructions on how the model should respond.
+            expect(formattedResult).not.toMatch(/IMPORTANT|Artifacts/);
 
             consoleLogSpy.mockRestore(); // Restore console.log
         });
@@ -301,7 +305,8 @@ Cloud Storage,50`;
 
             expect(handleGeneralError).toHaveBeenCalledWith(
                 expect.any(Error),
-                expect.stringContaining("making DoiT API request")
+                expect.stringContaining("making DoiT API request"),
+                expect.stringContaining("filter parameter")
             );
             expect(response).toEqual({
                 content: [
@@ -391,7 +396,8 @@ Cloud Storage,50`;
 
             expect(handleGeneralError).toHaveBeenCalledWith(
                 expect.any(Error),
-                expect.stringContaining("making DoiT API query request")
+                expect.stringContaining("making DoiT API query request"),
+                expect.stringContaining("list_dimensions")
             );
             expect(response).toEqual({
                 content: [

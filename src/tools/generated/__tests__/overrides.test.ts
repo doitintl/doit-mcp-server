@@ -7,7 +7,7 @@ import { generateTools } from "../generateTools.js";
 import { loadGeneratedToolsSpec } from "../loadSpec.js";
 import { toolOverrides } from "../overrides.js";
 
-describe("generated tool description overrides", () => {
+describe("generated tool overrides", () => {
     const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
     const byName = new Map(tools.map((tool) => [tool.name, tool]));
 
@@ -16,14 +16,34 @@ describe("generated tool description overrides", () => {
         expect(stale).toEqual([]);
     });
 
+    it("marks the POST layer-components lookup as read-only with read-only scopes", () => {
+        expect(byName.get("get_statussheet_components")).toMatchObject({
+            metadata: { method: "post", pathTemplate: "/clouddiagrams/v1/statussheet/{id}/get" },
+            annotations: { readOnlyHint: true, destructiveHint: false },
+            securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+        });
+    });
+
+    it.each(["async_run_inline", "async_run_report_by_id"])("keeps %s as a write because it creates a job", (name) => {
+        expect(byName.get(name)).toMatchObject({
+            metadata: { method: "post" },
+            annotations: { readOnlyHint: false, destructiveHint: true },
+            securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+        });
+    });
+
     it("appends the codeNode contract to the import and export tools", () => {
         for (const name of ["import_cloudflow_flow", "export_cloudflow_flow"]) {
             expect(byName.get(name)?.description).toContain(CLOUDFLOW_CODENODE_HINT);
         }
     });
 
-    it("appends the builder warning to the test-run tool", () => {
-        expect(byName.get("test_run_cloudflow_flow")?.description).toContain(CLOUDFLOW_BUILDER_HINT);
+    // The builder hint talks about a build; a test run builds nothing, so it gets its own text.
+    it("appends a test-run warning to the test-run tool", () => {
+        const description = byName.get("test_run_cloudflow_flow")?.description ?? "";
+        expect(description).toContain("fail silently");
+        expect(description).toContain("get_cloudflow_flow_run");
+        expect(description).not.toContain(CLOUDFLOW_BUILDER_HINT);
     });
 
     it("keeps the spec's own description ahead of the suffix", () => {

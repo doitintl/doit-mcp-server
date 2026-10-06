@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import { createSuccessResponse, DOIT_API_BASE, handleGeneralError, makeDoitRequest } from "../utils/util.js";
 
 export const CloudOverviewArgumentsSchema = z.object({});
@@ -18,7 +19,7 @@ export const cloudOverviewTool = {
         "Returns cost by cloud provider, top services per cloud, top projects per cloud, recent cost anomalies, " +
         "and recent cloud incidents — all in a single call. " +
         "Do NOT use this for detailed drill-downs (use run_query), single-provider analysis, or anomaly-only queries.",
-    inputSchema: { type: "object", properties: {} },
+    inputSchema: zodToMcpInputSchema(CloudOverviewArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -36,6 +37,7 @@ export const cloudOverviewTool = {
 function runQuery(token: string, customerContext: string | undefined, config: unknown) {
     return makeDoitRequest<{ result: { schema: unknown[]; rows: unknown[][] } }>(QUERY_URL, token, {
         method: "POST",
+        readOnly: true,
         body: { config },
         appendParams: true,
         customerContext,

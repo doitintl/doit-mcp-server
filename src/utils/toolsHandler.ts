@@ -70,6 +70,7 @@ import {
 } from "../tools/folders.js";
 import { handleGeneratedOperationRequest } from "../tools/generated/callOperation.js";
 import type { GeneratedTool } from "../tools/generated/types.js";
+import { HAND_WRITTEN_TOOLS } from "../tools/handWrittenTools.js";
 import {
     handleGetInsightRequest,
     handleGetInsightResourcesRequest,
@@ -124,6 +125,7 @@ import {
 import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
 import { APPROVAL_TTL_MS, type ApprovalStore, buildApprovalResponse, mintApprovalToken } from "./approval.js";
+import { finalizeToolResponse, type ToolResponseMetrics } from "./responseLimit.js";
 import {
     createErrorResponse,
     formatZodError,
@@ -155,6 +157,8 @@ const WRITE_GATED_SUMMARIES: Record<string, (args: any) => string> = {
 };
 
 export interface ToolHandlerOptions {
+    /** Metadata-only final-response measurements. Defaults to JSON on stderr. */
+    onResponseMetrics?: (metrics: ToolResponseMetrics) => void;
     /** Connection-level MCP client metadata (mcpClient, mcpClientVersion, etc.) */
     trackingContext?: TrackingContext;
     /** Optional function to convert the raw response format */
@@ -201,7 +205,10 @@ export async function executeToolHandler(
     options: ToolHandlerOptions = {}
 ): Promise<any> {
     const { trackingContext, convertResponse, userKey, approvalStore, onProgress, generatedTools } = options;
-    return runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
+    const startedAt = Date.now();
+    let sourceResponse: any;
+    let executedToolName: string | undefined;
+    const response = await runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
         try {
             // Dispatches an already-confirmed (or non-gated) tool call. The approval
             // gate below never calls this directly for a write-gated tool without first
@@ -211,7 +218,10 @@ export async function executeToolHandler(
                     onProgress,
                     generatedTools,
                 });
-                return convertResponse ? convertResponse(result) : result;
+                sourceResponse = result;
+                executedToolName = innerToolName;
+                // Success adapters (e.g. hosted widgets) must not erase MCP error flags or OAuth metadata.
+                return convertResponse && !result?.isError ? convertResponse(result) : result;
             };
 
             // Two-phase commit for write-gated tools.
@@ -263,12 +273,29 @@ export async function executeToolHandler(
         } catch (error) {
             if (error instanceof z.ZodError) {
                 const errorResult = createErrorResponse(formatZodError(error));
-                return convertResponse ? convertResponse(errorResult) : errorResult;
+                sourceResponse = errorResult;
+                return errorResult;
             }
             const errorResult = handleGeneralError(error, "handling tool request");
-            return convertResponse ? convertResponse(errorResult) : errorResult;
+            sourceResponse = errorResult;
+            return errorResult;
         }
     }); // end runWithTracking
+    const effectiveToolName = executedToolName ?? toolName;
+    const definition =
+        HAND_WRITTEN_TOOLS.find((tool) => tool.name === effectiveToolName) ?? generatedTools?.get(effectiveToolName);
+    return finalizeToolResponse(response, {
+        toolName: effectiveToolName,
+        operation: !executedToolName
+            ? "not_executed"
+            : definition?.annotations?.readOnlyHint === true
+              ? "read"
+              : "write",
+        sourceResponse,
+        client: trackingContext?.mcpClient,
+        durationMs: Date.now() - startedAt,
+        onMetrics: options.onResponseMetrics,
+    });
 }
 
 /**

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -31,7 +32,10 @@ export interface InvoicesResponse {
 
 // Arguments schema for listing invoices
 export const ListInvoicesArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 // Tool definition
@@ -41,15 +45,7 @@ export const listInvoicesTool = {
     coversEndpoint: "get:/billing/v1/invoices",
     description:
         "Use this when the user wants to see their invoices, check billing history, or review payment records. Returns a list of invoices with amounts, dates, and status. Do NOT use this for cost analysis (use run_query) or budget tracking (use list_budgets).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(ListInvoicesArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -92,7 +88,7 @@ export async function handleListInvoicesRequest(args: any, token: string) {
 
 // Arguments schema for getting a single invoice
 export const GetInvoiceArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the invoice to retrieve"),
+    id: z.string().describe("The ID of the invoice to retrieve."),
 });
 
 // Tool definition for getting a single invoice
@@ -102,16 +98,7 @@ export const getInvoiceTool = {
     coversEndpoint: "get:/billing/v1/invoices/{id}",
     description:
         "Use this when the user wants to view details of a specific invoice by its ID. Returns full invoice data including line items and status. Do NOT use this for listing all invoices (use list_invoices) or cost analysis (use run_query).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "The ID of the invoice to retrieve.",
-            },
-        },
-        required: ["id"],
-    },
+    inputSchema: zodToMcpInputSchema(GetInvoiceArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -59,11 +60,8 @@ export const validateUserTool = {
     title: "Validate user",
     coversEndpoint: "get:/auth/v1/validate",
     description:
-        "Use this ONLY when the user explicitly asks to verify their account connection or check who they are logged in as. Do NOT call this proactively before other tool calls — the OAuth token already guarantees the user is authenticated. Do NOT use this for listing users in the organization (use list_users).",
-    inputSchema: {
-        type: "object",
-        properties: {},
-    },
+        "Use this when the user asks to verify their account connection or check who they are logged in as. Returns the authenticated user's email and the primary domain of the customer the session is scoped to. Authentication is already established by the connection, so other tools do not depend on this call. Do NOT use this for listing users in the organization (use list_users).",
+    inputSchema: zodToMcpInputSchema(ValidateUserArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

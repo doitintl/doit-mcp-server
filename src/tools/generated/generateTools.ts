@@ -190,7 +190,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             const tagDescription = tagDescriptions.get(operation.tags?.[0] ?? "");
             const isPaginated = queryParams.some((parameter) => parameter.name === "pageToken");
             const paginationNote = isPaginated
-                ? " This endpoint is paginated: to fetch the next page, call again passing the response's `pageToken` value as the `pageToken` parameter. Stop once the response has no `pageToken` — that means there are no more pages."
+                ? " This endpoint is paginated: a response with a non-empty `pageToken` has more results, returned when that value is passed as the `pageToken` parameter. A missing, null, or empty `pageToken` marks the last page."
                 : "";
             // Guidance the spec cannot carry — see overrides.ts. Tool descriptions ride in every
             // tools/list response, which makes them the only guidance channel that reaches the
@@ -200,7 +200,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 override?.descriptionSuffix ? ` ${override.descriptionSuffix}` : ""
             }`;
 
-            const isReadOnly = method === "get";
+            const isReadOnly = override?.readOnly ?? method === "get";
             const zodSchema = z.object(shape);
 
             tools.push({

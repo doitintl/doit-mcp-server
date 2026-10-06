@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { SERVER_VERSION } from "./consts.js";
 import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
+import { createHttpError, DoitRequestError, requestRecoveryGuidance } from "./requestError.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
 
@@ -82,7 +83,7 @@ export enum DebugLevel {
     INFO = 1,
     /** Detailed debug information */
     VERBOSE = 2,
-    /** Very detailed debug information including full request/response data */
+    /** Most verbose execution diagnostics; sensitive request/response data must be omitted */
     TRACE = 3,
 }
 
@@ -189,9 +190,17 @@ export function formatZodError(error: any): string {
  * @param context Additional context to include in the log message
  * @returns Standardized error response
  */
-export function handleGeneralError(error: any, context: string): ReturnType<typeof createErrorResponse> {
-    console.error(`Error ${context}:`, error);
-    const message = error instanceof Error ? error.message : String(error);
+export function handleGeneralError(
+    error: any,
+    context: string,
+    validationGuidance?: string
+): ReturnType<typeof createErrorResponse> {
+    // Request errors already contain safe text; do not log response details or stacks.
+    if (!(error instanceof DoitRequestError)) console.error(`Error ${context}:`, error);
+    let message = error instanceof Error ? error.message : String(error);
+    if (validationGuidance && error instanceof DoitRequestError && [400, 422].includes(error.status ?? 0)) {
+        message += `\n${validationGuidance}`;
+    }
     // For HTTP 401 errors, include a WWW-Authenticate challenge in _meta so ChatGPT
     // can trigger its native OAuth re-linking UI (MCP Apps SDK requirement).
     if (message.startsWith("HTTP 401")) {
@@ -268,11 +277,10 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
 
 /**
  * Helper function for making DoiT API requests.
- * On most errors, logs the error and returns null.
- *
- * Exception: when `timeoutMs` is set and the request exceeds that duration, the function
- * re-throws a `DOMException` with `name === "TimeoutError"` instead of returning null.
- * Callers that pass `timeoutMs` must handle this case explicitly.
+ * Throws sanitized HTTP/transport errors for callers to pass to handleGeneralError.
+ * Null is reserved for successful empty or JSON-null responses. Callers that tolerate
+ * partial results must explicitly catch failures (e.g. Promise.allSettled).
+ * Timeouts retain the DOMException name "TimeoutError" for existing callers.
  *
  * @param url The API endpoint URL
  * @param token The authentication token
@@ -281,13 +289,15 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options.body Request body for POST/PUT requests
  * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
  * @param options.timeoutMs If set, aborts the request after this many milliseconds and throws TimeoutError
- * @returns The parsed JSON response or null on error
+ * @returns The parsed response, or null for an empty/JSON-null success
  */
 export async function makeDoitRequest<T>(
     url: string,
     token: string,
     options: {
         method?: string;
+        /** Explicitly identify a read-only endpoint that uses POST. Affects retry advice only. */
+        readOnly?: boolean;
         body?: any;
         appendParams?: boolean;
         customerContext?: string;
@@ -295,8 +305,7 @@ export async function makeDoitRequest<T>(
         timeoutMs?: number;
         /** Response parsing mode on success. Defaults to "json". Use "text" when the caller
          *  can't assume every response is JSON (e.g. an empty 204 body from a generated
-         *  DELETE tool) — `.json()` on an empty body throws, which makeDoitRequest would
-         *  otherwise swallow into a misleading `null`/failure result. */
+         *  DELETE tool). Empty text responses remain the empty string. */
         parseAs?: "json" | "text";
         /** Extra headers to send alongside the default Authorization/Accept/Content-Type
          *  headers (e.g. an OpenAPI operation's required header parameters). */
@@ -305,6 +314,7 @@ export async function makeDoitRequest<T>(
 ): Promise<T | null> {
     const {
         method = "GET",
+        readOnly = false,
         body = undefined,
         appendParams = true,
         customerContext,
@@ -315,12 +325,6 @@ export async function makeDoitRequest<T>(
     } = options;
 
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
-    debugLog("Resolved DoiT API URL:", DebugLevel.TRACE, {
-        inputUrl: url,
-        resolvedUrl,
-        isDemoToken: token === DEMO_TOKEN,
-    });
-
     // Demo mode: return canned data without hitting the real API.
     // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
     // If the token is DEMO_TOKEN here, the user already passed that gate.
@@ -348,6 +352,7 @@ export async function makeDoitRequest<T>(
     applyTenantIdHeader(headers, customerContext);
 
     let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;
+    let responseStatus: number | undefined;
 
     try {
         const requestOptions: RequestInit = {
@@ -362,7 +367,6 @@ export async function makeDoitRequest<T>(
         // Add body for non-GET requests if provided
         if (method !== "GET" && body !== undefined) {
             requestOptions.body = isFormDataBody ? (body as FormData) : JSON.stringify(body);
-            debugLog("API request body: ", DebugLevel.TRACE, isFormDataBody ? "<FormData>" : requestOptions.body);
         }
 
         // add mcp tracking params to the url
@@ -373,23 +377,58 @@ export async function makeDoitRequest<T>(
             requestUrl += `&sse=true`;
         }
 
-        debugLog("API request URL: ", DebugLevel.VERBOSE, requestUrl);
+        debugLog("Sending DoiT API request", DebugLevel.VERBOSE);
         const response = await fetch(requestUrl, requestOptions);
+        responseStatus = response.status;
 
         if (!response.ok) {
-            await throwHttpError(response);
+            throw await createHttpError(response, token, headers, method, readOnly);
         }
         if (!parseResponse) {
             return {} as T;
         }
-        return (parseAs === "text" ? await response.text() : await response.json()) as T;
-    } catch (error) {
-        if (error instanceof DOMException && error.name === "TimeoutError") {
-            console.error(`DoiT API ${method} request timed out after ${timeoutMs}ms`);
-            throw error;
+        const text = await response.text();
+        if (parseAs === "text") return text as T;
+        if (!text.trim()) return null;
+        try {
+            return JSON.parse(text) as T;
+        } catch {
+            throw new DoitRequestError(
+                `HTTP ${response.status}: The API reported success, but returned an invalid JSON response. ${requestRecoveryGuidance(method, readOnly)}`,
+                response.status
+            );
         }
-        console.error(`Error making DoiT API ${method} request to ${requestUrl}:`, error);
-        return null;
+    } catch (error) {
+        const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+        // Log fixed metadata only: no URL, customer context, header, body, or upstream message.
+        console.error("DoiT API request failed", {
+            method: /^(GET|HEAD|OPTIONS|POST|PUT|PATCH|DELETE)$/.test(method) ? method : "OTHER",
+            status: responseStatus ?? null,
+            kind: timedOut
+                ? "timeout"
+                : responseStatus === undefined
+                  ? "transport"
+                  : responseStatus >= 400
+                    ? "http"
+                    : "response",
+        });
+        if (timedOut) {
+            throw new DOMException(
+                `DoiT API request timed out. ${requestRecoveryGuidance(method, readOnly)}`,
+                "TimeoutError"
+            );
+        }
+        if (error instanceof DoitRequestError) throw error;
+        // Fetch errors may include credentials, URLs, headers, or runtime diagnostics.
+        if (responseStatus !== undefined) {
+            throw new DoitRequestError(
+                `HTTP ${responseStatus}: The API reported success, but its response could not be read. ${requestRecoveryGuidance(method, readOnly)}`,
+                responseStatus
+            );
+        }
+        throw new DoitRequestError(
+            `Unable to reach the DoiT API or read its response. Check your connection. ${requestRecoveryGuidance(method, readOnly)}`
+        );
     }
 }
 
@@ -453,8 +492,8 @@ function resolveConsoleBase(): { baseUrl: string; doFetch: typeof fetch } {
  * api.doit.com that makeDoitRequest targets. In the worker it routes through the
  * CONSOLE_PROXY service binding (set via runWithConsoleEnv); elsewhere it uses the
  * DOIT_CONSOLE_BASE / AUTH_SERVER_URL env vars. It does NOT append a customerContext
- * (these endpoints are cross-customer) and, unlike makeDoitRequest, throws on HTTP and
- * network errors so callers can surface the upstream message (e.g. 403 for non-doers).
+ * (these endpoints are cross-customer). It throws on HTTP and network errors so callers
+ * can surface the upstream message (e.g. 403 for non-doers).
  */
 export async function makeConsoleRequest<T>(
     path: string,

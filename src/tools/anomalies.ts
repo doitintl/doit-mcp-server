@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -12,11 +13,14 @@ export const ANOMALIES_BASE_URL = `${DOIT_API_BASE}/anomalies/v1`;
 
 // Schema definitions
 export const AnomaliesArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 export const AnomalyArgumentsSchema = z.object({
-    id: z.string(),
+    id: z.string().describe("anomaly ID"),
 });
 
 // Interfaces
@@ -56,15 +60,7 @@ export const anomaliesTool = {
     coversEndpoint: "get:/anomalies/v1",
     description:
         "Use this when the user wants to check for unexpected cost spikes, billing anomalies, or unusual spending patterns. Returns recent anomalies with severity and impact. Do NOT use this for optimization recommendations or savings opportunities (use list_optimization_recommendations), regular cost analysis (use run_query), or viewing alerts (use list_alerts).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-        },
-    },
+    inputSchema: zodToMcpInputSchema(AnomaliesArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -83,16 +79,7 @@ export const anomalyTool = {
     coversEndpoint: "get:/anomalies/v1/{id}",
     description:
         "Use this when the user wants to view details of a specific cost anomaly by its ID. Returns full anomaly data including affected resources and cost impact. Do NOT use this for listing all anomalies (use get_anomalies).",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "anomaly ID",
-            },
-        },
-        required: ["id"],
-    },
+    inputSchema: zodToMcpInputSchema(AnomalyArgumentsSchema),
     annotations: {
         readOnlyHint: true,
         destructiveHint: false,

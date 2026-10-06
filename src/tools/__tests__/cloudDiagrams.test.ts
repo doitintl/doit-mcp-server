@@ -53,6 +53,7 @@ describe("find_cloud_diagrams", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_BASE_URL, mockToken, {
             method: "POST",
+            readOnly: true,
             body: { resources: ["res-1", "res-2"] },
             customerContext: undefined,
         });
@@ -72,6 +73,7 @@ describe("find_cloud_diagrams", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_BASE_URL, mockToken, {
             method: "POST",
+            readOnly: true,
             body: { resources: ["res-1"] },
             customerContext: "customer-123",
         });
@@ -207,6 +209,7 @@ describe("search_cloud_diagrams", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SEARCH_URL, mockToken, {
             method: "POST",
+            readOnly: true,
             body: { query: "production" },
             customerContext: undefined,
         });
@@ -226,6 +229,7 @@ describe("search_cloud_diagrams", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SEARCH_URL, mockToken, {
             method: "POST",
+            readOnly: true,
             body: { query: "ec2", ss_id: "sheet-1", from: 0, size: 5 },
             customerContext: "customer-123",
         });
@@ -589,6 +593,7 @@ describe("get_cloud_diagram_components", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SCHEME_GET_URL, mockToken, {
             method: "POST",
+            readOnly: true,
             body: {},
             customerContext: undefined,
         });
@@ -605,6 +610,7 @@ describe("get_cloud_diagram_components", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(CLOUD_DIAGRAMS_SCHEME_GET_URL, mockToken, {
             method: "POST",
+            readOnly: true,
             body: { scheme_ids: ["scheme-1"], layer_ids: ["sheet-1"] },
             customerContext: undefined,
         });
@@ -627,6 +633,7 @@ describe("get_cloud_diagram_components", () => {
 
         expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
             method: "POST",
+            readOnly: true,
             body: {},
             customerContext: "cust-42",
         });

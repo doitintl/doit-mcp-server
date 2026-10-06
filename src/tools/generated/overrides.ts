@@ -1,23 +1,31 @@
-import { CLOUDFLOW_BUILDER_HINT, CLOUDFLOW_CODENODE_HINT } from "../../docs/cloudflowGuidance.js";
+import { CLOUDFLOW_CODENODE_HINT } from "../../docs/cloudflowGuidance.js";
 
 export type ToolOverride = {
     /** Appended to the description composed from the OpenAPI spec, separated by a space. */
     descriptionSuffix?: string;
+    /** Explicit operation semantics when the HTTP method does not indicate whether it writes. */
+    readOnly?: boolean;
 };
 
 /**
- * Prompt-shaped additions to generated tool descriptions, keyed by the snake_cased tool name
+ * MCP-specific overrides, keyed by the snake_cased tool name
  * that `toolNameFor` derives (so `exportCloudflowFlow` → `export_cloudflow_flow`).
  *
- * A suffix rather than a replacement: the OpenAPI spec is the API's own contract and stays
- * authoritative about what an endpoint does. This file only adds what the spec has no business
- * carrying — runtime behavior a caller has to know to get a correct result.
+ * The OpenAPI spec remains authoritative about what an endpoint does. Description suffixes
+ * add runtime guidance, while explicit read-only semantics handle lookups sent as POST.
  *
  * Every key is asserted against the real generated tool names in the tests, so renaming an
  * operation upstream fails the build instead of silently dropping the guidance.
  */
 export const toolOverrides: Record<string, ToolOverride> = {
+    // Fetches selected layer components by ID; POST carries the component ID lists.
+    get_statussheet_components: { readOnly: true },
     import_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
     export_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_CODENODE_HINT },
-    test_run_cloudflow_flow: { descriptionSuffix: CLOUDFLOW_BUILDER_HINT },
+    test_run_cloudflow_flow: {
+        descriptionSuffix:
+            "Generated codeNode code is frequently broken in ways that pass validation and fail silently " +
+            "at run time. With dryRun this call shows only that the flow is well-formed; a completed run's " +
+            "per-node output (get_cloudflow_flow_run) shows whether it works.",
+    },
 };
