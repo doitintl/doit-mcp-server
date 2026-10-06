@@ -3,10 +3,15 @@ import { makeDoitRequest } from "../../utils/util.js";
 import {
     getInsightTool,
     handleGetInsightRequest,
+    handleGetInsightResourcesRequest,
+    handleListInsightsRequest,
     handlePostInsightResultRequest,
     handleUpdateInsightStatusRequest,
     INSIGHTS_BASE_URL,
+    ListInsightsArgumentsSchema,
+    PostInsightResultArgumentsSchema,
     postInsightResultTool,
+    UpdateInsightStatusArgumentsSchema,
     updateInsightStatusTool,
 } from "../insights.js";
 
@@ -135,6 +140,7 @@ describe("postInsightResultTool metadata", () => {
         expect(postInsightResultTool.coversEndpoint).toBe(
             "post:/insights/v1/results/source/{sourceID}/insight/{insightKey}"
         );
+        expect(postInsightResultTool.description).toContain("replaces");
     });
 });
 
@@ -218,6 +224,7 @@ describe("updateInsightStatusTool metadata", () => {
         expect(updateInsightStatusTool.coversEndpoint).toBe(
             "put:/insights/v1/results/source/{sourceID}/insight/{insightKey}/status"
         );
+        expect(updateInsightStatusTool.description).toContain("status-only");
     });
 });
 
@@ -281,5 +288,196 @@ describe("update_insight_status", () => {
 
         expect(response.isError).toBe(true);
         expect(response.content[0].text).toContain("idle-ec2");
+    });
+});
+
+describe("recommendation pagination and response semantics", () => {
+    it("maps provider and legacy pageSize, sorts by savings and preserves the real cursor", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({
+            results: [
+                {
+                    ...mockInsight,
+                    key: "low",
+                    cloudProvider: "aws",
+                    easyWinDescription: "",
+                    summary: { potentialDailySavings: 1 },
+                },
+                {
+                    ...mockInsight,
+                    key: "high",
+                    cloudProvider: "aws",
+                    easyWinDescription: "Quick change",
+                    summary: { potentialDailySavings: 9 },
+                },
+                { ...mockInsight, key: "unknown", cloudProvider: "aws", summary: { potentialDailySavings: 2 } },
+            ],
+            pagination: { rowCount: 3, pageToken: "opaque/+=" },
+        });
+        const response = await handleListInsightsRequest(
+            {
+                provider: "aws",
+                category: ["FinOps"],
+                page: 0,
+                pageSize: 3,
+                easyWin: false,
+                searchTerm: "idle",
+                customerContext: "switched",
+            },
+            "token"
+        );
+        const [url, , options] = vi.mocked(makeDoitRequest).mock.calls[0];
+        const params = new URL(url).searchParams;
+        expect(Object.fromEntries(params)).toEqual({
+            cloudProvider: "aws",
+            category: "FinOps",
+            maxResults: "3",
+            easyWin: "false",
+            searchTerm: "idle",
+        });
+        expect(options?.customerContext).toBe("switched");
+        const data = JSON.parse(response.content[0].text);
+        expect(data.pageToken).toBe("opaque/+=");
+        expect(data.insights.map((r: any) => [r.key, r.provider, r.easyWin])).toEqual([
+            ["high", "aws", true],
+            ["unknown", "aws", null],
+            ["low", "aws", false],
+        ]);
+        expect(data.insights[0].easyWinDescription).toBe("Quick change");
+    });
+
+    it("continues a sparse empty page without inventing results or losing its cursor", async () => {
+        vi.mocked(makeDoitRequest)
+            .mockResolvedValueOnce({ results: [], pagination: { rowCount: 0, pageToken: "opaque/+=?" } })
+            .mockResolvedValueOnce({ results: [mockInsight], pagination: { rowCount: 1, pageToken: "" } });
+        const first = JSON.parse((await handleListInsightsRequest({ maxResults: 1 }, "token")).content[0].text);
+        expect(first).toEqual({ insights: [], rowCount: 0, pageToken: "opaque/+=?" });
+        const last = JSON.parse(
+            (await handleListInsightsRequest({ maxResults: 1, pageToken: first.pageToken }, "token")).content[0].text
+        );
+        expect(new URL(vi.mocked(makeDoitRequest).mock.calls[1][0]).searchParams.get("pageToken")).toBe(
+            first.pageToken
+        );
+        expect(last.pageToken).toBeNull();
+        expect(last.insights).toHaveLength(1);
+    });
+
+    it("supports a single category string and gives maxResults precedence", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ results: [] });
+        await handleListInsightsRequest({ category: "FinOps", maxResults: 500, pageSize: 5 }, "token");
+        const params = new URL(vi.mocked(makeDoitRequest).mock.calls[0][0]).searchParams;
+        expect(params.get("maxResults")).toBe("500");
+        expect(params.getAll("category")).toEqual(["FinOps"]);
+    });
+
+    it("filters spaced categories locally while preserving sparse pages and the API cursor", async () => {
+        vi.mocked(makeDoitRequest)
+            .mockResolvedValueOnce({
+                results: [{ ...mockInsight, categories: ["FinOps"] }],
+                pagination: { rowCount: 1, pageToken: "next" },
+            })
+            .mockResolvedValueOnce({
+                results: [{ ...mockInsight, categories: ["Operational excellence"] }],
+                pagination: { rowCount: 1, pageToken: "" },
+            });
+        const first = JSON.parse(
+            (await handleListInsightsRequest({ category: "OperationalExcellence", maxResults: 1 }, "token")).content[0]
+                .text
+        );
+        expect(first).toEqual({ insights: [], rowCount: 0, pageToken: "next" });
+        const last = JSON.parse(
+            (
+                await handleListInsightsRequest(
+                    { category: "Operational excellence", maxResults: 1, pageToken: first.pageToken },
+                    "token"
+                )
+            ).content[0].text
+        );
+        expect(last.insights).toHaveLength(1);
+        expect(last.pageToken).toBeNull();
+        for (const [url] of vi.mocked(makeDoitRequest).mock.calls) {
+            expect(new URL(url).searchParams.has("category")).toBe(false);
+        }
+        expect(new URL(vi.mocked(makeDoitRequest).mock.calls[1][0]).searchParams.get("pageToken")).toBe("next");
+    });
+
+    it.each([
+        { category: ["FinOps", "Security"] },
+        { page: 1 },
+        { page: 0.5 },
+        { maxResults: 501 },
+        { maxResults: 1.5 },
+        { pageToken: "" },
+    ])("rejects unsupported pagination or multiple categories: %j", (args) => {
+        expect(ListInsightsArgumentsSchema.safeParse(args).success).toBe(false);
+    });
+});
+
+describe("insight resources pagination", () => {
+    it("passes an encoded cursor and page size, and preserves the paginated resource envelope", async () => {
+        const page = {
+            resourceResults: [{ resourceId: "resource-1", cloudProvider: "aws", result: { value: 2 } }],
+            rowCount: 1,
+            pageToken: "next",
+        };
+        vi.mocked(makeDoitRequest).mockResolvedValue(page);
+        const result = await handleGetInsightResourcesRequest(
+            {
+                source: "source/one",
+                key: "key/two",
+                maxResults: 1,
+                pageToken: "opaque/+=",
+                customerContext: "switched",
+            },
+            "token"
+        );
+        const [url, , options] = vi.mocked(makeDoitRequest).mock.calls[0];
+        expect(new URL(url).pathname).toContain("source/source%2Fone/insight/key%2Ftwo/resource-results");
+        expect(new URL(url).searchParams.get("pageToken")).toBe("opaque/+=");
+        expect(new URL(url).searchParams.get("maxResults")).toBe("1");
+        expect(options?.customerContext).toBe("switched");
+        expect(JSON.parse(result.content[0].text)).toEqual(page);
+    });
+
+    it("preserves empty pages and defaults explicitly to 1000 resources", async () => {
+        const page = { resourceResults: [], rowCount: 0, pageToken: "next" };
+        vi.mocked(makeDoitRequest)
+            .mockResolvedValueOnce(page)
+            .mockResolvedValueOnce({ ...page, pageToken: null });
+        const first = JSON.parse(
+            (await handleGetInsightResourcesRequest({ source: "test", key: "test" }, "token")).content[0].text
+        );
+        expect(first).toEqual(page);
+        expect(new URL(vi.mocked(makeDoitRequest).mock.calls[0][0]).searchParams.get("maxResults")).toBe("1000");
+        const last = JSON.parse(
+            (
+                await handleGetInsightResourcesRequest(
+                    { source: "test", key: "test", pageToken: first.pageToken },
+                    "token"
+                )
+            ).content[0].text
+        );
+        expect(new URL(vi.mocked(makeDoitRequest).mock.calls[1][0]).searchParams.get("pageToken")).toBe("next");
+        expect(last.pageToken).toBeNull();
+    });
+});
+
+describe("insight status requirements", () => {
+    const metadata = {
+        key: "fixture",
+        title: "Fixture",
+        shortDescription: "Test",
+        cloudProvider: "aws",
+        categories: ["FinOps"],
+    };
+    it.each(["upgrade needed", "permissions needed", "dismissed"])(
+        "rejects invalid status or missing dismissal reason: %s",
+        (status) => {
+            expect(UpdateInsightStatusArgumentsSchema.safeParse({ key: "fixture", status }).success).toBe(false);
+        }
+    );
+    it("accepts a dismissal reason and defaults the source to public-api", () => {
+        const status = { status: "dismissed", dismissalDetails: { reason: "not relevant" } };
+        expect(UpdateInsightStatusArgumentsSchema.parse({ key: "fixture", ...status }).source).toBe("public-api");
+        expect(PostInsightResultArgumentsSchema.parse({ ...metadata, ...status }).source).toBe("public-api");
     });
 });

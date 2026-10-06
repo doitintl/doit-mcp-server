@@ -315,3 +315,39 @@ Top SKUs:
         });
     });
 });
+
+describe("anomaly detail field preservation", () => {
+    it("preserves resource, cost, allocation and additional API fields while keeping ISO dates", async () => {
+        vi.clearAllMocks();
+        const data = {
+            startTime: 1700000000000,
+            endTime: null,
+            resourceData: [
+                {
+                    resource_id: "resource-1",
+                    cost: 42,
+                    sku_description: "Compute",
+                    labels: [{ key: "env", value: "test", cost: 42 }],
+                },
+            ],
+            actualCost: 42,
+            expectedMaxCost: 0,
+            allocations: [{ id: "allocation-1" }],
+            monitorLevel: "sku",
+            entityLabel: "Project",
+            linkedAnomalies: [],
+        };
+        (makeDoitRequest as vi.Mock).mockResolvedValue(data);
+        const response = await handleAnomalyRequest({ id: "anomaly/1", customerContext: "switched" }, "token");
+        expect(JSON.parse(response.content[0].text)).toMatchObject({
+            ...data,
+            id: "anomaly/1",
+            startTime: new Date(data.startTime).toISOString(),
+        });
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            expect.stringContaining("/anomaly%2F1"),
+            "token",
+            expect.objectContaining({ customerContext: "switched" })
+        );
+    });
+});

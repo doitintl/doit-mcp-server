@@ -15,11 +15,7 @@ export const CLOUD_INCIDENTS_BASE_URL = `${DOIT_API_BASE}/core/v1/cloudincidents
 // Define known platforms enum
 export enum KnownIssuePlatforms {
     AWS = "amazon-web-services",
-    GCP = "google-cloud-project",
-    GSuite = "g-suite",
-    Office365 = "office-365",
     GoogleCloud = "google-cloud",
-    OpenAI = "open-ai",
 }
 
 // Valid filter keys for cloud incidents
@@ -31,12 +27,17 @@ export enum CloudIncidentFilterKeys {
 
 // Schema definitions
 export const CloudIncidentsArgumentsSchema = z.object({
-    platform: z.nativeEnum(KnownIssuePlatforms).optional().describe("platform name"),
+    platform: z
+        .union([z.nativeEnum(KnownIssuePlatforms), z.literal("google-cloud-project")])
+        .optional()
+        .describe(
+            "Platform constraint: amazon-web-services or google-cloud. Legacy google-cloud-project is normalized to google-cloud. If filter also contains platform, it must specify this same single platform."
+        ),
     filter: z
         .string()
         .optional()
         .describe(
-            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'platform:google-cloud|status:active' or 'platform:google-cloud|platform:amazon-web-services'"
+            "Exact filters in format key:value|key:value. Keys: platform (amazon-web-services or google-cloud), status (active or archived), product. Different keys use AND; repeated values of one key use OR. Only one key may repeat. Example: platform:google-cloud|status:active."
         ),
     pageToken: z
         .string()
@@ -54,7 +55,9 @@ export const CloudIncidentArgumentsSchema = z
         title: z
             .string()
             .optional()
-            .describe("Partial title match (case-insensitive). Used to find the incident when ID is unknown."),
+            .describe(
+                "Case-insensitive partial title lookup in the 200 most recent incidents only. Multiple matches return an ambiguity error. ID takes precedence."
+            ),
     })
     .refine((d) => d.id || d.title, { message: "Either id or title must be provided." });
 
@@ -73,7 +76,7 @@ export interface CloudIncident {
 }
 
 export interface CloudIncidentsResponse {
-    pageToken: any;
+    pageToken?: string | null;
     incidents: CloudIncident[];
 }
 
@@ -83,7 +86,7 @@ export const cloudIncidentsTool = {
     title: "List cloud incidents",
     coversEndpoint: "get:/core/v1/cloudincidents",
     description:
-        "Use this when the user wants to check for active cloud platform outages, service disruptions, or incidents from AWS, Google Cloud, or Azure. Do NOT use this for cost anomalies (use get_anomalies) or support tickets (use list_tickets).",
+        "Use this when the user wants to check for active cloud platform outages, service disruptions, or incidents from AWS or Google Cloud. Both active and archived incidents are included unless status is filtered. Do NOT use this for cost anomalies (use get_anomalies) or support tickets (use list_tickets).",
     inputSchema: zodToMcpInputSchema(CloudIncidentsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -145,9 +148,41 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
 
         // Create API URL with query parameters
         const params = new URLSearchParams();
-        if (filter) {
-            params.append("filter", filter);
+        const filters = filter ? filter.split("|") : [];
+        const platformValue = platform === "google-cloud-project" ? "google-cloud" : platform;
+        const platformFilters = filters.filter((part) => part.startsWith("platform:"));
+        if (platformValue) {
+            if (
+                platformFilters.some(
+                    (part) =>
+                        part !== `platform:${platformValue}` &&
+                        !(platformValue === "google-cloud" && part === "platform:google-cloud-project")
+                )
+            ) {
+                return createErrorResponse(
+                    "platform conflicts with filter; use a single matching platform or omit platform to use the filter's OR values."
+                );
+            }
+            if (platformFilters.length === 0) filters.push(`platform:${platformValue}`);
         }
+        const counts = new Map<string, number>();
+        for (const part of filters) {
+            const [key, value, extra] = part.split(":");
+            if (
+                !Object.values(CloudIncidentFilterKeys).includes(key as CloudIncidentFilterKeys) ||
+                !value ||
+                extra !== undefined
+            ) {
+                return createErrorResponse(
+                    "Incident filters must use platform, status or product in key:value format."
+                );
+            }
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+        if ([...counts.values()].filter((count) => count > 1).length > 1) {
+            return createErrorResponse("Only one incident filter key may repeat (OR).");
+        }
+        if (filters.length) params.append("filter", filters.join("|"));
         if (pageToken) {
             params.append("pageToken", pageToken);
         }
@@ -167,18 +202,7 @@ export async function handleCloudIncidentsRequest(args: any, token: string) {
                 return createErrorResponse("Failed to retrieve cloud incidents data");
             }
 
-            let incidents = incidentsData.incidents || [];
-
-            // Filter by platform if specified and not already filtered by the API
-            if (platform && !filter?.includes(`platform:${platform}`)) {
-                incidents = incidents.filter((incident) => incident.platform.toLowerCase() === platform.toLowerCase());
-            }
-
-            if (incidents.length === 0) {
-                return createErrorResponse(
-                    platform ? `No incidents found for ${platform}` : "No cloud incidents found"
-                );
-            }
+            const incidents = incidentsData.incidents || [];
 
             return createSuccessResponse(
                 JSON.stringify({

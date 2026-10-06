@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createErrorResponse, createSuccessResponse, handleGeneralError, makeDoitRequest } from "../../utils/util.js";
 import {
     ALERTS_BASE_URL,
+    CreateAlertArgumentsSchema,
     handleCreateAlertRequest,
     handleGetAlertRequest,
     handleListAlertsRequest,
     handleUpdateAlertRequest,
+    UpdateAlertArgumentsSchema,
 } from "../alerts.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -241,6 +243,7 @@ describe("create_alert", () => {
             metric: { type: "basic", value: "cost" },
             timeInterval: "month" as const,
             value: 500,
+            operator: "gt",
         },
     };
 
@@ -578,36 +581,21 @@ describe("update_alert", () => {
             expect(makeDoitRequest).not.toHaveBeenCalled();
         });
 
-        it("should reject when config is missing", async () => {
-            const { config: _, ...args } = validUpdateArgs;
-            await handleUpdateAlertRequest(args, mockToken);
-
-            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("config"));
-            expect(makeDoitRequest).not.toHaveBeenCalled();
-        });
-
-        it("should reject when config.metric is missing", async () => {
-            const { metric: _, ...configWithoutMetric } = validUpdateArgs.config;
-            await handleUpdateAlertRequest({ ...validUpdateArgs, config: configWithoutMetric }, mockToken);
-
-            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("metric"));
-            expect(makeDoitRequest).not.toHaveBeenCalled();
-        });
-
-        it("should reject when config.timeInterval is missing", async () => {
-            const { timeInterval: _, ...configWithoutInterval } = validUpdateArgs.config;
-            await handleUpdateAlertRequest({ ...validUpdateArgs, config: configWithoutInterval }, mockToken);
-
-            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("timeInterval"));
-            expect(makeDoitRequest).not.toHaveBeenCalled();
-        });
-
-        it("should reject when config.value is missing", async () => {
-            const { value: _, ...configWithoutValue } = validUpdateArgs.config;
-            await handleUpdateAlertRequest({ ...validUpdateArgs, config: configWithoutValue }, mockToken);
-
-            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("value"));
-            expect(makeDoitRequest).not.toHaveBeenCalled();
+        it.each([
+            { name: "Renamed" },
+            { recipients: ["recipient@example.com"] },
+            { config: { value: 0 } },
+            { config: { scopes: [] } },
+            { config: { timeInterval: "day" } },
+        ])("should send only supplied patch fields: %j", async (patch) => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdateAlertResponse);
+            await handleUpdateAlertRequest({ id: alertId, ...patch }, mockToken);
+            expect(makeDoitRequest).toHaveBeenCalledWith(`${ALERTS_BASE_URL}/${alertId}`, mockToken, {
+                method: "PATCH",
+                body: patch,
+                customerContext: undefined,
+            });
+            expect(createErrorResponse).not.toHaveBeenCalled();
         });
 
         it("should reject when name is empty string", async () => {
@@ -705,5 +693,89 @@ describe("update_alert", () => {
             expect(createErrorResponse).toHaveBeenCalled();
             expect(makeDoitRequest).not.toHaveBeenCalled();
         });
+    });
+});
+
+describe("alert API contracts", () => {
+    const config = { metric: { type: "basic", value: "cost" }, timeInterval: "day", operator: "gt", value: 10 };
+    it("rejects an empty alert patch", () => {
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test" }).success).toBe(false);
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", config: {} }).success).toBe(false);
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", recipients: [] }).success).toBe(true);
+    });
+    it("requires the create operator, accepts API defaults without inserting patch defaults", () => {
+        const { operator: _, ...missingOperator } = config;
+        expect(CreateAlertArgumentsSchema.safeParse({ name: "test", config: missingOperator }).success).toBe(false);
+        const scopes = [{ id: "project_id", type: "fixed", values: ["test"] }];
+        expect(CreateAlertArgumentsSchema.parse({ name: "test", config: { ...config, scopes } })).toEqual({
+            name: "test",
+            config: { ...config, scopes },
+        });
+        expect(UpdateAlertArgumentsSchema.parse({ id: "test", config: { scopes } })).toEqual({
+            id: "test",
+            config: { scopes },
+        });
+    });
+    it.each([
+        { timeInterval: "hour" },
+        { condition: "forecasted" },
+        { condition: "percentage" },
+        { dataSource: "invalid" },
+    ])("rejects unsupported config values on create and update: %j", (invalid) => {
+        expect(CreateAlertArgumentsSchema.safeParse({ name: "test", config: { ...config, ...invalid } }).success).toBe(
+            false
+        );
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", config: invalid }).success).toBe(false);
+    });
+    it.each(["value", "percentage-change", "forecast"])("accepts condition %s", (condition) => {
+        expect(CreateAlertArgumentsSchema.safeParse({ name: "test", config: { ...config, condition } }).success).toBe(
+            true
+        );
+    });
+    it.each(["billing", "billing-datahub", "kubernetes-utilization", "tokenomics"])(
+        "accepts dataSource %s",
+        (dataSource) => {
+            expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", config: { dataSource } }).success).toBe(true);
+        }
+    );
+    it("rejects create alert names longer than 64 characters", () => {
+        expect(CreateAlertArgumentsSchema.safeParse({ name: "x".repeat(65), config }).success).toBe(false);
+    });
+    it("preserves unrelated configuration and recipients across sequential partial updates and readback", async () => {
+        let saved = {
+            id: "fixture",
+            name: "Before",
+            recipients: ["owner@example.com"],
+            config: {
+                ...config,
+                currency: "EUR",
+                condition: "value",
+                scopes: [{ id: "project_id", type: "fixed", values: ["test"] }],
+            },
+        };
+        vi.mocked(makeDoitRequest).mockImplementation(async (_url, _token, options) => {
+            if (options?.method === "PATCH") {
+                const patch = options.body as any;
+                saved = { ...saved, ...patch, config: { ...saved.config, ...patch.config } };
+            }
+            return structuredClone(saved);
+        });
+        await handleUpdateAlertRequest({ id: "fixture", name: "After", customerContext: "switched" }, "token");
+        await handleUpdateAlertRequest({ id: "fixture", config: { value: 0 }, customerContext: "switched" }, "token");
+        const response = await handleGetAlertRequest({ id: "fixture", customerContext: "switched" }, "token");
+        expect(JSON.parse(response.content[0].text)).toMatchObject({
+            name: "After",
+            recipients: ["owner@example.com"],
+            config: {
+                ...config,
+                value: 0,
+                currency: "EUR",
+                condition: "value",
+                scopes: [{ id: "project_id", type: "fixed", values: ["test"] }],
+            },
+        });
+        expect(
+            vi.mocked(makeDoitRequest).mock.calls.every(([, , options]) => options?.customerContext === "switched")
+        ).toBe(true);
     });
 });
