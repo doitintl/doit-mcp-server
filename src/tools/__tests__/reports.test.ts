@@ -11,9 +11,11 @@ import {
     formatReport,
     formatReportResults,
     handleCreateReportRequest,
+    handleGetReportConfigRequest,
     handleGetReportResultsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleUpdateReportRequest,
 } from "../reports.js";
 
 // Mock the utility functions
@@ -88,6 +90,8 @@ Cloud Storage,50`;
             // The function also returns a string with schema and cache hit info
             expect(formattedResult).toContain("Query Results:");
             expect(formattedResult).toContain("Schema: service (string), cost (number)");
+            // Tool output carries data only, never instructions on how the model should respond.
+            expect(formattedResult).not.toMatch(/IMPORTANT|Artifacts/);
             expect(formattedResult).toContain("Cache Hit: true");
             expect(formattedResult).toContain("Rows (2 total):");
 
@@ -171,6 +175,8 @@ Cloud Storage,50`;
             expect(formattedResult).toContain("ID: report-123");
             expect(formattedResult).toContain("Name: Cost Overview");
             expect(formattedResult).toContain("Schema: service (string), cost (number)");
+            // Tool output carries data only, never instructions on how the model should respond.
+            expect(formattedResult).not.toMatch(/IMPORTANT|Artifacts/);
 
             consoleLogSpy.mockRestore(); // Restore console.log
         });
@@ -209,11 +215,9 @@ Cloud Storage,50`;
                 mockToken,
                 { method: "GET" }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(
-                expect.stringContaining("Found 1 reports (filtered by: type:billing)")
-            );
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("rowCount"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Found 1 reports") }],
+                content: [{ type: "text", text: expect.stringContaining("rowCount") }],
             });
         });
 
@@ -285,7 +289,8 @@ Cloud Storage,50`;
 
             expect(handleGeneralError).toHaveBeenCalledWith(
                 expect.any(Error),
-                expect.stringContaining("making DoiT API request")
+                expect.stringContaining("making DoiT API request"),
+                expect.stringContaining("filter parameter")
             );
             expect(response).toEqual({
                 content: [
@@ -323,9 +328,9 @@ Cloud Storage,50`;
                 mockToken,
                 expect.objectContaining({ method: "POST" })
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Query Results:"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("rows"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Query Results:") }],
+                content: [{ type: "text", text: expect.stringContaining("rows") }],
             });
         });
 
@@ -375,7 +380,8 @@ Cloud Storage,50`;
 
             expect(handleGeneralError).toHaveBeenCalledWith(
                 expect.any(Error),
-                expect.stringContaining("making DoiT API query request")
+                expect.stringContaining("making DoiT API query request"),
+                expect.stringContaining("list_dimensions")
             );
             expect(response).toEqual({
                 content: [
@@ -418,11 +424,11 @@ Cloud Storage,50`;
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 "https://api.doit.com/analytics/v1/reports/report-123",
                 mockToken,
-                { method: "GET" }
+                { method: "GET", timeoutMs: 120_000 }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Report Details:"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("reportName"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Report Details:") }],
+                content: [{ type: "text", text: expect.stringContaining("reportName") }],
             });
         });
 
@@ -435,7 +441,7 @@ Cloud Storage,50`;
             expect(makeDoitRequest).toHaveBeenCalledWith(
                 "https://api.doit.com/analytics/v1/reports/report-123",
                 mockToken,
-                { method: "GET" }
+                { method: "GET", timeoutMs: 120_000 }
             );
             expect(response).toEqual({
                 content: [
@@ -600,6 +606,188 @@ Cloud Storage,50`;
                 mockToken,
                 expect.objectContaining({ body: expect.objectContaining({ labels: ["label-1", "label-2"] }) })
             );
+        });
+    });
+
+    describe("handleUpdateReportRequest", () => {
+        const mockToken = "fake-token";
+        const validArgs = {
+            id: "report-1",
+            name: "Updated Report",
+        };
+        const mockUpdatedReport = {
+            id: "report-1",
+            name: "Updated Report",
+            description: "An update via API",
+            type: "custom",
+            config: { dataSource: "billing" },
+            labels: [],
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("should call makeDoitRequest with correct PATCH URL and body and return success response", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdatedReport);
+
+            await handleUpdateReportRequest(validArgs, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-1",
+                mockToken,
+                expect.objectContaining({ method: "PATCH", body: { name: "Updated Report" } })
+            );
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("report-1"));
+        });
+
+        it("should pass customerContext to makeDoitRequest", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdatedReport);
+
+            await handleUpdateReportRequest({ ...validArgs, customerContext: "customer-123" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-1",
+                mockToken,
+                expect.objectContaining({ method: "PATCH", customerContext: "customer-123" })
+            );
+        });
+
+        it("should return error response when API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            await handleUpdateReportRequest(validArgs, mockToken);
+
+            expect(createErrorResponse).toHaveBeenCalledWith(expect.stringContaining("Failed to update report"));
+        });
+
+        it("should return error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+            await handleUpdateReportRequest(validArgs, mockToken);
+
+            expect(handleGeneralError).toHaveBeenCalledWith(
+                expect.any(Error),
+                expect.stringContaining("handling update report request")
+            );
+        });
+
+        it("should return error response when id is missing", async () => {
+            const { id: _, ...argsWithoutId } = validArgs;
+
+            await handleUpdateReportRequest(argsWithoutId, mockToken);
+
+            expect(formatZodError).toHaveBeenCalled();
+            expect(createErrorResponse).toHaveBeenCalled();
+        });
+
+        it("should send only provided fields in the body (partial update)", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdatedReport);
+            const partialArgs = { id: "report-1", name: "Only Name" };
+
+            await handleUpdateReportRequest(partialArgs, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-1",
+                mockToken,
+                expect.objectContaining({
+                    method: "PATCH",
+                    body: { name: "Only Name" },
+                })
+            );
+        });
+    });
+
+    describe("handleGetReportConfigRequest", () => {
+        const mockToken = "fake-token";
+        const mockReportConfig = {
+            id: "report-123",
+            name: "Monthly Cost Report",
+            type: "custom",
+            config: {
+                dataSource: "billing",
+                metrics: [{ type: "basic", value: "cost" }],
+                timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },
+                group: [{ id: "service_description", type: "fixed" }],
+            },
+        };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it("should call makeDoitRequest with correct URL including /config suffix and return data", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockReportConfig);
+
+            const response = await handleGetReportConfigRequest({ id: "report-123" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-123/config",
+                mockToken,
+                expect.objectContaining({ method: "GET" })
+            );
+            const parsed = JSON.parse((response as any).content[0].text);
+            expect(parsed.id).toBe("report-123");
+            expect(parsed.config.dataSource).toBe("billing");
+        });
+
+        it("should pass customerContext to makeDoitRequest", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockReportConfig);
+
+            await handleGetReportConfigRequest({ id: "report-123", customerContext: "customer-123" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(expect.any(String), mockToken, {
+                method: "GET",
+                customerContext: "customer-123",
+            });
+        });
+
+        it("should return error response when API returns null", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(null);
+
+            const response = await handleGetReportConfigRequest({ id: "report-123" }, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("Failed to retrieve report configuration") }],
+            });
+        });
+
+        it("should return error response when makeDoitRequest throws", async () => {
+            (makeDoitRequest as vi.Mock).mockRejectedValue(new Error("Network error"));
+
+            const response = await handleGetReportConfigRequest({ id: "report-123" }, mockToken);
+
+            expect(handleGeneralError).toHaveBeenCalledWith(expect.any(Error), "handling get report config request");
+            expect(response).toEqual({
+                content: [{ type: "text", text: "General Error: handling get report config request" }],
+            });
+        });
+
+        it("should return error when id is missing", async () => {
+            const response = await handleGetReportConfigRequest({}, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("received undefined") }],
+            });
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should return error when id is empty string", async () => {
+            const response = await handleGetReportConfigRequest({ id: "" }, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("required") }],
+            });
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        });
+
+        it("should return error when id is whitespace only", async () => {
+            const response = await handleGetReportConfigRequest({ id: "   " }, mockToken);
+
+            expect(response).toEqual({
+                content: [{ type: "text", text: expect.stringContaining("required") }],
+            });
+            expect(makeDoitRequest).not.toHaveBeenCalled();
         });
     });
 });

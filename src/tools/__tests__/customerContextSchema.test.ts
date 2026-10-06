@@ -1,84 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { CUSTOMER_CONTEXT_DESCRIPTION } from "../../utils/schemaHelpers.js";
-import { createAlertTool, getAlertTool, listAlertsTool, updateAlertTool } from "../alerts.js";
-import { createAllocationTool, getAllocationTool, listAllocationsTool, updateAllocationTool } from "../allocations.js";
-import { anomaliesTool, anomalyTool } from "../anomalies.js";
-import { listAssetsTool } from "../assets.js";
-import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../budgets.js";
-import { findCloudDiagramsTool } from "../cloudDiagrams.js";
-import { triggerCloudFlowTool } from "../cloudflow.js";
-// Import all tool metadata objects (same list as server.ts ListToolsRequestSchema handler)
-import { cloudIncidentsTool, cloudIncidentTool } from "../cloudIncidents.js";
-import { dimensionTool } from "../dimension.js";
-import { dimensionsTool } from "../dimensions.js";
-import { getInvoiceTool, listInvoicesTool } from "../invoices.js";
-import { getLabelTool, listLabelsTool } from "../labels.js";
-import { listOrganizationsTool } from "../organizations.js";
-import { listPlatformsTool } from "../platforms.js";
-import { listProductsTool } from "../products.js";
-import { createReportTool, getReportResultsTool, reportsTool, runQueryTool } from "../reports.js";
-import { listRolesTool } from "../roles.js";
-import { listTicketsTool } from "../tickets.js";
-import { listUsersTool } from "../users.js";
-import { validateUserTool } from "../validateUser.js";
+import { z } from "zod";
+import { CUSTOMER_CONTEXT_DESCRIPTION, zodToMcpInputSchema } from "../../utils/schemaHelpers.js";
+import { ChangeCustomerArgumentsSchema, changeCustomerTool } from "../changeCustomer.js";
+import { HAND_WRITTEN_TOOLS } from "../handWrittenTools.js";
 
-const allTools = [
-    cloudIncidentsTool,
-    cloudIncidentTool,
-    anomaliesTool,
-    anomalyTool,
-    reportsTool,
-    runQueryTool,
-    getReportResultsTool,
-    createReportTool,
-    validateUserTool,
-    dimensionsTool,
-    dimensionTool,
-    listTicketsTool,
-    listInvoicesTool,
-    getInvoiceTool,
-    listAllocationsTool,
-    getAllocationTool,
-    createAllocationTool,
-    updateAllocationTool,
-    listAssetsTool,
-    listAlertsTool,
-    getAlertTool,
-    createAlertTool,
-    updateAlertTool,
-    triggerCloudFlowTool,
-    listOrganizationsTool,
-    listPlatformsTool,
-    listUsersTool,
-    listRolesTool,
-    listProductsTool,
-    listLabelsTool,
-    getLabelTool,
-    findCloudDiagramsTool,
-    listBudgetsTool,
-    getBudgetTool,
-    createBudgetTool,
-    updateBudgetTool,
-];
+// Cover the current registry rather than the 36 tools present when this PR began.
+const scopedTools = HAND_WRITTEN_TOOLS.filter((tool) => tool.name !== "change_customer");
 
 describe("customerContext schema coverage", () => {
-    it.each(
-        allTools.map((t) => [t.name, t])
-    )("%s includes customerContext as optional string with correct description", (_name, tool) => {
-        const schema = (tool as any).inputSchema as any;
-        const props = schema.properties;
+    it.each(scopedTools.map((tool) => ({ name: tool.name, tool })))(
+        "$name exposes an optional transport-level customer context",
+        ({ tool }) => {
+            const schema = tool.inputSchema as any;
+            expect(schema.properties.customerContext).toEqual({
+                type: "string",
+                description: CUSTOMER_CONTEXT_DESCRIPTION,
+            });
+            expect(schema.required ?? []).not.toContain("customerContext");
+        }
+    );
 
-        // Property exists
-        expect(props.customerContext).toBeDefined();
+    it("preserves change_customer's own context description and requiredness", () => {
+        const schema = changeCustomerTool.inputSchema as any;
+        const declared = z.toJSONSchema(ChangeCustomerArgumentsSchema, { io: "input" }) as any;
+        expect(schema.properties.customerContext).toEqual(declared.properties.customerContext);
+        expect(schema.required).toEqual(declared.required);
+    });
 
-        // Type is string
-        expect(props.customerContext.type).toBe("string");
-
-        // Description matches canonical constant
-        expect(props.customerContext.description).toBe(CUSTOMER_CONTEXT_DESCRIPTION);
-
-        // Not required
-        const required = schema.required ?? [];
-        expect(required).not.toContain("customerContext");
+    it("does not add context to nested business objects or their parsed payloads", () => {
+        const argumentsSchema = z.object({ config: z.object({ name: z.string() }) });
+        const schema = zodToMcpInputSchema(argumentsSchema) as any;
+        expect(schema.properties.config.properties).not.toHaveProperty("customerContext");
+        expect(argumentsSchema.parse({ config: { name: "test" }, customerContext: "selected" })).toEqual({
+            config: { name: "test" },
+        });
     });
 });

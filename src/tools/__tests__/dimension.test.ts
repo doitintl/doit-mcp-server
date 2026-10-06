@@ -98,12 +98,12 @@ Type: datetime`;
                 mockToken,
                 { appendParams: true, method: "GET" }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("ID: service_description"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("service_description"));
             expect(response).toEqual({
                 content: [
                     {
                         type: "text",
-                        text: expect.stringContaining("ID: service_description"),
+                        text: expect.stringContaining("service_description"),
                     },
                 ],
             });

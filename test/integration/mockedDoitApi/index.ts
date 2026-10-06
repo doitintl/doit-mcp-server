@@ -14,7 +14,36 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.roles);
     }),
 
+    // Account Team
+    http.get(`${API_BASE}/customers/v1/accountTeam`, () => {
+        return HttpResponse.json(fixtures.accountTeam);
+    }),
+
+    // Resource Permissions (sharing)
+    http.get(`${API_BASE}/sharing/v1/:resourceType/:resourceId`, ({ params }) => {
+        const { resourceType, resourceId } = params;
+        const allowed = ["alerts", "budgets", "reports", "allocations"];
+        if (allowed.includes(resourceType as string) && resourceId === "budget-1") {
+            return HttpResponse.json(fixtures.resourcePermissions);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.patch(`${API_BASE}/sharing/v1/:resourceType/:resourceId`, ({ params }) => {
+        const { resourceType, resourceId } = params;
+        const allowed = ["alerts", "budgets", "reports", "allocations"];
+        if (allowed.includes(resourceType as string) && resourceId === "budget-1") {
+            return HttpResponse.json(fixtures.updateResourcePermissions);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+
     // Users
+    http.post(`${API_BASE}/iam/v1/users/invite`, () => {
+        return HttpResponse.json(fixtures.inviteUser, { status: 201 });
+    }),
+    http.patch(`${API_BASE}/iam/v1/users/:id`, () => {
+        return HttpResponse.json(fixtures.updateUser);
+    }),
     http.get(`${API_BASE}/iam/v1/users`, () => {
         return HttpResponse.json(fixtures.users);
     }),
@@ -52,6 +81,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Reports
+    http.patch(`${API_BASE}/analytics/v1/reports/:id`, ({ params }) => {
+        if (params.id === "report-1") {
+            return HttpResponse.json(fixtures.updateReport);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.post(`${API_BASE}/analytics/v1/reports`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({
@@ -59,6 +94,12 @@ export const mockedDoitApiHandlers = [
             ...(body as Record<string, unknown>),
             _requestBody: body,
         });
+    }),
+    http.get(`${API_BASE}/analytics/v1/reports/:id/config`, ({ params }) => {
+        if (params.id === "report-1") {
+            return HttpResponse.json(fixtures.reportConfig);
+        }
+        return new HttpResponse(null, { status: 404 });
     }),
     http.get(`${API_BASE}/analytics/v1/reports/:id`, ({ params }) => {
         if (params.id === "report-1") {
@@ -89,6 +130,25 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Tickets (hardcoded URL in source)
+    http.post(`${API_BASE}/support/v1/tickets/:ticketId/comments`, async ({ params, request }) => {
+        if (params.ticketId === "12345") {
+            const body = (await request.json()) as Record<string, unknown>;
+            return HttpResponse.json({ ...fixtures.createTicketComment, _requestBody: body }, { status: 201 });
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/support/v1/tickets/:ticketId/comments`, ({ params }) => {
+        if (params.ticketId === "12345") {
+            return HttpResponse.json(fixtures.ticketComments);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/support/v1/tickets/:ticketId`, ({ params }) => {
+        if (params.ticketId === "12345") {
+            return HttpResponse.json(fixtures.ticketDetail);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/support/v1/tickets`, () => {
         return HttpResponse.json(fixtures.tickets);
     }),
@@ -125,6 +185,12 @@ export const mockedDoitApiHandlers = [
     }),
 
     // Assets
+    http.get(`${API_BASE}/billing/v1/assets/:id`, ({ params }) => {
+        if (params.id === "asset-1") {
+            return HttpResponse.json(fixtures.assetDetailed);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
     http.get(`${API_BASE}/billing/v1/assets`, () => {
         return HttpResponse.json(fixtures.assets);
     }),
@@ -147,7 +213,27 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.alerts);
     }),
 
+    // Label Assignments (must be before /labels/:id)
+    http.get(`${API_BASE}/analytics/v1/labels/:id/assignments`, ({ params }) => {
+        if (params.id === "label-1") {
+            return HttpResponse.json(fixtures.labelAssignments);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.post(`${API_BASE}/analytics/v1/labels/:id/assignments`, ({ params }) => {
+        if (params.id === "label-1") {
+            return new HttpResponse(null, { status: 200 });
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+
     // Labels
+    http.post(`${API_BASE}/analytics/v1/labels`, () => {
+        return HttpResponse.json(fixtures.createLabel);
+    }),
+    http.patch(`${API_BASE}/analytics/v1/labels/:id`, () => {
+        return HttpResponse.json(fixtures.updateLabel);
+    }),
     http.get(`${API_BASE}/analytics/v1/labels/:id`, ({ params }) => {
         if (params.id === "label-1") {
             return HttpResponse.json(fixtures.label);
@@ -158,14 +244,123 @@ export const mockedDoitApiHandlers = [
         return HttpResponse.json(fixtures.labels);
     }),
 
+    // Annotations
+    http.patch(`${API_BASE}/analytics/v1/annotations/:id`, () => {
+        return HttpResponse.json(fixtures.updateAnnotation);
+    }),
+    http.get(`${API_BASE}/analytics/v1/annotations/:id`, ({ params }) => {
+        if (params.id === "annotation-1") {
+            return HttpResponse.json(fixtures.annotation);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.post(`${API_BASE}/analytics/v1/annotations`, () => {
+        return HttpResponse.json(fixtures.createAnnotation);
+    }),
+    http.get(`${API_BASE}/analytics/v1/annotations`, () => {
+        return HttpResponse.json(fixtures.annotations);
+    }),
+
+    // Folders
+    http.post(`${API_BASE}/analytics/v1/folders`, () => {
+        return HttpResponse.json(fixtures.createFolder, { status: 201 });
+    }),
+    http.patch(`${API_BASE}/analytics/v1/folders/:id`, () => {
+        return HttpResponse.json(fixtures.updateFolder);
+    }),
+    http.get(`${API_BASE}/analytics/v1/folders/:id`, ({ params }) => {
+        if (params.id === "folder-1") {
+            return HttpResponse.json(fixtures.folder);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/analytics/v1/folders`, () => {
+        return HttpResponse.json(fixtures.folders);
+    }),
+
+    // DataHub Datasets
+    http.post(`${API_BASE}/datahub/v1/datasets`, () => {
+        return HttpResponse.json(fixtures.createDatahubDataset);
+    }),
+    http.patch(`${API_BASE}/datahub/v1/datasets/:name`, () => {
+        return HttpResponse.json(fixtures.updateDatahubDataset);
+    }),
+    http.get(`${API_BASE}/datahub/v1/datasets/:name`, ({ params }) => {
+        if (params.name === "My Custom Dataset") {
+            return HttpResponse.json(fixtures.datahubDataset);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/datahub/v1/datasets`, () => {
+        return HttpResponse.json(fixtures.datahubDatasets);
+    }),
+
+    // DataHub Events
+    http.post(`${API_BASE}/datahub/v1/events`, () => {
+        return HttpResponse.json(fixtures.sendDatahubEvents, { status: 201 });
+    }),
+
     // Cloud Diagrams
     http.post(`${API_BASE}/clouddiagrams/v1/scheme/find`, () => {
         return HttpResponse.json(fixtures.cloudDiagrams);
+    }),
+    http.post(`${API_BASE}/clouddiagrams/v1/scheme/get`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramComponents);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/scheme/stats`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramsStats);
+    }),
+    http.post(`${API_BASE}/clouddiagrams/v1/scheme/search`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramsSearch);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/resources/:rid/relationships`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramResourceRelationships);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/statussheet/:id/costs`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramCostSnapshot);
+    }),
+    // Node activities must be registered before the catch-all /activity route
+    http.get(`${API_BASE}/clouddiagrams/v1/activity/node-activities`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramNodeActivities);
+    }),
+    http.get(`${API_BASE}/clouddiagrams/v1/activity`, () => {
+        return HttpResponse.json(fixtures.cloudDiagramActivityGroups);
     }),
 
     // CloudFlow trigger
     http.post(`${API_BASE}/cloudflow/v1/trigger/:flowId`, () => {
         return HttpResponse.json(fixtures.cloudflowTrigger);
+    }),
+
+    // CloudFlow connections (register specific :connectionId before the list route)
+    http.get(`${API_BASE}/cloudflow/v1/connections/:connectionId`, ({ params }) => {
+        if (params.connectionId === "conn-1") {
+            return HttpResponse.json(fixtures.cloudflowConnection);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.patch(`${API_BASE}/cloudflow/v1/connections/:connectionId`, ({ params }) => {
+        if (params.connectionId === "conn-1") {
+            return HttpResponse.json(fixtures.cloudflowConnectionUpdated);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/cloudflow/v1/connections`, () => {
+        return HttpResponse.json(fixtures.cloudflowConnections);
+    }),
+    http.post(`${API_BASE}/cloudflow/v1/connections`, () => {
+        return HttpResponse.json(fixtures.cloudflowConnectionCreated, { status: 201 });
+    }),
+
+    // CloudFlow templates (register specific :templateId before the list route)
+    http.get(`${API_BASE}/cloudflow/v1/templates/:templateId`, ({ params }) => {
+        if (params.templateId === "tmpl-1") {
+            return HttpResponse.json(fixtures.cloudflowTemplate);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/cloudflow/v1/templates`, () => {
+        return HttpResponse.json(fixtures.cloudflowTemplates);
     }),
 
     // Budgets
@@ -186,5 +381,57 @@ export const mockedDoitApiHandlers = [
     }),
     http.get(`${API_BASE}/analytics/v1/budgets`, () => {
         return HttpResponse.json(fixtures.budgets);
+    }),
+
+    // Commitment Manager
+    http.get(`${API_BASE}/analytics/v1/commitment-manager/:id`, ({ params }) => {
+        if (params.id === "commitment-1") {
+            return HttpResponse.json(fixtures.commitment);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+    http.get(`${API_BASE}/analytics/v1/commitment-manager`, () => {
+        return HttpResponse.json(fixtures.commitments);
+    }),
+
+    // Themes (active)
+    http.get(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
+        return HttpResponse.json(fixtures.activeTheme);
+    }),
+    http.put(`${API_BASE}/analytics/v1/settings/active-theme`, () => {
+        return HttpResponse.json(fixtures.setActiveTheme);
+    }),
+
+    // Themes (custom)
+    http.patch(`${API_BASE}/analytics/v1/settings/themes/:id`, () => {
+        return HttpResponse.json(fixtures.updateTheme);
+    }),
+
+    // Insights (retrieve a single insight by source + key)
+    http.get(`${API_BASE}/insights/v1/results/source/:source/insight/:key`, ({ params }) => {
+        if (params.source === "aws-cost-optimization-hub" && params.key === "delete-ebs-volumes") {
+            return HttpResponse.json(fixtures.insight);
+        }
+        return new HttpResponse(null, { status: 404 });
+    }),
+
+    // Insights (update an insight's display status) — 204 No Content on success.
+    // Registered before the create/update handler because it is a more specific path.
+    http.put(`${API_BASE}/insights/v1/results/source/:source/insight/:key/status`, () => {
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    // Insights (create or update a single insight's metadata)
+    http.post(`${API_BASE}/insights/v1/results/source/:source/insight/:key`, () => {
+        return HttpResponse.json(fixtures.postInsightResult);
+    }),
+
+    // AVA
+    http.post(`${API_BASE}/ava/v1/askSync`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        if (body?.ephemeral === false) {
+            return HttpResponse.json(fixtures.avaAskSyncWithConversation);
+        }
+        return HttpResponse.json(fixtures.avaAskSync);
     }),
 ];

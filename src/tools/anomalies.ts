@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customerContextProperty } from "../utils/schemaHelpers.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -13,11 +13,14 @@ export const ANOMALIES_BASE_URL = `${DOIT_API_BASE}/anomalies/v1`;
 
 // Schema definitions
 export const AnomaliesArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 export const AnomalyArgumentsSchema = z.object({
-    id: z.string(),
+    id: z.string().describe("anomaly ID"),
 });
 
 // Interfaces
@@ -53,33 +56,40 @@ export interface AnomaliesResponse {
 // Tool metadata
 export const anomaliesTool = {
     name: "get_anomalies",
-    description: "List anomalies detected in cloud costs",
-    inputSchema: {
-        type: "object",
-        properties: {
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-            ...customerContextProperty,
-        },
+    title: "List cost anomalies",
+    coversEndpoint: "get:/anomalies/v1",
+    description:
+        "Use this when the user wants to check for unexpected cost spikes, billing anomalies, or unusual spending patterns. Returns recent anomalies with severity and impact. Do NOT use this for optimization recommendations or savings opportunities (use list_optimization_recommendations), regular cost analysis (use run_query), or viewing alerts (use list_alerts).",
+    inputSchema: zodToMcpInputSchema(AnomaliesArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Checking for anomalies...",
+        "openai/toolInvocation/invoked": "Anomaly check complete",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export const anomalyTool = {
     name: "get_anomaly",
-    description: "Get a specific anomaly by ID",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "anomaly ID",
-            },
-            ...customerContextProperty,
-        },
-        required: ["id"],
+    title: "Get cost anomaly",
+    coversEndpoint: "get:/anomalies/v1/{id}",
+    description:
+        "Use this when the user wants to view details of a specific cost anomaly by its ID. Returns full anomaly data including affected resources and cost impact. Do NOT use this for listing all anomalies (use get_anomalies).",
+    inputSchema: zodToMcpInputSchema(AnomalyArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading anomaly details...",
+        "openai/toolInvocation/invoked": "Anomaly details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format anomaly data
@@ -147,31 +157,30 @@ export async function handleAnomaliesRequest(args: any, token: string) {
                 return createErrorResponse("No anomalies found");
             }
 
-            // Map anomalies to the required format
             const formattedAnomalies = anomalies.map((anomaly) => ({
+                platform: anomaly.platform || "",
+                serviceName: anomaly.serviceName || "",
+                scope: anomaly.scope || "",
+                costOfAnomaly: anomaly.costOfAnomaly,
+                severityLevel: anomaly.severityLevel || "",
+                status: anomaly.status || null,
+                startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
+                endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
+                top3SKUs: anomaly.top3SKUs && anomaly.top3SKUs.length > 0 ? anomaly.top3SKUs : null,
                 id: anomaly.id || null,
                 billingAccount: anomaly.billingAccount || "",
                 attribution: anomaly.attribution || "",
-                costOfAnomaly: anomaly.costOfAnomaly,
-                platform: anomaly.platform || "",
-                scope: anomaly.scope || "",
-                serviceName: anomaly.serviceName || "",
-                top3SKUs: anomaly.top3SKUs && anomaly.top3SKUs.length > 0 ? anomaly.top3SKUs : null,
-                severityLevel: anomaly.severityLevel || "",
                 timeFrame: anomaly.timeFrame || "",
-                startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
-                status: anomaly.status || null,
-                endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
                 acknowledged: anomaly.acknowledged,
             }));
 
-            let anomaliesText = `Found ${rowCount} anomalies`;
-
-            anomaliesText += `:\n\n${formattedAnomalies.map((a) => JSON.stringify(a, null, 2)).join("\n")}\n\n${
-                anomaliesData.pageToken ? `Page token: ${anomaliesData.pageToken}` : ""
-            }`;
-
-            return createSuccessResponse(anomaliesText);
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount,
+                    anomalies: formattedAnomalies,
+                    pageToken: anomaliesData.pageToken ?? null,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
@@ -188,7 +197,7 @@ export async function handleAnomalyRequest(args: any, token: string) {
     try {
         const { id } = AnomalyArgumentsSchema.parse(args);
         const { customerContext } = args;
-        const anomalyUrl = `${ANOMALIES_BASE_URL}/${id}`;
+        const anomalyUrl = `${ANOMALIES_BASE_URL}/${encodeURIComponent(id)}`;
 
         try {
             // Explicitly set appendParams to true to ensure URL parameters are added
@@ -206,8 +215,25 @@ export async function handleAnomalyRequest(args: any, token: string) {
             // Let's add it for consistency in the formatted output
             const anomaly = { ...anomalyData, id };
 
-            const formattedAnomaly = formatAnomaly(anomaly);
-            return createSuccessResponse(`Anomaly details:\n\n${formattedAnomaly}`);
+            return createSuccessResponse(
+                JSON.stringify({
+                    id: anomaly.id,
+                    billingAccount: anomaly.billingAccount,
+                    attribution: anomaly.attribution,
+                    costOfAnomaly: anomaly.costOfAnomaly,
+                    platform: anomaly.platform,
+                    scope: anomaly.scope,
+                    serviceName: anomaly.serviceName,
+                    top3SKUs: anomaly.top3SKUs,
+                    severityLevel: anomaly.severityLevel,
+                    timeFrame: anomaly.timeFrame,
+                    startTime: anomaly.startTime ? new Date(anomaly.startTime).toISOString() : null,
+                    endTime: anomaly.endTime ? new Date(anomaly.endTime).toISOString() : null,
+                    status: anomaly.status,
+                    acknowledged: anomaly.acknowledged,
+                    anomalyChartUrl: anomaly.anomalyChartUrl,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

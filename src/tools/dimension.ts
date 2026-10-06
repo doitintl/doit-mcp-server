@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customerContextProperty } from "../utils/schemaHelpers.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -46,35 +46,21 @@ export interface DimensionResponse {
 // Tool metadata
 export const dimensionTool = {
     name: "get_dimension",
-    description: "Get a specific Cloud Analytics dimension by type and ID",
-    inputSchema: {
-        type: "object",
-        properties: {
-            type: {
-                type: "string",
-                enum: [
-                    "datetime",
-                    "fixed",
-                    "optional",
-                    "label",
-                    "tag",
-                    "project_label",
-                    "system_label",
-                    "attribution",
-                    "attribution_group",
-                    "gke",
-                    "gke_label",
-                ],
-                description: "Dimension type",
-            },
-            id: {
-                type: "string",
-                description: "Dimension id",
-            },
-            ...customerContextProperty,
-        },
-        required: ["type", "id"],
+    title: "Get dimension values",
+    coversEndpoint: "get:/analytics/v1/dimension",
+    description:
+        "Use this when the valid filter values for a specific dimension are needed, such as for a run_query filter, or when the user wants to view dimension details. For example, get_dimension({type: 'fixed', id: 'cloud_provider'}) returns the exact provider IDs available for this customer. Do NOT use this for listing all dimensions (use list_dimensions) or running queries (use run_query).",
+    inputSchema: zodToMcpInputSchema(DimensionArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading dimension...",
+        "openai/toolInvocation/invoked": "Dimension loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format the dimension values if they exist
@@ -116,9 +102,7 @@ export async function handleDimensionRequest(args: any, token: string) {
                 return createErrorResponse(`Failed to retrieve dimension with type: ${type} and id: ${id}`);
             }
 
-            // Format the dimension data for display
-            const formattedDimension = formatDimension(dimensionData);
-            return createSuccessResponse(formattedDimension);
+            return createSuccessResponse(JSON.stringify(dimensionData));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request for dimension");
         }

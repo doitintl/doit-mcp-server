@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customerContextProperty } from "../utils/schemaHelpers.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -32,23 +32,30 @@ export interface InvoicesResponse {
 
 // Arguments schema for listing invoices
 export const ListInvoicesArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 // Tool definition
 export const listInvoicesTool = {
     name: "list_invoices",
-    description: "List all current and historical invoices for your organization from the DoiT API.",
-    inputSchema: {
-        type: "object",
-        properties: {
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-            ...customerContextProperty,
-        },
+    title: "List invoices",
+    coversEndpoint: "get:/billing/v1/invoices",
+    description:
+        "Use this when the user wants to see their invoices, check billing history, or review payment records. Returns a list of invoices with amounts, dates, and status. Do NOT use this for cost analysis (use run_query) or budget tracking (use list_budgets).",
+    inputSchema: zodToMcpInputSchema(ListInvoicesArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading invoices...",
+        "openai/toolInvocation/invoked": "Invoices loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handler for the tool
@@ -81,24 +88,27 @@ export async function handleListInvoicesRequest(args: any, token: string) {
 
 // Arguments schema for getting a single invoice
 export const GetInvoiceArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the invoice to retrieve"),
+    id: z.string().describe("The ID of the invoice to retrieve."),
 });
 
 // Tool definition for getting a single invoice
 export const getInvoiceTool = {
     name: "get_invoice",
-    description: "Retrieve the full details of an invoice specified by the invoice number from the DoiT API.",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "The ID of the invoice to retrieve.",
-            },
-            ...customerContextProperty,
-        },
-        required: ["id"],
+    title: "Get invoice",
+    coversEndpoint: "get:/billing/v1/invoices/{id}",
+    description:
+        "Use this when the user wants to view details of a specific invoice by its ID. Returns full invoice data including line items and status. Do NOT use this for listing all invoices (use list_invoices) or cost analysis (use run_query).",
+    inputSchema: zodToMcpInputSchema(GetInvoiceArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading invoice details...",
+        "openai/toolInvocation/invoked": "Invoice details loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handler for the tool

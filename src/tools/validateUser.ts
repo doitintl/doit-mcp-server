@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customerContextProperty } from "../utils/schemaHelpers.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -20,16 +20,58 @@ export interface ValidateUserResponse {
     email: string;
 }
 
+export interface ValidateUserToolResponse {
+    content: Array<{
+        type: string;
+        text: string;
+    }>;
+    isError?: boolean;
+}
+
+/**
+ * Parse the result of `handleValidateUserRequest` into typed user data.
+ * Throws on `isError`, empty content, malformed JSON, or missing/invalid fields.
+ * Use this anywhere internal control flow depends on validate-user data.
+ */
+export function parseValidatedUserResponse(response: ValidateUserToolResponse): ValidateUserResponse {
+    if (response.isError) {
+        throw new Error("Failed to validate user");
+    }
+
+    const text = response.content[0]?.text;
+    if (!text) {
+        throw new Error("Validate user response is empty");
+    }
+
+    const parsed = JSON.parse(text) as { domain?: unknown; email?: unknown };
+    if (typeof parsed.domain !== "string" || !parsed.domain || typeof parsed.email !== "string" || !parsed.email) {
+        throw new Error("Validate user response missing domain or email");
+    }
+
+    return {
+        domain: parsed.domain,
+        email: parsed.email,
+    };
+}
+
 // Tool metadata
 export const validateUserTool = {
     name: "validate_user",
-    description: "Validates the current API user and returns domain and email information",
-    inputSchema: {
-        type: "object",
-        properties: {
-            ...customerContextProperty,
-        },
+    title: "Validate user",
+    coversEndpoint: "get:/auth/v1/validate",
+    description:
+        "Use this when the user asks to verify their account connection or check who they are logged in as. Returns the authenticated user's email and the primary domain of the customer the session is scoped to. Authentication is already established by the connection, so other tools do not depend on this call. Do NOT use this for listing users in the organization (use list_users).",
+    inputSchema: zodToMcpInputSchema(ValidateUserArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Validating user...",
+        "openai/toolInvocation/invoked": "User validated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Handle validate user request
@@ -54,12 +96,12 @@ export async function handleValidateUserRequest(args: any, token: string) {
                 return createErrorResponse("Failed to validate user");
             }
 
-            // Format the response
-            const formattedResponse = `User validation successful:
-Domain: ${userData.domain} (the domain of the user, make it bold)
-Email: ${userData.email}`;
-
-            return createSuccessResponse(formattedResponse);
+            return createSuccessResponse(
+                JSON.stringify({
+                    domain: userData.domain,
+                    email: userData.email,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }

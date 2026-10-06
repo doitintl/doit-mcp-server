@@ -17,7 +17,7 @@ import {
     TIME_RANGE_MODE_VALUES,
     TIME_UNIT_VALUES,
 } from "../types/reports.js";
-import { customerContextProperty, zodToMcpInputSchema } from "../utils/schemaHelpers.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -26,6 +26,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const REPORTS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/reports`;
@@ -36,18 +37,33 @@ export const ReportsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Example: 'type:billing|owner:john@example.com'"
+            "Filter string in format 'key:value|key:value'. Different keys are combined with AND; each key can be used once. Supported keys: reportName (exact, case-sensitive full name), owner (owner's email, exact), type (custom, preset, or managed), updateTime (milliseconds since epoch; matches reports updated at or after it), folderId (exact; 'root' for reports outside any folder). Any other key is rejected with an error. Example: 'type:custom|owner:jane@example.com'"
         ),
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 // Get Report Results Schema Definition
-export const GetReportResultsArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the report to retrieve results for"),
-});
+export const GetReportResultsArgumentsSchema = z
+    .object({
+        id: z.string().optional().describe("The ID of the report to retrieve results for."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial report name match (case-insensitive). Used to find the report when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
-const createDocumentPrompt =
-    "**IMPORTANT**: Create a document (Artifacts) with a table to display the report results. include insights and recommendations if possible. (Do not generate code, only a document)";
+// Get Report Config Schema Definition
+export const GetReportConfigArgumentsSchema = z.object({
+    id: z
+        .string()
+        .transform((val) => val.trim())
+        .pipe(z.string().min(1, "Report ID is required and cannot be empty."))
+        .describe("The ID of the report to retrieve the configuration for."),
+});
 
 // Interfaces
 export interface Report {
@@ -107,37 +123,53 @@ export interface GetReportResultsResponse {
 // Tool metadata
 export const reportsTool = {
     name: "list_reports",
-    description: "Lists Cloud Analytics reports that your account has access to",
-    inputSchema: {
-        type: "object",
-        properties: {
-            filter: {
-                type: "string",
-                description:
-                    "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. Possible filter keys: reportName, owner, type, updateTime, use the filter property only if you know for sure the value is a valid filter key, do not guess it.",
-            },
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-            ...customerContextProperty,
-        },
+    title: "List reports",
+    coversEndpoint: "get:/analytics/v1/reports",
+    description:
+        "Use this when the user wants to see their saved Cloud Analytics reports or browse available reports. Returns a paginated list of reports with their IDs and metadata. Do NOT use this for running queries (use run_query) or getting report results (use get_report_results).",
+    inputSchema: zodToMcpInputSchema(ReportsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading reports...",
+        "openai/toolInvocation/invoked": "Reports loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export const getReportResultsTool = {
     name: "get_report_results",
-    description: "Get the results of a specific report by ID",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "The ID of the report to retrieve results for",
-            },
-            ...customerContextProperty,
-        },
-        required: ["id"],
+    title: "Get report results",
+    coversEndpoint: "get:/analytics/v1/reports/{id}",
+    description:
+        "Use this when the user wants to retrieve the data results of a specific saved report. Accepts either the report ID or a partial name (case-insensitive). Do NOT use this for listing all reports (use list_reports) or running ad-hoc queries (use run_query).",
+    inputSchema: zodToMcpInputSchema(GetReportResultsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Fetching report data...",
+        "openai/toolInvocation/invoked": "Report data ready",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
+};
+
+export const getReportConfigTool = {
+    name: "get_report_config",
+    title: "Get report configuration",
+    coversEndpoint: "get:/analytics/v1/reports/{id}/config",
+    description:
+        "Get the configuration of a specific Cloud Analytics report by ID. Returns the stored report object including name, type, and a nested 'config' field containing data source, metrics, dimensions, time range, filters, and visualization settings.",
+    inputSchema: zodToMcpInputSchema(GetReportConfigArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
 };
 
@@ -153,7 +185,7 @@ const ExternalMetricSchema = z.object({
 });
 
 const ReportDimensionSchema = z.object({
-    id: z.string().describe("Dimension identifier. Use the dimension tool to get valid IDs."),
+    id: z.string().describe("Dimension identifier. Valid IDs come from list_dimensions or get_dimension."),
     type: z
         .enum(DIMENSION_TYPE_VALUES)
         .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
@@ -236,7 +268,7 @@ const TimeSettingsSecondarySchema = z.object({
 });
 
 const ExternalConfigFilterSchema = z.object({
-    id: z.string().describe("The field to filter on. Use the dimension tool to get valid IDs."),
+    id: z.string().describe("The field to filter on. Valid IDs come from list_dimensions or get_dimension."),
     type: z
         .enum(DIMENSION_TYPE_VALUES)
         .describe(`Dimension type of the filter field. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
@@ -266,7 +298,7 @@ const LimitSchema = z.object({
 });
 
 const GroupSchema = z.object({
-    id: z.string().describe("Dimension ID for the group-by row. Use the dimension tool to get valid IDs."),
+    id: z.string().describe("Dimension ID for the group-by row. Valid IDs come from list_dimensions or get_dimension."),
     type: z
         .enum(DIMENSION_TYPE_VALUES)
         .describe(`Dimension type. Accepted values: ${formatEnumValues(DIMENSION_TYPE_VALUES)}.`),
@@ -430,27 +462,53 @@ export const ReportConfigSchema = z
 // Run Query Schema Definition
 export const RunQueryArgumentsSchema = z.object({
     config: ReportConfigSchema.describe(
-        "Configuration for the query. Use the dimension tool to look up valid dimension IDs."
+        "Configuration for the query. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
 });
 
 export const runQueryTool = {
     name: "run_query",
-    description: `Runs a report query with the specified configuration without persisting it.
-    Fields that are not populated will use their default values if needed.
-    To limit the number of rows returned per group, set the \`limit.value\` field inside each \`config.group[]\` entry (maximum 25).
-    Use the dimension tool or allocation tool before running the query to get the list of dimensions and their types or allocations.
-    If possible, use \`timeRange\` instead of \`customTimeRange\` when no specific dates are given.
-    Example for cost report:
+    title: "Run Cloud Analytics query",
+    coversEndpoint: "post:/analytics/v1/reports/query",
+    description: `Use this when the user wants to analyze cloud costs, generate a cost breakdown, view spending trends, or run a custom analytics query across their cloud providers. Runs the config through the DoiT Cloud Analytics API query endpoint (https://developer.doit.com/reference/query) and returns the result rows. Accepts a structured config with data source, metrics, dimensions, time range, and filters. Do NOT use this for listing saved reports (use list_reports), checking anomalies (use get_anomalies), or viewing budgets (use list_budgets).
+    Unpopulated fields take their API defaults.
+    Rows per group are capped by the \`limit.value\` field inside each \`config.group[]\` entry (maximum 25).
+    \`timeRange\` covers relative periods ("last 3 months"); \`customTimeRange\` is for explicit dates.
+    "includeCurrent": true includes the current in-progress period; false limits the range to fully completed periods.
+    "metrics" (array) supersedes the deprecated "metric" (object).
+
+    A "group" with id "service_description" and type "fixed" returns a per-service cost breakdown, the most common shape for cost questions.
+
+    Common grouping dimension IDs (all type "fixed"):
+      "service_description" — cloud service
+      "project_id"          — GCP project / AWS account / Azure subscription
+      "cloud_provider"      — cloud provider (AWS / GCP / Azure)
+
+    Filter values are dimension IDs, not display names. get_dimension({type, id}) returns the valid values for a dimension for this customer.
+    Known cloud provider IDs (cloud_provider, type "fixed"):
+      "amazon-web-services" = AWS, "google-cloud" = GCP, "microsoft-azure" = Azure
+
+    Example — top AWS services last month:
     {
       "config": {
         "dataSource": "billing",
-        "metric": {"type": "basic", "value": "cost"},
+        "metrics": [{"type": "basic", "value": "cost"}],
         "timeRange": {"mode": "last", "amount": 1, "unit": "month", "includeCurrent": true},
+        "filters": [{"id": "cloud_provider", "type": "fixed", "values": ["amazon-web-services"]}],
         "group": [{"id": "service_description", "type": "fixed", "limit": {"metric": {"type": "basic", "value": "cost"}, "sort": "desc", "value": 10}}]
       }
     }`,
     inputSchema: zodToMcpInputSchema(RunQueryArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Running analytics query...",
+        "openai/toolInvocation/invoked": "Analytics results ready",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Create Report Schema Definition
@@ -459,7 +517,7 @@ export const CreateReportArgumentsSchema = z.object({
     description: z.string().optional().describe("A brief description of the report."),
     labels: z.array(z.string()).optional().describe("Optional list of label IDs to assign to the report."),
     config: ReportConfigSchema.describe(
-        "Configuration for the report. Use the dimension tool to look up valid dimension IDs."
+        "Configuration for the report. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
 });
 
@@ -474,8 +532,51 @@ export interface CreateReportResponse {
 
 export const createReportTool = {
     name: "create_report",
-    description: "Creates a new Cloud Analytics report with the specified configuration.",
+    title: "Create report",
+    coversEndpoint: "post:/analytics/v1/reports",
+    description:
+        "Use this when the user wants to save a new Cloud Analytics report with a specific configuration. Changes apply immediately. Do NOT use this for one-time queries without saving (use run_query).",
     inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating report...",
+        "openai/toolInvocation/invoked": "Report created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
+
+// Update Report Schema Definition
+export const UpdateReportArgumentsSchema = z.object({
+    id: z.string().min(1).describe("The ID of the report to update (required)."),
+    name: z.string().min(1).optional().describe("Report name."),
+    description: z.string().optional().describe("Report description."),
+    labels: z.array(z.string()).optional().describe("Array of label IDs to assign to the report."),
+    config: ReportConfigSchema.optional().describe(
+        "Configuration for the report. Only specified fields will be updated. Valid dimension IDs come from list_dimensions or get_dimension."
+    ),
+});
+
+export const updateReportTool = {
+    name: "update_report",
+    title: "Update report",
+    coversEndpoint: "patch:/analytics/v1/reports/{id}",
+    description:
+        "Use this when the user wants to modify an existing saved Cloud Analytics report. Supports partial updates. Changes apply immediately. Do NOT use this for running ad-hoc queries (use run_query).",
+    inputSchema: zodToMcpInputSchema(UpdateReportArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating report...",
+        "openai/toolInvocation/invoked": "Report updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 // Format a report for display
@@ -553,21 +654,19 @@ export async function handleReportsRequest(args: any, token: string) {
                 return createErrorResponse("No reports found");
             }
 
-            const formattedReports = reports.map(formatReport);
-
-            // Create a descriptive message that includes filter information if provided
-            let reportsText = `Found ${rowCount} reports`;
-            if (filter) {
-                reportsText += ` (filtered by: ${filter})`;
-            }
-            reportsText += `:`;
-            reportsText += `\n\n${formattedReports.join("\n")} \n\n${
-                reportsData.pageToken ? `Page token: ${reportsData.pageToken}` : ""
-            }`;
-
-            return createSuccessResponse(reportsText);
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount,
+                    reports,
+                    pageToken: reportsData.pageToken ?? null,
+                })
+            );
         } catch (error) {
-            return handleGeneralError(error, "making DoiT API request");
+            return handleGeneralError(
+                error,
+                "making DoiT API request",
+                "Check the filter parameter; try without a filter if you do not know the exact value of the key."
+            );
         }
     } catch (error) {
         if (error instanceof z.ZodError) {
@@ -577,11 +676,48 @@ export async function handleReportsRequest(args: any, token: string) {
     }
 }
 
+/**
+ * Normalise common LLM-generated aliases to the exact IDs the DoiT API expects.
+ * This makes the tool robust against the LLM using display names or abbreviations.
+ */
+export const CLOUD_PROVIDER_ALIASES: Record<string, string> = {
+    // AWS
+    aws: "amazon-web-services",
+    amazon: "amazon-web-services",
+    "amazon web services": "amazon-web-services",
+    amazon_web_services: "amazon-web-services",
+    // GCP
+    gcp: "google-cloud",
+    google: "google-cloud",
+    "google cloud": "google-cloud",
+    "google cloud platform": "google-cloud",
+    google_cloud: "google-cloud",
+    // Azure
+    azure: "microsoft-azure",
+    "microsoft azure": "microsoft-azure",
+    microsoft_azure: "microsoft-azure",
+};
+
+export function normalizeConfig(config: any): any {
+    if (!config?.filters) return config;
+    return {
+        ...config,
+        filters: config.filters.map((f: any) => {
+            if (f.id !== "cloud_provider" || !Array.isArray(f.values)) return f;
+            return {
+                ...f,
+                values: f.values.map((v: string) => CLOUD_PROVIDER_ALIASES[v.toLowerCase()] ?? v),
+            };
+        }),
+    };
+}
+
 // Handle the run query request
 export async function handleRunQueryRequest(args: any, token: string) {
     try {
         // Validate arguments
-        const { config } = RunQueryArgumentsSchema.parse(args);
+        const { config: rawConfig } = RunQueryArgumentsSchema.parse(args);
+        const config = normalizeConfig(rawConfig);
         const { customerContext } = args;
         // Create API URL for the query endpoint
         const queryUrl = `${REPORTS_BASE_URL}/query`;
@@ -590,25 +726,41 @@ export async function handleRunQueryRequest(args: any, token: string) {
             // Use enhanced makeDoitRequest for POST request
             const queryResponse = await makeDoitRequest<QueryResponse>(queryUrl, token, {
                 method: "POST",
+                readOnly: true,
                 body: { config },
                 appendParams: true,
                 customerContext,
+                timeoutMs: 120_000,
             });
 
-            if (!queryResponse || !queryResponse.result || queryResponse?.error) {
-                return createErrorResponse(
-                    `Failed to run query. Try one of the following:
+            if (!queryResponse?.result || queryResponse?.error) {
+                const base = `Failed to run query. Try one of the following:
   1. Use 'list_dimensions' with a filter like 'filter:type:fixed' to get relevant dimensions or 'list_allocations' to get relevant allocations
   2. Check the specific error from the API: ${queryResponse?.error || "Unknown error"}
-  3. For a cost report, you need at least: metric, timeRange, and dataSource fields`
-                );
+  3. For a cost report, you need at least: metric, timeRange, and dataSource fields`;
+                if (rawConfig?.timeRange?.mode === "custom") {
+                    return createErrorResponse(
+                        `${base}\n  4. For custom time ranges, ensure customTimeRange has 'from' and 'to' in ISO 8601 format (e.g. '2026-01-01T00:00:00Z').`
+                    );
+                }
+                return createErrorResponse(base);
             }
 
-            const formattedResult = formatQueryResult(queryResponse.result);
-
-            return createSuccessResponse(formattedResult);
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount: queryResponse.result.rows.length,
+                    rows: queryResponse.result.rows,
+                    columns: queryResponse.result.schema,
+                })
+            );
         } catch (error) {
-            return handleGeneralError(error, "making DoiT API query request");
+            const guidance =
+                "Use list_dimensions (filter: type:fixed) or list_allocations to check dimension and allocation IDs. " +
+                "For a cost report, check the metrics, timeRange, and dataSource fields." +
+                (rawConfig?.timeRange?.mode === "custom"
+                    ? " For custom time ranges, ensure customTimeRange has 'from' and 'to' in ISO 8601 format."
+                    : "");
+            return handleGeneralError(error, "making DoiT API query request", guidance);
         }
     } catch (error) {
         if (error instanceof z.ZodError) {
@@ -647,7 +799,7 @@ export function formatReportResults(report: GetReportResultsResponse): string {
         .filter(Boolean)
         .join(`\n\n`);
 
-    return `${reportResults}\n\n${createDocumentPrompt}`;
+    return reportResults;
 }
 
 // Handle create report request
@@ -677,23 +829,37 @@ export async function handleCreateReportRequest(args: any, token: string) {
 export async function handleGetReportResultsRequest(args: any, token: string) {
     try {
         // Validate arguments
-        const { id } = GetReportResultsArgumentsSchema.parse(args);
+        const parsed = GetReportResultsArgumentsSchema.parse(args);
         const { customerContext } = args;
+        let resolvedId = parsed.id;
+
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<ReportsResponse>(`${REPORTS_BASE_URL}?maxResults=200`, token, {
+                method: "GET",
+                customerContext,
+            });
+            const items = (listData?.reports ?? []).map((r) => ({ ...r, name: r.reportName }));
+            const result = matchByName(items, parsed.name, "name");
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
+        }
+
         // Create API URL
-        const reportUrl = `${REPORTS_BASE_URL}/${encodeURIComponent(id)}`;
+        const reportUrl = `${REPORTS_BASE_URL}/${encodeURIComponent(resolvedId as string)}`;
 
         try {
             const reportData = await makeDoitRequest<GetReportResultsResponse>(reportUrl, token, {
                 method: "GET",
                 customerContext,
+                timeoutMs: 120_000,
             });
 
             if (!reportData) {
                 return createErrorResponse("Failed to retrieve report results");
             }
 
-            const formattedResult = formatReportResults(reportData);
-            return createSuccessResponse(formattedResult);
+            return createSuccessResponse(JSON.stringify(reportData));
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request for report results");
         }
@@ -702,5 +868,47 @@ export async function handleGetReportResultsRequest(args: any, token: string) {
             return createErrorResponse(formatZodError(error));
         }
         return handleGeneralError(error, "handling get report results request");
+    }
+}
+
+// Handle get report config request
+export async function handleGetReportConfigRequest(args: any, token: string) {
+    try {
+        const { id } = GetReportConfigArgumentsSchema.parse(args);
+        const { customerContext } = args;
+        const url = `${REPORTS_BASE_URL}/${encodeURIComponent(id)}/config`;
+        const data = await makeDoitRequest(url, token, {
+            method: "GET",
+            customerContext,
+        });
+        if (!data) return createErrorResponse("Failed to retrieve report configuration");
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling get report config request");
+    }
+}
+
+// Handle update report request
+export async function handleUpdateReportRequest(args: any, token: string) {
+    try {
+        const parsed = UpdateReportArgumentsSchema.parse(args);
+        const { customerContext } = args;
+
+        const { id, ...body } = parsed;
+        const url = `${REPORTS_BASE_URL}/${encodeURIComponent(id)}`;
+
+        const data = await makeDoitRequest<CreateReportResponse>(url, token, {
+            method: "PATCH",
+            body,
+            customerContext,
+        });
+
+        if (!data) return createErrorResponse("Failed to update report");
+
+        return createSuccessResponse(JSON.stringify(data, null, 2));
+    } catch (error) {
+        if (error instanceof z.ZodError) return createErrorResponse(formatZodError(error));
+        return handleGeneralError(error, "handling update report request");
     }
 }

@@ -45,3 +45,21 @@ export const assetsFixture = {
     pageToken: "",
     rowCount: 1,
 };
+
+export const assetDetailedFixture = {
+    id: "asset-1",
+    name: "My Billing Account",
+    type: "commitment",
+    quantity: 1,
+    url: "https://console.doit.com/assets/asset-1",
+    createTime: 1700000000,
+    properties: {
+        customerDomain: "example.com",
+        customerID: "cust-123",
+        reseller: "doit",
+        subscription: {
+            id: "sub-1",
+            status: "ACTIVE",
+        },
+    },
+};

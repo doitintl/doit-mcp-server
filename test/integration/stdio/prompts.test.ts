@@ -1,16 +1,14 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestClient } from "../helpers.js";
 
 describe("MCP Prompts Integration", () => {
     let client: Client;
-    let _server: Server;
     let cleanup: () => Promise<void>;
 
     beforeEach(async () => {
         vi.spyOn(console, "error").mockImplementation(() => {});
-        ({ client, _server, cleanup } = await createTestClient());
+        ({ client, cleanup } = await createTestClient());
     });
 
     afterEach(async () => {
@@ -35,9 +33,9 @@ describe("MCP Prompts Integration", () => {
         it("includes expected prompt names", async () => {
             const result = await client.listPrompts();
             const names = result.prompts.map((p) => p.name);
+            expect(names).toContain("cloud_overview");
             expect(names).toContain("filter_fields_reference");
-            expect(names).toContain("generate_report_document");
-            expect(names).toContain("query_best_practice");
+            expect(names).toContain("generate_report_command");
             expect(names).toContain("trigger_cloudflow_flow");
             expect(names).toContain("search_expert_inquiries");
             expect(names).toContain("expert_inquiries");
@@ -46,7 +44,7 @@ describe("MCP Prompts Integration", () => {
 
     describe("prompts/get", () => {
         it("retrieves a prompt by name and returns messages", async () => {
-            const result = await client.getPrompt({ name: "query_best_practice" });
+            const result = await client.getPrompt({ name: "generate_report_command" });
             expect(result.messages).toBeDefined();
             expect(result.messages.length).toBeGreaterThan(0);
             expect(result.messages[0].role).toBe("user");
@@ -54,7 +52,7 @@ describe("MCP Prompts Integration", () => {
         });
 
         it("returns prompt with description", async () => {
-            const result = await client.getPrompt({ name: "generate_report_document" });
+            const result = await client.getPrompt({ name: "generate_report_command" });
             expect(result.description).toBeTruthy();
         });
 

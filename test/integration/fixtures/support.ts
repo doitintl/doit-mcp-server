@@ -31,3 +31,45 @@ export const ticketsFixture = {
         },
     ],
 };
+
+export const ticketDetailFixture = {
+    id: 12345,
+    subject: "VM not starting",
+    description: "The VM fails to boot after the last update. Checked logs but no clear error.",
+    requester: "alice@example.com",
+    severity: "high",
+    platform: "google_cloud_platform",
+    product: "Compute Engine",
+    status: "open",
+    createTime: 1700000000000,
+    updateTime: 1700100000000,
+    urlUI: "https://console.doit.com/tickets/12345",
+    is_public: false,
+};
+
+export const ticketCommentsFixture = {
+    comments: [
+        {
+            id: 1001,
+            body: "Thank you for reaching out. We are investigating the issue.",
+            author: "support@doit.com",
+            created: 1700010000000,
+            attachments: [],
+        },
+        {
+            id: 1002,
+            body: "We found the root cause. Please try restarting the VM.",
+            author: "support@doit.com",
+            created: 1700020000000,
+            attachments: [],
+        },
+    ],
+};
+
+export const createTicketCommentFixture = {
+    id: 1003,
+    body: "Please provide the error logs from /var/log/syslog.",
+    author: "alice@example.com",
+    created: 1700030000000,
+    attachments: [],
+};

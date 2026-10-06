@@ -1,0 +1,35 @@
+export const HTTP_METHODS = ["get", "put", "post", "delete", "patch"] as const;
+
+export type HttpMethod = (typeof HTTP_METHODS)[number];
+
+export type OperationMetadata = {
+    method: HttpMethod;
+    pathTemplate: string;
+    pathParams: string[];
+    queryParams: string[];
+    headerParams: string[];
+    bodyEncoding: "json" | "multipart";
+    contentType?: string;
+    multipartFileFields: string[];
+};
+
+export type GeneratedTool = {
+    name: string;
+    /** Human-readable display name, from the OpenAPI operation summary. */
+    title: string;
+    description: string;
+    zodSchema: import("zod").ZodObject<import("zod").ZodRawShape>;
+    metadata: OperationMetadata;
+    annotations: {
+        readOnlyHint: boolean;
+        destructiveHint: boolean;
+        openWorldHint: boolean;
+    };
+    securitySchemes: [{ type: "oauth2"; scopes: string[] }];
+    /**
+     * Set only on write-gated operations (every DELETE). Produces the human-readable
+     * summary the user is asked to confirm before `confirm_action` runs the call — the
+     * generated counterpart of WRITE_GATED_SUMMARIES in src/utils/toolsHandler.ts.
+     */
+    summary?: (args: Record<string, unknown>) => string;
+};

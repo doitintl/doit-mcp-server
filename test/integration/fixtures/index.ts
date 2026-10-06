@@ -1,40 +1,107 @@
 import {
+    activeThemeFixture,
     alertFixture,
     alertsFixture,
     allocationFixture,
     allocationsFixture,
+    annotationFixture,
+    annotationsFixture,
     budgetFixture,
     budgetsFixture,
+    commitmentFixture,
+    commitmentsFixture,
     createAlertFixture,
     createAllocationFixture,
+    createAnnotationFixture,
     createBudgetFixture,
+    createFolderFixture,
+    createLabelFixture,
     createReportFixture,
     dimensionFixture,
     dimensionsFixture,
+    folderFixture,
+    foldersFixture,
+    insightFixture,
+    labelAssignmentsFixture,
     labelFixture,
     labelsFixture,
+    postInsightResultFixture,
     queryResultFixture,
+    reportConfigFixture,
     reportResultsFixture,
     reportsFixture,
+    setActiveThemeFixture,
     updateAlertFixture,
     updateAllocationFixture,
+    updateAnnotationFixture,
     updateBudgetFixture,
+    updateFolderFixture,
+    updateLabelFixture,
+    updateReportFixture,
+    updateThemeFixture,
 } from "./analytics.js";
 import { anomaliesFixture, anomalyFixture } from "./anomalies.js";
-import { assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
-import { cloudDiagramsFixture } from "./cloudDiagrams.js";
-import { cloudflowTriggerFixture } from "./cloudflow.js";
+import { avaAskSyncFixture, avaAskSyncWithConversationFixture } from "./ava.js";
+import { assetDetailedFixture, assetsFixture, invoiceFixture, invoicesFixture } from "./billing.js";
+import {
+    cloudDiagramActivityGroupsFixture,
+    cloudDiagramComponentsFixture,
+    cloudDiagramCostSnapshotFixture,
+    cloudDiagramNodeActivitiesFixture,
+    cloudDiagramResourceRelationshipsFixture,
+    cloudDiagramsFixture,
+    cloudDiagramsSearchFixture,
+    cloudDiagramsStatsFixture,
+} from "./cloudDiagrams.js";
+import {
+    cloudflowConnectionCreatedFixture,
+    cloudflowConnectionFixture,
+    cloudflowConnectionsFixture,
+    cloudflowConnectionUpdatedFixture,
+    cloudflowTemplateFixture,
+    cloudflowTemplatesFixture,
+    cloudflowTriggerFixture,
+} from "./cloudflow.js";
 import { cloudIncidentFixture, cloudIncidentsFixture } from "./cloudIncidents.js";
-import { organizationsFixture, rolesFixture, usersFixture, validateUserFixture } from "./iam.js";
-import { platformsFixture, productsFixture, ticketsFixture } from "./support.js";
+import {
+    createDatahubDatasetFixture,
+    datahubDatasetFixture,
+    datahubDatasetsFixture,
+    sendDatahubEventsFixture,
+    updateDatahubDatasetFixture,
+} from "./datahub.js";
+import {
+    accountTeamFixture,
+    inviteUserFixture,
+    organizationsFixture,
+    resourcePermissionsFixture,
+    rolesFixture,
+    updateResourcePermissionsFixture,
+    updateUserFixture,
+    usersFixture,
+    validateUserFixture,
+} from "./iam.js";
+import {
+    createTicketCommentFixture,
+    platformsFixture,
+    productsFixture,
+    ticketCommentsFixture,
+    ticketDetailFixture,
+    ticketsFixture,
+} from "./support.js";
 
 export const fixtures = {
     organizations: organizationsFixture,
     roles: rolesFixture,
     users: usersFixture,
+    updateUser: updateUserFixture,
     platforms: platformsFixture,
     products: productsFixture,
     validateUser: validateUserFixture,
+    inviteUser: inviteUserFixture,
+    accountTeam: accountTeamFixture,
+    resourcePermissions: resourcePermissionsFixture,
+    updateResourcePermissions: updateResourcePermissionsFixture,
 
     cloudIncidents: cloudIncidentsFixture,
     cloudIncident: cloudIncidentFixture,
@@ -45,7 +112,9 @@ export const fixtures = {
     reports: reportsFixture,
     queryResult: queryResultFixture,
     reportResults: reportResultsFixture,
+    reportConfig: reportConfigFixture,
     createReport: createReportFixture,
+    updateReport: updateReportFixture,
     dimensions: dimensionsFixture,
     dimension: dimensionFixture,
 
@@ -62,18 +131,66 @@ export const fixtures = {
     invoices: invoicesFixture,
     invoice: invoiceFixture,
     assets: assetsFixture,
+    assetDetailed: assetDetailedFixture,
 
     tickets: ticketsFixture,
+    ticketDetail: ticketDetailFixture,
+    ticketComments: ticketCommentsFixture,
+    createTicketComment: createTicketCommentFixture,
 
     cloudDiagrams: cloudDiagramsFixture,
+    cloudDiagramsStats: cloudDiagramsStatsFixture,
+    cloudDiagramsSearch: cloudDiagramsSearchFixture,
+    cloudDiagramCostSnapshot: cloudDiagramCostSnapshotFixture,
+    cloudDiagramResourceRelationships: cloudDiagramResourceRelationshipsFixture,
+    cloudDiagramActivityGroups: cloudDiagramActivityGroupsFixture,
+    cloudDiagramNodeActivities: cloudDiagramNodeActivitiesFixture,
+    cloudDiagramComponents: cloudDiagramComponentsFixture,
+
+    datahubDatasets: datahubDatasetsFixture,
+    datahubDataset: datahubDatasetFixture,
+    createDatahubDataset: createDatahubDatasetFixture,
+    updateDatahubDataset: updateDatahubDatasetFixture,
+    sendDatahubEvents: sendDatahubEventsFixture,
 
     cloudflowTrigger: cloudflowTriggerFixture,
+    cloudflowConnections: cloudflowConnectionsFixture,
+    cloudflowConnection: cloudflowConnectionFixture,
+    cloudflowConnectionCreated: cloudflowConnectionCreatedFixture,
+    cloudflowConnectionUpdated: cloudflowConnectionUpdatedFixture,
+    cloudflowTemplates: cloudflowTemplatesFixture,
+    cloudflowTemplate: cloudflowTemplateFixture,
 
     label: labelFixture,
     labels: labelsFixture,
+    createLabel: createLabelFixture,
+    updateLabel: updateLabelFixture,
+    labelAssignments: labelAssignmentsFixture,
 
     budgets: budgetsFixture,
     budget: budgetFixture,
     createBudget: createBudgetFixture,
     updateBudget: updateBudgetFixture,
+
+    annotation: annotationFixture,
+    annotations: annotationsFixture,
+    createAnnotation: createAnnotationFixture,
+    updateAnnotation: updateAnnotationFixture,
+
+    folder: folderFixture,
+    folders: foldersFixture,
+    createFolder: createFolderFixture,
+    updateFolder: updateFolderFixture,
+
+    commitment: commitmentFixture,
+    commitments: commitmentsFixture,
+
+    activeTheme: activeThemeFixture,
+    setActiveTheme: setActiveThemeFixture,
+    updateTheme: updateThemeFixture,
+    insight: insightFixture,
+    postInsightResult: postInsightResultFixture,
+
+    avaAskSync: avaAskSyncFixture,
+    avaAskSyncWithConversation: avaAskSyncWithConversationFixture,
 };

@@ -321,6 +321,20 @@ export const alertFixture = {
     },
 };
 
+export const reportConfigFixture = {
+    id: "report-1",
+    name: "Monthly Cost Report",
+    type: "custom",
+    config: {
+        dataSource: "billing",
+        metrics: [{ type: "basic", value: "cost" }],
+        timeRange: { mode: "last", amount: 1, unit: "month", includeCurrent: true },
+        group: [{ id: "service_description", type: "fixed" }],
+        layout: "table",
+        currency: "USD",
+    },
+};
+
 export const createReportFixture = {
     id: "report-new-1",
     name: "My New Report",
@@ -328,6 +342,94 @@ export const createReportFixture = {
     type: "custom",
     config: { dataSource: "billing" },
     labels: [],
+};
+
+export const updateReportFixture = {
+    id: "report-1",
+    name: "Updated Report",
+    description: "An update via API",
+    type: "custom",
+    config: { dataSource: "billing" },
+    labels: [],
+};
+
+export const annotationFixture = {
+    id: "annotation-1",
+    content: "Budget threshold reached",
+    timestamp: "2026-01-15T00:00:00.000Z",
+    reports: ["report-1"],
+    labels: [{ id: "label-1", name: "Engineering" }],
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-01-02T00:00:00.000Z",
+};
+
+export const annotationsFixture = {
+    pageToken: "",
+    rowCount: 2,
+    annotations: [
+        {
+            id: "annotation-1",
+            content: "Budget threshold reached",
+            timestamp: "2026-01-15T00:00:00.000Z",
+            reports: ["report-1"],
+            labels: [{ id: "label-1", name: "Engineering" }],
+            createTime: "2026-01-01T00:00:00.000Z",
+            updateTime: "2026-01-02T00:00:00.000Z",
+        },
+        {
+            id: "annotation-2",
+            content: "Cost anomaly detected",
+            timestamp: "2026-02-01T00:00:00.000Z",
+            labels: [],
+            createTime: "2026-02-01T00:00:00.000Z",
+            updateTime: "2026-02-02T00:00:00.000Z",
+        },
+    ],
+};
+
+export const createAnnotationFixture = {
+    id: "annotation-new",
+    content: "New annotation content",
+    timestamp: "2026-03-01T00:00:00.000Z",
+    reports: ["report-1"],
+    labels: [{ id: "label-1", name: "Engineering" }],
+    createTime: "2026-03-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
+export const updateAnnotationFixture = {
+    id: "annotation-1",
+    content: "Updated annotation content",
+    timestamp: "2026-01-15T00:00:00.000Z",
+    reports: ["report-1"],
+    labels: [{ id: "label-1", name: "Engineering" }],
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
+export const createLabelFixture = {
+    id: "label-new",
+    name: "New Label",
+    color: "teal",
+    type: "custom",
+    createTime: "2026-03-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
+export const updateLabelFixture = {
+    id: "label-1",
+    name: "Updated Engineering",
+    color: "purple",
+    type: "custom",
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
+export const labelAssignmentsFixture = {
+    assignments: [
+        { objectId: "report-1", objectType: "report" },
+        { objectId: "budget-1", objectType: "budget" },
+    ],
 };
 
 export const updateAlertFixture = {
@@ -348,4 +450,140 @@ export const updateAlertFixture = {
         dataSource: "billing",
         value: 2000,
     },
+};
+
+export const commitmentsFixture = {
+    pageToken: "",
+    rowCount: 1,
+    commitments: [
+        {
+            id: "commitment-1",
+            name: "GCP 3-Year CUD",
+            startDate: "2025-01-01T00:00:00.000Z",
+            endDate: "2028-01-01T00:00:00.000Z",
+            currency: "USD",
+            cloudProvider: "google-cloud",
+            totalCommitmentValue: 100000,
+            totalCurrentAttainment: 75000,
+            periods: [
+                {
+                    startDate: "2025-01-01T00:00:00.000Z",
+                    endDate: "2026-01-01T00:00:00.000Z",
+                    commitmentValue: 33333,
+                    marketplaceLimitPercentage: 25,
+                },
+            ],
+            createTime: 1735689600000,
+            updateTime: 1750032000000,
+        },
+    ],
+};
+
+export const commitmentFixture = {
+    id: "commitment-1",
+    name: "GCP 3-Year CUD",
+    startDate: "2025-01-01T00:00:00.000Z",
+    endDate: "2028-01-01T00:00:00.000Z",
+    currency: "USD",
+    cloudProvider: "google-cloud",
+    totalCommitmentValue: 100000,
+    totalCurrentAttainment: 75000,
+    periods: [
+        {
+            startDate: "2025-01-01T00:00:00.000Z",
+            endDate: "2026-01-01T00:00:00.000Z",
+            commitmentValue: 33333,
+            marketplaceLimitPercentage: 25,
+        },
+    ],
+    createTime: 1735689600000,
+    updateTime: 1750032000000,
+};
+
+export const activeThemeFixture = {
+    themeId: "theme-1",
+};
+
+export const setActiveThemeFixture = {
+    themeId: "theme-2",
+};
+
+export const updateThemeFixture = {
+    id: "theme-1",
+    name: "Ocean Updated",
+    primaryColor: "#0B57D0",
+    colors: {
+        light: ["#0B57D0", "#34A853"],
+        dark: ["#0842A0", "#1E8E3E"],
+    },
+    createTime: "2026-01-01T00:00:00.000Z",
+    updateTime: "2026-03-01T00:00:00.000Z",
+};
+
+export const insightFixture = {
+    key: "delete-ebs-volumes",
+    source: "aws-cost-optimization-hub",
+    title: "Delete unattached EBS volumes",
+    shortDescription: "Remove idle EBS volumes to reduce cost.",
+    detailedDescriptionMdx: "Unattached EBS volumes continue to incur storage charges.",
+    displayStatus: "actionable",
+    cloudProvider: "aws",
+    categories: ["FinOps"],
+    summary: {
+        operationalRisks: 0,
+        performanceRisks: 0,
+        potentialDailySavings: 12.5,
+        reliabilityRisks: 0,
+        securityRisks: 0,
+        sustainabilityRisks: 0,
+    },
+    lastUpdated: "2026-06-01T00:00:00.000Z",
+    tags: [],
+};
+
+// Response body returned by POST /insights/v1/results/source/{sourceID}/insight/{insightKey}
+// (create or update a single insight's metadata).
+export const postInsightResultFixture = {
+    source: "public-api",
+    key: "idle-ec2",
+    title: "Idle EC2 instances",
+    shortDescription: "Stop idle EC2 instances to save cost.",
+    displayStatus: "actionable",
+    cloudProvider: "aws",
+    categories: ["FinOps"],
+    lastUpdated: "2026-07-01T00:00:00.000Z",
+};
+
+export const folderFixture = {
+    id: "folder-1",
+    name: "Analytics",
+    description: "Cloud Analytics reports",
+    parentFolderId: "root",
+};
+
+export const foldersFixture = {
+    pageToken: "",
+    rowCount: 1,
+    folders: [
+        {
+            id: "folder-1",
+            name: "Analytics",
+            description: "Cloud Analytics reports",
+            parentFolderId: "root",
+        },
+    ],
+};
+
+export const createFolderFixture = {
+    id: "folder-new",
+    name: "New Folder",
+    description: "A newly created folder",
+    parentFolderId: "root",
+};
+
+export const updateFolderFixture = {
+    id: "folder-1",
+    name: "Analytics Renamed",
+    description: "Updated description",
+    parentFolderId: "root",
 };

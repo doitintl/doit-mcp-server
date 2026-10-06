@@ -1,31 +1,48 @@
 # AGENTS.md
 
+## Public Repo
+
+This repo is public. Do not commit or write into PR titles/descriptions: internal Jira issue keys
+(e.g. `CMP-1234`), names of private/internal repos, or other internal-only details. Keep references
+generic (e.g. "a separate private repo") instead.
+
 ## Environment Setup
 
-Requires Node.js `>=18`. Install dependencies before running any commands:
+Requires Node.js `>=20` (the MCP SDK v2 packages set that floor). Install dependencies
+before running any commands:
 
 ```sh
 yarn install
 ```
 
+**Yarn 1 (classic), pinned.** Both `yarn.lock` files are v1 format and CI resolves `yarn` from the
+runner image, so the version is pinned in `package.json` via `packageManager` (for Corepack) and
+`volta` (for Volta) — in this directory *and* in `test/integration`, which is a separate project
+with its own lockfile. Running a Yarn 2+ binary here fails with "This package doesn't seem to be
+present in your lockfile" or "The lockfile would have been modified by this install"; if you see
+either, your shell resolved an unpinned Yarn. Do not commit a berry-format lockfile or a
+`.yarnrc.yml` without migrating both projects and all four workflows together.
+
+**Never run `npm install`.** npm lockfiles are gitignored, rejected by the `no-npm-lockfiles`
+pre-commit hook, and fail the `Enforce yarn` step in `test.yml`. `npm` is still used deliberately
+for *publishing only* — `release.yml`'s `publish-npm` job needs the npm CLI for Trusted Publishing
+(OIDC + provenance), which yarn cannot do. That is registry publication, not dependency management.
+There is deliberately no local publish script: publishing happens only from that CI job.
+
 ## Project Overview
 
 DoiT MCP Server is a Model Context Protocol (MCP) server that provides LLMs with access to the DoiT API.
 
-The project consists of two main packages:
+This repo is the stdio MCP server plus a transport-independent core package:
 
-1. **Main Package (`src/`)** - Core MCP server implementation using stdio transport
+1. **stdio server (`src/`)** - Core MCP server implementation using stdio transport
    - Published as `@doitintl/doit-mcp-server` on npm
    - Runs locally via `npx` or stdio connection
    - Entry point: `src/index.ts`
 
-2. **HTTP/SSE Package (`doit-mcp-server/`)** - Cloudflare Workers deployment
-   - Exposes the MCP server over HTTP/SSE protocol
-   - Deployed at `https://mcp.doit.com/sse`
-   - Includes OAuth authentication flow
-   - Uses Cloudflare Durable Objects for session persistence
-   - Entry point: `doit-mcp-server/src/index.ts`
-   - Imports and wraps tools from the main package (`../../src/tools/`)
+2. **Core export (`src/core.ts`)** - Transport-independent tools, prompts, and utilities
+   - Published as the `@doitintl/doit-mcp-server/core` subpath
+   - Consumed by a remote Cloudflare Worker that lives in a separate private repo
 
 ## Project Structure
 
@@ -33,12 +50,13 @@ The project consists of two main packages:
 ```
 src/
 ├── index.ts              # Entry point (stdio transport)
-├── server.ts             # MCP server setup and request handlers
+├── stdio.ts              # serveDoitStdio: serves 2025-era and 2026-07-28 clients (see docs/protocol-compatibility.md)
+├── server.ts             # MCP server setup and request handlers (createServer is the per-connection factory)
 ├── tools/                # MCP tool implementations
 │   └── __tests__/        # Tool tests
 ├── types/                # Tools and general type definitions
 ├── utils/                # Shared utilities
-│   ├── util.ts           # General utilities (debugLog, toSnakeCase, etc.)
+│   ├── util.ts           # General utilities (debugLog, etc.)
 │   ├── prompts.ts        # MCP prompt definitions
 │   ├── consts.ts         # Constants
 │   ├── toolsHandler.ts   # Tool request handler
@@ -46,19 +64,8 @@ src/
 └── __tests__/            # Server-level tests
 ```
 
-### HTTP/SSE Package (`doit-mcp-server/`)
-```
-doit-mcp-server/
-├── src/
-│   ├── index.ts          # Cloudflare Worker entry point
-│   ├── app.ts            # Hono app for OAuth UI
-│   └── utils.ts          # Worker-specific utilities
-└── package.json          # Separate dependencies for Worker
-```
-
-The HTTP/SSE package imports tools and utilities from the main package and wraps them with:
-- OAuth authentication flow
-- HTTP/SSE transport layer
+The remote HTTP/SSE Worker (OAuth, Durable Objects, Streamable HTTP/SSE transport) lives in a
+separate private repo and consumes this package's `/core` export.
 
 ## Development Commands
 
@@ -89,30 +96,25 @@ Use `yarn` for all package management and development tasks:
 
 Each tool file in `src/tools/` should follow this pattern:
 
-1. **Tool Definition**: Export a tool object with `name`, `description`, and `inputSchema`
+1. **Tool Definition**: Export a Zod argument schema with inline `.describe()` text and a tool object with `name`, `description`, and `inputSchema: zodToMcpInputSchema(ArgumentsSchema)`. Never write a separate JSON input schema.
 2. **Handler Function**: Export a handler function that processes the tool request
 3. **Tests**: Create corresponding test file in `__tests__/` directory in file name matching the module under test. vitest is used as testing framework
 
 Example structure:
 ```typescript
 import { z } from "zod";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 
-// Zod schema for runtime validation
-const MyToolSchema = z.object({
-    param1: z.string(),
+// Single source for runtime validation and parameter descriptions
+export const MyToolSchema = z.object({
+    param1: z.string().describe("Description of this parameter."),
 });
 
-// Tool definition with raw inputSchema for MCP registration
+// Derive the stdio schema from the same Zod schema exported for remote registration
 export const myTool = {
     name: "my_tool",
     description: "Description of what the tool does",
-    inputSchema: {
-        type: "object",
-        properties: {
-            param1: { type: "string", description: "..." },
-        },
-        required: ["param1"],
-    },
+    inputSchema: zodToMcpInputSchema(MyToolSchema),
 };
 
 // Handler: args typed as any, validated at runtime via Zod
@@ -125,7 +127,6 @@ export async function handleMyToolRequest(args: any, token: string) {
 ### Utility Functions
 
 Common utilities are located in `src/utils/util.ts`:
-- `toSnakeCase(str)` - Convert strings to snake_case
 - `debugLog(message, level)` - Debug logging with levels
 
 ### Testing
@@ -139,14 +140,25 @@ Common utilities are located in `src/utils/util.ts`:
 When adding a new MCP tool:
 
 1. Create tool file in `src/tools/`
-2. Define a Zod schema for runtime validation and a raw `inputSchema` object for MCP registration (both are needed — see example below)
+2. Define and export one Zod argument schema with inline `.describe()` text, then derive `inputSchema` with `zodToMcpInputSchema` (see example above). Both transports must use this same schema.
 3. Implement handler function
-4. Register tool in `src/server.ts` (stdio transport)
-5. Register tool in `doit-mcp-server/src/index.ts` (HTTP/SSE transport)
-6. Add tests in `src/tools/__tests__/`
-7. Update README.md with tool documentation
+4. Register tool in `src/server.ts` (stdio transport) — via `src/tools/handWrittenTools.ts`'s `HAND_WRITTEN_TOOLS` array
+5. Export the tool and its schema from `src/core.ts` so the remote Worker (separate private repo) can register it
+6. If the tool duplicates an OpenAPI operation from `src/tools/generated/openapi.json`, add `coversEndpoint: "method:path"` to the tool object itself (see `docs/generated-tools-coverage.md`) so the generator skips that operation automatically — no separate list to update
+7. Add tests in `src/tools/__tests__/`
 
-**Note**: Tools must be registered in both transports to be available in all deployment modes.
+**Note**: Tools must be registered for stdio *and* exported from `src/core.ts` to be available in all deployment modes.
+
+## Auto-generated tools (`src/tools/generated/`)
+
+Every OpenAPI operation not covered by a hand-written tool above is exposed automatically:
+
+- `openapi.json` — a pre-dereferenced (zero `$ref`) snapshot of the DoiT external API spec, checked in and statically imported by both transports (the Worker has no filesystem, so this can't be loaded at runtime). Refresh it manually with `yarn generate:refresh-spec` when the API spec changes.
+- `../handWrittenTools.ts` — `HAND_WRITTEN_TOOLS` (every hand-written tool registered via stdio) and `COVERED_ENDPOINTS` (a `Set<string>` of `"method:path"` keys derived from each tool's own `coversEndpoint` field). See `docs/generated-tools-coverage.md` for the full mechanism.
+- `generateTools.ts` — builds one tool per operation not in `coveredEndpoints` (snake_case name from `operationId`, Zod schema from the OpenAPI parameter/body schemas, `readOnlyHint`/`destructiveHint` from the HTTP method). Takes the covered-endpoints set as a parameter — both transports pass `COVERED_ENDPOINTS`.
+- `callOperation.ts` — generic request executor shared by both transports. Multipart file fields are base64-encoded content (not a local path) so the same tool contract works on stdio and the filesystem-less Worker.
+
+Both transports inject their own tool registry into `executeToolHandler`'s `generatedTools` option (see `ToolHandlerOptions` in `src/utils/toolsHandler.ts`) rather than importing a shared singleton — stdio loads the spec via `fs`, the Worker via a static import, and the dispatch code in `toolsHandler.ts` stays transport-agnostic.
 
 The project uses:
 - **TypeScript** for type safety

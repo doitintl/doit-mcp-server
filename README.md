@@ -6,84 +6,63 @@ DoiT MCP Server provides access to the DoiT API. This server enables LLMs like C
 
 ![top-services](https://github.com/user-attachments/assets/749dd237-3021-439d-b447-64605393389d)
 
-## Requirements
+## Authentication
 
-- Node.js v18 or higher
-- DoiT API key with appropriate permissions
+How you authenticate depends on the connection method:
 
-## Installation
+| Method | URL / command | Auth |
+| --- | --- | --- |
+| Remote (Streamable HTTP) | `https://mcp.doit.com/mcp` | OAuth — your client opens a DoiT sign-in and consent page. Headless clients can instead send a customer personal API token as `Authorization: Bearer`. |
+| Local (stdio) | `npx -y @doitintl/doit-mcp-server@latest` | Personal API token via `DOIT_API_KEY`. |
 
-To get your DoiT API key, visit the [API key section in your DoiT profile](https://help.doit.com/docs/general/profile#api-key).
+The legacy SSE endpoint (`https://mcp.doit.com/sse`) is deprecated and should not be used for new setups.
 
-There are several ways to install and configure the MCP server:
+Your DoiT plan must include API access. Tools follow the same permissions as the [DoiT API](https://developer.doit.com/).
 
-### DoiT MCP URL
+Tool results are capped at 140,000 serialized UTF-16 code units after response
+formatting, including structured content and metadata. Oversized reads return an
+actionable error; completed writes return a compact success receipt and must not
+be repeated just to retrieve their output. Errors remain errors. This is a response
+size policy, not a token limit or a bound on upstream downloads.
 
-The DoiT MCP server is available at: https://mcp.doit.com/sse
+Each dispatched call emits a payload-free JSON `mcp_tool_response` event to stderr
+on stdio; some clients display these logs. Hosts can supply `onResponseMetrics`
+to route the events elsewhere. Use `original.serializedChars` for response-size
+percentiles and `exceededLimit` for over-limit rates; `returned` measures the result
+after the guard. Metrics also include UTF-8 byte counts, duration, tool/client, and
+disposition, without tool arguments or response bodies.
 
-### Claude Desktop App
+The Claude Desktop steps below are examples, not the only supported clients. Cursor, VS Code, Amazon Q, Claude Code, and others are covered in the [Connections](https://help.doit.com/docs/mcp/connections) guide.
 
-```json
-{
-  "mcpServers": {
-    "doit_mcp_server": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://mcp.doit.com/sse"]
-    }
-  }
-}
+## Remote (Streamable HTTP)
+
+Example with Claude Desktop: add a custom connector (**+ → Add connector → Add custom connector**) and set the remote MCP server URL to `https://mcp.doit.com/mcp`. Complete DoiT sign-in when prompted.
+
+### Headless clients (API token)
+
+Agents that cannot open a browser (for example HolmesGPT on a cluster, CI jobs, cron workers) can authenticate to the same endpoint with a customer [personal API token](https://help.doit.com/docs/general/profile/api-tokens) sent as a bearer header. Tools run with that token's permissions, exactly as on stdio. DoiT employee tokens are not accepted on the remote endpoint; employees use OAuth or the local server.
+
+Example with HolmesGPT:
+
+```yaml
+mcp_servers:
+  doit:
+    description: "DoiT Cloud Intelligence"
+    config:
+      url: "https://mcp.doit.com/mcp"
+      mode: streamable-http
+      headers:
+        Authorization: "Bearer {{ env.DOIT_API_KEY }}"
+      health_check_tool: "validate_user"
 ```
 
-### AWS Q CLI
+Keep the token in a secret store and rotate it on a schedule. Design notes: [docs/remote-api-key-bearer-auth.md](docs/remote-api-key-bearer-auth.md).
 
-1. Create an API key in the [API section](https://app.doit.com/profile/api) of the DoiT Console.
-2. Note the API key value for the below command.
-3. Run the following command:
+## Local (stdio)
 
-```bash
-q mcp-server create --name doit-mcp-server --url https://mcp.doit.com/sse --api-key your_doit_api_key
-```
+Requires Node.js v20 or higher and a personal API token as `DOIT_API_KEY`. Create a token from the [Personal API tokens](https://help.doit.com/docs/general/profile/api-tokens) page in the DoiT console.
 
-4. Start q chat by running this command:
-
-```bash
-q chat
-```
-
-5. Ensure that it connects and lists it as doit-mcp-server loaded at the top of the chat session.
-
-## STDIO - local server
-
-### Claude Desktop App
-
-To manually configure the MCP server for Claude Desktop App, add the following to your `claude_desktop_config.json` file or through "Settings" as described [here](https://modelcontextprotocol.io/quickstart/user#2-add-the-filesystem-mcp-server):
-
-```json
-{
-  "mcpServers": {
-    "doit_mcp_server": {
-      "command": "npx",
-      "args": ["-y", "@doitintl/doit-mcp-server@latest"],
-      "env": {
-        "DOIT_API_KEY": "your_doit_api_key"
-      }
-    }
-  }
-}
-```
-
-Make sure to replace the environment variables with your actual values:
-
-- `DOIT_API_KEY`: Your DoiT API key with appropriate permissions
-- `CUSTOMER_CONTEXT`: Your customer context identifier (optional) - Required for Do’ers
-
-NOTE: you need to [restart Claude for Desktop](https://modelcontextprotocol.io/quickstart/user#3-restart-claude) after updating the configuration for changes to take effect.
-
-### Cursor
-
-Don't forget to replace the `env` values in that command with your actual values.
-
-If you have the latest version (v0.47 and above) of Cursor, you can create an `mcp.json` file in your project root:
+Example with Claude Desktop — add the following to `claude_desktop_config.json` (or Settings), then [restart Claude](https://modelcontextprotocol.io/quickstart/user#3-restart-claude):
 
 ```json
 {
@@ -98,6 +77,18 @@ If you have the latest version (v0.47 and above) of Cursor, you can create an `m
   }
 }
 ```
+
+- `DOIT_API_KEY`: Your DoiT API token (required)
+- `CUSTOMER_CONTEXT`: Customer context identifier (optional)
+
+### Supported MCP protocol versions
+
+The stdio server works with clients of both MCP protocol eras without any configuration:
+
+- `2024-10-07` through `2025-11-25`, through the `initialize` handshake.
+- `2026-07-28`, through `server/discover`.
+
+Each connection's opening message decides which era it uses. See [docs/protocol-compatibility.md](docs/protocol-compatibility.md) for the details and the tests that verify it.
 
 ### Clone to Local Repository
 
@@ -125,36 +116,32 @@ yarn build
 4. **Run the server**
 
 ```bash
-node dist/index.js
+DOIT_API_KEY=your_doit_api_key node dist/index.js
 ```
 
-## Tools
+## Core package API
 
-This MCP server provides many tools including the following:
+Applications that provide their own MCP transport can reuse the published,
+transport-independent implementation:
 
-- [`get_cloud_incidents`](https://developer.doit.com/reference/listknownissues): Retrieve cloud incidents from various platforms
-- [`get_cloud_incident`](https://developer.doit.com/reference/getknownissue): Get details about a specific cloud incident by ID
-- [`get_anomalies`](https://developer.doit.com/reference/listanomalies): Retrieve anomalies detected in cloud resources
-- [`get_anomaly`](https://developer.doit.com/reference/getanomaly): Get details about a specific anomaly by ID
-- [`list_reports`](https://developer.doit.com/reference/listreports): Lists Cloud Analytics reports that your account has access to
-- [`run_query`](https://developer.doit.com/reference/query): Runs a report query with the specified configuration without persisting it
-- [`get_report_results`](https://developer.doit.com/reference/getreport): Get the results of a specific report by ID
-- [`create_report`](https://developer.doit.com/reference/createreport): Creates a new Cloud Analytics report with the specified configuration
-- [`validate_user`](https://developer.doit.com/reference/validate): Validates the current API user and returns domain and email information
-- [`list_dimensions`](https://developer.doit.com/reference/listdimensions): Lists Cloud Analytics dimensions that your account has access to
-- [`get_dimension`](https://developer.doit.com/reference/getdimensions): Get a specific Cloud Analytics dimension by type and ID
-- [`list_tickets`](https://developer.doit.com/reference/idoftickets): List support tickets from DoiT using the support API
-- [`list_invoices`](https://developer.doit.com/reference/listinvoices): List all current and historical invoices for your organization from the DoiT API
-- [`get_invoice`](https://developer.doit.com/reference/getinvoice): Retrieve the full details of an invoice specified by the invoice number from the DoiT API
-- [`list_allocations`](https://developer.doit.com/reference/listallocations): List allocations for report or run_query configuration that your account has access to from the DoiT API
-- [`get_allocation`](https://developer.doit.com/reference/getallocation): Get a specific allocation by ID from the DoiT API
-- [`create_allocation`](https://developer.doit.com/reference/createallocation): Create a new allocation
-- [`update_allocation`](https://developer.doit.com/reference/updateallocation): Update an existing allocation
-- [`list_alerts`](https://developer.doit.com/reference/listalerts): Returns a list of alerts that your account has access to
-- [`get_alert`](https://developer.doit.com/reference/getalert): Returns a specific alert by ID.
-- [`create_alert`](https://developer.doit.com/reference/createalert): Creates a new alert to notify when cloud costs exceed defined thresholds
-- [`update_alert`](https://developer.doit.com/reference/updatealert): Updates an existing alert by ID
+```bash
+npm install @doitintl/doit-mcp-server@latest
+```
 
+```ts
+import {
+    COVERED_ENDPOINTS,
+    executeToolHandler,
+    generateTools,
+    generatedToolsOpenApiSpec,
+    HAND_WRITTEN_TOOLS,
+} from "@doitintl/doit-mcp-server/core";
+```
+
+The `/core` entry includes the tool and prompt definitions, generated-tool
+utilities, request handling, and shared configuration APIs. It does not initialize
+the stdio transport or include the Cloudflare Worker, OAuth, Durable Objects, or
+widget implementation.
 
 ## Usage Examples
 
@@ -184,5 +171,7 @@ These examples demonstrate basic usage patterns. You can combine and modify thes
 
 ## Environment Variables
 
-- `DOIT_API_KEY`: Your DoiT API key (required)
+Used by the local stdio server. Remote `/mcp` connections authenticate with OAuth.
+
+- `DOIT_API_KEY`: Your DoiT [personal API token](https://help.doit.com/docs/general/profile/api-tokens) (required for stdio)
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)

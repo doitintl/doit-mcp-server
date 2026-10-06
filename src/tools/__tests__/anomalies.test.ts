@@ -146,9 +146,9 @@ Top SKUs:
                     method: "GET",
                 }
             );
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Found 1 anomalies"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("rowCount"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Found 1 anomalies") }],
+                content: [{ type: "text", text: expect.stringContaining("rowCount") }],
             });
         });
 
@@ -247,10 +247,22 @@ Top SKUs:
                 appendParams: true,
                 method: "GET",
             });
-            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("Anomaly details:"));
+            expect(createSuccessResponse).toHaveBeenCalledWith(expect.stringContaining("severityLevel"));
             expect(response).toEqual({
-                content: [{ type: "text", text: expect.stringContaining("Anomaly details:") }],
+                content: [{ type: "text", text: expect.stringContaining("severityLevel") }],
             });
+        });
+
+        it("encodes reserved characters in the anomaly id so it stays a single path segment", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue({ id: "x" });
+
+            await handleAnomalyRequest({ id: "../cloudincidents/v1?x=1#frag" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/anomalies/v1/..%2Fcloudincidents%2Fv1%3Fx%3D1%23frag",
+                mockToken,
+                { appendParams: true, method: "GET" }
+            );
         });
 
         it("should handle API request failure", async () => {

@@ -16,8 +16,21 @@ export const ListPlatformsArgumentsSchema = z.object({});
 
 export const listPlatformsTool = {
     name: "list_platforms",
-    description: "Returns a list of all the available platforms from DoiT API.",
+    title: "List platforms",
+    coversEndpoint: "get:/support/v1/metadata/platforms",
+    description:
+        "Use this when the user wants to see available cloud platforms in their DoiT account. Returns a list of platforms. Do NOT use this for cloud incidents (use get_cloud_incidents) or products (use list_products).",
     inputSchema: zodToMcpInputSchema(ListPlatformsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading platforms...",
+        "openai/toolInvocation/invoked": "Platforms loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export async function handleListPlatformsRequest(args: any, token: string) {

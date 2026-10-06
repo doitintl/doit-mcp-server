@@ -1,18 +1,18 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { HttpResponse, http } from "msw";
+import { delay, HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { generatedTools } from "../../../src/tools/generated/registry.js";
+import { HAND_WRITTEN_TOOLS } from "../../../src/tools/handWrittenTools.js";
 import { createTestClient, getTextContent } from "../helpers.js";
 import { mswServer } from "../setup.js";
 
 describe("MCP Tools Integration", () => {
     let client: Client;
-    let _server: Server;
     let cleanup: () => Promise<void>;
 
     beforeEach(async () => {
         vi.spyOn(console, "error").mockImplementation(() => {});
-        ({ client, _server, cleanup } = await createTestClient());
+        ({ client, cleanup } = await createTestClient());
     });
 
     afterEach(async () => {
@@ -21,48 +21,42 @@ describe("MCP Tools Integration", () => {
     });
 
     describe("tools/list", () => {
-        it("returns all registered tools", async () => {
+        it("returns customer-visible tools for a customer key", async () => {
             const result = await client.listTools();
             const names = result.tools.map((t) => t.name).sort();
 
-            expect(names).toEqual([
-                "create_alert",
-                "create_allocation",
-                "create_budget",
-                "create_report",
-                "find_cloud_diagrams",
-                "get_alert",
-                "get_allocation",
-                "get_anomalies",
-                "get_anomaly",
-                "get_budget",
-                "get_cloud_incident",
-                "get_cloud_incidents",
-                "get_dimension",
-                "get_invoice",
-                "get_label",
-                "get_report_results",
-                "list_alerts",
-                "list_allocations",
-                "list_assets",
-                "list_budgets",
-                "list_dimensions",
-                "list_invoices",
-                "list_labels",
-                "list_organizations",
-                "list_platforms",
-                "list_products",
-                "list_reports",
-                "list_roles",
-                "list_tickets",
-                "list_users",
-                "run_query",
-                "trigger_cloud_flow",
-                "update_alert",
-                "update_allocation",
-                "update_budget",
-                "validate_user",
-            ]);
+            // Expected surface = every hand-written tool (see src/tools/handWrittenTools.ts)
+            // plus every auto-generated tool for OpenAPI operations they don't cover
+            // (see src/tools/generated/registry.ts). Deriving this from the same source
+            // modules server.ts uses — rather than a hardcoded list — avoids this test
+            // going stale every time an operation is added to the OpenAPI spec.
+            const expectedNames = [
+                ...HAND_WRITTEN_TOOLS.filter((tool) => tool.name !== "search_customers").map((tool) => tool.name),
+                ...generatedTools.map((tool) => tool.name),
+            ].sort();
+
+            expect(names).toEqual(expectedNames);
+            expect(names).not.toContain("change_customer");
+        });
+
+        it("returns a clear error for a direct employee-only call from a customer key", async () => {
+            const result = await client.callTool({ name: "search_customers", arguments: {} });
+
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toBe("search_customers is available only to DoiT employees");
+        });
+
+        it("includes search_customers for an employee key", async () => {
+            const savedKey = process.env.DOIT_API_KEY;
+            const payload = Buffer.from(JSON.stringify({ sub: "employee@doit.com" })).toString("base64url");
+            process.env.DOIT_API_KEY = `e30.${payload}.sig`;
+            try {
+                const result = await client.listTools();
+
+                expect(result.tools.map((tool) => tool.name)).toContain("search_customers");
+            } finally {
+                process.env.DOIT_API_KEY = savedKey;
+            }
         });
 
         it("each tool has a name, description, and inputSchema", async () => {
@@ -103,6 +97,176 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("list_account_team", () => {
+        it("returns account managers from mock API", async () => {
+            const result = await client.callTool({ name: "list_account_team", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.accountManagers).toHaveLength(2);
+            expect(parsed.accountManagers[0].id).toBe("mgr-123");
+            expect(parsed.accountManagers[0].email).toBe("manager@doit.com");
+            expect(parsed.accountManagers[0].name).toBe("John Manager");
+            expect(parsed.accountManagers[0].role).toBe("Account Manager");
+            expect(parsed.accountManagers[0].calendlyLink).toBe("https://calendly.com/john-manager");
+            expect(parsed.accountManagers[1].id).toBe("fsr-456");
+        });
+    });
+
+    describe("get_resource_permissions", () => {
+        it("returns sharing settings for a budget resource", async () => {
+            const result = await client.callTool({
+                name: "get_resource_permissions",
+                arguments: { resourceType: "budgets", resourceId: "budget-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-1");
+            expect(parsed.name).toBe("Q4 Cloud Spend");
+            expect(parsed.permissions).toHaveLength(2);
+            expect(parsed.permissions[0].user).toBe("owner@example.com");
+            expect(parsed.permissions[0].role).toBe("owner");
+            expect(parsed.permissions[1].role).toBe("viewer");
+            expect(parsed.public).toBe("viewer");
+        });
+
+        it("returns a validation error for an invalid resourceType", async () => {
+            const result = await client.callTool({
+                name: "get_resource_permissions",
+                arguments: { resourceType: "widgets", resourceId: "budget-1" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_active_theme", () => {
+        it("returns the active theme id from the mock API", async () => {
+            const result = await client.callTool({ name: "get_active_theme", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.themeId).toBe("theme-1");
+        });
+    });
+
+    describe("set_active_theme", () => {
+        it("sets the active theme and returns the updated active theme", async () => {
+            const result = await client.callTool({ name: "set_active_theme", arguments: { themeId: "theme-2" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.themeId).toBe("theme-2");
+        });
+
+        it("returns a validation error when themeId is missing", async () => {
+            const result = await client.callTool({ name: "set_active_theme", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("themeId");
+        });
+    });
+
+    describe("update_theme", () => {
+        it("updates a theme by id and returns the updated theme", async () => {
+            const result = await client.callTool({
+                name: "update_theme",
+                arguments: { id: "theme-1", newName: "Ocean Updated" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("theme-1");
+            expect(parsed.name).toBe("Ocean Updated");
+            expect(parsed.primaryColor).toBe("#0B57D0");
+        });
+
+        it("returns a validation error when neither id nor name is provided", async () => {
+            const result = await client.callTool({
+                name: "update_theme",
+                arguments: { newName: "X" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Either id or name must be provided");
+        });
+
+        it("returns a validation error when no update fields are provided", async () => {
+            const result = await client.callTool({
+                name: "update_theme",
+                arguments: { id: "theme-1" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("newName");
+        });
+    });
+
+    describe("get_insight", () => {
+        it("returns a single insight by source and key", async () => {
+            const result = await client.callTool({
+                name: "get_insight",
+                arguments: { source: "aws-cost-optimization-hub", key: "delete-ebs-volumes" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.key).toBe("delete-ebs-volumes");
+            expect(parsed.source).toBe("aws-cost-optimization-hub");
+            expect(parsed.title).toBe("Delete unattached EBS volumes");
+            expect(parsed.summary.potentialDailySavings).toBe(12.5);
+        });
+
+        it("returns a validation error when key is missing", async () => {
+            const result = await client.callTool({
+                name: "get_insight",
+                arguments: { source: "aws-cost-optimization-hub" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("post_insight_result", () => {
+        it("creates or updates an insight and returns the insight result", async () => {
+            const result = await client.callTool({
+                name: "post_insight_result",
+                arguments: {
+                    key: "idle-ec2",
+                    title: "Idle EC2 instances",
+                    shortDescription: "Stop idle EC2 instances to save cost.",
+                    cloudProvider: "aws",
+                    categories: ["FinOps"],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.key).toBe("idle-ec2");
+            expect(parsed.source).toBe("public-api");
+            expect(parsed.displayStatus).toBe("actionable");
+        });
+
+        it("returns a validation error when required fields are missing", async () => {
+            const result = await client.callTool({
+                name: "post_insight_result",
+                arguments: { key: "idle-ec2" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("update_insight_status", () => {
+        it("updates the status of an insight (204 No Content)", async () => {
+            const result = await client.callTool({
+                name: "update_insight_status",
+                arguments: { key: "idle-ec2", status: "acknowledged" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.success).toBe(true);
+            expect(parsed.status).toBe("acknowledged");
+            expect(parsed.key).toBe("idle-ec2");
+        });
+
+        it("returns a validation error for an invalid status", async () => {
+            const result = await client.callTool({
+                name: "update_insight_status",
+                arguments: { key: "idle-ec2", status: "bogus" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
     describe("list_users", () => {
         it("returns users from mock API", async () => {
             const result = await client.callTool({ name: "list_users", arguments: {} });
@@ -111,6 +275,80 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("bob@example.com");
             expect(text).toContain("Alice Smith");
             expect(text).toContain("Bob Jones");
+        });
+    });
+
+    describe("update_user", () => {
+        it("returns updated user from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1", lastName: "Johnson", jobFunction: "Management" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User updated successfully");
+            expect(parsed.user.id).toBe("user-1");
+            expect(parsed.user.lastName).toBe("Johnson");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { firstName: "Alice" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("rejects id-only update (no fields to update)", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("At least one field");
+        });
+
+        it("accepts language es", async () => {
+            const result = await client.callTool({
+                name: "update_user",
+                arguments: { id: "user-1", language: "es" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User updated successfully");
+        });
+    });
+
+    describe("invite_user", () => {
+        it("returns invite response from mock API", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { email: "invited@example.com", roleId: "role-1", organizationId: "org-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("User invited successfully");
+            expect(parsed.user.email).toBe("invited@example.com");
+            expect(parsed.user.status).toBe("invited");
+        });
+
+        it("rejects missing email", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { roleId: "role-1" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("rejects invalid email format", async () => {
+            const result = await client.callTool({
+                name: "invite_user",
+                arguments: { email: "not-an-email" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
         });
     });
 
@@ -203,12 +441,9 @@ describe("MCP Tools Integration", () => {
             const text = getTextContent(result);
             expect(text).toContain("anom-1");
             expect(text).toContain("Compute Engine");
-            expect(text).toContain("$150.50");
+            expect(text).toContain("150.5");
             expect(text).toContain("gcp");
             expect(text).toContain("high");
-            expect(text).toContain("SKU A");
-            expect(text).toContain("SKU B");
-            expect(text).toContain("SKU C");
         });
     });
 
@@ -236,7 +471,6 @@ describe("MCP Tools Integration", () => {
                 },
             });
             const text = getTextContent(result);
-            expect(text).toContain("Query Results");
             expect(text).toContain("service_description");
             expect(text).toContain("Compute Engine");
             expect(text).toContain("Cloud Storage");
@@ -255,6 +489,19 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("alice@example.com");
             expect(text).toContain("1234.56");
             expect(text).toContain("567.89");
+        });
+    });
+
+    describe("get_report_config", () => {
+        it("returns the config for a specific report", async () => {
+            const result = await client.callTool({ name: "get_report_config", arguments: { id: "report-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("report-1");
+            expect(parsed.name).toBe("Monthly Cost Report");
+            expect(parsed.config.dataSource).toBe("billing");
+            expect(parsed.config.layout).toBe("table");
+            expect(parsed.config.currency).toBe("USD");
         });
     });
 
@@ -304,6 +551,38 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("update_report", () => {
+        it("updates a report via mock API", async () => {
+            const result = await client.callTool({
+                name: "update_report",
+                arguments: { id: "report-1", name: "Updated Report" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("report-1");
+            expect(parsed.name).toBe("Updated Report");
+        });
+
+        it("accepts partial update with only description", async () => {
+            const result = await client.callTool({
+                name: "update_report",
+                arguments: { id: "report-1", description: "New desc" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("report-1");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_report",
+                arguments: { name: "No ID" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("id");
+        });
+    });
+
     describe("list_dimensions", () => {
         it("returns dimensions list", async () => {
             const result = await client.callTool({ name: "list_dimensions", arguments: {} });
@@ -341,6 +620,118 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("open");
             expect(text).toContain("google_cloud_platform");
             expect(text).toContain("Compute Engine");
+        });
+    });
+
+    describe("get_ticket", () => {
+        it("returns a specific ticket by ID", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: { id: "12345" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe(12345);
+            expect(parsed.subject).toBe("VM not starting");
+            expect(parsed.description).toContain("VM fails to boot");
+            expect(parsed.requester).toBe("alice@example.com");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("id");
+        });
+
+        it("rejects non-numeric id", async () => {
+            const result = await client.callTool({ name: "get_ticket", arguments: { id: "ticket-abc" } });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
+        });
+    });
+
+    describe("list_ticket_comments", () => {
+        it("returns comments for a ticket", async () => {
+            const result = await client.callTool({ name: "list_ticket_comments", arguments: { ticketId: "12345" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.comments).toHaveLength(2);
+            expect(parsed.comments[0].author).toBe("support@doit.com");
+            expect(parsed.comments[0].body).toContain("investigating");
+        });
+
+        it("rejects missing ticketId", async () => {
+            const result = await client.callTool({ name: "list_ticket_comments", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("ticketId");
+        });
+
+        it("rejects non-numeric ticketId", async () => {
+            const result = await client.callTool({
+                name: "list_ticket_comments",
+                arguments: { ticketId: "ticket-abc" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
+        });
+    });
+
+    describe("create_ticket_comment", () => {
+        it("returns created comment and sends correct POST body", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "12345", body: "Please provide the error logs from /var/log/syslog." },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe(1003);
+            expect(parsed.body).toContain("error logs");
+            expect(parsed.author).toBe("alice@example.com");
+            expect(parsed._requestBody.body).toBe("Please provide the error logs from /var/log/syslog.");
+        });
+
+        it("sends private flag in POST body when provided", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "12345", body: "Internal note for the team.", private: true },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed._requestBody.body).toBe("Internal note for the team.");
+            expect(parsed._requestBody.private).toBe(true);
+        });
+
+        it("rejects missing ticketId", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { body: "test comment" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("ticketId");
+        });
+
+        it("rejects missing body", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "12345" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("body");
+        });
+
+        it("rejects whitespace-only body", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "12345", body: "   " },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("empty");
+        });
+
+        it("rejects non-numeric ticketId", async () => {
+            const result = await client.callTool({
+                name: "create_ticket_comment",
+                arguments: { ticketId: "ticket-abc", body: "test" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("numeric");
         });
     });
 
@@ -457,9 +848,24 @@ describe("MCP Tools Integration", () => {
         it("returns assets list", async () => {
             const result = await client.callTool({ name: "list_assets", arguments: {} });
             const text = getTextContent(result);
-            expect(text).toContain("asset-1");
-            expect(text).toContain("My Billing Account");
-            expect(text).toContain("commitment");
+            const parsed = JSON.parse(text);
+            expect(parsed.assets).toHaveLength(1);
+            expect(parsed.assets[0].id).toBe("asset-1");
+            expect(parsed.assets[0].name).toBe("My Billing Account");
+            expect(parsed.assets[0].type).toBe("commitment");
+        });
+    });
+
+    describe("get_asset", () => {
+        it("returns a specific asset with properties", async () => {
+            const result = await client.callTool({ name: "get_asset", arguments: { id: "asset-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("asset-1");
+            expect(parsed.name).toBe("My Billing Account");
+            expect(parsed.properties.customerDomain).toBe("example.com");
+            expect(parsed.properties.customerID).toBe("cust-123");
+            expect(parsed.properties.subscription.status).toBe("ACTIVE");
         });
     });
 
@@ -573,6 +979,109 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("list_datahub_datasets", () => {
+        it("returns datasets from mock API", async () => {
+            const result = await client.callTool({ name: "list_datahub_datasets", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.datasets).toHaveLength(2);
+            expect(parsed.datasets[0].name).toBe("My Custom Dataset");
+            expect(parsed.datasets[1].name).toBe("Revenue Tracking");
+        });
+    });
+
+    describe("get_datahub_dataset", () => {
+        it("returns a specific dataset by name", async () => {
+            const result = await client.callTool({
+                name: "get_datahub_dataset",
+                arguments: { name: "My Custom Dataset" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("My Custom Dataset");
+            expect(parsed.records).toBe(1500);
+            expect(parsed.updatedBy).toBe("user@example.com");
+        });
+    });
+
+    describe("create_datahub_dataset", () => {
+        it("returns created dataset from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_datahub_dataset",
+                arguments: { name: "New Dataset", description: "A new dataset for tracking metrics" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("New Dataset");
+            expect(parsed.updatedBy).toBe("user@example.com");
+        });
+
+        it("rejects invalid arguments (missing name)", async () => {
+            const result = await client.callTool({
+                name: "create_datahub_dataset",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_datahub_dataset", () => {
+        it("returns updated dataset from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_datahub_dataset",
+                arguments: { name: "My Custom Dataset", description: "Updated description for the dataset" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.name).toBe("My Custom Dataset");
+            expect(parsed.description).toBe("Updated description for the dataset");
+        });
+    });
+
+    describe("send_datahub_events", () => {
+        it("returns ingestion success from mock API", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {
+                    events: [{ provider: "Datadog", time: "2024-03-10T23:00:00Z" }],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("Ingestion success");
+        });
+
+        it("sends event with all optional fields", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {
+                    events: [
+                        {
+                            provider: "Datadog",
+                            id: "evt-001",
+                            time: "2024-03-10T23:00:00Z",
+                            dimensions: [{ key: "env", type: "label", value: "production" }],
+                            metrics: [{ value: 10.5, type: "cost" }],
+                        },
+                    ],
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.message).toBe("Ingestion success");
+        });
+
+        it("rejects missing events array", async () => {
+            const result = await client.callTool({
+                name: "send_datahub_events",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
     describe("list_labels", () => {
         it("returns labels from mock API", async () => {
             const result = await client.callTool({ name: "list_labels", arguments: {} });
@@ -613,6 +1122,236 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("create_label", () => {
+        it("returns created label from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_label",
+                arguments: { name: "New Label", color: "teal" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("label-new");
+            expect(parsed.name).toBe("New Label");
+            expect(parsed.color).toBe("teal");
+        });
+
+        it("rejects invalid arguments", async () => {
+            const result = await client.callTool({
+                name: "create_label",
+                arguments: { name: "Missing Color" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_label", () => {
+        it("returns updated label from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_label",
+                arguments: { id: "label-1", name: "Updated Engineering" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("label-1");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_label",
+                arguments: { name: "No ID" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("get_label_assignments", () => {
+        it("returns assignments from mock API", async () => {
+            const result = await client.callTool({
+                name: "get_label_assignments",
+                arguments: { id: "label-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.assignments).toHaveLength(2);
+            expect(parsed.assignments[0].objectId).toBe("report-1");
+            expect(parsed.assignments[0].objectType).toBe("report");
+            expect(parsed.assignments[1].objectId).toBe("budget-1");
+            expect(parsed.assignments[1].objectType).toBe("budget");
+        });
+    });
+
+    describe("assign_objects_to_label", () => {
+        it("assigns objects to label successfully with empty response", async () => {
+            const result = await client.callTool({
+                name: "assign_objects_to_label",
+                arguments: {
+                    id: "label-1",
+                    add: [{ objectId: "report-1", objectType: "report" }],
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Successfully");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "assign_objects_to_label",
+                arguments: { add: [{ objectId: "report-1", objectType: "report" }] },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("list_annotations", () => {
+        it("returns annotations from mock API", async () => {
+            const result = await client.callTool({ name: "list_annotations", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.annotations).toHaveLength(2);
+            expect(parsed.annotations[0].id).toBe("annotation-1");
+            expect(parsed.annotations[0].content).toBe("Budget threshold reached");
+            expect(parsed.annotations[1].id).toBe("annotation-2");
+            expect(parsed.annotations[1].content).toBe("Cost anomaly detected");
+            expect(parsed.rowCount).toBe(2);
+        });
+
+        it("accepts filter and sort parameters", async () => {
+            const result = await client.callTool({
+                name: "list_annotations",
+                arguments: { sortBy: "timestamp", sortOrder: "asc", filter: "content:budget" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.annotations).toHaveLength(2);
+        });
+    });
+
+    describe("get_annotation", () => {
+        it("returns a specific annotation", async () => {
+            const result = await client.callTool({ name: "get_annotation", arguments: { id: "annotation-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("annotation-1");
+            expect(parsed.content).toBe("Budget threshold reached");
+            expect(parsed.timestamp).toBe("2026-01-15T00:00:00.000Z");
+            expect(parsed.createTime).toBe("2026-01-01T00:00:00.000Z");
+            expect(parsed.updateTime).toBe("2026-01-02T00:00:00.000Z");
+        });
+    });
+
+    describe("create_annotation", () => {
+        it("returns created annotation from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_annotation",
+                arguments: { content: "New annotation content", timestamp: "2026-03-01T00:00:00.000Z" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("annotation-new");
+            expect(parsed.content).toBe("New annotation content");
+        });
+
+        it("rejects invalid arguments", async () => {
+            const result = await client.callTool({
+                name: "create_annotation",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_annotation", () => {
+        it("returns updated annotation from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_annotation",
+                arguments: { id: "annotation-1", content: "Updated annotation content" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("annotation-1");
+            expect(parsed.content).toBe("Updated annotation content");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_annotation",
+                arguments: { content: "No id provided" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("received undefined");
+        });
+    });
+
+    describe("list_folders", () => {
+        it("returns a list of folders", async () => {
+            const result = await client.callTool({ name: "list_folders", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.folders).toHaveLength(1);
+            expect(parsed.folders[0].id).toBe("folder-1");
+            expect(parsed.folders[0].name).toBe("Analytics");
+        });
+    });
+
+    describe("get_folder", () => {
+        it("returns a specific folder by id", async () => {
+            const result = await client.callTool({ name: "get_folder", arguments: { id: "folder-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("folder-1");
+            expect(parsed.name).toBe("Analytics");
+            expect(parsed.description).toBe("Cloud Analytics reports");
+        });
+    });
+
+    describe("create_folder", () => {
+        it("returns created folder from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_folder",
+                arguments: { name: "New Folder", description: "A newly created folder" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("folder-new");
+            expect(parsed.name).toBe("New Folder");
+        });
+
+        it("rejects invalid arguments (missing name)", async () => {
+            const result = await client.callTool({
+                name: "create_folder",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("update_folder", () => {
+        it("returns updated folder from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_folder",
+                arguments: { id: "folder-1", name: "Analytics Renamed" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("folder-1");
+            expect(parsed.name).toBe("Analytics Renamed");
+        });
+
+        it("rejects missing id", async () => {
+            const result = await client.callTool({
+                name: "update_folder",
+                arguments: { name: "No id provided" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("received undefined");
+        });
+    });
+
     describe("find_cloud_diagrams", () => {
         it("returns diagram URLs for given resource IDs", async () => {
             const result = await client.callTool({
@@ -626,6 +1365,153 @@ describe("MCP Tools Integration", () => {
             expect(parsed[0].imageUrl).toContain("scheme-1");
             expect(parsed[1].diagramUrl).toContain("scheme-2");
             expect(parsed[1].imageUrl).toContain("scheme-2");
+        });
+    });
+
+    describe("get_cloud_diagrams_stats", () => {
+        it("returns diagram activity stats for a time period", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagrams_stats",
+                arguments: { start: "2026-04-01T00:00:00Z", end: "2026-04-28T00:00:00Z" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(1);
+            expect(parsed[0]._id).toBe("scheme-1");
+            expect(parsed[0].ss_id).toBe("sheet-1");
+            expect(parsed[0].changes[0].type).toBe("NODE_CREATE");
+            expect(parsed[0].import.status).toBe("success");
+        });
+
+        it("returns a validation error for an invalid date-time", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagrams_stats",
+                arguments: { start: "2026-04-01", end: "also-bad" },
+            });
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("RFC3339");
+        });
+    });
+
+    describe("search_cloud_diagrams", () => {
+        it("returns matching diagram layers and components", async () => {
+            const result = await client.callTool({
+                name: "search_cloud_diagrams",
+                arguments: { query: "production" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.scheme).toHaveLength(1);
+            expect(parsed.scheme[0].ss_id).toBe("sheet-1");
+            expect(parsed.component).toHaveLength(1);
+            expect(parsed.component[0].name).toBe("web-server");
+            expect(parsed.component[0].props.service_type).toBe("AWS::EC2::Instance");
+        });
+
+        it("returns a validation error when query is missing", async () => {
+            const result = await client.callTool({
+                name: "search_cloud_diagrams",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("list_cloud_diagram_activity_groups", () => {
+        it("returns activity groups for a layer", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_activity_groups",
+                arguments: { ss_id: "sheet-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(1);
+            expect(parsed[0]._id).toBe("group-1");
+            expect(parsed[0].snapshot).toBe("snap-1");
+            expect(parsed[0].items[0].activity).toBe("NODE_CREATE");
+        });
+
+        it("returns a validation error when ss_id is missing", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_activity_groups",
+                arguments: {},
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("list_cloud_diagram_node_activities", () => {
+        it("returns node activities for a node", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_node_activities",
+                arguments: { ss_id: "sheet-1", nodeId: "node-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("act-1");
+            expect(parsed[0].activity).toBe("NODE_UPDATE");
+            expect(parsed[0].user).toBe("alice@example.com");
+        });
+
+        it("returns a validation error when nodeId is missing", async () => {
+            const result = await client.callTool({
+                name: "list_cloud_diagram_node_activities",
+                arguments: { ss_id: "sheet-1" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("get_cloud_diagram_cost_snapshot", () => {
+        it("returns a bounded cost snapshot for a diagram layer", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_cost_snapshot",
+                arguments: { layerId: "sheet-1", startDate: "2026-04-01", endDate: "2026-04-30" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.diagramId).toBe("sheet-1");
+            expect(parsed.currency).toBe("USD");
+            expect(parsed.total).toBe(1234.56);
+            expect(parsed.topResources).toHaveLength(2);
+            expect(parsed.topResources[0].name).toBe("web-server");
+            expect(parsed.byService[0].service).toBe("EC2");
+            expect(parsed.trend).toHaveLength(2);
+        });
+
+        it("returns a validation error for an invalid date", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_cost_snapshot",
+                arguments: { layerId: "sheet-1", startDate: "2026-04-01", endDate: "not-a-date" },
+            });
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("YYYY-MM-DD");
+        });
+    });
+
+    describe("get_cloud_diagram_resource_relationships", () => {
+        it("returns the anchor resource and its relations", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_resource_relationships",
+                arguments: { layerId: "sheet-1", resourceId: "node-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.anchor.id).toBe("node-1");
+            expect(parsed.anchor.serviceType).toBe("AWS::EC2::Instance");
+            expect(parsed.relations).toHaveLength(2);
+            expect(parsed.relations[0].relation).toBe("downstream");
+            expect(parsed.relations[0].hops).toBe(1);
+            expect(parsed.truncated).toBe(false);
+        });
+
+        it("returns a validation error when resourceId is missing", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_resource_relationships",
+                arguments: { layerId: "sheet-1" },
+            });
+            expect(result.isError).toBe(true);
         });
     });
 
@@ -779,6 +1665,262 @@ describe("MCP Tools Integration", () => {
         });
     });
 
+    describe("list_cloudflow_connections", () => {
+        it("returns CloudFlow connections from mock API", async () => {
+            const result = await client.callTool({ name: "list_cloudflow_connections", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connections).toHaveLength(2);
+            expect(parsed.connections[0].connectionId).toBe("conn-1");
+            expect(parsed.connections[0].name).toBe("GCP Org Connection");
+            expect(parsed.nextPageToken).toBe("next-page-token");
+        });
+
+        it("accepts maxResults and pageToken parameters", async () => {
+            const result = await client.callTool({
+                name: "list_cloudflow_connections",
+                arguments: { maxResults: "1", pageToken: "tok" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connections).toHaveLength(2);
+        });
+    });
+
+    describe("get_cloudflow_connection", () => {
+        it("returns a single CloudFlow connection by ID", async () => {
+            const result = await client.callTool({
+                name: "get_cloudflow_connection",
+                arguments: { connectionId: "conn-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connectionId).toBe("conn-1");
+            expect(parsed.name).toBe("GCP Org Connection");
+            expect(parsed.gcpConfig.level).toBe("organization");
+        });
+
+        it("returns a validation error when connectionId is missing", async () => {
+            const result = await client.callTool({ name: "get_cloudflow_connection", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("create_cloudflow_connection", () => {
+        it("returns the created connection from mock API", async () => {
+            const result = await client.callTool({
+                name: "create_cloudflow_connection",
+                arguments: {
+                    name: "New GCP Connection",
+                    gcpConfig: { projectId: "my-project", level: "project" },
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connectionId).toBe("conn-new");
+            expect(parsed.name).toBe("New GCP Connection");
+            expect(parsed.gcpConfig.projectId).toBe("my-project");
+        });
+
+        it("rejects when name is missing", async () => {
+            const result = await client.callTool({
+                name: "create_cloudflow_connection",
+                arguments: { gcpConfig: { projectId: "my-project" } },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("rejects when both gcpConfig and awsConfig are supplied", async () => {
+            const result = await client.callTool({
+                name: "create_cloudflow_connection",
+                arguments: {
+                    name: "Both configs",
+                    gcpConfig: { projectId: "my-project" },
+                    awsConfig: { roleName: "role" },
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Exactly one of gcpConfig or awsConfig must be supplied.");
+        });
+    });
+
+    describe("update_cloudflow_connection", () => {
+        it("returns the updated connection from mock API", async () => {
+            const result = await client.callTool({
+                name: "update_cloudflow_connection",
+                arguments: { connectionId: "conn-1", name: "Renamed Connection", enabled: false },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.connectionId).toBe("conn-1");
+            expect(parsed.name).toBe("Renamed Connection");
+            expect(parsed.enabled).toBe(false);
+        });
+
+        it("rejects when connectionId is missing", async () => {
+            const result = await client.callTool({
+                name: "update_cloudflow_connection",
+                arguments: { name: "No id" },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("received undefined");
+        });
+
+        it("rejects when both gcpConfig and awsConfig are set", async () => {
+            const result = await client.callTool({
+                name: "update_cloudflow_connection",
+                arguments: {
+                    connectionId: "conn-1",
+                    gcpConfig: { projectId: "my-project" },
+                    awsConfig: { roleName: "role" },
+                },
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("At most one of gcpConfig or awsConfig may be set per request.");
+        });
+    });
+
+    describe("list_cloudflow_templates", () => {
+        it("returns CloudFlow templates from mock API", async () => {
+            const result = await client.callTool({ name: "list_cloudflow_templates", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.items).toHaveLength(2);
+            expect(parsed.items[0].id).toBe("tmpl-1");
+            expect(parsed.items[0].name).toBe("Idle VM Cleanup");
+            expect(parsed.pageToken).toBe("next-page-token");
+        });
+
+        it("accepts maxResults and pageToken parameters", async () => {
+            const result = await client.callTool({
+                name: "list_cloudflow_templates",
+                arguments: { maxResults: "1", pageToken: "tok" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.items).toHaveLength(2);
+        });
+    });
+
+    describe("get_cloudflow_template", () => {
+        it("returns a single CloudFlow template by ID", async () => {
+            const result = await client.callTool({
+                name: "get_cloudflow_template",
+                arguments: { templateId: "tmpl-1" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("tmpl-1");
+            expect(parsed.name).toBe("Idle VM Cleanup");
+            expect(parsed.instructions).toBe("Provide a schedule and target project");
+        });
+
+        it("returns a validation error when templateId is missing", async () => {
+            const result = await client.callTool({ name: "get_cloudflow_template", arguments: {} });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+    });
+
+    describe("list_commitments", () => {
+        it("returns commitments from mock API", async () => {
+            const result = await client.callTool({ name: "list_commitments", arguments: {} });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.commitments).toHaveLength(1);
+            expect(parsed.commitments[0].id).toBe("commitment-1");
+            expect(parsed.commitments[0].name).toBe("GCP 3-Year CUD");
+            expect(parsed.commitments[0].cloudProvider).toBe("google-cloud");
+            expect(parsed.rowCount).toBe(1);
+        });
+
+        it("accepts filter and sort parameters", async () => {
+            const result = await client.callTool({
+                name: "list_commitments",
+                arguments: { sortBy: "name", sortOrder: "asc", filter: "provider:[google-cloud]" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.commitments).toHaveLength(1);
+        });
+    });
+
+    describe("get_commitment", () => {
+        it("returns a specific commitment by ID", async () => {
+            const result = await client.callTool({ name: "get_commitment", arguments: { id: "commitment-1" } });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("commitment-1");
+            expect(parsed.name).toBe("GCP 3-Year CUD");
+            expect(parsed.cloudProvider).toBe("google-cloud");
+            expect(parsed.totalCommitmentValue).toBe(100000);
+            expect(parsed.periods).toHaveLength(1);
+        });
+
+        it("returns error for missing id", async () => {
+            const result = await client.callTool({ name: "get_commitment", arguments: {} });
+            const text = getTextContent(result);
+            expect(text.toLowerCase()).toContain("received undefined");
+        });
+    });
+
+    describe("ask_ava_sync", () => {
+        it("returns an answer from AVA (ephemeral by default)", async () => {
+            const result = await client.callTool({
+                name: "ask_ava_sync",
+                arguments: { question: "What is my biggest cloud cost?" },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.answer).toContain("compute resources");
+            expect(parsed.conversationId).toBeUndefined();
+            expect(parsed.answerId).toBeUndefined();
+        });
+
+        it("returns conversationId and answerId when ephemeral is false", async () => {
+            const result = await client.callTool({
+                name: "ask_ava_sync",
+                arguments: { question: "Tell me more", ephemeral: false },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.answer).toBeDefined();
+            expect(parsed.conversationId).toBe("conv-abc123");
+            expect(parsed.answerId).toBe("ans-xyz456");
+        });
+
+        it("returns error for missing question", async () => {
+            const result = await client.callTool({
+                name: "ask_ava_sync",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            expect(text).toContain("Invalid arguments");
+        });
+
+        it("returns timeout-specific error when AVA does not respond in time", async () => {
+            process.env.AVA_TIMEOUT_MS = "100";
+            mswServer.use(
+                http.post("https://api.doit.com/ava/v1/askSync", async () => {
+                    await delay("infinite");
+                    return HttpResponse.json({});
+                })
+            );
+            try {
+                const result = await client.callTool({
+                    name: "ask_ava_sync",
+                    arguments: { question: "What is my spend?" },
+                });
+                const text = getTextContent(result);
+                expect(text).toContain("did not respond within the time limit");
+            } finally {
+                delete process.env.AVA_TIMEOUT_MS;
+            }
+        });
+    });
+
     describe("error handling", () => {
         it("returns error for unknown tool", async () => {
             const result = await client.callTool({ name: "nonexistent_tool", arguments: {} });
@@ -807,13 +1949,79 @@ describe("MCP Tools Integration", () => {
 
             const result = await client.callTool({ name: "list_organizations", arguments: {} });
             const text = getTextContent(result);
-            expect(text).toContain("Failed to retrieve organizations");
+            expect(result.isError).toBe(true);
+            expect(text).toContain("HTTP 500: The API is temporarily unavailable");
         });
 
         it("returns error for missing required arguments", async () => {
             const result = await client.callTool({ name: "get_cloud_incident", arguments: {} });
             const text = getTextContent(result);
-            expect(text.toLowerCase()).toContain("required");
+            expect(text.toLowerCase()).toContain("either id or title must be provided");
+        });
+    });
+
+    describe("get_cloud_diagram_components", () => {
+        it("returns all diagram schemes without filters", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_components",
+                arguments: {},
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("scheme-1");
+            expect(parsed[0].name).toBe("Production VPC");
+            expect(parsed[0].statussheet["sheet-1"]._id).toBe("sheet-1");
+        });
+
+        it("returns schemes when filtered by scheme_ids", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_components",
+                arguments: { scheme_ids: ["scheme-1"] },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed).toHaveLength(2);
+            expect(parsed[0]._id).toBe("scheme-1");
+        });
+
+        it("returns validation error for invalid argument type", async () => {
+            const result = await client.callTool({
+                name: "get_cloud_diagram_components",
+                arguments: { scheme_ids: "not-an-array" },
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
+    describe("update_resource_permissions", () => {
+        it("updates permissions for a budget resource", async () => {
+            const result = await client.callTool({
+                name: "update_resource_permissions",
+                arguments: {
+                    resourceType: "budgets",
+                    resourceId: "budget-1",
+                    permissions: [
+                        { user: "owner@example.com", role: "owner" },
+                        { user: "editor@example.com", role: "editor" },
+                    ],
+                    public: null,
+                },
+            });
+            const text = getTextContent(result);
+            const parsed = JSON.parse(text);
+            expect(parsed.id).toBe("budget-1");
+            expect(parsed.permissions).toHaveLength(2);
+            expect(parsed.permissions[1].role).toBe("editor");
+            expect(parsed.public).toBeNull();
+        });
+
+        it("returns validation error for an invalid resourceType", async () => {
+            const result = await client.callTool({
+                name: "update_resource_permissions",
+                arguments: { resourceType: "widgets", resourceId: "budget-1" },
+            });
+            expect(result.isError).toBe(true);
         });
     });
 });

@@ -1,6 +1,77 @@
-import type { z } from "zod";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { SERVER_VERSION } from "./consts.js";
+import { DEMO_TOKEN, getDemoResponse } from "./demoData.js";
+import { createHttpError, DoitRequestError, requestRecoveryGuidance } from "./requestError.js";
 
 export const DOIT_API_BASE = process.env.DOIT_API_BASE || "https://api.doit.com";
+
+let runtimeDoiTApiBase = DOIT_API_BASE;
+
+export function configureDoiTApiBase(apiBase?: string): void {
+    if (!apiBase) return;
+
+    runtimeDoiTApiBase = apiBase.replace(/\/$/, "");
+}
+
+function applyRuntimeDoiTApiBase(url: string): string {
+    if (runtimeDoiTApiBase === DOIT_API_BASE) {
+        return url;
+    }
+
+    const parsedUrl = new URL(url);
+    const parsedRuntimeBase = new URL(runtimeDoiTApiBase);
+
+    parsedUrl.protocol = parsedRuntimeBase.protocol;
+    parsedUrl.host = parsedRuntimeBase.host;
+
+    return parsedUrl.toString();
+}
+
+// --- MCP tracking context ---
+// Uses AsyncLocalStorage for request-scoped tracking. Module-level globals are unsafe in the
+// SSE/Cloudflare path because Durable Object instances can share module scope on the same isolate.
+// AsyncLocalStorage is supported via the nodejs_compat flag in the remote Worker's wrangler
+// config (separate private repo).
+
+export interface TrackingContext {
+    mcpTool?: string;
+    mcpClient?: string;
+    mcpClientVersion?: string;
+    mcpProtocolVersion?: string;
+}
+
+const trackingStore = new AsyncLocalStorage<TrackingContext>();
+
+export function runWithTracking<T>(ctx: TrackingContext, fn: () => T): T {
+    return trackingStore.run(ctx, fn);
+}
+
+export function getTrackingContext(): TrackingContext | undefined {
+    return trackingStore.getStore();
+}
+
+// --- Console request context ---
+// A few tools (e.g. search_customers) call DoiT *console* endpoints (console.doit.com
+// /api/...) rather than the public api.doit.com. In the Cloudflare worker those calls
+// must go through the CONSOLE_PROXY service binding (a same-zone fetch of console.doit.com
+// bypasses the console-worker route), so the worker sets this request-scoped env around
+// tool execution. Outside the worker (stdio) the store is empty and makeConsoleRequest
+// falls back to the DOIT_CONSOLE_BASE / AUTH_SERVER_URL env vars with a plain fetch.
+
+export interface ConsoleRequestEnv {
+    baseUrl: string;
+    proxyFetch?: typeof fetch;
+}
+
+const consoleEnvStore = new AsyncLocalStorage<ConsoleRequestEnv>();
+
+export function runWithConsoleEnv<T>(env: ConsoleRequestEnv, fn: () => T): T {
+    return consoleEnvStore.run(env, fn);
+}
+
+export function getConsoleEnv(): ConsoleRequestEnv | undefined {
+    return consoleEnvStore.getStore();
+}
 
 /**
  * Debug levels for controlling log verbosity
@@ -12,7 +83,7 @@ export enum DebugLevel {
     INFO = 1,
     /** Detailed debug information */
     VERBOSE = 2,
-    /** Very detailed debug information including full request/response data */
+    /** Most verbose execution diagnostics; sensitive request/response data must be omitted */
     TRACE = 3,
 }
 
@@ -62,15 +133,6 @@ export function debugLog(message: unknown, level: DebugLevel = DebugLevel.INFO, 
 }
 
 /**
- * Generic function to convert a zod schema to MCP server tool format
- * @param schema The zod schema object (e.g., z.object({ ... }))
- * @returns Object with zod schema properties ready for MCP server tool
- */
-export function zodSchemaToMcpTool<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
-    return schema.shape;
-}
-
-/**
  * Creates a standardized error response
  * @param message Error message to display to the user
  * @returns Formatted error response object
@@ -109,11 +171,17 @@ export function createSuccessResponse(text: string) {
  * @returns Formatted error message string
  */
 export function formatZodError(error: any): string {
-    if (!error.errors) {
+    // zod 4 renamed ZodError.errors to .issues. Both are read here because this is
+    // reached with plain `any`: .issues first, .errors as the zod-3 fallback. Dropping
+    // the fallback silently is the trap — the guard below returns a generic string
+    // rather than throwing, so a missed rename degrades every validation message in
+    // the product instead of failing loudly.
+    const issues = error?.issues ?? error?.errors;
+    if (!Array.isArray(issues)) {
         return "Invalid arguments provided";
     }
 
-    return `Invalid arguments: ${error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ")}`;
+    return `Invalid arguments: ${issues.map((e: any) => (e.path.length > 0 ? `${e.path.join(".")}: ${e.message}` : e.message)).join(", ")}`;
 }
 
 /**
@@ -122,10 +190,64 @@ export function formatZodError(error: any): string {
  * @param context Additional context to include in the log message
  * @returns Standardized error response
  */
-export function handleGeneralError(error: any, context: string): ReturnType<typeof createErrorResponse> {
-    console.error(`Error ${context}:`, error);
-    const message = error instanceof Error ? error.message : String(error);
+export function handleGeneralError(
+    error: any,
+    context: string,
+    validationGuidance?: string
+): ReturnType<typeof createErrorResponse> {
+    // Request errors already contain safe text; do not log response details or stacks.
+    if (!(error instanceof DoitRequestError)) console.error(`Error ${context}:`, error);
+    let message = error instanceof Error ? error.message : String(error);
+    if (validationGuidance && error instanceof DoitRequestError && [400, 422].includes(error.status ?? 0)) {
+        message += `\n${validationGuidance}`;
+    }
+    // For HTTP 401 errors, include a WWW-Authenticate challenge in _meta so ChatGPT
+    // can trigger its native OAuth re-linking UI (MCP Apps SDK requirement).
+    if (message.startsWith("HTTP 401")) {
+        return {
+            content: [{ type: "text", text: message || "Unauthorized" }],
+            isError: true,
+            // @ts-expect-error
+            _meta: {
+                "mcp/www_authenticate": 'Bearer error="invalid_token", error_description="Token expired or invalid"',
+            },
+        };
+    }
     return createErrorResponse(message || "An error occurred while processing your request");
+}
+
+/**
+ * Header the DoiT API reads the customer (tenant) scope from. It is sent in addition to the
+ * `customerContext` query parameter — the API accepts either, and newer endpoints only read
+ * the header.
+ */
+export const TENANT_ID_HEADER = "X-Tenant-Id";
+
+/**
+ * Resolves the customer context for a request: the explicitly passed value first, then the
+ * CUSTOMER_CONTEXT env var (how the stdio server persists a selected customer).
+ */
+export function resolveCustomerContext(customerContextId?: string): string | undefined {
+    return customerContextId || process.env.CUSTOMER_CONTEXT || undefined;
+}
+
+/**
+ * Sets the X-Tenant-Id header from the resolved customer context, mutating and returning
+ * `headers`. An existing tenant header (any casing — e.g. an OpenAPI operation that declares
+ * one explicitly) is left untouched so callers keep control and we never send it twice.
+ */
+export function applyTenantIdHeader(
+    headers: Record<string, string>,
+    customerContextId?: string
+): Record<string, string> {
+    const customerContext = resolveCustomerContext(customerContextId);
+    if (!customerContext) return headers;
+
+    const alreadySet = Object.keys(headers).some((key) => key.toLowerCase() === TENANT_ID_HEADER.toLowerCase());
+    if (alreadySet) return headers;
+
+    headers[TENANT_ID_HEADER] = customerContext;
+    return headers;
 }
 
 /**
@@ -143,11 +265,11 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
         url += `${separator}maxResults=40`;
     }
 
-    const customerContext = customerContextId || process.env.CUSTOMER_CONTEXT;
+    const customerContext = resolveCustomerContext(customerContextId);
 
     if (customerContext) {
         // Use & as separator since we know the URL now has parameters
-        url += `&customerContext=${customerContext}`;
+        url += `&customerContext=${encodeURIComponent(customerContext)}`;
     }
 
     return url;
@@ -155,7 +277,10 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
 
 /**
  * Helper function for making DoiT API requests.
- * On error, logs the error and returns null.
+ * Throws sanitized HTTP/transport errors for callers to pass to handleGeneralError.
+ * Null is reserved for successful empty or JSON-null responses. Callers that tolerate
+ * partial results must explicitly catch failures (e.g. Promise.allSettled).
+ * Timeouts retain the DOMException name "TimeoutError" for existing callers.
  *
  * @param url The API endpoint URL
  * @param token The authentication token
@@ -163,27 +288,71 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options.method HTTP method (GET, POST, etc.)
  * @param options.body Request body for POST/PUT requests
  * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
- * @returns The parsed JSON response or null on error
+ * @param options.timeoutMs If set, aborts the request after this many milliseconds and throws TimeoutError
+ * @returns The parsed response, or null for an empty/JSON-null success
  */
 export async function makeDoitRequest<T>(
     url: string,
     token: string,
     options: {
         method?: string;
+        /** Explicitly identify a read-only endpoint that uses POST. Affects retry advice only. */
+        readOnly?: boolean;
         body?: any;
         appendParams?: boolean;
         customerContext?: string;
+        parseResponse?: boolean;
+        timeoutMs?: number;
+        /** Response parsing mode on success. Defaults to "json". Use "text" when the caller
+         *  can't assume every response is JSON (e.g. an empty 204 body from a generated
+         *  DELETE tool). Empty text responses remain the empty string. */
+        parseAs?: "json" | "text";
+        /** Extra headers to send alongside the default Authorization/Accept/Content-Type
+         *  headers (e.g. an OpenAPI operation's required header parameters). */
+        headers?: Record<string, string>;
     } = {}
 ): Promise<T | null> {
-    const { method = "GET", body = undefined, appendParams = true, customerContext } = options;
+    const {
+        method = "GET",
+        readOnly = false,
+        body = undefined,
+        appendParams = true,
+        customerContext,
+        parseResponse = true,
+        timeoutMs,
+        parseAs = "json",
+        headers: extraHeaders,
+    } = options;
 
-    const headers = {
+    const resolvedUrl = applyRuntimeDoiTApiBase(url);
+    // Demo mode: return canned data without hitting the real API.
+    // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
+    // If the token is DEMO_TOKEN here, the user already passed that gate.
+    if (token === DEMO_TOKEN) {
+        if (!parseResponse) return {} as T;
+        const demo = getDemoResponse(url, method, body);
+        if (demo !== null) return demo as T;
+        // No fixture for this endpoint — return empty success so the tool doesn't error.
+        return {} as T;
+    }
+
+    // FormData bodies (generated multipart tools) must NOT get a JSON Content-Type or be
+    // JSON.stringify'd — fetch sets the correct multipart boundary itself when the header
+    // is left unset and the body is a FormData instance.
+    const isFormDataBody = typeof FormData !== "undefined" && body instanceof FormData;
+    const headers: Record<string, string> = {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
         Accept: "application/json",
+        ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
+        ...extraHeaders,
     };
 
-    let requestUrl = appendParams ? appendUrlParameters(url, customerContext) : url;
+    // The customer scope goes out as both the customerContext query param (below) and the
+    // X-Tenant-Id header, since the API reads the scope from the header on newer endpoints.
+    applyTenantIdHeader(headers, customerContext);
+
+    let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;
+    let responseStatus: number | undefined;
 
     try {
         const requestOptions: RequestInit = {
@@ -191,41 +360,275 @@ export async function makeDoitRequest<T>(
             headers,
         };
 
-        // Add body for non-GET requests if provided
-        if (method !== "GET" && body !== undefined) {
-            requestOptions.body = JSON.stringify(body);
-            debugLog("API request body: ", DebugLevel.TRACE, requestOptions.body);
+        if (timeoutMs !== undefined) {
+            requestOptions.signal = AbortSignal.timeout(timeoutMs);
         }
 
-        // add mcp params to the url
-        requestUrl += `&mcp=true`;
+        // Add body for non-GET requests if provided
+        if (method !== "GET" && body !== undefined) {
+            requestOptions.body = isFormDataBody ? (body as FormData) : JSON.stringify(body);
+        }
+
+        // add mcp tracking params to the url
+        requestUrl = appendTrackingParams(requestUrl);
 
         if (!process.env.CUSTOMER_CONTEXT) {
             // request from the sse server
             requestUrl += `&sse=true`;
         }
 
-        debugLog("API request URL: ", DebugLevel.VERBOSE, requestUrl);
+        debugLog("Sending DoiT API request", DebugLevel.VERBOSE);
         const response = await fetch(requestUrl, requestOptions);
+        responseStatus = response.status;
 
         if (!response.ok) {
-            const bodyText = await response.text();
-            let detail = bodyText;
-            try {
-                const parsed = JSON.parse(bodyText);
-                detail =
-                    parsed.message ||
-                    parsed.error ||
-                    (typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed));
-            } catch {
-                // use bodyText as-is
-            }
-            throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+            throw await createHttpError(response, token, headers, method, readOnly);
         }
-        return (await response.json()) as T;
+        if (!parseResponse) {
+            return {} as T;
+        }
+        const text = await response.text();
+        if (parseAs === "text") return text as T;
+        if (!text.trim()) return null;
+        try {
+            return JSON.parse(text) as T;
+        } catch {
+            throw new DoitRequestError(
+                `HTTP ${response.status}: The API reported success, but returned an invalid JSON response. ${requestRecoveryGuidance(method, readOnly)}`,
+                response.status
+            );
+        }
     } catch (error) {
-        console.error(`Error making DoiT API ${method} request:`, error);
-        return null;
+        const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+        // Log fixed metadata only: no URL, customer context, header, body, or upstream message.
+        console.error("DoiT API request failed", {
+            method: /^(GET|HEAD|OPTIONS|POST|PUT|PATCH|DELETE)$/.test(method) ? method : "OTHER",
+            status: responseStatus ?? null,
+            kind: timedOut
+                ? "timeout"
+                : responseStatus === undefined
+                  ? "transport"
+                  : responseStatus >= 400
+                    ? "http"
+                    : "response",
+        });
+        if (timedOut) {
+            throw new DOMException(
+                `DoiT API request timed out. ${requestRecoveryGuidance(method, readOnly)}`,
+                "TimeoutError"
+            );
+        }
+        if (error instanceof DoitRequestError) throw error;
+        // Fetch errors may include credentials, URLs, headers, or runtime diagnostics.
+        if (responseStatus !== undefined) {
+            throw new DoitRequestError(
+                `HTTP ${responseStatus}: The API reported success, but its response could not be read. ${requestRecoveryGuidance(method, readOnly)}`,
+                responseStatus
+            );
+        }
+        throw new DoitRequestError(
+            `Unable to reach the DoiT API or read its response. Check your connection. ${requestRecoveryGuidance(method, readOnly)}`
+        );
+    }
+}
+
+// appendTrackingParams appends the shared MCP tracking query params (mcp, mcpVersion, plus any
+// mcpTool/mcpClient/mcpClientVersion/mcpProtocolVersion present in the tracking context) to a URL.
+function appendTrackingParams(url: string): string {
+    const tracking = getTrackingContext();
+    const sep = url.includes("?") ? "&" : "?";
+    let out = `${url}${sep}mcp=true&mcpVersion=${encodeURIComponent(SERVER_VERSION)}`;
+
+    if (tracking?.mcpTool) {
+        out += `&mcpTool=${encodeURIComponent(tracking.mcpTool)}`;
+    }
+    if (tracking?.mcpClient) {
+        out += `&mcpClient=${encodeURIComponent(tracking.mcpClient)}`;
+    }
+    if (tracking?.mcpClientVersion) {
+        out += `&mcpClientVersion=${encodeURIComponent(tracking.mcpClientVersion)}`;
+    }
+    if (tracking?.mcpProtocolVersion) {
+        out += `&mcpProtocolVersion=${encodeURIComponent(tracking.mcpProtocolVersion)}`;
+    }
+
+    return out;
+}
+
+// throwHttpError reads a non-OK response body, extracts the most specific message available,
+// and throws an Error carrying the HTTP status.
+async function throwHttpError(response: Response): Promise<never> {
+    const bodyText = await response.text();
+    let detail = bodyText;
+    try {
+        const parsed = JSON.parse(bodyText);
+        detail =
+            parsed.message ||
+            parsed.error ||
+            (typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed));
+    } catch {
+        // use bodyText as-is
+    }
+
+    throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+}
+
+function resolveConsoleBase(): { baseUrl: string; doFetch: typeof fetch } {
+    const scoped = getConsoleEnv();
+    if (scoped?.baseUrl) {
+        return {
+            baseUrl: scoped.baseUrl.replace(/\/$/, ""),
+            doFetch: scoped.proxyFetch ?? fetch,
+        };
+    }
+
+    const fallback = process.env.DOIT_CONSOLE_BASE || process.env.AUTH_SERVER_URL || "https://console.doit.com";
+
+    return { baseUrl: fallback.replace(/\/$/, ""), doFetch: fetch };
+}
+
+/**
+ * Calls a DoiT *console* endpoint (console.doit.com /api/...) rather than the public
+ * api.doit.com that makeDoitRequest targets. In the worker it routes through the
+ * CONSOLE_PROXY service binding (set via runWithConsoleEnv); elsewhere it uses the
+ * DOIT_CONSOLE_BASE / AUTH_SERVER_URL env vars. It does NOT append a customerContext
+ * (these endpoints are cross-customer). It throws on HTTP and network errors so callers
+ * can surface the upstream message (e.g. 403 for non-doers).
+ */
+export async function makeConsoleRequest<T>(
+    path: string,
+    token: string,
+    options: { method?: string; body?: any; timeoutMs?: number } = {}
+): Promise<T> {
+    const { method = "GET", body = undefined, timeoutMs } = options;
+    const { baseUrl, doFetch } = resolveConsoleBase();
+
+    if (token === DEMO_TOKEN) {
+        return {} as T;
+    }
+
+    let requestUrl = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+
+    requestUrl = appendTrackingParams(requestUrl);
+
+    const requestOptions: RequestInit = {
+        method,
+        headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        },
+    };
+
+    if (timeoutMs !== undefined) {
+        requestOptions.signal = AbortSignal.timeout(timeoutMs);
+    }
+
+    if (method !== "GET" && body !== undefined) {
+        requestOptions.body = JSON.stringify(body);
+    }
+
+    debugLog("Console API request URL: ", DebugLevel.VERBOSE, requestUrl);
+    const response = await doFetch(requestUrl, requestOptions);
+
+    if (!response.ok) {
+        await throwHttpError(response);
+    }
+
+    return (await response.json()) as T;
+}
+
+/**
+ * Opens an SSE connection via POST and yields parsed events as they arrive.
+ * Throws on non-2xx responses. The caller is responsible for consuming all
+ * events or breaking early (the generator will cancel the reader on GC).
+ */
+const DATA_LINE_PREFIX = "data:";
+
+export async function* makeDoitSSERequest(
+    url: string,
+    body: object,
+    authToken: string,
+    customerContext?: string
+): AsyncGenerator<{ data: string }> {
+    const parsedUrl = new URL(applyRuntimeDoiTApiBase(url));
+
+    const tracking = getTrackingContext();
+    parsedUrl.searchParams.set("mcp", "true");
+    parsedUrl.searchParams.set("mcpVersion", SERVER_VERSION);
+    if (tracking?.mcpTool) parsedUrl.searchParams.set("mcpTool", tracking.mcpTool);
+    if (tracking?.mcpClient) parsedUrl.searchParams.set("mcpClient", tracking.mcpClient);
+    if (tracking?.mcpClientVersion) parsedUrl.searchParams.set("mcpClientVersion", tracking.mcpClientVersion);
+    if (tracking?.mcpProtocolVersion) parsedUrl.searchParams.set("mcpProtocolVersion", tracking.mcpProtocolVersion);
+
+    const requestUrl = parsedUrl.href;
+    debugLog("SSE request URL:", DebugLevel.VERBOSE, requestUrl);
+
+    const headers: Record<string, string> = {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+    };
+    // Scope the stream to the customer the same way the non-streaming client does; the
+    // standalone TENANT_ID env var stays as a fallback for deployments that set it.
+    applyTenantIdHeader(headers, customerContext);
+    if (!headers[TENANT_ID_HEADER] && process.env.TENANT_ID) {
+        headers[TENANT_ID_HEADER] = process.env.TENANT_ID;
+    }
+
+    const response = await fetch(requestUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const bodyText = await response.text();
+        let detail = bodyText;
+        try {
+            const parsed = JSON.parse(bodyText);
+            detail =
+                parsed.message ||
+                parsed.error ||
+                (typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed));
+        } catch {
+            // use bodyText as-is
+        }
+        throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+    }
+
+    if (!response.body) throw new Error("SSE response has no body");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let currentData = "";
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split(/\r\n|\r|\n/);
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+                if (line === "") {
+                    if (currentData) {
+                        yield { data: currentData };
+                    }
+                    currentData = "";
+                } else if (line.startsWith(DATA_LINE_PREFIX)) {
+                    currentData = line.slice(DATA_LINE_PREFIX.length).replace(/^ /, "");
+                }
+            }
+        }
+        // flush any trailing event not terminated by a blank line
+        if (currentData) {
+            yield { data: currentData };
+        }
+    } finally {
+        reader.cancel();
     }
 }
 
@@ -244,27 +647,29 @@ export function formatDate(timestamp: number): string {
  * @param token The JWT token string
  * @returns The decoded JWT object containing header, payload, and signature
  */
+/**
+ * Decode (but NOT verify) a JWT. Used only for extracting metadata labels
+ * (email, DoitEmployee flag) during the OAuth authorization form flow.
+ * The actual authentication is handled by the OAuthProvider; this function
+ * is NOT a security boundary.
+ */
 export function decodeJWT(token: string): {
     header: any;
     payload: any;
     signature: string;
 } | null {
     try {
-        // Split the token into its three parts
         const parts = token.split(".");
 
         if (parts.length !== 3) {
-            console.error("Invalid JWT format: token must have 3 parts");
             return null;
         }
 
-        // Decode header (first part)
-        const header = JSON.parse(atob(parts[0]));
+        // JWT uses base64url encoding — convert to standard base64 before decoding
+        const b64url = (s: string) => s.replace(/-/g, "+").replace(/_/g, "/");
 
-        // Decode payload (second part)
-        const payload = JSON.parse(atob(parts[1]));
-
-        // Keep signature as is (third part)
+        const header = JSON.parse(atob(b64url(parts[0])));
+        const payload = JSON.parse(atob(b64url(parts[1])));
         const signature = parts[2];
 
         return {
@@ -283,12 +688,35 @@ export function formatEnumValues(values: readonly string[], separator = ", "): s
 }
 
 /**
- * Converts a human-readable string to snake_case.
- * e.g. "Filter Fields Reference" → "filter_fields_reference"
+ * Finds items whose `nameKey` field partially matches `query` (case-insensitive).
+ *
+ * Returns:
+ *   { resolved: string }  — exactly one match; resolved is the item's `id`
+ *   { error: string }     — no matches, or multiple matches (error lists the names so the LLM
+ *                           can ask the user to be more specific)
  */
-export function toSnakeCase(str: string): string {
-    return str
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
+export function matchByName<T extends Record<string, any>>(
+    items: T[],
+    query: string,
+    nameKey: string = "name",
+    idKey: string = "id"
+): { resolved: string } | { error: string } {
+    const q = query.toLowerCase();
+    const matches = items.filter((item) => {
+        const val = item[nameKey];
+        return typeof val === "string" && val.toLowerCase().includes(q);
+    });
+    if (matches.length === 0) return { error: `No items found matching "${query}".` };
+    if (matches.length === 1) {
+        const id = matches[0][idKey];
+        if (!id)
+            return {
+                error: `Found "${matches[0][nameKey]}" but it has no ${idKey} field.`,
+            };
+        return { resolved: String(id) };
+    }
+    const names = matches.map((m) => `"${m[nameKey]}"`).join(", ");
+    return {
+        error: `Multiple items match "${query}": ${names}. Please provide a more specific name.`,
+    };
 }

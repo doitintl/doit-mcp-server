@@ -1,7 +1,7 @@
 # Dependency directories
 node_modules/
 jspm_packages/
-
+.omc/
 # TypeScript cache
 *.tsbuildinfo
 
@@ -45,9 +45,9 @@ coverage/
 # Optional REPL history
 .node_repl_history
 
-# Package lock files (uncomment if you want to ignore them)
-# package-lock.json
-# yarn.lock
+# npm lockfiles - this project uses Yarn 1; yarn.lock is committed
+package-lock.json
+npm-shrinkwrap.json
 
 # Debug files
 .debug
@@ -59,3 +59,8 @@ coverage/
 
 # Local files not supposed to be committed
 _local
+widget-gallery.html
+.yarn/
+
+# Local API-coverage loop config (not part of the published server)
+.doit-api-coverage/

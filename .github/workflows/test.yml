@@ -5,23 +5,59 @@ on:
     branches:
       - "**"
 
+# Both suites run on every supported Node major: the `floor` leg is `engines.node`
+# in package.json, the `next` leg is what volta pins and release.yml publishes
+# from. Keep the two matrices in sync and update them together with `engines`.
+#
+# Jobs are named by role, not version, so the check names stay stable when the
+# versions move — a required status check in branch protection keeps matching
+# instead of silently going missing. The version itself is on the setup step.
+#
+# fail-fast is off so a version-specific failure shows up as exactly that, rather
+# than cancelling its sibling and leaving it ambiguous which version broke.
 jobs:
   lint-test-build:
-    name: Tests and Build - Node 18
+    name: Tests and Build - Node ${{ matrix.label }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # `primary` marks the leg that also runs the Node-independent checks
+          # (lockfile guard, lint/format), so they run once rather than once per
+          # Node major. Move the flag if the floor moves — a leg set with no
+          # `primary` would silently stop running them.
+          - node: 20
+            label: floor
+            primary: true
+          - node: 22
+            label: next
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      # This project is Yarn 1 (see the packageManager/volta pins). A committed
+      # npm lockfile means someone ran `npm install`, which silently diverges from
+      # yarn.lock. `|| true` keeps a no-match grep from failing the step.
+      - name: Enforce yarn (no npm lockfiles committed)
+        if: matrix.primary
+        run: |
+          found="$(git ls-files | grep -E '(^|/)(package-lock\.json|npm-shrinkwrap\.json)$' || true)"
+          if [ -n "$found" ]; then
+            echo "::error::This project uses Yarn 1 - remove the npm lockfile(s): $found"
+            exit 1
+          fi
+
+      - name: Set up Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ matrix.node }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
       - name: Run lint and format checks
+        if: matrix.primary
         run: yarn check:ci
 
       - name: Run unit tests
@@ -31,16 +67,24 @@ jobs:
         run: yarn build
 
   integration-tests:
-    name: Integration Tests - Node 20
+    name: Integration Tests - Node ${{ matrix.label }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node: 20
+            label: floor
+          - node: 22
+            label: next
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
 
       - name: Install root dependencies
         run: yarn install --frozen-lockfile
@@ -48,6 +92,10 @@ jobs:
       - name: Install integration test dependencies
         run: yarn install --frozen-lockfile
         working-directory: test/integration
+
+      # test/integration/process/ spawns the built CLI (dist/index.js) over real stdio.
+      - name: Build server
+        run: yarn build
 
       - name: Run integration tests
         run: yarn test

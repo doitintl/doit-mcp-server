@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customerContextProperty } from "../utils/schemaHelpers.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -7,6 +7,7 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    matchByName,
 } from "../utils/util.js";
 
 export const ALLOCATIONS_URL = `${DOIT_API_BASE}/analytics/v1/allocations`;
@@ -35,21 +36,34 @@ type AllocationComponentMode = (typeof ALLOCATION_COMPONENT_MODES)[number];
 
 // Schema definitions
 export const ListAllocationsArgumentsSchema = z.object({
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
+    name: z
+        .string()
+        .optional()
+        .describe("Partial name filter (case-insensitive). Returns only allocations whose name contains this string."),
 });
 
-export const GetAllocationArgumentsSchema = z.object({
-    id: z.string().describe("The ID of the allocation to retrieve"),
-});
+export const GetAllocationArgumentsSchema = z
+    .object({
+        id: z.string().optional().describe("The ID of the allocation to retrieve."),
+        name: z
+            .string()
+            .optional()
+            .describe("Partial name match (case-insensitive). Used to find the allocation when ID is unknown."),
+    })
+    .refine((d) => d.id || d.name, { message: "Either id or name must be provided." });
 
 // Zod schema for an allocation component (matches AllocationComponent interface)
 const AllocationComponentSchema = z.object({
-    key: z.string().describe("The dimension, label, or tag key"),
+    key: z.string().describe("Key of an existing dimension, label, or tag key"),
     type: z.enum(ALLOCATION_COMPONENT_TYPES).describe("The type of the component"),
     values: z.array(z.string()).describe("Values to match against"),
     inverse_selection: z.boolean().optional().describe("If true, exclude matching values instead of including them"),
     include_null: z.boolean().optional().describe("If true, include resources with no value for this dimension"),
-    mode: z.enum(ALLOCATION_COMPONENT_MODES).describe("The matching mode for values. Defaults to 'is'"),
+    mode: z.enum(ALLOCATION_COMPONENT_MODES).describe("The matching mode for values"),
 });
 
 // Schema for a single allocation rule (used with 'rule' param)
@@ -65,7 +79,7 @@ const GroupRuleInputSchema = SingleRuleInputSchema.extend({
     action: z
         .enum(GROUP_ALLOCATION_ACTIONS)
         .describe("Required action for this rule (e.g., 'create', 'update', 'select')"),
-    id: z.string().optional().describe("Rule ID (for existing rules)"),
+    id: z.string().optional().describe("Rule ID (for existing rules), required for 'update' and 'select' actions"),
 });
 
 // Base object schema shared by create and update allocation
@@ -170,181 +184,84 @@ export interface AllocationsResponse {
 // Tool metadata
 export const listAllocationsTool = {
     name: "list_allocations",
-    description: `List allocations for the report or run_query configuration that your account has access to from the DoiT API.
-    Allocations in the DoiT Cloud Intelligence Platform are a powerful feature that allows you to group and attribute cloud costs to specific business units, teams, projects, or any other logical grouping relevant to your organization.`,
-    inputSchema: {
-        type: "object",
-        properties: {
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-            ...customerContextProperty,
-        },
+    title: "List allocations",
+    coversEndpoint: "get:/analytics/v1/allocations",
+    description:
+        "Use this when the user wants to see their cost allocation rules or configurations. Returns a list of allocations. Supports partial name filtering. Do NOT use this for cost queries (use run_query) or labels (use list_labels).",
+    inputSchema: zodToMcpInputSchema(ListAllocationsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading allocations...",
+        "openai/toolInvocation/invoked": "Allocations loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 export const getAllocationTool = {
     name: "get_allocation",
-    description: "Get a specific allocation by ID from the DoiT API",
-    inputSchema: {
-        type: "object",
-        properties: {
-            id: {
-                type: "string",
-                description: "The ID of the allocation to retrieve",
-            },
-            ...customerContextProperty,
-        },
-        required: ["id"],
+    title: "Get allocation",
+    coversEndpoint: "get:/analytics/v1/allocations/{id}",
+    description:
+        "Use this when the user wants to view details of a specific cost allocation. Accepts either the allocation ID or a partial name (case-insensitive). Do NOT use this for listing all allocations (use list_allocations) or running queries (use run_query).",
+    inputSchema: zodToMcpInputSchema(GetAllocationArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading allocation...",
+        "openai/toolInvocation/invoked": "Allocation loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
-
-// Schema for a single allocation component (used within 'components' array) of
-// a single rule or a group rule
-const componentObjectSchema = {
-    type: "object",
-    properties: {
-        key: {
-            type: "string",
-            description: "Key of an existing dimension, label, or tag key",
-        },
-        type: {
-            type: "string",
-            enum: [...ALLOCATION_COMPONENT_TYPES],
-            description: "The type of the component",
-        },
-        values: {
-            type: "array",
-            items: { type: "string" },
-            description: "Values to match against",
-        },
-        inverse_selection: {
-            type: "boolean",
-            description: "If true, exclude matching values instead of including them",
-        },
-        include_null: {
-            type: "boolean",
-            description: "If true, include resources with no value for this dimension",
-        },
-        mode: {
-            type: "string",
-            enum: [...ALLOCATION_COMPONENT_MODES],
-            description: "The matching mode for values",
-        },
-    },
-    required: ["key", "type", "values", "mode"],
-};
-
-// Schema for a single allocation rule (used with 'rule' param)
-const singleRuleObjectSchema = {
-    type: "object",
-    properties: {
-        components: {
-            type: "array",
-            items: componentObjectSchema,
-            description: "Array of allocation components that define this rule",
-        },
-        formula: {
-            type: "string",
-            description: "Logical formula combining components (e.g., 'A AND B')",
-        },
-    },
-};
-
-// Schema for a group allocation rule (used within 'rules' array)
-const groupRuleObjectSchema = {
-    type: "object",
-    properties: {
-        ...singleRuleObjectSchema.properties,
-        name: {
-            type: "string",
-            description: "Name of the rule",
-        },
-        description: {
-            type: "string",
-            description: "Description of the rule",
-        },
-        action: {
-            type: "string",
-            enum: [...GROUP_ALLOCATION_ACTIONS],
-            description: "Required action for this rule (e.g., 'create', 'update', 'select')",
-        },
-        id: {
-            type: "string",
-            description: "Rule ID (for existing rules), required for 'update' and 'select' actions",
-        },
-    },
-};
-
-// Schema for the input of the create allocation tool
-const createAllocationInputSchema = {
-    type: "object",
-    properties: {
-        name: {
-            type: "string",
-            description: "Human-readable name of the allocation",
-        },
-        description: {
-            type: "string",
-            description: "Description of the allocation's purpose",
-        },
-        rule: {
-            ...singleRuleObjectSchema,
-            description:
-                "A single allocation rule that defines one grouping. Provide this for a single-rule allocation. Mutually exclusive with 'rules'",
-        },
-        rules: {
-            type: "array",
-            items: groupRuleObjectSchema,
-            description:
-                "Ordered list of allocation rules for a group allocation. Must include at least two rules. Mutually exclusive with 'rule'",
-        },
-        unallocatedCosts: {
-            type: ["string", "null"],
-            description:
-                "Custom label for values that do not fit into any allocation rule (required when using 'rules' for group allocations)",
-        },
-        ...customerContextProperty,
-    },
-    required: ["name", "description"],
-} as const;
 
 export const createAllocationTool = {
     name: "create_allocation",
-    description: `Create a new allocation via the DoiT API
-    Allocations let you group and segment cloud costs using allocation rules.
-    For a single-rule allocation, provide 'rule' (a single rule object).
-    For a group allocation, provide 'rules' (an array of at least two rules) and 'unallocatedCosts' (a label for unmatched costs).`,
-    inputSchema: createAllocationInputSchema,
-};
-
-const updateAllocationInputSchema = {
-    type: "object",
-    properties: {
-        id: {
-            type: "string",
-            description: "The ID of the allocation to update",
-        },
-        ...createAllocationInputSchema.properties,
+    title: "Create allocation",
+    coversEndpoint: "post:/analytics/v1/allocations",
+    description:
+        "Use this when the user wants to create a new cost allocation rule. Changes apply immediately. Do NOT use this for viewing existing allocations (use list_allocations) or labels (use create_label).",
+    inputSchema: zodToMcpInputSchema(CreateAllocationArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
     },
-    required: ["id"],
-} as const;
+    _meta: {
+        "openai/toolInvocation/invoking": "Creating allocation...",
+        "openai/toolInvocation/invoked": "Allocation created",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
+};
 
 export const updateAllocationTool = {
     name: "update_allocation",
-    description: `Update an existing allocation
-    Provide the allocation ID and the updated allocation configuration.
-    Allows partial updates only specify the fields needed to be updated,
-    overrides the existing allocation configuration.
-    The 'rule' and 'rules' fields are mutually exclusive.`,
-    inputSchema: updateAllocationInputSchema,
+    title: "Update allocation",
+    coversEndpoint: "patch:/analytics/v1/allocations/{id}",
+    description:
+        "Use this when the user wants to modify an existing cost allocation. Changes apply immediately. Do NOT use this for creating new allocations (use create_allocation) or viewing allocations (use list_allocations).",
+    inputSchema: zodToMcpInputSchema(UpdateAllocationArgumentsSchema),
+    annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+    },
+    _meta: {
+        "openai/toolInvocation/invoking": "Updating allocation...",
+        "openai/toolInvocation/invoked": "Allocation updated",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data", "write_data"] }],
 };
 
 // Handle list allocations request
 export async function handleListAllocationsRequest(args: any, token: string) {
     try {
-        const { pageToken } = ListAllocationsArgumentsSchema.parse(args);
+        const { pageToken, name } = ListAllocationsArgumentsSchema.parse(args);
         const { customerContext } = args;
 
         // Create API URL with query parameters
@@ -369,10 +286,15 @@ export async function handleListAllocationsRequest(args: any, token: string) {
                 return createErrorResponse("Failed to retrieve allocations data");
             }
 
-            const allocations = allocationsData.allocations || [];
+            let allocations = allocationsData.allocations || [];
 
             if (allocations.length === 0) {
                 return createErrorResponse("No allocations found");
+            }
+
+            if (name) {
+                const q = name.toLowerCase();
+                allocations = allocations.filter((a) => a.name.toLowerCase().includes(q));
             }
 
             // Format the response
@@ -505,14 +427,23 @@ export async function handleUpdateAllocationRequest(args: any, token: string) {
 // Handle get allocation request
 export async function handleGetAllocationRequest(args: any, token: string) {
     try {
-        const { id } = GetAllocationArgumentsSchema.parse(args);
+        const parsed = GetAllocationArgumentsSchema.parse(args);
         const { customerContext } = args;
+        let resolvedId = parsed.id;
 
-        if (!id) {
-            return createErrorResponse("Allocation ID is required");
+        if (!resolvedId && parsed.name) {
+            const listData = await makeDoitRequest<AllocationsResponse>(`${ALLOCATIONS_URL}?maxResults=200`, token, {
+                method: "GET",
+                customerContext,
+            });
+            const items = listData?.allocations ?? [];
+            const result = matchByName(items, parsed.name);
+            if ("error" in result) return createErrorResponse(result.error);
+            // (multiple match case now handled as error by matchByName)
+            resolvedId = result.resolved;
         }
 
-        const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(id)}`;
+        const allocationUrl = `${ALLOCATIONS_URL}/${encodeURIComponent(resolvedId as string)}`;
 
         try {
             const allocationData = await makeDoitRequest<AllocationDetails>(allocationUrl, token, {

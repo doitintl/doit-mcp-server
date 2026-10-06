@@ -1,20 +1,45 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
-    CallToolRequestSchema,
-    ErrorCode,
-    GetPromptRequestSchema,
-    InitializeRequestSchema,
-    ListPromptsRequestSchema,
-    ListResourcesRequestSchema,
-    ListToolsRequestSchema,
-    McpError,
-} from "@modelcontextprotocol/sdk/types.js";
+    CLIENT_INFO_META_KEY,
+    PROTOCOL_VERSION_META_KEY,
+    ProtocolError,
+    ProtocolErrorCode,
+    Server,
+} from "@modelcontextprotocol/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
+import { SERVER_INSTRUCTIONS } from "../docs/serverInstructions.js";
 import { prompts } from "../prompts/index.js";
 import { SERVER_VERSION } from "../utils/consts.js";
+import { BEHAVIORAL_TEXT, schemaDescriptions } from "./behavioralText.js";
 
-vi.mock("@modelcontextprotocol/sdk/server/index.js");
+// Only the Server class is mocked, for two reasons:
+//
+// 1. ProtocolError/ProtocolErrorCode must stay real. v1 imported them from a separate
+//    `types.js` this mock never touched; in v2 they share a module with Server, so a
+//    bare auto-mock would stub out the error class the handlers throw and every
+//    `toThrow` assertion would see an empty error.
+// 2. Server keeps a constructible default implementation, so `createServer()` works even
+//    where no test has set one yet. A bare vi.fn() would make `new Server(...)` return
+//    undefined. Per-test behaviour is still set via mockImplementation.
+vi.mock("@modelcontextprotocol/server", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@modelcontextprotocol/server")>()),
+    // A class, not an arrow: src/server.ts calls `new Server(...)`, and since Vitest 4 a
+    // mock invoked with `new` needs a constructible implementation.
+    Server: vi.fn(
+        class {
+            setRequestHandler = vi.fn();
+            connect = vi.fn();
+            notification = vi.fn();
+            getClientVersion = vi.fn();
+            getNegotiatedProtocolVersion = vi.fn();
+        }
+    ),
+}));
+vi.mock(import("../tools/overview.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleCloudOverviewRequest: vi.fn(),
+}));
 vi.mock(import("../tools/cloudIncidents.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleCloudIncidentsRequest: vi.fn(),
@@ -25,12 +50,18 @@ vi.mock(import("../tools/anomalies.js"), async (importOriginal) => ({
     handleAnomaliesRequest: vi.fn(),
     handleAnomalyRequest: vi.fn(),
 }));
+vi.mock(import("../tools/ava.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleAskAvaSyncRequest: vi.fn(),
+}));
 vi.mock(import("../tools/reports.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleReportsRequest: vi.fn(),
     handleRunQueryRequest: vi.fn(),
     handleGetReportResultsRequest: vi.fn(),
+    handleGetReportConfigRequest: vi.fn(),
     handleCreateReportRequest: vi.fn(),
+    handleUpdateReportRequest: vi.fn(),
 }));
 vi.mock(import("../tools/validateUser.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -46,6 +77,10 @@ vi.mock(import("../tools/dimension.js"), async (importOriginal) => ({
 }));
 vi.mock(import("../tools/tickets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
+    handleCreateTicketCommentRequest: vi.fn(),
+    handleCreateTicketRequest: vi.fn(),
+    handleGetTicketRequest: vi.fn(),
+    handleListTicketCommentsRequest: vi.fn(),
     handleListTicketsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/invoices.js"), async (importOriginal) => ({
@@ -62,6 +97,7 @@ vi.mock(import("../tools/allocations.js"), async (importOriginal) => ({
 }));
 vi.mock(import("../tools/assets.js"), async (importOriginal) => ({
     ...(await importOriginal()),
+    handleGetAssetRequest: vi.fn(),
     handleListAssetsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
@@ -74,10 +110,17 @@ vi.mock(import("../tools/alerts.js"), async (importOriginal) => ({
 vi.mock(import("../tools/cloudflow.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleTriggerCloudFlowRequest: vi.fn(),
+    handleRefineCloudflowRequest: vi.fn(),
 }));
 vi.mock(import("../tools/organizations.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListOrganizationsRequest: vi.fn(),
+}));
+vi.mock(import("../tools/users.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListUsersRequest: vi.fn(),
+    handleUpdateUserRequest: vi.fn(),
+    handleInviteUserRequest: vi.fn(),
 }));
 vi.mock(import("../tools/roles.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -87,6 +130,21 @@ vi.mock(import("../tools/labels.js"), async (importOriginal) => ({
     ...(await importOriginal()),
     handleListLabelsRequest: vi.fn(),
     handleGetLabelRequest: vi.fn(),
+    handleCreateLabelRequest: vi.fn(),
+    handleUpdateLabelRequest: vi.fn(),
+    handleGetLabelAssignmentsRequest: vi.fn(),
+    handleAssignObjectsToLabelRequest: vi.fn(),
+}));
+vi.mock(import("../tools/datahubDatasets.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListDatahubDatasetsRequest: vi.fn(),
+    handleGetDatahubDatasetRequest: vi.fn(),
+    handleCreateDatahubDatasetRequest: vi.fn(),
+    handleUpdateDatahubDatasetRequest: vi.fn(),
+}));
+vi.mock(import("../tools/datahubEvents.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleSendDatahubEventsRequest: vi.fn(),
 }));
 vi.mock(import("../tools/cloudDiagrams.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -98,6 +156,18 @@ vi.mock(import("../tools/budgets.js"), async (importOriginal) => ({
     handleGetBudgetRequest: vi.fn(),
     handleCreateBudgetRequest: vi.fn(),
     handleUpdateBudgetRequest: vi.fn(),
+}));
+vi.mock(import("../tools/annotations.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListAnnotationsRequest: vi.fn(),
+    handleGetAnnotationRequest: vi.fn(),
+    handleCreateAnnotationRequest: vi.fn(),
+    handleUpdateAnnotationRequest: vi.fn(),
+}));
+vi.mock(import("../tools/commitmentManager.js"), async (importOriginal) => ({
+    ...(await importOriginal()),
+    handleListCommitmentsRequest: vi.fn(),
+    handleGetCommitmentRequest: vi.fn(),
 }));
 vi.mock(import("../utils/util.js"), async (importOriginal) => ({
     ...(await importOriginal()),
@@ -112,64 +182,177 @@ vi.mock(import("../utils/util.js"), async (importOriginal) => ({
 }));
 
 const setRequestHandlerMock = vi.fn();
-(Server as any).mockImplementation(() => ({
-    setRequestHandler: setRequestHandlerMock,
-    connect: vi.fn(),
-    _capabilities: { tools: {}, prompts: {}, resources: {} },
-}));
+(Server as any).mockImplementation(
+    class {
+        setRequestHandler = setRequestHandlerMock;
+        connect = vi.fn();
+        notification = vi.fn();
+        // Client identity now comes from the SDK's own initialize path via these
+        // accessors, replacing the closure the deleted custom handler populated.
+        getClientVersion = vi.fn(() => ({ name: "test-client", version: "1.2.3" }));
+        getNegotiatedProtocolVersion = vi.fn(() => "2025-06-18");
+    }
+);
 
 import {
     createServer,
     handleAnomaliesRequest,
     handleAnomalyRequest,
+    handleAskAvaSyncRequest,
+    handleAssignObjectsToLabelRequest,
     handleCloudIncidentRequest,
     handleCloudIncidentsRequest,
     handleCreateAllocationRequest,
+    handleCreateDatahubDatasetRequest,
+    handleCreateLabelRequest,
+    handleCreateTicketCommentRequest,
+    handleCreateTicketRequest,
     handleDimensionRequest,
     handleDimensionsRequest,
     handleGeneralError,
     handleGetAlertRequest,
     handleGetAllocationRequest,
+    handleGetAssetRequest,
+    handleGetCommitmentRequest,
+    handleGetDatahubDatasetRequest,
     handleGetInvoiceRequest,
+    handleGetLabelAssignmentsRequest,
     handleGetReportResultsRequest,
+    handleGetTicketRequest,
     handleListAlertsRequest,
     handleListAllocationsRequest,
     handleListAssetsRequest,
+    handleListCommitmentsRequest,
+    handleListDatahubDatasetsRequest,
     handleListInvoicesRequest,
+    handleListTicketCommentsRequest,
     handleListTicketsRequest,
     handleReportsRequest,
     handleRunQueryRequest,
+    handleSendDatahubEventsRequest,
     handleTriggerCloudFlowRequest,
     handleUpdateAllocationRequest,
+    handleUpdateDatahubDatasetRequest,
+    handleUpdateLabelRequest,
+    handleUpdateReportRequest,
     handleValidateUserRequest,
 } from "../server.js";
+import { listAccountTeamTool } from "../tools/accountTeam.js";
 import { createAlertTool, getAlertTool, listAlertsTool, updateAlertTool } from "../tools/alerts.js";
-
 import {
     createAllocationTool,
     getAllocationTool,
     listAllocationsTool,
     updateAllocationTool,
 } from "../tools/allocations.js";
+import {
+    createAnnotationTool,
+    getAnnotationTool,
+    listAnnotationsTool,
+    updateAnnotationTool,
+} from "../tools/annotations.js";
 import { anomaliesTool, anomalyTool } from "../tools/anomalies.js";
-import { listAssetsTool } from "../tools/assets.js";
+import { getAssetTool, listAssetsTool } from "../tools/assets.js";
+import { askAvaSyncTool } from "../tools/ava.js";
+import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "../tools/awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "../tools/budgets.js";
-import { findCloudDiagramsTool } from "../tools/cloudDiagrams.js";
-import { triggerCloudFlowTool } from "../tools/cloudflow.js";
+import { changeCustomerTool } from "../tools/changeCustomer.js";
+import {
+    findCloudDiagramsTool,
+    getCloudDiagramComponentsTool,
+    getCloudDiagramCostSnapshotTool,
+    getCloudDiagramResourceRelationshipsTool,
+    getCloudDiagramsStatsTool,
+    listCloudDiagramActivityGroupsTool,
+    listCloudDiagramNodeActivitiesTool,
+    searchCloudDiagramsTool,
+} from "../tools/cloudDiagrams.js";
+import {
+    buildCloudflowTool,
+    createCloudFlowConnectionTool,
+    getCloudFlowConnectionTool,
+    getCloudFlowTemplateTool,
+    handleRefineCloudflowRequest,
+    listCloudFlowConnectionsTool,
+    listCloudFlowsTool,
+    listCloudFlowTemplatesTool,
+    refineCloudflowTool,
+    triggerCloudFlowTool,
+    updateCloudFlowConnectionTool,
+} from "../tools/cloudflow.js";
 import { cloudIncidentsTool, cloudIncidentTool } from "../tools/cloudIncidents.js";
+import { getCommitmentTool, listCommitmentsTool } from "../tools/commitmentManager.js";
+import { confirmActionTool } from "../tools/confirmAction.js";
+import {
+    createDatahubDatasetTool,
+    getDatahubDatasetTool,
+    listDatahubDatasetsTool,
+    updateDatahubDatasetTool,
+} from "../tools/datahubDatasets.js";
+import { sendDatahubEventsTool } from "../tools/datahubEvents.js";
 import { dimensionTool } from "../tools/dimension.js";
 import { dimensionsTool } from "../tools/dimensions.js";
+import { createFolderTool, getFolderTool, listFoldersTool, updateFolderTool } from "../tools/folders.js";
+import { generatedTools } from "../tools/generated/registry.js";
+import {
+    getInsightResourcesTool,
+    getInsightTool,
+    listOptimizationRecommendationsTool,
+    postInsightResultTool,
+    updateInsightStatusTool,
+} from "../tools/insights.js";
 import { getInvoiceTool, listInvoicesTool } from "../tools/invoices.js";
-import { getLabelTool, listLabelsTool } from "../tools/labels.js";
+import {
+    assignObjectsToLabelTool,
+    createLabelTool,
+    getLabelAssignmentsTool,
+    getLabelTool,
+    listLabelsTool,
+    updateLabelTool,
+} from "../tools/labels.js";
 import { listOrganizationsTool } from "../tools/organizations.js";
+import { cloudOverviewTool } from "../tools/overview.js";
+import { getResourcePermissionsTool, updateResourcePermissionsTool } from "../tools/permissions.js";
 import { listPlatformsTool } from "../tools/platforms.js";
 import { listProductsTool } from "../tools/products.js";
-import { createReportTool, getReportResultsTool, reportsTool, runQueryTool } from "../tools/reports.js";
+import { compareSpendTool, costBreakdownTool, costTrendTool } from "../tools/queryHelpers.js";
+import {
+    createReportTool,
+    getReportConfigTool,
+    getReportResultsTool,
+    reportsTool,
+    runQueryTool,
+    updateReportTool,
+} from "../tools/reports.js";
 import { listRolesTool } from "../tools/roles.js";
-import { listTicketsTool } from "../tools/tickets.js";
-import { listUsersTool } from "../tools/users.js";
+import { searchCustomersTool } from "../tools/searchCustomers.js";
+import {
+    getActiveThemeTool,
+    getThemeTool,
+    listThemesTool,
+    setActiveThemeTool,
+    updateThemeTool,
+} from "../tools/themes.js";
+import {
+    createTicketCommentTool,
+    createTicketTool,
+    getTicketTool,
+    listTicketCommentsTool,
+    listTicketsTool,
+} from "../tools/tickets.js";
+import { inviteUserTool, listUsersTool, updateUserTool } from "../tools/users.js";
 import { validateUserTool } from "../tools/validateUser.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import * as utilModule from "../utils/util.js";
+
+const generatedToolDefinitions = generatedTools.map((tool) => ({
+    name: tool.name,
+    title: tool.title,
+    description: tool.description,
+    inputSchema: zodToMcpInputSchema(tool.zodSchema),
+    annotations: tool.annotations,
+    securitySchemes: tool.securitySchemes,
+}));
 
 const createErrorResponseSpy = vi.spyOn(utilModule, "createErrorResponse");
 const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
@@ -177,14 +360,24 @@ const formatZodErrorSpy = vi.spyOn(utilModule, "formatZodError");
 const originalProcessEnv = process.env;
 let _server: any;
 
+// Unsigned JWT shaped like a DoiT API key; isDoitEmployee only decodes the payload.
+const fakeApiKey = (payload: Record<string, unknown>) =>
+    `e30.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.sig`;
+
 beforeEach(() => {
     vi.resetAllMocks();
     process.env = { ...originalProcessEnv, DOIT_API_KEY: "fake-token" };
-    (Server as any).mockImplementation(() => ({
-        setRequestHandler: setRequestHandlerMock,
-        connect: vi.fn(),
-        _capabilities: { tools: {}, prompts: {}, resources: {} },
-    }));
+    (Server as any).mockImplementation(
+        class {
+            setRequestHandler = setRequestHandlerMock;
+            connect = vi.fn();
+            notification = vi.fn();
+            // Client identity now comes from the SDK's own initialize path via these
+            // accessors, replacing the closure the deleted custom handler populated.
+            getClientVersion = vi.fn(() => ({ name: "test-client", version: "1.2.3" }));
+            getNegotiatedProtocolVersion = vi.fn(() => "2025-06-18");
+        }
+    );
     _server = createServer();
     formatZodErrorSpy.mockClear();
     createErrorResponseSpy.mockClear();
@@ -198,40 +391,109 @@ describe("createServer", () => {
     it("creates a Server instance with correct name and version", () => {
         expect(Server).toHaveBeenCalledWith(
             { name: "doit-mcp-server", version: SERVER_VERSION },
-            { capabilities: { tools: {}, prompts: {}, resources: {} } }
+            {
+                capabilities: { tools: {}, prompts: {}, resources: {} },
+                instructions: SERVER_INSTRUCTIONS,
+            }
         );
     });
 
+    it("passes non-empty instructions covering the codeNode contract", () => {
+        const [, options] = (Server as any).mock.calls[0];
+
+        expect(options.instructions).toContain('nodes["<node name>"]');
+        expect(options.instructions).toContain("{message: null}");
+    });
+
     it("registers handlers for all required schemas", () => {
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListToolsRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListPromptsRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(GetPromptRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(ListResourcesRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(CallToolRequestSchema, expect.any(Function));
-        expect(setRequestHandlerMock).toHaveBeenCalledWith(InitializeRequestSchema, expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("tools/list", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("prompts/list", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("prompts/get", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("resources/list", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("resources/read", expect.any(Function));
+        expect(setRequestHandlerMock).toHaveBeenCalledWith("tools/call", expect.any(Function));
     });
 });
 
-describe("ListToolsRequestSchema handler", () => {
+describe("tools/list handler", () => {
+    it("hides employee-only tools from a customer key", async () => {
+        process.env.DOIT_API_KEY = fakeApiKey({ sub: "user@example.com" });
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        const { tools } = await handler();
+
+        expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
+        expect(tools.map((tool: { name: string }) => tool.name)).toContain("list_assets");
+    });
+
+    it.each([
+        ["a @doit.com email", { sub: "Doer@DoiT.com", CustomerID: "customer-123" }],
+        ["the legacy DoitEmployee claim", { sub: "doer@example.com", DoitEmployee: true }],
+    ])("shows employee-only tools to an employee key with %s", async (_label, payload) => {
+        process.env.DOIT_API_KEY = fakeApiKey(payload);
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        const { tools } = await handler();
+
+        expect(tools.map((tool: { name: string }) => tool.name)).toContain("search_customers");
+    });
+
+    it.each([
+        ["a lookalike email domain", fakeApiKey({ sub: "user@notdoit.com" })],
+        ["a key that is not a JWT", "fake-token"],
+    ])("hides employee-only tools from %s", async (_label, key) => {
+        process.env.DOIT_API_KEY = key;
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        const { tools } = await handler();
+
+        expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
+    });
+
+    it("does not call the validate endpoint", async () => {
+        process.env.DOIT_API_KEY = fakeApiKey({ sub: "employee@doit.com" });
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        await handler();
+
+        expect(handleValidateUserRequest).not.toHaveBeenCalled();
+    });
+
     it("returns all registered tools in order", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListToolsRequestSchema)?.[1];
+        process.env.DOIT_API_KEY = fakeApiKey({ sub: "employee@doit.com" });
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
         const response = await handler();
 
         expect(response).toEqual({
             tools: [
+                cloudOverviewTool,
                 cloudIncidentsTool,
                 cloudIncidentTool,
                 anomaliesTool,
                 anomalyTool,
                 reportsTool,
                 runQueryTool,
+                costBreakdownTool,
+                costTrendTool,
+                compareSpendTool,
+                listOptimizationRecommendationsTool,
+                getInsightResourcesTool,
+                getInsightTool,
+                postInsightResultTool,
+                updateInsightStatusTool,
                 getReportResultsTool,
+                getReportConfigTool,
                 createReportTool,
+                updateReportTool,
                 validateUserTool,
                 dimensionsTool,
                 dimensionTool,
                 listTicketsTool,
+                getTicketTool,
+                listTicketCommentsTool,
+                createTicketCommentTool,
+                createTicketTool,
                 listInvoicesTool,
                 getInvoiceTool,
                 listAllocationsTool,
@@ -239,32 +501,179 @@ describe("ListToolsRequestSchema handler", () => {
                 createAllocationTool,
                 updateAllocationTool,
                 listAssetsTool,
+                getAssetTool,
+                searchCustomersTool,
                 listAlertsTool,
                 getAlertTool,
                 createAlertTool,
                 updateAlertTool,
 
                 triggerCloudFlowTool,
+                listCloudFlowsTool,
+                listCloudFlowConnectionsTool,
+                getCloudFlowConnectionTool,
+                createCloudFlowConnectionTool,
+                updateCloudFlowConnectionTool,
+                listCloudFlowTemplatesTool,
+                getCloudFlowTemplateTool,
+                refineCloudflowTool,
+                buildCloudflowTool,
                 listOrganizationsTool,
                 listPlatformsTool,
                 listUsersTool,
+                updateUserTool,
+                inviteUserTool,
                 listRolesTool,
                 listProductsTool,
                 listLabelsTool,
                 getLabelTool,
+                createLabelTool,
+                updateLabelTool,
+                getLabelAssignmentsTool,
+                assignObjectsToLabelTool,
+                listFoldersTool,
+                getFolderTool,
+                createFolderTool,
+                updateFolderTool,
+                listThemesTool,
+                getThemeTool,
+                getActiveThemeTool,
+                setActiveThemeTool,
+                updateThemeTool,
+                getAwsAccountTool,
+                getCloudConnectSupportedFeaturesTool,
+                listDatahubDatasetsTool,
+                getDatahubDatasetTool,
+                createDatahubDatasetTool,
+                updateDatahubDatasetTool,
+                sendDatahubEventsTool,
                 findCloudDiagramsTool,
+                getCloudDiagramsStatsTool,
+                searchCloudDiagramsTool,
+                getCloudDiagramCostSnapshotTool,
+                getCloudDiagramResourceRelationshipsTool,
+                listCloudDiagramActivityGroupsTool,
+                listCloudDiagramNodeActivitiesTool,
+                getCloudDiagramComponentsTool,
                 listBudgetsTool,
                 getBudgetTool,
                 createBudgetTool,
                 updateBudgetTool,
+                listAnnotationsTool,
+                getAnnotationTool,
+                createAnnotationTool,
+                updateAnnotationTool,
+                listCommitmentsTool,
+                getCommitmentTool,
+                listAccountTeamTool,
+                getResourcePermissionsTool,
+                updateResourcePermissionsTool,
+                askAvaSyncTool,
+                confirmActionTool,
+                ...generatedToolDefinitions,
             ],
         });
     });
+
+    it("includes a generated tool for a non-blacklisted OpenAPI operation", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+
+        const response = await handler();
+
+        expect(generatedToolDefinitions.length).toBeGreaterThan(0);
+        expect(response.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "delete_alert" })]));
+    });
+
+    // Directory listings (e.g. the Claude Connectors Directory) flag any tool without a title
+    // or without the applicable readOnlyHint/destructiveHint set to true.
+    it("every listed tool has a title and sets readOnlyHint or destructiveHint to true", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        // change_customer is registered only by the remote Worker (for DoiT employees), so check
+        // it alongside the stdio list.
+        for (const tool of [...tools, changeCustomerTool]) {
+            expect(tool.title?.trim(), tool.name).toBeTruthy();
+            expect(tool.annotations?.readOnlyHint || tool.annotations?.destructiveHint, tool.name).toBe(true);
+            expect(tool.annotations?.readOnlyHint && tool.annotations?.destructiveHint, tool.name).toBeFalsy();
+        }
+    });
+
+    /** Mutating tools that previously lacked MCP hints: destructive annotations carry the confirmation signal. */
+    it("list_tools: user, invite, and DataHub mutating tools expose destructive hints", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        const names = [
+            "update_user",
+            "invite_user",
+            "create_datahub_dataset",
+            "update_datahub_dataset",
+            "send_datahub_events",
+        ] as const;
+        for (const name of names) {
+            const tool = tools.find((t: { name: string }) => t.name === name);
+            expect(tool, name).toBeDefined();
+            expect(tool.annotations).toEqual({
+                readOnlyHint: false,
+                destructiveHint: true,
+                openWorldHint: true,
+            });
+        }
+    });
+
+    // Directory review (e.g. the Claude Connectors Directory) rejects tool text that tells the
+    // model how to behave: always calling other tools, asking the user, or what it may claim.
+    // Descriptions say what a tool does and when it applies; confirmation rides on annotations.
+    it("no tool description or server instruction prescribes model behavior", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        // Generated from the upstream OpenAPI spec, whose description says "Agents should present
+        // consentUrl … and poll". The fix belongs in the spec; remove this once it is refreshed.
+        const upstreamSpecExceptions = new Set(["create_signup_request"]);
+
+        for (const tool of [...tools, changeCustomerTool]) {
+            if (upstreamSpecExceptions.has(tool.name)) continue;
+            expect(tool.description, tool.name).not.toMatch(BEHAVIORAL_TEXT);
+            for (const [path, text] of schemaDescriptions(tool.inputSchema, tool.name)) {
+                expect(text, path).not.toMatch(BEHAVIORAL_TEXT);
+            }
+        }
+        expect(SERVER_INSTRUCTIONS).not.toMatch(BEHAVIORAL_TEXT);
+    });
+
+    // A description that points at a tool which doesn't exist sends the model to a dead end.
+    it("every tool name a description mentions is a real tool", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        const listed = [...tools, changeCustomerTool];
+        const names = new Set(listed.map((tool: { name: string }) => tool.name));
+        // Tool-shaped words that are not tools: a column name in the DataHub export description.
+        const notToolNames = new Set(["export_time"]);
+        const toolLike =
+            /\b(?:list|get|create|update|delete|run|search|find|send|trigger|refine|build|export|import|test_run|set|assign|invite|validate|ask|confirm|change|post)_[a-z0-9_]+\b/g;
+        for (const tool of listed) {
+            const texts = [
+                tool.description,
+                ...schemaDescriptions(tool.inputSchema, tool.name).map(([, text]) => text),
+            ];
+            for (const mention of texts.join("\n").match(toolLike) ?? []) {
+                if (notToolNames.has(mention)) continue;
+                expect(names.has(mention), `${tool.name} mentions ${mention}`).toBe(true);
+            }
+        }
+    });
+
+    it("run_query names the DoiT Cloud Analytics API it calls", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler();
+        const runQuery = tools.find((t: { name: string }) => t.name === "run_query");
+        expect(runQuery.description).toContain("DoiT Cloud Analytics API");
+        expect(runQuery.description).toContain("https://developer.doit.com/reference/query");
+    });
 });
 
-describe("ListPromptsRequestSchema handler", () => {
+describe("prompts/list handler", () => {
     it("returns a non-empty list of prompts with name and description fields", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/list")?.[1];
 
         const response = await handler();
 
@@ -275,21 +684,30 @@ describe("ListPromptsRequestSchema handler", () => {
     });
 
     it("exposes only snake_case names", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListPromptsRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/list")?.[1];
 
         const response = await handler();
         const names: string[] = response.prompts.map((p: { name: string }) => p.name);
         const snakeCasePattern = /^[a-z][a-z0-9_]*$/;
 
-        expect(names).toContain("allow_artifacts");
-        expect(names).not.toContain("Allow Artifacts");
         for (const name of names) {
             expect(name).toMatch(snakeCasePattern);
         }
     });
+
+    it("includes every prompt defined in the prompts module", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/list")?.[1];
+
+        const response = await handler();
+        const names: string[] = response.prompts.map((p: { name: string }) => p.name);
+
+        for (const prompt of prompts) {
+            expect(names).toContain(prompt.name);
+        }
+    });
 });
 
-describe("GetPromptRequestSchema handler", () => {
+describe("prompts/get handler", () => {
     const TEST_PROMPT_NAMES = ["__test_multi__", "__test_args__", "__test_no_args__"];
 
     afterEach(() => {
@@ -300,9 +718,9 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("returns description and a single message for a snake_case prompt name", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
 
-        const response = await handler({ params: { name: "allow_artifacts" } });
+        const response = await handler({ params: { name: "filter_fields_reference" } });
 
         expect(response).toHaveProperty("description");
         expect(response).toHaveProperty("messages");
@@ -310,15 +728,6 @@ describe("GetPromptRequestSchema handler", () => {
         expect(response.messages[0].role).toBe("user");
         expect(response.messages[0].content.type).toBe("text");
         expect(response.messages[0].content.text).toBeTruthy();
-    });
-
-    it("throws McpError with InvalidParams for a human-readable prompt name (not exposed by this server)", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
-
-        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toThrow(McpError);
-        await expect(handler({ params: { name: "Allow Artifacts" } })).rejects.toMatchObject({
-            code: ErrorCode.InvalidParams,
-        });
     });
 
     it("returns all messages for a multi-message prompt", async () => {
@@ -333,7 +742,7 @@ describe("GetPromptRequestSchema handler", () => {
         };
         prompts.push(multiMessagePrompt); // this will be cleaned up by the afterEach hook
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({ params: { name: "__test_multi__" } });
 
         expect(response.messages).toHaveLength(3);
@@ -343,11 +752,11 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("throws McpError with InvalidParams for an unknown prompt name", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
 
-        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(McpError);
+        await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toThrow(ProtocolError);
         await expect(handler({ params: { name: "nonexistent-prompt" } })).rejects.toMatchObject({
-            code: ErrorCode.InvalidParams,
+            code: ProtocolErrorCode.InvalidParams,
             message: expect.stringContaining("nonexistent-prompt"),
         });
     });
@@ -363,7 +772,7 @@ describe("GetPromptRequestSchema handler", () => {
             ],
         });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: { name: "__test_args__", arguments: { arg1: "value" } },
         });
@@ -383,7 +792,7 @@ describe("GetPromptRequestSchema handler", () => {
             ],
         });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: { name: "__test_args__", arguments: { name: "Alice", id: "42" } },
         });
@@ -403,7 +812,7 @@ describe("GetPromptRequestSchema handler", () => {
             arguments: [{ name: "flowID", description: "Flow ID", required: true }],
         });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: { name: "__test_args__", arguments: { flowID: "flow-7" } },
         });
@@ -414,7 +823,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("returns prompt for expert_inquiries with expected message and arguments", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({ params: { name: "expert_inquiries" } });
 
         expect(response).toHaveProperty("description");
@@ -427,7 +836,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("returns prompt for expert_inquiries with arguments appended to message", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: {
                 name: "expert_inquiries",
@@ -440,7 +849,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("returns prompt for search_expert_inquiries with expected structure and content", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({ params: { name: "search_expert_inquiries" } });
 
         expect(response.description).toContain("expert inquiries");
@@ -451,7 +860,7 @@ describe("GetPromptRequestSchema handler", () => {
     });
 
     it("appends arguments to search_expert_inquiries message", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({
             params: { name: "search_expert_inquiries", arguments: { keyword: "billing", platform: "gcp" } },
         });
@@ -468,50 +877,174 @@ describe("GetPromptRequestSchema handler", () => {
             text: "Static prompt text with no placeholders",
         });
 
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === GetPromptRequestSchema)?.[1];
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "prompts/get")?.[1];
         const response = await handler({ params: { name: "__test_no_args__" } });
 
         expect(response.messages[0].content.text).toBe("Static prompt text with no placeholders");
     });
 });
 
-describe("ListResourcesRequestSchema handler", () => {
-    it("returns an empty resources list", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === ListResourcesRequestSchema)?.[1];
+describe("resources/list handler", () => {
+    it("lists the CloudFlow authoring guide", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "resources/list")?.[1];
 
         const response = await handler();
 
-        expect(response).toEqual({ resources: [] });
+        expect(response).toEqual({
+            resources: [
+                {
+                    uri: "doit://docs/cloudflow-authoring",
+                    name: "CloudFlow authoring guide",
+                    description: "Runtime contracts for authoring, repairing and verifying CloudFlow flows.",
+                    mimeType: "text/markdown",
+                },
+            ],
+        });
     });
 });
 
-describe("InitializeRequestSchema handler", () => {
-    it("returns server info and capabilities with the provided protocol version", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
+describe("resources/read handler", () => {
+    const getHandler = () => setRequestHandlerMock.mock.calls.find((call) => call[0] === "resources/read")?.[1];
 
-        const response = await handler({ params: { protocolVersion: "2024-11-05" } });
+    it("returns the guide for its own URI", async () => {
+        const response = await getHandler()({ params: { uri: "doit://docs/cloudflow-authoring" } });
 
         expect(response).toEqual({
-            protocolVersion: "2024-11-05",
-            serverInfo: { name: "doit-mcp-server", version: SERVER_VERSION },
-            capabilities: { tools: {}, prompts: {}, resources: {} },
+            contents: [
+                {
+                    uri: "doit://docs/cloudflow-authoring",
+                    mimeType: "text/markdown",
+                    text: CLOUDFLOW_AUTHORING_GUIDE,
+                },
+            ],
         });
     });
 
-    it("falls back to default protocol version when not provided", async () => {
-        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === InitializeRequestSchema)?.[1];
-
-        const response = await handler({ params: {} });
-
-        expect(response.protocolVersion).toBe("2024-11-05");
+    it("throws InvalidParams for an unknown URI", async () => {
+        await expect(getHandler()({ params: { uri: "doit://docs/nope" } })).rejects.toThrow(ProtocolError);
+        await expect(getHandler()({ params: { uri: "doit://docs/nope" } })).rejects.toThrow(
+            /Unknown resource: doit:\/\/docs\/nope/
+        );
     });
 });
 
-describe("CallToolRequestSchema handler", () => {
+describe("tools/call handler", () => {
     const mockRequest = (name: string, args: any) => ({ params: { name, arguments: args } });
 
-    const getCallToolHandler = () =>
-        setRequestHandlerMock.mock.calls.find((call) => call[0] === CallToolRequestSchema)?.[1];
+    // The SDK passes a per-request context as the handler's second argument. `envelope` is
+    // only present on 2026-07-28 requests; it is absent (undefined) on 2025-era requests.
+    const mockCtx = (envelope?: Record<string, unknown>) => ({
+        mcpReq: { id: 1, envelope, notify: vi.fn(async () => {}) },
+    });
+
+    const getCallToolHandler = () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/call")?.[1];
+        return (request: any, ctx: any = mockCtx()) => handler(request, ctx);
+    };
+
+    describe("tracking context", () => {
+        const captureTrackingContext = async (ctx: any) => {
+            let captured: utilModule.TrackingContext | undefined;
+            (handleCloudIncidentsRequest as any).mockImplementation(async () => {
+                captured = utilModule.getTrackingContext();
+                return { content: [] };
+            });
+            await getCallToolHandler()(mockRequest("get_cloud_incidents", {}), ctx);
+            return captured;
+        };
+
+        it("reads client identity and protocol version from the 2026-07-28 request envelope", async () => {
+            const ctx = mockCtx({
+                [PROTOCOL_VERSION_META_KEY]: "2026-07-28",
+                [CLIENT_INFO_META_KEY]: { name: "modern-client", version: "9.9.9" },
+            });
+
+            expect(await captureTrackingContext(ctx)).toMatchObject({
+                mcpClient: "modern-client",
+                mcpClientVersion: "9.9.9",
+                mcpProtocolVersion: "2026-07-28",
+                mcpTool: "get_cloud_incidents",
+            });
+            expect(_server.getClientVersion).not.toHaveBeenCalled();
+            expect(_server.getNegotiatedProtocolVersion).not.toHaveBeenCalled();
+        });
+
+        it("falls back to the initialize-time accessors on 2025-era requests (no envelope)", async () => {
+            expect(await captureTrackingContext(mockCtx())).toMatchObject({
+                mcpClient: "test-client",
+                mcpClientVersion: "1.2.3",
+                mcpProtocolVersion: "2025-06-18",
+            });
+        });
+
+        it("keeps the envelope's protocol version when the optional client info is absent", async () => {
+            const ctx = mockCtx({ [PROTOCOL_VERSION_META_KEY]: "2026-07-28" });
+
+            expect(await captureTrackingContext(ctx)).toMatchObject({
+                mcpClient: "test-client",
+                mcpProtocolVersion: "2026-07-28",
+            });
+        });
+    });
+
+    describe("progress notifications", () => {
+        it("sends progress through the per-request ctx.mcpReq.notify", async () => {
+            (handleRefineCloudflowRequest as any).mockImplementation(
+                async (_args: unknown, _token: string, onProgress?: (message: string) => Promise<void>) => {
+                    await onProgress?.("step 1");
+                    return { content: [] };
+                }
+            );
+            const ctx = mockCtx();
+
+            await getCallToolHandler()(
+                { params: { name: "refine_cloudflow", arguments: {}, _meta: { progressToken: "tok-1" } } },
+                ctx
+            );
+
+            expect(ctx.mcpReq.notify).toHaveBeenCalledWith({
+                method: "notifications/progress",
+                params: { progressToken: "tok-1", progress: 0, message: "step 1" },
+            });
+            expect(_server.notification).not.toHaveBeenCalled();
+        });
+
+        it("treats a progressToken of 0 as a real token", async () => {
+            (handleRefineCloudflowRequest as any).mockImplementation(
+                async (_args: unknown, _token: string, onProgress?: (message: string) => Promise<void>) => {
+                    await onProgress?.("step 1");
+                    return { content: [] };
+                }
+            );
+            const ctx = mockCtx();
+
+            await getCallToolHandler()(
+                { params: { name: "refine_cloudflow", arguments: {}, _meta: { progressToken: 0 } } },
+                ctx
+            );
+
+            expect(ctx.mcpReq.notify).toHaveBeenCalledWith({
+                method: "notifications/progress",
+                params: { progressToken: 0, progress: 0, message: "step 1" },
+            });
+        });
+
+        it("passes no progress callback when the request has no progressToken", async () => {
+            await getCallToolHandler()(mockRequest("refine_cloudflow", {}));
+
+            expect(handleRefineCloudflowRequest).toHaveBeenCalledWith({}, "fake-token", undefined);
+        });
+    });
+
+    it("rejects a direct employee-only call from a customer key with a clear error", async () => {
+        process.env.DOIT_API_KEY = fakeApiKey({ sub: "user@example.com" });
+
+        const response = await getCallToolHandler()(mockRequest("search_customers", {}));
+
+        expect(response).toEqual({
+            content: [{ type: "text", text: "search_customers is available only to DoiT employees" }],
+        });
+    });
 
     it("returns Unauthorized when DOIT_API_KEY is missing", async () => {
         process.env.DOIT_API_KEY = undefined;
@@ -561,10 +1094,34 @@ describe("CallToolRequestSchema handler", () => {
         ["list_reports", "list_reports", { type: "cost" }, handleReportsRequest],
         ["run_query", "run_query", { config: {} }, handleRunQueryRequest],
         ["get_report_results", "get_report_results", { reportId: "report-789" }, handleGetReportResultsRequest],
+        ["update_report", "update_report", { id: "report-1", name: "Updated" }, handleUpdateReportRequest],
         ["validate_user", "validate_user", { email: "test@example.com" }, handleValidateUserRequest],
         ["list_dimensions", "list_dimensions", { filter: "type:fixed" }, handleDimensionsRequest],
         ["get_dimension", "get_dimension", { id: "dimension-abc" }, handleDimensionRequest],
         ["list_tickets", "list_tickets", { pageSize: 5 }, handleListTicketsRequest],
+        ["get_ticket", "get_ticket", { id: "12345" }, handleGetTicketRequest],
+        ["list_ticket_comments", "list_ticket_comments", { ticketId: "12345" }, handleListTicketCommentsRequest],
+        [
+            "create_ticket_comment",
+            "create_ticket_comment",
+            { ticketId: "12345", body: "test" },
+            handleCreateTicketCommentRequest,
+        ],
+        [
+            "create_ticket",
+            "create_ticket",
+            {
+                ticket: {
+                    body: "Billing issue",
+                    created: "2026-04-22T00:00:00Z",
+                    platform: "amazon_web_services",
+                    product: "billing",
+                    severity: "high",
+                    subject: "Billing question",
+                },
+            },
+            handleCreateTicketRequest,
+        ],
         ["list_invoices", "list_invoices", { pageToken: "next-page-token" }, handleListInvoicesRequest],
         ["get_invoice", "get_invoice", { id: "invoice-123" }, handleGetInvoiceRequest],
         ["list_allocations", "list_allocations", { pageToken: "next-page-token" }, handleListAllocationsRequest],
@@ -586,8 +1143,38 @@ describe("CallToolRequestSchema handler", () => {
             handleUpdateAllocationRequest,
         ],
         ["list_assets", "list_assets", { pageToken: "next-page" }, handleListAssetsRequest],
+        ["get_asset", "get_asset", { id: "asset-123" }, handleGetAssetRequest],
         ["list_alerts", "list_alerts", { sortBy: "name", sortOrder: "asc" }, handleListAlertsRequest],
         ["get_alert", "get_alert", { id: "alert-123" }, handleGetAlertRequest],
+        ["create_label", "create_label", { name: "Test", color: "blue" }, handleCreateLabelRequest],
+        ["update_label", "update_label", { id: "label-1", name: "Updated" }, handleUpdateLabelRequest],
+        ["get_label_assignments", "get_label_assignments", { id: "label-1" }, handleGetLabelAssignmentsRequest],
+        [
+            "assign_objects_to_label",
+            "assign_objects_to_label",
+            { id: "label-1", add: [{ objectId: "report-1", objectType: "report" }] },
+            handleAssignObjectsToLabelRequest,
+        ],
+        ["list_datahub_datasets", "list_datahub_datasets", {}, handleListDatahubDatasetsRequest],
+        ["get_datahub_dataset", "get_datahub_dataset", { name: "My Custom Dataset" }, handleGetDatahubDatasetRequest],
+        [
+            "create_datahub_dataset",
+            "create_datahub_dataset",
+            { name: "New Dataset", description: "A dataset" },
+            handleCreateDatahubDatasetRequest,
+        ],
+        [
+            "update_datahub_dataset",
+            "update_datahub_dataset",
+            { name: "My Dataset", description: "Updated" },
+            handleUpdateDatahubDatasetRequest,
+        ],
+        [
+            "send_datahub_events",
+            "send_datahub_events",
+            { events: [{ provider: "Datadog", time: "2024-03-10T23:00:00Z" }] },
+            handleSendDatahubEventsRequest,
+        ],
         [
             "trigger_cloud_flow (with body)",
             "trigger_cloud_flow",
@@ -600,10 +1187,23 @@ describe("CallToolRequestSchema handler", () => {
             { flowID: "flow-789" },
             handleTriggerCloudFlowRequest,
         ],
+        ["list_commitments", "list_commitments", {}, handleListCommitmentsRequest],
+        ["get_commitment", "get_commitment", { id: "commitment-1" }, handleGetCommitmentRequest],
+        ["ask_ava_sync", "ask_ava_sync", { question: "What is my spend?" }, handleAskAvaSyncRequest],
     ];
 
+    // Hand-written tools gated by the server-side approval flow (confirm_action two-phase
+    // commit) — see WRITE_GATED_SUMMARIES in toolsHandler.ts. Generated DELETE tools are
+    // gated too; that path is covered in toolsHandler.test.ts rather than routed here.
+    const WRITE_GATED_TOOL_NAMES = new Set<string>([]);
+
     it.each(toolRoutingCases)("routes %s to the correct handler", async (_label, toolName, args, handler) => {
-        await getCallToolHandler()(mockRequest(toolName, args));
+        const first = await getCallToolHandler()(mockRequest(toolName, args));
+        if (WRITE_GATED_TOOL_NAMES.has(toolName)) {
+            const envelope = JSON.parse(first.content[0].text);
+            expect(envelope.status).toBe("approval_required");
+            await getCallToolHandler()(mockRequest("confirm_action", { token: envelope.approvalToken }));
+        }
         expect(handler).toHaveBeenCalledWith(args, "fake-token");
     });
 });

@@ -1,5 +1,479 @@
 # Changelog
 
+## Unreleased
+
+- Tool responses are capped at 140,000 serialized characters. Oversized reads return
+  actionable errors; completed writes return compact success receipts.
+- Each dispatched tool call now emits one JSON response-size metrics event to stderr
+  on stdio. Some clients display stderr in their logs or UI; stdout remains reserved
+  for MCP protocol messages. Metrics contain no tool arguments or response bodies.
+
+## v2.2.0 (2026-10-02)
+
+**Full diff:** [`v2.1.1...v2.2.0`](../../compare/v2.1.1...v2.2.0)
+
+### Features
+
+- feat(stdio): serve 2025-era and 2026-07-28 clients via serveStdio (`4ba4f7b`)
+
+## v2.1.1 (2026-10-01)
+
+**Full diff:** [`v2.1.0...v2.1.1`](../../compare/v2.1.0...v2.1.1)
+
+### Bug Fixes
+
+- fix: harden generated path params against decoded-slash traversal (`a0d1322`)
+- fix: escape spec-derived keys in refresh-spec error output (`520a8c6`)
+- fix: reject external $refs when refreshing the OpenAPI snapshot (`2a3d97a`)
+- fix: reject dot/empty path params in generated tools (`e4f281f`)
+
+### Other Changes
+
+- build: remove local npm publish script (`a2e5bc9`)
+- ci(release-pr): scope app private key to a main-only environment (`ce19ca3`)
+- docs: remove internal repo and issue references (`8187fcd`)
+- docs: remove internal issue references (`9a5ed00`)
+- ci(release): publish to npm from main only (`0c6d889`)
+- ci(release): gate npm publish behind protected `npm` environment (`435fd94`)
+## v2.1.0 (2026-10-01)
+
+**Full diff:** [`v2.0.0...v2.1.0`](../../compare/v2.0.0...v2.1.0)
+
+### Features
+
+- feat(tools): update changeCustomer destructive hint (`6eac6d5`)
+- feat(tools): add titles to all tools and enforce MCP hints (`46697ec`)
+
+### Chores
+
+- chore(deps-dev): bump integration test dev deps (`df0b984`)
+- chore(deps-dev): bump biome, openapi-parser, typescript, vitest (`5baea7f`)
+- chore(deps): bump qs from 6.15.0 to 6.16.0 in /test/integration (`363c664`)
+
+### Other Changes
+
+- test(tools): update list tools request handler mock (`c7f8a4e`)
+## v2.0.0 (2026-10-01)
+
+**Full diff:** [`v1.13.0...v2.0.0`](../../compare/v1.13.0...v2.0.0)
+
+### Breaking Changes
+
+- Node.js `>=20` is now required (was `>=18`) — the MCP SDK v2 packages set that floor.
+- `/core` consumers must move to zod 4 — the exported `*ArgumentsSchema` objects are zod 4 and do not compose with zod 3 schemas.
+- Tool `inputSchema` is now JSON Schema draft 2020-12 (was draft-07), and `.min()` constraints that apply after a `.trim()` transform are no longer advertised. Runtime validation is unchanged.
+- The MCP wire protocol is **unchanged** (2025 era, up to `2025-11-25`) — this release swaps dependencies only.
+
+### Features
+
+- feat!: migrate from @modelcontextprotocol/sdk v1 to the v2 server package (`bca3541`) — v1 is superseded by the split packages; `@modelcontextprotocol/server` replaces it.
+
+### Chores
+
+- chore: migrate to zod 4 and drop Node 18 (`ea668e2`) — required by SDK v2, which does not support zod 3.
+- Dropped `zod-to-json-schema` — zod-3 only with no v4 successor; replaced by zod 4's native `z.toJSONSchema`.
+
+### Other Changes
+
+- ci: name test jobs by role and run shared checks once (`341528b`)
+- ci: run both test suites on Node 20 and 22 (`98e8329`)
+
+## v1.13.0 (2026-10-01)
+
+**Full diff:** [`v1.12.1...v1.13.0`](../../compare/v1.12.1...v1.13.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`5a60427`)
+
+### Chores
+
+- chore(deps): bump hono from 4.12.5 to 4.13.12 in /test/integration (`e9a83bf`)
+- chore(deps): bump hono from 4.12.9 to 4.13.12 (`ab6fe25`)
+- chore(deps): bump fast-uri from 3.1.7 to 3.1.8 (`bc97c96`)
+## v1.12.1 (2026-09-30)
+
+**Full diff:** [`v1.12.0...v1.12.1`](../../compare/v1.12.0...v1.12.1)
+
+### Other Changes
+
+- Revert "fix: stop sending legacy customerContext query param" (`54977d0`)
+## v1.12.0 (2026-09-30)
+
+**Full diff:** [`v1.11.0...v1.12.0`](../../compare/v1.11.0...v1.12.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`5cd5c59`)
+- feat: refresh generated OpenAPI spec snapshot (`37aa00d`)
+
+### Bug Fixes
+
+- fix: stop sending legacy customerContext query param (`d1c6159`)
+## v1.11.0 (2026-09-28)
+
+**Full diff:** [`v1.10.0...v1.11.0`](../../compare/v1.10.0...v1.11.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`ec890fd`)
+## v1.10.0 (2026-09-22)
+
+**Full diff:** [`v1.9.0...v1.10.0`](../../compare/v1.9.0...v1.10.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`2bf771e`)
+## v1.9.0 (2026-09-21)
+
+**Full diff:** [`v1.8.0...v1.9.0`](../../compare/v1.8.0...v1.9.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`bd9288d`)
+- feat: refresh generated OpenAPI spec snapshot (`7d875a8`)
+## v1.8.0 (2026-09-15)
+
+**Full diff:** [`v1.7.0...v1.8.0`](../../compare/v1.7.0...v1.8.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`8f4cf14`)
+## v1.7.0 (2026-09-14)
+
+**Full diff:** [`v1.6.0...v1.7.0`](../../compare/v1.6.0...v1.7.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`0c2f39c`)
+
+### Chores
+
+- chore: update runtime deps still capped by node 18 (`2f90209`)
+## v1.6.0 (2026-09-11)
+
+**Full diff:** [`v1.5.0...v1.6.0`](../../compare/v1.5.0...v1.6.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`56e0b76`)
+
+### Chores
+
+- chore: vitest from 3.2.7 -> 3.1.3 for node 18 (`d727d49`)
+- chore: pre-commit ping tag hash (`02774dd`)
+- chore(deps): bump dev dependencies to their Node 18 ceiling (`a6f06c4`)
+## v1.5.0 (2026-09-10)
+
+**Full diff:** [`v1.4.1...v1.5.0`](../../compare/v1.4.1...v1.5.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`05a4414`)
+
+### Chores
+
+- chore(deps): bump @hono/node-server in /test/integration (`a4fcf92`)
+- chore(deps): bump nanoid from 3.3.11 to 3.3.18 (`8223710`)
+- chore(deps): bump fast-uri from 3.1.0 to 3.1.7 in /test/integration (`0c34cd6`)
+- chore(deps): bump qs from 6.15.0 to 6.16.0 (`8522bb7`)
+- chore(deps): bump fast-uri from 3.1.0 to 3.1.7 (`cb39ee1`)
+- chore(deps-dev): bump vitest from 3.2.4 to 4.1.11 in /test/integration (`32cb3b0`)
+## v1.4.1 (2026-09-10)
+
+**Full diff:** [`v1.4.0...v1.4.1`](../../compare/v1.4.0...v1.4.1)
+
+### Chores
+
+- chore: drop Cloudflare-era deps and npm remnants, enforce yarn (`58ce749`)
+- chore(deps): bump js-yaml from 4.3.0 to 4.3.2 (`0cb281c`)
+## v1.4.0 (2026-09-09)
+
+**Full diff:** [`v1.3.0...v1.4.0`](../../compare/v1.3.0...v1.4.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`60b6166`)
+## v1.3.0 (2026-09-08)
+
+**Full diff:** [`v1.2.0...v1.3.0`](../../compare/v1.2.0...v1.3.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`b690c75`)
+## v1.2.0 (2026-09-07)
+
+**Full diff:** [`v1.1.0...v1.2.0`](../../compare/v1.1.0...v1.2.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`7107839`)
+
+### Bug Fixes
+
+- fix(api): send customerContext also as x-tenant-id header (`3ddaa5e`)
+## v1.1.0 (2026-09-04)
+
+**Full diff:** [`v1.0.1...v1.1.0`](../../compare/v1.0.1...v1.1.0)
+
+### Features
+
+- feat: deliver CloudFlow authoring guidance to the model (`cc8a08f`)
+
+### Chores
+
+- chore: pin yarn 1 to match the committed lockfiles and CI (`f00e7d4`)
+
+### Other Changes
+
+- docs: spec — deliver CloudFlow authoring guidance to the model (`1aed3d5`)
+## v1.0.1 (2026-09-04)
+
+**Full diff:** [`v1.0.0...v1.0.1`](../../compare/v1.0.0...v1.0.1)
+
+### Chores
+
+- chore: refresh-spec uses feat not chore commits (`7a50703`)
+## v1.0.0 (2026-09-04)
+
+**Full diff:** [`v0.22.1...v1.0.0`](../../compare/v0.22.1...v1.0.0)
+
+### Bug Fixes
+
+- fix(tests): lint (`0a4a931`)
+- fix(prompts): remove deprecated legacy prompts keep only 3 (`697fa6f`)
+- fix: exclude SSE-only ask_ava streaming op and guard the generator (`471f824`)
+
+### Chores
+
+- chore(utils)!: remove toSnakeCase utility not used anymore (`2d0aa28`)
+## v0.22.1 (2026-09-04)
+
+**Full diff:** [`v0.22.0...v0.22.1`](../../compare/v0.22.0...v0.22.1)
+
+### Bug Fixes
+
+- fix: hand-write build_cloud_flow so it consumes the SSE build stream (`767cc3a`)
+
+### Chores
+
+- chore: refresh generated OpenAPI spec snapshot (`d3ae911`)
+
+### Other Changes
+
+- docs: document API-token bearer auth for the remote endpoint (`479b346`)
+## v0.22.0 (2026-09-02)
+
+**Full diff:** [`v0.21.0...v0.22.0`](../../compare/v0.21.0...v0.22.0)
+
+### Features
+
+- feat: require server-side approval for every generated DELETE tool (`ddf5dba`)
+
+### Bug Fixes
+
+- fix: encode customerContext and anomaly id before building request URLs (`24e5c30`)
+- fix(ci): use the APP_ID variable the repo actually defines (`deb40e4`)
+- fix(ci): mint the app token from a client ID via create-github-app-token v3 (`59981e1`)
+
+### Chores
+
+- chore: drop accidentally committed node_modules symlink (`dae4a13`)
+
+### Other Changes
+
+- docs: add SECURITY.md with vulnerability reporting policy (`41e67d5`)
+- docs: refresh README auth, /mcp path, and connection examples (#244) (`ff7f21e`)
+- ci: open the release PR with a GitHub App token so its checks run (`cb67fbc`)
+## v0.21.0 (2026-08-31)
+
+**Full diff:** [`v0.20.0...v0.21.0`](../../compare/v0.20.0...v0.21.0)
+
+### Features
+
+- feat(ci): open a release PR automatically when unreleased commits land on main (`7ac8be5`)
+
+### Bug Fixes
+
+- fix(ci): require a changelog entry before the release workflow tags a commit (`e6de650`)
+## v0.20.0 (2026-08-26)
+
+**Full diff:** [`v0.19.3...v0.20.0`](../../compare/v0.19.3...v0.20.0)
+
+### Features
+
+- feat: add cloudflow import/export tools
+
+## v0.19.3 (2026-08-25)
+
+### Bug Fixes
+
+- fix: report operationId renames in the spec-refresh diff (`6c012b9`)
+- fix: improve budget tool input validation for slack channels
+
+## v0.19.2 (2026-08-19)
+
+**Full diff:** [`v0.19.1...v0.19.2`](../../compare/v0.19.1...v0.19.2)
+
+### Features
+
+- feat: run the spec refresh daily instead of weekly (`f468465`)
+
+### Bug Fixes
+
+- fix(cloudflow): ensure cloud flow trigger URL is restricted (`dda10c6`)
+## v0.19.1 (2026-08-18)
+
+**Full diff:** [`v0.19.0...v0.19.1`](../../compare/v0.19.0...v0.19.1)
+
+### Bug Fixes
+
+- fix(generated-tools): merge path-level params and honor +json content types (#225) (`040e63c`)
+## v0.19.0 (2026-08-17)
+
+**Full diff:** [`v0.16.0...v0.19.0`](../../compare/v0.16.0...v0.19.0)
+
+### Features
+
+- feat: publish to npm on release tag via trusted publishing (`1d2201b`)
+- feat: scheduled OpenAPI snapshot refresh honoring an exclusion policy — snapshot refreshed 130 → 170 operations, adding 31 generated tools (`c1eb459`)
+- feat: expose remote runtime helpers from core (#217) (`3d23ff0`)
+- feat: add transport-independent core API (`4acc4ba`)
+- feat: expose core package subpath (`31b89b9`)
+- feat(insights): add post_insight_result and update_insight_status tools (`d37309c`)
+
+### Bug Fixes
+
+- fix: address MCP reliability issues (#215) (`67f6d3b`)
+
+### Other Changes
+
+- docs: add MCP vs public API and CLI coverage research (`b7c9d25`)
+- Remove Cloudflare Worker subdirectory after repo split (#218) (`27721b1`)
+- docs: clarify released core package install (`8d5e328`)
+- test: assert published core artifact boundary (`76dd966`)
+
+## v0.16.0 (2026-07-13)
+
+**Full diff:** [`v0.15.0...v0.16.0`](../../compare/v0.15.0...v0.16.0)
+
+### Features
+
+- feat: auto-generate MCP tools for OpenAPI operations not yet hand-covered (#208) (`7743978`)
+- feat(cloudflow): add create_cloudflow_connection and update_cloudflow_connection tools (`08577ce`)
+- feat(folders): add create_folder and update_folder tools (`4f6171e`)
+- feat(clouddiagrams,permissions): add get_cloud_diagram_components and update_resource_permissions tools (`6a83b2a`)
+
+### Bug Fixes
+
+- fix(permissions): set destructiveHint: true on update_resource_permissions (`f41218b`)
+## v0.15.0 (2026-07-07)
+
+### Features
+
+- feat(themes): add set_active_theme and update_theme tools (`9cd6fb9`)
+- feat(cloudflow): add list_cloudflows tool (`776b3fc`)
+- feat(cloudflow): add list_cloudflow_templates and get_cloudflow_template tools (`cefa729`)
+- feat(cloudflow): add refine_cloudflow MCP tool (`ef81b43`)
+- feat: add search_customers doer tool (`089f5bf`)
+- feat(cloudflow): add list_cloudflow_connections and get_cloudflow_connection tools (`557f7b3`)
+- feat(clouddiagrams): add get_cloud_diagram_cost_snapshot and get_cloud_diagram_resource_relationships tools (`1c0640d`)
+- feat(clouddiagrams): add list_cloud_diagram_activity_groups and list_cloud_diagram_node_activities tools (`91d34ba`)
+- feat(clouddiagrams): add get_cloud_diagrams_stats and search_cloud_diagrams tools (`25f0b78`)
+- feat(api): add get_active_theme and get_insight tools (`42b1174`)
+- feat(api): add list_account_team and get_resource_permissions tools (`9ffd33d`)
+- feat(aws): add get_aws_account and get_cloud_connect_supported_features tools (`fd0d009`)
+
+### Bug Fixes
+
+- fix: improve cloud diagram stats tool desc (`366b335`)
+- fix: use session mcp url for widget domain (`97c4b5a`)
+
+## v0.14.0 (2026-06-19)
+
+### Features
+
+- feat(cors): support browser-origin MCP clients and sync discovery fallback (`0021c9c`)
+- feat: add list_themes and get_theme tools (Cloud Analytics custom themes API) (`eb294c2`)
+- feat: add list_folders and get_folder tools (Cloud Analytics Folders API) (`8c286c7`)
+
+### Bug Fixes
+
+- fix oauth flow after main merge (`1691265`)
+- chore: disable server-enforced approval flow for `create_ticket`; confirmation UX is now delegated to the MCP client via the tool's `destructiveHint: true` annotation.
+- chore: remove `confirm_action` from the advertised tool surface on both transports (stdio and HTTP/SSE Worker). With no tool minting approval tokens there is nothing to confirm, so the gate-handler tool is no longer listed. Clients enumerating tools will see one fewer entry.
+
+## v0.13.0 (2026-05-07)
+
+### Features
+
+- feat: server-enforced approval flow for create_ticket (#159) (`fbd77f3`)
+- feat: enhance widget resource error handling and fallback content (#163) (`0930e17`)
+
+### Bug Fixes
+
+- fix: install Worker dependencies before deploy (#166) (`e837790`)
+
+### Other Changes
+
+- Update yarn.lock to include new Cloudflare worker dependencies and versions (`57ad47c`)
+- Add MCP transport diagnostics for tools loading investigation (#164) (`f06c13d`)
+
+## v0.12.0 (2026-04-29)
+
+### Features
+
+- feat: enhance DoitMCPAgent and widget resource handling (#160) (`5e024c8`)
+- feat: enhance user validation handling with new parsing function (#161) (`13a5470`)
+- feat: implement MCP client tracking context for enhanced request handling (#156) (`70e66ff`)
+- feat: add ask_ava_sync tool for querying cloud cost insights (`bb15f87`)
+- feat: add widget configs for insights, cost_breakdown, cost_trend (`676ff1a`)
+- feat: add list_insights and get_insight_resources tools (`6502bf2`)
+- feat: add create_ticket_comment tool for adding comments to tickets (#152) (`3ea5fb6`)
+- feat: add cost_breakdown, cost_trend, compare_spend wrapper tools (`40c4092`)
+- feat: proxy anomaly chart images through CF Worker for CSP compat (`a538276`)
+- feat: redesign onboarding screen with DoiT logo and progress bar (`f116ae0`)
+
+### Chores
+
+- chore: improve CI to compile check http server, better test (`8bbb29c`)
+- chore: pin biomejs to 2.4.10 latest now, and specific version (`19a03f0`)
+
+## v0.11.0 (2026-04-01)
+
+### Features
+
+- feat: add list_ticket_comments tool for retrieving comments on support tickets (`0dd7352`)
+
+## v0.10.0 (2026-04-01)
+
+### Features
+
+- feat: add commitment management tools for listing and retrieving comm… (#147) (`0b5127e`)
+- feat: add get_ticket tool for retrieving support ticket details (#148) (`22314c2`)
+- feat: add invite_user tool for inviting new users (#145) (`ea8511a`)
+- feat: add update_user tool for user information updates (#144) (`72ee461`)
+- feat: add get_report_config tool for retrieving report configurations (`3c6a0e7`)
+- feat: add send_datahub_events tool for event ingestion (#142) (`420b2f2`)
+- feat: add create and update DataHub dataset tools with request handlers (#140) (`835485f`)
+- feat: OpenAI Apps SDK compliance for ChatGPT app submission (`79f3fff`)
+
+## v0.9.0 (2026-03-26)
+
+### Features
+
+- feat: add doit-mcp-api agent skill (#131) (`c0010d6`)
+- feat: add get_asset tool and update assets handling (#135) (`3619b5f`)
+- feat: add label assignment tools and update documentation (#134) (`2c49a7e`)
+- feat: add create_label and update_label tools (#133) (`a7ceb24`)
+- feat: add create_annotation and update_annotation tools with corresponding request handlers and tests (`3695051`)
+- feat(mcp): add skills (#123) (`1eeeb25`)
+- feat: add list_annotations and get_annotation tools (#130) (`e77fb29`)
+- feat: add update_report tool and related functionality (`96885fc`)
+- feat: add create_report tool and related functionality (#127) (`25e83b8`)
+- feat: add create_alert tool and related functionality (#125) (`97bf079`)
+- feat: update alert (#126) (`4a487f2`)
+
 ## v0.8.0 (2026-03-19)
 
 ### Features

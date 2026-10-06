@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customerContextProperty } from "../utils/schemaHelpers.js";
+import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
     createSuccessResponse,
@@ -17,9 +17,12 @@ export const DimensionsArgumentsSchema = z.object({
         .string()
         .optional()
         .describe(
-            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty."
+            "Filter string in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. An empty filter returns all dimensions."
         ),
-    pageToken: z.string().optional().describe("Token for pagination. Use this to get the next page of results."),
+    pageToken: z
+        .string()
+        .optional()
+        .describe("Token for pagination, from a previous response; returns the next page of results."),
 });
 
 // Interfaces
@@ -38,23 +41,21 @@ export interface DimensionsResponse {
 // Tool metadata
 export const dimensionsTool = {
     name: "list_dimensions",
+    title: "List dimensions",
+    coversEndpoint: "get:/analytics/v1/dimensions",
     description:
-        "Lists Cloud Analytics dimensions that your account has access to. Use this tool to get the dimensions that you can use in the run_query tool. Use filter to narrow down the results.",
-    inputSchema: {
-        type: "object",
-        properties: {
-            filter: {
-                type: "string",
-                description: `Filter string (optional) in format 'key:value|key:value'. Multiple values for same key are treated as OR, different keys as AND. The fields eligible for filtering are: type, label, key. 
-          use the filter parameter only if you know the exact value of the key, otherwise the filter should be empty.`,
-            },
-            pageToken: {
-                type: "string",
-                description: "Token for pagination. Use this to get the next page of results.",
-            },
-            ...customerContextProperty,
-        },
+        "Use this when the user wants to see available dimensions for cost analysis queries. Returns a list of dimension types and values that can be used with run_query. Do NOT use this for running cost queries directly (use run_query) or viewing allocations (use list_allocations).",
+    inputSchema: zodToMcpInputSchema(DimensionsArgumentsSchema),
+    annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
     },
+    _meta: {
+        "openai/toolInvocation/invoking": "Loading dimensions...",
+        "openai/toolInvocation/invoked": "Dimensions loaded",
+    },
+    securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
 
 // Format a dimension for display
@@ -103,19 +104,13 @@ export async function handleDimensionsRequest(args: any, token: string) {
                 );
             }
 
-            const formattedDimensions = dimensions.map(formatDimension);
-
-            // Create a descriptive message that includes filter information if provided
-            let dimensionsText = `Found ${rowCount} dimensions`;
-            if (filter) {
-                dimensionsText += ` (filtered by: ${filter})`;
-            }
-            dimensionsText += `:`;
-            dimensionsText += `\n\n${formattedDimensions.join("\n")} \n\n${
-                dimensionsData.pageToken ? `Page token: ${dimensionsData.pageToken}` : ""
-            }`;
-
-            return createSuccessResponse(dimensionsText);
+            return createSuccessResponse(
+                JSON.stringify({
+                    rowCount,
+                    dimensions,
+                    pageToken: dimensionsData.pageToken ?? null,
+                })
+            );
         } catch (error) {
             return handleGeneralError(error, "making DoiT API request");
         }
