@@ -721,7 +721,11 @@ export async function handleReportsRequest(args: any, token: string) {
                 })
             );
         } catch (error) {
-            return handleGeneralError(error, "making DoiT API request");
+            return handleGeneralError(
+                error,
+                "making DoiT API request",
+                "Check the filter parameter; try without a filter if you do not know the exact value of the key."
+            );
         }
     } catch (error) {
         if (error instanceof z.ZodError) {
@@ -781,6 +785,7 @@ export async function handleRunQueryRequest(args: any, token: string) {
             // Use enhanced makeDoitRequest for POST request
             const queryResponse = await makeDoitRequest<QueryResponse>(queryUrl, token, {
                 method: "POST",
+                readOnly: true,
                 body: { config },
                 appendParams: true,
                 customerContext,
@@ -808,7 +813,13 @@ export async function handleRunQueryRequest(args: any, token: string) {
                 })
             );
         } catch (error) {
-            return handleGeneralError(error, "making DoiT API query request");
+            const guidance =
+                "Use list_dimensions (filter: type:fixed) or list_allocations to check dimension and allocation IDs. " +
+                "For a cost report, check the metrics, timeRange, and dataSource fields." +
+                (rawConfig?.timeRange?.mode === "custom"
+                    ? " For custom time ranges, ensure customTimeRange has 'from' and 'to' in ISO 8601 format."
+                    : "");
+            return handleGeneralError(error, "making DoiT API query request", guidance);
         }
     } catch (error) {
         if (error instanceof z.ZodError) {
