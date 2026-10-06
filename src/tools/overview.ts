@@ -37,6 +37,7 @@ export const cloudOverviewTool = {
 function runQuery(token: string, customerContext: string | undefined, config: unknown) {
     return makeDoitRequest<{ result: { schema: unknown[]; rows: unknown[][] } }>(QUERY_URL, token, {
         method: "POST",
+        readOnly: true,
         body: { config },
         appendParams: true,
         customerContext,

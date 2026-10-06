@@ -1,5 +1,17 @@
 # Support and account tool validation
 
+## Base branch refresh — 2026-10-06
+
+Integrated `main` at `e5845c45c13e4c48ea63c4873e044e7aecfc4444`, including the
+shared API-error handling improvements and refreshed generated API catalog. The support/account
+changes were preserved. The combined branch passed 1,224 root tests, 288 integration tests,
+`yarn check:dev`, `yarn check:ci`, `yarn build` and Git whitespace checks.
+
+The live comparison below records the earlier feature commit explicitly. Its generic-error
+observations apply to that commit; the refreshed branch now preserves sanitized HTTP errors
+and 401 authentication metadata through MCP. This refresh was verified with deterministic
+tests, without repeating the live API comparison or performing remote writes.
+
 ## Real development API comparison — 2026-10-06
 
 PR [#330](https://github.com/doitintl/doit-mcp-server/pull/330), branch

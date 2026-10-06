@@ -60,6 +60,7 @@ export async function handleFindCloudDiagramsRequest(args: any, token: string) {
 
         const data = await makeDoitRequest<FindCloudDiagramsResponse>(CLOUD_DIAGRAMS_BASE_URL, token, {
             method: "POST",
+            readOnly: true,
             body: { resources },
             customerContext,
         });
@@ -172,6 +173,7 @@ export async function handleSearchCloudDiagramsRequest(args: any, token: string)
 
         const data = await makeDoitRequest<SearchCloudDiagramsResponse>(CLOUD_DIAGRAMS_SEARCH_URL, token, {
             method: "POST",
+            readOnly: true,
             body,
             customerContext,
         });
@@ -497,6 +499,7 @@ export async function handleGetCloudDiagramComponentsRequest(args: any, token: s
 
         const data = await makeDoitRequest<GetCloudDiagramComponentsResponse>(url, token, {
             method: "POST",
+            readOnly: true,
             body,
             customerContext,
         });
