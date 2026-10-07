@@ -1,5 +1,74 @@
 # Changelog
 
+## v2.3.0 (2026-10-07)
+
+**Full diff:** [`v2.2.0...v2.3.0`](../../compare/v2.2.0...v2.3.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`733da64`)
+- feat(tool): support explicit read-only semantics for POST lookups (`6d740a9`)
+- feat: refresh generated OpenAPI spec snapshot (`a2ad820`)
+- feat(tools): add support for account contracts and refine tool documentation (`43d19e0`)
+- feat(reports): add name filter support to list reports tool (`dd11381`)
+- feat(tool): implement response size limits and metrics (`ae48761`)
+- feat(auth): restrict employee-only tools to authorized users (`f8cfa19`)
+
+### Bug Fixes
+
+- fix(tools): update diagram tool annotations for datahub contracts (`fa629af`)
+- fix(reports): enforce report update contracts and improve dimension mapping (`ac704f9`)
+- fix(tools): ensure budgets array is always returned in list response (`a275c8f`)
+- fix(tools): allow updating allocation rules without requiring a name (`fff62ff`)
+- fix(utils): allow read-only POST requests to provide safe retry advice (`34c14d4`)
+- fix(tools): enforce access control and layer limits for diagram components (`d1847b7`)
+- fix(cloudflow): enforce owner constraints and clarify retry guidance (`44b64d3`)
+- fix(tools): align ticket creation product parameter to use display name (`dbf4862`)
+- fix(tools): update cloud diagram and datahub tool schemas and logic (`456507a`)
+- fix(tools): improve alert validation and insight category filtering (`1d3ae28`)
+- fix(tools): ensure customer context is preserved across resource lookups (`ee3ebd4`)
+- fix(tools): clarify report query contracts and tool documentation (`606ee43`)
+- fix(tools): enforce strict resource contract validation and documentation (`23b3e47`)
+- fix(tools): clarify filter logic, pagination, and tool descriptions (`76d2ac0`)
+- fix(tools): clarify filter logic and key usage constraints (`b7e3c59`)
+- fix(tools): inline report filter description to improve readability (`8e758e2`)
+- fix(tools): clarify report filter syntax and key requirements (`91aac7b`)
+- fix(tools): clarify component data parameter description (`a92f5f2`)
+- fix(tools): update filter descriptions for budgets and reports (`98bf02e`)
+- fix(tools): refine tool descriptions and add validation for tool references (`1eeb432`)
+- fix(auth): prevent formatters from masking error status (`e49c31c`)
+- fix(auth): enforce employee-only tool access via email domain (`a0f4afa`)
+- fix(tools): expand behavioral check to input schemas and refine descriptions (`0db702a`)
+
+### Chores
+
+- chore(deps): bump proxy-addr from 2.0.7 to 2.0.8 in /test/integration (`8df0377`)
+- chore(deps): bump source-map-js from 1.2.1 to 1.2.2 in /test/integration (`7ad0890`)
+
+### Other Changes
+
+- docs(cloudflow): remove obsolete validation documentation (`a326443`)
+- docs(tools): remove obsolete diagram and datahub validation evidence (`6b0f2ea`)
+- docs(tools): remove obsolete support and account validation report (`f09a280`)
+- docs(tools): remove obsolete insights and alerts validation report (`7d57314`)
+- docs(tools): update diagram and datahub validation evidence (`774f44b`)
+- docs(tools): update insights and alerts validation evidence (`9c6bc3f`)
+- docs(cloudflow): add pre-change comparison data to validation docs (`2d60a34`)
+- docs(tools): update support and account tool validation documentation (`001af96`)
+- docs(cloudflow): document live development API validation results (`30b213b`)
+- docs(utils): remove obsolete api request error documentation (`2e81119`)
+- refactor(cloudflow): update runtime guidance and tool API contracts (`02f6b98`)
+- refactor(utils): improve api error handling and remediation guidance (`ef9e84e`)
+- refactor(tools): align alerts and insights with API contracts (`c3775ae`)
+- docs(tools): remove obsolete resource contract validation documentation (`a331e43`)
+- refactor(tools): enforce strict allocation and permission contracts (`83d6ec3`)
+- refactor(utils): propagate sanitized api errors instead of returning null (`0ac7d9b`)
+- test(tools): simplify schema parity tests by removing redundant assertions (`e86dd62`)
+- refactor(tools): derive tool input schemas from zod definitions (`d50f321`)
+- test(tools): centralize and enforce behavioral text validation (`07f40a1`)
+- test(auth): hide employee-only tools in integration tests (`d31575f`)
+- refactor(auth): perform employee check locally via JWT claims (`88f21d0`)
+- refactor(tools): remove behavioral instructions from tool descriptions (`d8d0f66`)
 ## Unreleased
 
 - Tool responses are capped at 140,000 serialized characters. Oversized reads return
