@@ -28089,6 +28089,7 @@
                           "top3SKUs",
                           "monitorLevel",
                           "notifications",
+                          "initialNotifications",
                           "linkedAnomalies"
                         ],
                         "type": "object",
@@ -28319,6 +28320,34 @@
                               }
                             }
                           },
+                          "initialNotifications": {
+                            "type": "array",
+                            "description": "The first notification sent on each channel (email, Slack, Microsoft Teams) for this anomaly, without reminders, ordered by timestamp. Always present; empty when the anomaly has not been notified.",
+                            "items": {
+                              "type": "object",
+                              "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
+                              "required": [
+                                "timestamp",
+                                "channel"
+                              ],
+                              "properties": {
+                                "timestamp": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "Dispatch timestamp in RFC3339 UTC."
+                                },
+                                "channel": {
+                                  "type": "string",
+                                  "description": "Dispatch channel.",
+                                  "enum": [
+                                    "email",
+                                    "slack",
+                                    "msteams"
+                                  ]
+                                }
+                              }
+                            }
+                          },
                           "linkedAnomalies": {
                             "type": "array",
                             "description": "IDs of the other related anomalies in the same service around same time. Always the complete group: the filters, time window, and pagination of the request that returned this anomaly do not narrow it, so an ID here may not appear among the anomalies of that same response.",
@@ -28503,7 +28532,8 @@
                     "timeFrame",
                     "top3SKUs",
                     "monitorLevel",
-                    "notifications"
+                    "notifications",
+                    "initialNotifications"
                   ],
                   "type": "object",
                   "properties": {
@@ -28704,6 +28734,34 @@
                     "notifications": {
                       "type": "array",
                       "description": "Chronologically ordered notification dispatch events.",
+                      "items": {
+                        "type": "object",
+                        "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
+                        "required": [
+                          "timestamp",
+                          "channel"
+                        ],
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Dispatch timestamp in RFC3339 UTC."
+                          },
+                          "channel": {
+                            "type": "string",
+                            "description": "Dispatch channel.",
+                            "enum": [
+                              "email",
+                              "slack",
+                              "msteams"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "initialNotifications": {
+                      "type": "array",
+                      "description": "The first notification sent on each channel (email, Slack, Microsoft Teams) for this anomaly, without reminders, ordered by timestamp. Always present; empty when the anomaly has not been notified.",
                       "items": {
                         "type": "object",
                         "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
@@ -128830,6 +128888,7 @@
                 "top3SKUs",
                 "monitorLevel",
                 "notifications",
+                "initialNotifications",
                 "linkedAnomalies"
               ],
               "type": "object",
@@ -129060,6 +129119,34 @@
                     }
                   }
                 },
+                "initialNotifications": {
+                  "type": "array",
+                  "description": "The first notification sent on each channel (email, Slack, Microsoft Teams) for this anomaly, without reminders, ordered by timestamp. Always present; empty when the anomaly has not been notified.",
+                  "items": {
+                    "type": "object",
+                    "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
+                    "required": [
+                      "timestamp",
+                      "channel"
+                    ],
+                    "properties": {
+                      "timestamp": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Dispatch timestamp in RFC3339 UTC."
+                      },
+                      "channel": {
+                        "type": "string",
+                        "description": "Dispatch channel.",
+                        "enum": [
+                          "email",
+                          "slack",
+                          "msteams"
+                        ]
+                      }
+                    }
+                  }
+                },
                 "linkedAnomalies": {
                   "type": "array",
                   "description": "IDs of the other related anomalies in the same service around same time. Always the complete group: the filters, time window, and pagination of the request that returned this anomaly do not narrow it, so an ID here may not appear among the anomalies of that same response.",
@@ -129147,6 +129234,7 @@
           "top3SKUs",
           "monitorLevel",
           "notifications",
+          "initialNotifications",
           "linkedAnomalies"
         ],
         "type": "object",
@@ -129352,6 +129440,34 @@
           "notifications": {
             "type": "array",
             "description": "Chronologically ordered notification dispatch events.",
+            "items": {
+              "type": "object",
+              "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
+              "required": [
+                "timestamp",
+                "channel"
+              ],
+              "properties": {
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Dispatch timestamp in RFC3339 UTC."
+                },
+                "channel": {
+                  "type": "string",
+                  "description": "Dispatch channel.",
+                  "enum": [
+                    "email",
+                    "slack",
+                    "msteams"
+                  ]
+                }
+              }
+            }
+          },
+          "initialNotifications": {
+            "type": "array",
+            "description": "The first notification sent on each channel (email, Slack, Microsoft Teams) for this anomaly, without reminders, ordered by timestamp. Always present; empty when the anomaly has not been notified.",
             "items": {
               "type": "object",
               "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
@@ -164774,6 +164890,7 @@
                           "top3SKUs",
                           "monitorLevel",
                           "notifications",
+                          "initialNotifications",
                           "linkedAnomalies"
                         ],
                         "type": "object",
@@ -164979,6 +165096,34 @@
                           "notifications": {
                             "type": "array",
                             "description": "Chronologically ordered notification dispatch events.",
+                            "items": {
+                              "type": "object",
+                              "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
+                              "required": [
+                                "timestamp",
+                                "channel"
+                              ],
+                              "properties": {
+                                "timestamp": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "Dispatch timestamp in RFC3339 UTC."
+                                },
+                                "channel": {
+                                  "type": "string",
+                                  "description": "Dispatch channel.",
+                                  "enum": [
+                                    "email",
+                                    "slack",
+                                    "msteams"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "initialNotifications": {
+                            "type": "array",
+                            "description": "The first notification sent on each channel (email, Slack, Microsoft Teams) for this anomaly, without reminders, ordered by timestamp. Always present; empty when the anomaly has not been notified.",
                             "items": {
                               "type": "object",
                               "description": "A successful notification dispatch for an anomaly.\nThis records that the API/worker sent the notification, not that delivery was confirmed.",
