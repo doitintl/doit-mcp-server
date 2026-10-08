@@ -3453,7 +3453,8 @@
                     "rowCount",
                     "workspaceStatus",
                     "isWorkspaceConnected",
-                    "hasSharedChannel"
+                    "hasSharedChannel",
+                    "channelsComplete"
                   ],
                   "properties": {
                     "items": {
@@ -3529,6 +3530,10 @@
                     },
                     "hasSharedChannel": {
                       "type": "boolean"
+                    },
+                    "channelsComplete": {
+                      "type": "boolean",
+                      "description": "Whether the channel list is complete. False when a transient Slack failure prevented a full listing; callers that validate channel availability should not treat a partial list as authoritative."
                     }
                   }
                 }
@@ -3587,7 +3592,16 @@
             }
           },
           "503": {
-            "description": "Slack discovery is temporarily unavailable. Retry later."
+            "description": "Slack discovery is temporarily unavailable — the workspace is still connected, but the channel lookup failed (rate limit, timeout, server error, or network failure) after a server-side retry. This is retryable: when Retry-After is present, wait that many seconds and repeat the request unchanged, including nameContains and pageToken. When absent, use exponential backoff.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Present on rate-limit failures; absent on other transient errors.",
+                "schema": {
+                  "type": "integer",
+                  "example": 30
+                }
+              }
+            }
           }
         }
       }
@@ -14398,14 +14412,16 @@
           {
             "name": "sortBy",
             "in": "query",
-            "description": "A field by which the results will be sorted.",
+            "description": "A field by which the results will be sorted. `key` is an alias for the dimension `id`. Defaults to `id` in descending order.",
             "schema": {
               "type": "string",
+              "default": "id",
+              "description": "Sort by `id`, `type`, or `label`. `key` is an alias for `id`.",
               "enum": [
+                "id",
                 "type",
                 "label",
-                "key",
-                "timestamp"
+                "key"
               ]
             }
           },
@@ -15582,7 +15598,7 @@
                           "desc",
                           "a_to_z"
                         ],
-                        "description": "This option has no impact when reading reports via API."
+                        "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
                       },
                       "sortDimensions": {
                         "type": "string",
@@ -15592,7 +15608,7 @@
                           "desc",
                           "a_to_z"
                         ],
-                        "description": "This option has no impact when reading reports via API."
+                        "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
                       },
                       "dataSource": {
                         "type": "string",
@@ -16771,7 +16787,7 @@
                             "desc",
                             "a_to_z"
                           ],
-                          "description": "This option has no impact when reading reports via API."
+                          "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
                         },
                         "sortDimensions": {
                           "type": "string",
@@ -16781,7 +16797,7 @@
                             "desc",
                             "a_to_z"
                           ],
-                          "description": "This option has no impact when reading reports via API."
+                          "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
                         },
                         "dataSource": {
                           "type": "string",
@@ -18003,7 +18019,7 @@
                           "desc",
                           "a_to_z"
                         ],
-                        "description": "This option has no impact when reading reports via API."
+                        "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
                       },
                       "sortDimensions": {
                         "type": "string",
@@ -18013,7 +18029,7 @@
                           "desc",
                           "a_to_z"
                         ],
-                        "description": "This option has no impact when reading reports via API."
+                        "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
                       },
                       "dataSource": {
                         "type": "string",
@@ -19935,7 +19951,7 @@
                           "desc",
                           "a_to_z"
                         ],
-                        "description": "This option has no impact when reading reports via API."
+                        "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
                       },
                       "sortDimensions": {
                         "type": "string",
@@ -19945,7 +19961,7 @@
                           "desc",
                           "a_to_z"
                         ],
-                        "description": "This option has no impact when reading reports via API."
+                        "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
                       },
                       "dataSource": {
                         "type": "string",
@@ -21116,7 +21132,7 @@
                             "desc",
                             "a_to_z"
                           ],
-                          "description": "This option has no impact when reading reports via API."
+                          "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
                         },
                         "sortDimensions": {
                           "type": "string",
@@ -21126,7 +21142,7 @@
                             "desc",
                             "a_to_z"
                           ],
-                          "description": "This option has no impact when reading reports via API."
+                          "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
                         },
                         "dataSource": {
                           "type": "string",
@@ -22380,7 +22396,7 @@
                             "desc",
                             "a_to_z"
                           ],
-                          "description": "This option has no impact when reading reports via API."
+                          "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
                         },
                         "sortDimensions": {
                           "type": "string",
@@ -22390,7 +22406,7 @@
                             "desc",
                             "a_to_z"
                           ],
-                          "description": "This option has no impact when reading reports via API."
+                          "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
                         },
                         "dataSource": {
                           "type": "string",
@@ -23628,7 +23644,7 @@
                           "desc",
                           "a_to_z"
                         ],
-                        "description": "This option has no impact when reading reports via API."
+                        "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
                       },
                       "sortDimensions": {
                         "type": "string",
@@ -23638,7 +23654,7 @@
                           "desc",
                           "a_to_z"
                         ],
-                        "description": "This option has no impact when reading reports via API."
+                        "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
                       },
                       "dataSource": {
                         "type": "string",
@@ -126995,7 +127011,8 @@
           "rowCount",
           "workspaceStatus",
           "isWorkspaceConnected",
-          "hasSharedChannel"
+          "hasSharedChannel",
+          "channelsComplete"
         ],
         "properties": {
           "items": {
@@ -127071,6 +127088,10 @@
           },
           "hasSharedChannel": {
             "type": "boolean"
+          },
+          "channelsComplete": {
+            "type": "boolean",
+            "description": "Whether the channel list is complete. False when a transient Slack failure prevented a full listing; callers that validate channel availability should not treat a partial list as authoritative."
           }
         }
       },
@@ -133585,7 +133606,7 @@
               "desc",
               "a_to_z"
             ],
-            "description": "This option has no impact when reading reports via API."
+            "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
           },
           "sortDimensions": {
             "type": "string",
@@ -133595,7 +133616,7 @@
               "desc",
               "a_to_z"
             ],
-            "description": "This option has no impact when reading reports via API."
+            "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
           },
           "dataSource": {
             "type": "string",
@@ -135172,7 +135193,7 @@
                   "desc",
                   "a_to_z"
                 ],
-                "description": "This option has no impact when reading reports via API."
+                "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
               },
               "sortDimensions": {
                 "type": "string",
@@ -135182,7 +135203,7 @@
                   "desc",
                   "a_to_z"
                 ],
-                "description": "This option has no impact when reading reports via API."
+                "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
               },
               "dataSource": {
                 "type": "string",
@@ -136438,7 +136459,7 @@
                   "desc",
                   "a_to_z"
                 ],
-                "description": "This option has no impact when reading reports via API."
+                "description": "Orders the rows produced by `group`, both in the console and in a rendered `fileOutput`\nexport. `a_to_z` orders them by the dimension value, `asc`/`desc` by the metric. It does\nnot reorder the `rows` of a JSON result."
               },
               "sortDimensions": {
                 "type": "string",
@@ -136448,7 +136469,7 @@
                   "desc",
                   "a_to_z"
                 ],
-                "description": "This option has no impact when reading reports via API."
+                "description": "Orders the columns produced by `dimensions`, both in the console and in a rendered\n`fileOutput` export. It does not reorder the `rows` of a JSON result.\n`a_to_z` orders the columns by the dimension value, which for the `year`/`month`/`day`\ndimensions of a time series means chronologically. The default `desc` orders them by the\nmetric instead, so a monthly report charts its priciest month first rather than in time\norder — set `a_to_z` for a time series you intend to export.\nA report with a forecast is always charted chronologically and ignores this field, and a\ncomparative `displayValues` mode requires `a_to_z`."
               },
               "dataSource": {
                 "type": "string",
