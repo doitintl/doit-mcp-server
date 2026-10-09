@@ -94821,7 +94821,7 @@
           "Customer Groups"
         ],
         "summary": "Delete a customer group",
-        "description": "Deletes a customer group owned by the authenticated tenant. Groups with assigned users cannot be deleted. Requires the UsersManager permission.",
+        "description": "Deletes a customer group owned by the authenticated tenant. Groups with assigned users or user groups cannot be deleted. Requires the UsersManager permission.",
         "operationId": "deleteCustomerGroup",
         "responses": {
           "204": {
@@ -97620,6 +97620,2694 @@
         "summary": "Unassign a user from a customer group",
         "description": "Unassigns a user from a customer group owned by the authenticated tenant. Requires the UsersManager permission.",
         "operationId": "unassignCustomerGroupUser",
+        "responses": {
+          "204": {
+            "description": "Unassigned",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Syntactically malformed request, missing required parameter, or unsupported parameter value.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "validationFailed": {
+                    "summary": "Missing or invalid parameter",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/validation_failed",
+                      "title": "Validation failed",
+                      "status": 400,
+                      "detail": "The request is missing a required parameter or contains an invalid value.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "validation_failed",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdRequired": {
+                    "summary": "Tenant scope not resolvable",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_required",
+                      "title": "Tenant ID required",
+                      "status": 400,
+                      "detail": "X-Tenant-Id header is required when the credential can access more than one tenant.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_required",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdMismatch": {
+                    "summary": "Header conflicts with the key's tenant",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_mismatch",
+                      "title": "Tenant ID mismatch",
+                      "status": 400,
+                      "detail": "X-Tenant-Id does not match the tenant the credential is scoped to.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_mismatch",
+                      "retryable": false
+                    }
+                  },
+                  "gcpServiceRequired": {
+                    "summary": "GCP region filter without commitment type",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/gcp_service_required",
+                      "title": "GCP service required",
+                      "status": 400,
+                      "detail": "The region query parameter requires gcp_service.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "gcp_service_required",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenInvalid": {
+                    "summary": "Structurally invalid pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_invalid",
+                      "title": "Invalid pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is structurally invalid (decode failure or tampering).",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_invalid",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenExpired": {
+                    "summary": "Expired pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_expired",
+                      "title": "Expired pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is no longer valid; restart pagination from the beginning.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_expired",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "Bearer challenge per RFC 6750.",
+                "schema": {
+                  "type": "string",
+                  "example": "Bearer realm=\"api.doit.com\""
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/unauthorized",
+                  "title": "Unauthorized",
+                  "status": 401,
+                  "detail": "missing or invalid bearer token",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "unauthorized",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated but not authorized to perform this request.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/forbidden",
+                  "title": "Forbidden",
+                  "status": 403,
+                  "detail": "caller does not have permission to access this customer's commitments",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "forbidden",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rate limit exceeded; retry after the indicated delay.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "example": 30
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/rate_limited",
+                  "title": "Rate limit exceeded",
+                  "status": 429,
+                  "detail": "Request rate limit exceeded.",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "rate_limited",
+                  "retryable": true
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable; retry after the indicated delay.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "example": 30
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/service_unavailable",
+                  "title": "Service unavailable",
+                  "status": 503,
+                  "detail": "entitlement check temporarily unavailable",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "service_unavailable",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rbac/v1/customer-groups/{customerGroupId}/user-groups": {
+      "parameters": [
+        {
+          "name": "customerGroupId",
+          "in": "path",
+          "required": true,
+          "description": "Stable service-generated customer-group ID.",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        {
+          "in": "header",
+          "name": "X-Tenant-Id",
+          "required": false,
+          "description": "Customer (tenant) ID for the request. This is separate from authentication: you still pass your personal or service account API token in the `Authorization` header (`Bearer <token>`). See [Get Started](https://developer.doit.com/docs/start).\n\n**When to omit (most callers):** If your personal or service account token belongs to a single customer, omit this header. The API resolves that customer from the token.\n\n**When to send:** If your credential can access more than one customer, set `X-Tenant-Id` to the customer ID you want to act on. A service account can select an active direct or nested descendant of its home customer; the endpoint's normal permissions, entitlements, and resource-ownership checks still apply. A service-account target outside that customer subtree returns `403 Forbidden`. Prefer this header over the legacy `customerContext` query parameter, which only applies to legacy API keys and is ignored by personal and service account tokens.",
+          "schema": {
+            "type": "string",
+            "example": "Kp2mN8qL4vR0sT1wX3yZ"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Customer Groups"
+        ],
+        "summary": "List user groups assigned to a customer group",
+        "description": "Returns the user groups assigned to a customer group owned by the authenticated tenant, sorted by user-group ID. Requires the UsersManager permission.",
+        "operationId": "listCustomerGroupUserGroups",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "customerGroupId",
+                    "userGroups"
+                  ],
+                  "properties": {
+                    "customerGroupId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Customer group the assignments belong to."
+                    },
+                    "userGroups": {
+                      "type": "array",
+                      "description": "User groups assigned to the customer group, sorted by user-group ID.",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "userGroupId"
+                        ],
+                        "properties": {
+                          "userGroupId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "description": "User group assigned to the customer group."
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "customerGroupId": "cg_01J6M8Q9H3Y7T2K5V4N1P0X8ZA",
+                  "userGroups": [
+                    {
+                      "userGroupId": "ug_01J6M8Q9H3Y7T2K5V4N1P0X8ZA"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Syntactically malformed request, missing required parameter, or unsupported parameter value.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "validationFailed": {
+                    "summary": "Missing or invalid parameter",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/validation_failed",
+                      "title": "Validation failed",
+                      "status": 400,
+                      "detail": "The request is missing a required parameter or contains an invalid value.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "validation_failed",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdRequired": {
+                    "summary": "Tenant scope not resolvable",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_required",
+                      "title": "Tenant ID required",
+                      "status": 400,
+                      "detail": "X-Tenant-Id header is required when the credential can access more than one tenant.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_required",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdMismatch": {
+                    "summary": "Header conflicts with the key's tenant",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_mismatch",
+                      "title": "Tenant ID mismatch",
+                      "status": 400,
+                      "detail": "X-Tenant-Id does not match the tenant the credential is scoped to.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_mismatch",
+                      "retryable": false
+                    }
+                  },
+                  "gcpServiceRequired": {
+                    "summary": "GCP region filter without commitment type",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/gcp_service_required",
+                      "title": "GCP service required",
+                      "status": 400,
+                      "detail": "The region query parameter requires gcp_service.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "gcp_service_required",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenInvalid": {
+                    "summary": "Structurally invalid pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_invalid",
+                      "title": "Invalid pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is structurally invalid (decode failure or tampering).",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_invalid",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenExpired": {
+                    "summary": "Expired pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_expired",
+                      "title": "Expired pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is no longer valid; restart pagination from the beginning.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_expired",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "Bearer challenge per RFC 6750.",
+                "schema": {
+                  "type": "string",
+                  "example": "Bearer realm=\"api.doit.com\""
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/unauthorized",
+                  "title": "Unauthorized",
+                  "status": 401,
+                  "detail": "missing or invalid bearer token",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "unauthorized",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated but not authorized to perform this request.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/forbidden",
+                  "title": "Forbidden",
+                  "status": 403,
+                  "detail": "caller does not have permission to access this customer's commitments",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "forbidden",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rate limit exceeded; retry after the indicated delay.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "example": 30
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/rate_limited",
+                  "title": "Rate limit exceeded",
+                  "status": 429,
+                  "detail": "Request rate limit exceeded.",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "rate_limited",
+                  "retryable": true
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable; retry after the indicated delay.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "example": 30
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/service_unavailable",
+                  "title": "Service unavailable",
+                  "status": 503,
+                  "detail": "entitlement check temporarily unavailable",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "service_unavailable",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rbac/v1/customer-groups/{customerGroupId}/user-groups/{userGroupId}": {
+      "parameters": [
+        {
+          "name": "customerGroupId",
+          "in": "path",
+          "required": true,
+          "description": "Stable service-generated customer-group ID.",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        {
+          "name": "userGroupId",
+          "in": "path",
+          "required": true,
+          "description": "Stable ID of a user group owned by the authenticated tenant.",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        {
+          "in": "header",
+          "name": "X-Tenant-Id",
+          "required": false,
+          "description": "Customer (tenant) ID for the request. This is separate from authentication: you still pass your personal or service account API token in the `Authorization` header (`Bearer <token>`). See [Get Started](https://developer.doit.com/docs/start).\n\n**When to omit (most callers):** If your personal or service account token belongs to a single customer, omit this header. The API resolves that customer from the token.\n\n**When to send:** If your credential can access more than one customer, set `X-Tenant-Id` to the customer ID you want to act on. A service account can select an active direct or nested descendant of its home customer; the endpoint's normal permissions, entitlements, and resource-ownership checks still apply. A service-account target outside that customer subtree returns `403 Forbidden`. Prefer this header over the legacy `customerContext` query parameter, which only applies to legacy API keys and is ignored by personal and service account tokens.",
+          "schema": {
+            "type": "string",
+            "example": "Kp2mN8qL4vR0sT1wX3yZ"
+          }
+        }
+      ],
+      "put": {
+        "tags": [
+          "Customer Groups"
+        ],
+        "summary": "Assign a user group to a customer group",
+        "description": "Assigns a user group owned by the authenticated tenant to a customer group owned by that tenant. Membership changes in the user group apply without reassigning it. Requires the UsersManager permission.",
+        "operationId": "assignCustomerGroupUserGroup",
+        "responses": {
+          "204": {
+            "description": "Assigned",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Syntactically malformed request, missing required parameter, or unsupported parameter value.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "validationFailed": {
+                    "summary": "Missing or invalid parameter",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/validation_failed",
+                      "title": "Validation failed",
+                      "status": 400,
+                      "detail": "The request is missing a required parameter or contains an invalid value.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "validation_failed",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdRequired": {
+                    "summary": "Tenant scope not resolvable",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_required",
+                      "title": "Tenant ID required",
+                      "status": 400,
+                      "detail": "X-Tenant-Id header is required when the credential can access more than one tenant.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_required",
+                      "retryable": false
+                    }
+                  },
+                  "tenantIdMismatch": {
+                    "summary": "Header conflicts with the key's tenant",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/tenant_id_mismatch",
+                      "title": "Tenant ID mismatch",
+                      "status": 400,
+                      "detail": "X-Tenant-Id does not match the tenant the credential is scoped to.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "tenant_id_mismatch",
+                      "retryable": false
+                    }
+                  },
+                  "gcpServiceRequired": {
+                    "summary": "GCP region filter without commitment type",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/gcp_service_required",
+                      "title": "GCP service required",
+                      "status": 400,
+                      "detail": "The region query parameter requires gcp_service.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "gcp_service_required",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenInvalid": {
+                    "summary": "Structurally invalid pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_invalid",
+                      "title": "Invalid pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is structurally invalid (decode failure or tampering).",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_invalid",
+                      "retryable": false
+                    }
+                  },
+                  "paginationTokenExpired": {
+                    "summary": "Expired pagination cursor",
+                    "value": {
+                      "type": "https://developer.doit.com/errors/pagination_token_expired",
+                      "title": "Expired pagination token",
+                      "status": 400,
+                      "detail": "The pageToken cursor is no longer valid; restart pagination from the beginning.",
+                      "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                      "code": "pagination_token_expired",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "Bearer challenge per RFC 6750.",
+                "schema": {
+                  "type": "string",
+                  "example": "Bearer realm=\"api.doit.com\""
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/unauthorized",
+                  "title": "Unauthorized",
+                  "status": 401,
+                  "detail": "missing or invalid bearer token",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "unauthorized",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated but not authorized to perform this request.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/forbidden",
+                  "title": "Forbidden",
+                  "status": 403,
+                  "detail": "caller does not have permission to access this customer's commitments",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "forbidden",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/not_found",
+                  "title": "Resource not found",
+                  "status": 404,
+                  "detail": "organization not found",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "not_found",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rate limit exceeded; retry after the indicated delay.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "example": 30
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/rate_limited",
+                  "title": "Rate limit exceeded",
+                  "status": 429,
+                  "detail": "Request rate limit exceeded.",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "rate_limited",
+                  "retryable": true
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "headers": {
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/internal_error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "detail": "an unexpected error occurred",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "internal_error",
+                  "retryable": true
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable; retry after the indicated delay.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "example": 30
+                }
+              },
+              "Request-Id": {
+                "description": "DoiT request identifier for support and log correlation. Format `req_<ULID>`.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "example": "req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                }
+              },
+              "Content-Language": {
+                "description": "Language of the response body. Always `en` for this API.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "en"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "instance",
+                    "code",
+                    "retryable"
+                  ],
+                  "additionalProperties": true,
+                  "description": "RFC 9457 Problem Details — standard DoiT error envelope for all non-2xx responses.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://developer.doit.com/errors/not_found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Resource not found"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 404
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "customer not found"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9"
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^([a-z][a-z0-9_]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*)$",
+                      "example": "not_found"
+                    },
+                    "retryable": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "issue"
+                        ],
+                        "properties": {
+                          "issue": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "field": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "docsUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://developer.doit.com/errors/service_unavailable",
+                  "title": "Service unavailable",
+                  "status": 503,
+                  "detail": "entitlement check temporarily unavailable",
+                  "instance": "https://api.doit.com/requests/req_01HX9P2KQVJ8Z3M4T5N6V7W8Y9",
+                  "code": "service_unavailable",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Customer Groups"
+        ],
+        "summary": "Unassign a user group from a customer group",
+        "description": "Unassigns a user group from a customer group owned by the authenticated tenant. Requires the UsersManager permission.",
+        "operationId": "unassignCustomerGroupUserGroup",
         "responses": {
           "204": {
             "description": "Unassigned",
@@ -119604,6 +122292,56 @@
                   "minLength": 1,
                   "maxLength": 200,
                   "description": "User assigned to the customer group."
+                }
+              }
+            }
+          }
+        }
+      },
+      "CustomerGroupUserGroup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "userGroupId"
+        ],
+        "properties": {
+          "userGroupId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "User group assigned to the customer group."
+          }
+        }
+      },
+      "CustomerGroupUserGroupsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "customerGroupId",
+          "userGroups"
+        ],
+        "properties": {
+          "customerGroupId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Customer group the assignments belong to."
+          },
+          "userGroups": {
+            "type": "array",
+            "description": "User groups assigned to the customer group, sorted by user-group ID.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "userGroupId"
+              ],
+              "properties": {
+                "userGroupId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "User group assigned to the customer group."
                 }
               }
             }
@@ -166966,6 +169704,17 @@
         "in": "path",
         "required": true,
         "description": "User ID to assign to or unassign from the customer group.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "customerGroupUserGroupId": {
+        "name": "userGroupId",
+        "in": "path",
+        "required": true,
+        "description": "Stable ID of a user group owned by the authenticated tenant.",
         "schema": {
           "type": "string",
           "minLength": 1,
