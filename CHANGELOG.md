@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.5.0 (2026-10-13)
+
+**Full diff:** [`v2.4.0...v2.5.0`](../../compare/v2.4.0...v2.5.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`262a000`)
+- feat: refresh generated OpenAPI spec snapshot (`fef9257`)
+
+### Chores
+
+- chore(deps): bump source-map-js from 1.2.1 to 1.2.2 (`0f2ac98`)
 ## v2.4.0 (2026-10-09)
 
 **Full diff:** [`v2.3.0...v2.4.0`](../../compare/v2.3.0...v2.4.0)
