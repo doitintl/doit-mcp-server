@@ -1,0 +1,11 @@
+# AWS
+
+Bindings identify individual accounts. Organization roots and OUs can be deployment targets, but are not connection bindings. Use the requirement response's provider variant, payer association, identity trust and exact artifact parameters. Asset association and recognized management-account preconditions are DoiT prerequisites; creating a role alone cannot satisfy them.
+
+The Terraform artifact's supported features may be narrower than the available catalog. A non-deployable artifact requires a different supported path; do not invent a module version or add unsupported arguments. A Terraform provider resource that registers the role remains the registration owner. The CloudFormation member artifact registers through a callback. For a manually authored role whose controller does not register it, use dry-run and explicit registration after deployment.
+
+Evaluate IAM trust and actual grants, including managed policies, deny statements, permission boundaries and organization controls. A role that can be assumed is only a baseline success. Permission analysis and integration checks are separate. Repair missing permissions in the authoritative source and apply in place rather than creating duplicate roles.
+
+For real-time access, resolve the returned bucket inputs and verify the actual bucket/notification/object checks. These checks can fail because of bucket resource policies even when the role policy appears correct. Callback outcomes, registration state, follow-ups and verification are separate evidence. A parent organization operation or an old healthy record does not prove a new member callback succeeded.
+
+For a new, unregistered AWS role, dry-run can return `authentication.status=unsupported`, reason `aws_broker_requires_registration`, and an unmet `live_identity_gate`. The credential broker needs registration context to assume this role. This specific result does not prove access and cannot be fixed by repeating the dry run. After deploying reviewed IAM and satisfying the requirements prerequisites, explain the limitation and perform the authorized registration: it uses a guarded temporary reservation and checks STS/GetRole before exposing the registration. Existing registered roles can be probed during dry-run. Other failed prerequisites still require repair.

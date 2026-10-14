@@ -7,6 +7,17 @@ import { HAND_WRITTEN_TOOLS } from "../handWrittenTools.js";
 // Pair the stdio definitions with the Zod argument schemas exposed to remote consumers.
 // Keep this explicit: deriving the expected schema from inputSchema itself would hide drift.
 const toolSchemas = [
+    [core.getCloudConnectRequirementsTool, core.GetCloudConnectRequirementsArgumentsSchema],
+    [core.listCloudConnectionsTool, core.ListCloudConnectionsArgumentsSchema],
+    [core.getCloudConnectionTool, core.GetCloudConnectionArgumentsSchema],
+    [core.registerCloudConnectionTool, core.RegisterCloudConnectionArgumentsSchema],
+    [core.updateCloudConnectionTool, core.UpdateCloudConnectionArgumentsSchema],
+    [core.removeCloudConnectionTool, core.RemoveCloudConnectionArgumentsSchema],
+    [core.dryRunCloudConnectionChangeTool, core.DryRunCloudConnectionChangeArgumentsSchema],
+    [core.verifyCloudConnectTool, core.VerifyCloudConnectArgumentsSchema],
+    [core.explainCloudConnectFailureTool, core.ExplainCloudConnectFailureArgumentsSchema],
+    [core.reportCloudConnectEventTool, core.ReportCloudConnectEventArgumentsSchema],
+
     [core.listAccountTeamTool, core.ListAccountTeamArgumentsSchema],
     [core.listAlertsTool, core.ListAlertsArgumentsSchema],
     [core.getAlertTool, core.GetAlertArgumentsSchema],

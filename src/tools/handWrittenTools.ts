@@ -7,6 +7,7 @@ import { getAssetTool, listAssetsTool } from "./assets.js";
 import { askAvaSyncTool } from "./ava.js";
 import { getAwsAccountTool, getCloudConnectSupportedFeaturesTool } from "./awsAccounts.js";
 import { createBudgetTool, getBudgetTool, listBudgetsTool, updateBudgetTool } from "./budgets.js";
+import { CLOUD_CONNECT_TOOLS } from "./cloudConnect.js";
 import {
     findCloudDiagramsTool,
     getCloudDiagramComponentsTool,
@@ -99,6 +100,7 @@ type HandWrittenTool = {
  * equivalent must still declare `coversEndpoint: null` so this is never accidentally omitted.
  */
 export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
+    ...CLOUD_CONNECT_TOOLS,
     cloudOverviewTool,
     cloudIncidentsTool,
     cloudIncidentTool,

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CLOUD_CONNECT_RESOURCES } from "../../../../src/docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../../../../src/docs/cloudflowGuidance.js";
 import { prompts } from "../../../../src/prompts/index.js";
 import { createTestClient } from "../../helpers.js";
@@ -57,6 +58,7 @@ describe("MCP Prompts and Resources Integration (2026-07-28 client)", () => {
             const result = await modern.client.listResources();
 
             expect(result.resources).toEqual([
+                ...CLOUD_CONNECT_RESOURCES,
                 {
                     uri: GUIDE_URI,
                     name: "CloudFlow authoring guide",

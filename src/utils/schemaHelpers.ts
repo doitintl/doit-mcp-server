@@ -20,6 +20,20 @@ export function zodToMcpInputSchema(schema: z.ZodType): Record<string, unknown> 
         target: "draft-2020-12",
         unrepresentable: "any",
     });
+    // MCP requires an object at the tool root. A discriminated union of object
+    // variants has that invariant even though JSON Schema omits the redundant type.
+    if (
+        !jsonSchema.type &&
+        jsonSchema.oneOf?.every((variant) => typeof variant === "object" && variant.type === "object")
+    ) {
+        jsonSchema.type = "object";
+    }
+    if (
+        !jsonSchema.type &&
+        jsonSchema.anyOf?.every((variant) => typeof variant === "object" && variant.type === "object")
+    ) {
+        jsonSchema.type = "object";
+    }
     return closeOpenObjects(jsonSchema) as Record<string, unknown>;
 }
 

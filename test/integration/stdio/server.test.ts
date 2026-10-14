@@ -1,5 +1,6 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CLOUD_CONNECT_INSTRUCTIONS, CLOUD_CONNECT_RESOURCES } from "../../../src/docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../../../src/docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../../../src/docs/serverInstructions.js";
 import { SERVER_NAME, SERVER_VERSION } from "../../../src/utils/consts.js";
@@ -47,7 +48,7 @@ describe("MCP Server Integration", () => {
         // so the `instructions` constructor option is only delivered if that handler echoes it.
         // Asserting it through a real client is the only check that catches the omission.
         it("delivers server instructions to the client", async () => {
-            expect(client.getInstructions()).toBe(SERVER_INSTRUCTIONS);
+            expect(client.getInstructions()).toBe(`${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`);
         });
     });
 
@@ -56,6 +57,7 @@ describe("MCP Server Integration", () => {
             const result = await client.listResources();
 
             expect(result.resources).toEqual([
+                ...CLOUD_CONNECT_RESOURCES,
                 {
                     uri: "doit://docs/cloudflow-authoring",
                     name: "CloudFlow authoring guide",

@@ -8,6 +8,13 @@ import {
     type ServerContext,
     type Tool,
 } from "@modelcontextprotocol/server";
+import {
+    CLOUD_CONNECT_INSTRUCTIONS,
+    CLOUD_CONNECT_RESOURCES,
+    CLOUD_CONNECT_SKILL_EXTENSION,
+    readCloudConnectResource,
+    registerCloudConnectSkillHandlers,
+} from "./docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
@@ -185,10 +192,11 @@ export function createServer() {
                 tools: {},
                 prompts: {},
                 resources: {},
+                extensions: CLOUD_CONNECT_SKILL_EXTENSION,
             },
             // Returned in the initialize result. Only the stdio server is constructed here —
             // the remote Worker builds its own Server and has to pass this itself.
-            instructions: SERVER_INSTRUCTIONS,
+            instructions: `${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`,
         }
     );
 
@@ -254,6 +262,7 @@ export function createServer() {
     server.setRequestHandler("resources/list", async () => {
         return {
             resources: [
+                ...CLOUD_CONNECT_RESOURCES,
                 {
                     uri: CLOUDFLOW_GUIDE_URI,
                     name: "CloudFlow authoring guide",
@@ -264,7 +273,11 @@ export function createServer() {
         };
     });
 
+    registerCloudConnectSkillHandlers(server);
+
     server.setRequestHandler("resources/read", async (request) => {
+        if (CLOUD_CONNECT_RESOURCES.some((resource) => resource.uri === request.params.uri))
+            return readCloudConnectResource(request.params.uri);
         if (request.params.uri !== CLOUDFLOW_GUIDE_URI) {
             throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Unknown resource: ${request.params.uri}`);
         }
