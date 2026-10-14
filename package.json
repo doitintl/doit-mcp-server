@@ -32,11 +32,12 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "scripts": {
     "compile": "tsc",
-    "build": "tsc && shx cp src/tools/generated/openapi.json dist/tools/generated/openapi.json && shx chmod +x dist/*.js",
+    "build": "yarn generate:skills && tsc && shx cp src/tools/generated/openapi.json dist/tools/generated/openapi.json && shx chmod +x dist/*.js",
     "watch": "tsc --watch",
     "test": "vitest run",
     "type-check": "tsc --noEmit",
@@ -44,15 +45,18 @@
     "lint:fix": "biome lint --write src/ test/",
     "format": "biome format src/ test/",
     "format:fix": "biome format --write src/ test/",
-    "check:dev": "yarn type-check && biome check src/ test/",
-    "check:ci": "yarn type-check && biome ci src/ test/",
+    "check:dev": "yarn check:skills && yarn type-check && biome check src/ test/",
+    "check:ci": "yarn check:skills && yarn type-check && biome ci src/ test/",
     "check:fix": "biome check --write src/ test/",
-    "generate:refresh-spec": "node scripts/refresh-generated-spec.mjs"
+    "generate:refresh-spec": "node scripts/refresh-generated-spec.mjs",
+    "generate:skills": "node scripts/generate-skills.mjs",
+    "check:skills": "node scripts/generate-skills.mjs --check"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.1.0",
     "dotenv": "^17.4.2",
-    "zod": "^4.2.0"
+    "zod": "^4.2.0",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

@@ -392,7 +392,12 @@ describe("createServer", () => {
         expect(Server).toHaveBeenCalledWith(
             { name: "doit-mcp-server", version: SERVER_VERSION },
             {
-                capabilities: { tools: {}, prompts: {}, resources: {} },
+                capabilities: {
+                    tools: {},
+                    prompts: {},
+                    resources: {},
+                    extensions: { "io.modelcontextprotocol/skills": {} },
+                },
                 instructions: SERVER_INSTRUCTIONS,
             }
         );

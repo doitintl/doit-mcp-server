@@ -60,6 +60,10 @@ Keep the token in a secret store and rotate it on a schedule. Design notes: [doc
 
 ## Local (stdio)
 
+The server also exposes the official Skills over MCP extension. Add reviewed
+`skills/<name>/SKILL.md` directories and rebuild to publish them; see
+[skill delivery and local setup](docs/skills.md). The initial registry is empty.
+
 Requires Node.js v20 or higher and a personal API token as `DOIT_API_KEY`. Create a token from the [Personal API tokens](https://help.doit.com/docs/general/profile/api-tokens) page in the DoiT console.
 
 Example with Claude Desktop — add the following to `claude_desktop_config.json` (or Settings), then [restart Claude](https://modelcontextprotocol.io/quickstart/user#3-restart-claude):

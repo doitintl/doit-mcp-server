@@ -8,6 +8,7 @@ export {
 } from "./docs/cloudflowGuidance.js";
 export { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 export * from "./prompts/index.js";
+export * from "./skills/index.js";
 export { ListAccountTeamArgumentsSchema, listAccountTeamTool } from "./tools/accountTeam.js";
 export {
     CreateAlertArgumentsSchema,
