@@ -9,3 +9,5 @@ Preserve existing IAM members when changing a custom role or dataset policy. Dat
 Desired features are explicit selections, independent of today's health. A later successful permission probe must not re-enable a feature the customer disabled. Organization access is not inferred from ancestry: verify the actual target project with `at_scope`.
 
 Log-sink, real-time-pipeline and discovery callbacks are separately named follow-ups. A failed follow-up leaves work pending even after successful registration. Fix its cause and retry only that stored step. Disconnect may delete the DoiT BigQuery dataset with contents in the relevant project; this is a concrete backend side effect, not merely removal of a local record.
+
+Disconnecting a connection with BigQuery Lens configured also removes its sink metadata and the customer’s optimizer/cost simulation data through a named backend cleanup step. Inspect the dry-run data-loss disclosure. Failed cleanup leaves the connection available for exact DELETE retry; do not recreate it to retry cleanup.

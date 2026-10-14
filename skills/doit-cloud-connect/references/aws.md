@@ -4,6 +4,8 @@ Bindings identify individual accounts. Organization roots and OUs can be deploym
 
 The Terraform artifact's supported features may be narrower than the available catalog. A non-deployable artifact requires a different supported path; do not invent a module version or add unsupported arguments. A Terraform provider resource that registers the role remains the registration owner. The CloudFormation member artifact registers through a callback. For a manually authored role whose controller does not register it, use dry-run and explicit registration after deployment.
 
+For AWS `core`, the complete returned managed-policy set (SecurityAudit, AWSSavingsPlansReadOnlyAccess and Billing) is an accepted alternative to the listed legacy action permissions. Do not require both alternatives, add redundant grants, or remove a valid existing alternative solely to match the other. Fresh verification still evaluates access limitations.
+
 Evaluate IAM trust and actual grants, including managed policies, deny statements, permission boundaries and organization controls. A role that can be assumed is only a baseline success. Permission analysis and integration checks are separate. Repair missing permissions in the authoritative source and apply in place rather than creating duplicate roles.
 
 For real-time access, resolve the returned bucket inputs and verify the actual bucket/notification/object checks. These checks can fail because of bucket resource policies even when the role policy appears correct. Callback outcomes, registration state, follow-ups and verification are separate evidence. A parent organization operation or an old healthy record does not prove a new member callback succeeded.

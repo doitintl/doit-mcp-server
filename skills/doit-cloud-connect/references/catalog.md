@@ -1,12 +1,13 @@
 # Cloud Connect catalog
 
-Generated catalogVersion: `sha256-c975fa8e3d742f4e53de63d81a1eb0cc4055ced9126fca894509ccf22f41c633`.
+Generated catalogVersion: `sha256-e6f7593a571e8ec9337b79790904abd55da445bfdd844b5e8f6188c8b56b6604`.
 
 Plan from this rendering, act only after a fresh POST /requirements response. The response wins on version mismatch. This file has no customer identity, entitlements or preconditions. Omitting featureIds is discovery, never permission selection.
 
+AWS core grants have two accepted alternatives: the complete managed-policy set (SecurityAudit, Billing and AWSSavingsPlansReadOnlyAccess), or the listed legacy action permissions. Do not require both alternatives or remove an existing valid alternative solely to match the other. Permission boundaries, deny statements and organization controls still limit access; verification remains authoritative.
 ```json
 {
-  "catalogVersion": "sha256-c975fa8e3d742f4e53de63d81a1eb0cc4055ced9126fca894509ccf22f41c633",
+  "catalogVersion": "sha256-e6f7593a571e8ec9337b79790904abd55da445bfdd844b5e8f6188c8b56b6604",
   "scopes": [
     {
       "provider": "aws",
@@ -3212,6 +3213,7 @@ Plan from this rendering, act only after a fresh POST /requirements response. Th
       "delete_connection_record"
     ],
     "gcp": [
+      "bigquery_lens_offboarding_when_configured",
       "delete_doitintl_cmp_bq_dataset_with_contents",
       "delete_connection_record"
     ]
