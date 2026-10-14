@@ -11,6 +11,12 @@ import {
 
 export const CLOUD_CONNECT_BASE_URL = `${DOIT_API_BASE}/onboarding/v2`;
 const id = z.string().min(1).max(256);
+const projectId = z.string().regex(/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/);
+const datasetId = z
+    .string()
+    .min(1)
+    .max(1024)
+    .regex(/^[A-Za-z0-9_]+$/);
 const featureIds = z
     .array(id)
     .min(1)
@@ -34,14 +40,14 @@ export const CloudConnectScopeSchema = z
                 organizationId: z.string().regex(/^\d+$/),
             })
             .strict(),
-        z.object({ provider: z.literal("gcp"), kind: z.literal("gcp_project"), projectId: id }).strict(),
-        z.object({ provider: z.literal("gcp"), kind: z.literal("gcp_dataset"), projectId: id, datasetId: id }).strict(),
+        z.object({ provider: z.literal("gcp"), kind: z.literal("gcp_project"), projectId }).strict(),
+        z.object({ provider: z.literal("gcp"), kind: z.literal("gcp_dataset"), projectId, datasetId }).strict(),
         z
             .object({
                 provider: z.literal("azure"),
                 kind: z.literal("azure_management_group"),
                 tenantId: z.uuid(),
-                managementGroupId: id,
+                managementGroupId: z.string().regex(/^[A-Za-z0-9._()-]{1,90}$/),
             })
             .strict(),
     ])
@@ -61,7 +67,7 @@ export const CloudConnectIdentitySchema = z
                 kind: z.literal("gcp_service_account"),
                 email: z.email(),
                 uniqueId: z.string().regex(/^\d+$/),
-                projectId: id,
+                projectId,
             })
             .strict(),
         z
@@ -117,7 +123,7 @@ export const GetCloudConnectionArgumentsSchema = z.object({ connectionId });
 const registration = {
     identity: CloudConnectIdentitySchema,
     credentialMode: z.literal("workload_identity_federation").optional().describe("Required for GCP registration."),
-    bindings: z.array(binding).min(1).max(20),
+    bindings: z.array(binding).length(1).describe("Exactly one native binding per registration in this API version."),
     catalogVersion,
 };
 export const RegisterCloudConnectionArgumentsSchema = z.object(registration);
@@ -185,8 +191,15 @@ export const VerifyCloudConnectArgumentsSchema = z.object({
 });
 export const ExplainCloudConnectFailureArgumentsSchema = z.object({
     ...filters,
+    pageSize: z.number().int().min(1).max(200).optional(),
+    pageToken: z
+        .string()
+        .min(1)
+        .max(4096)
+        .optional()
+        .describe("Opaque diagnostic cursor from the previous page; retain the same filters and time window."),
     connectionId: connectionId.optional(),
-    requestId: id.optional(),
+    requestId: z.string().min(1).max(128).optional(),
     since: z.iso.datetime({ offset: true }).optional(),
     until: z.iso.datetime({ offset: true }).optional(),
 });

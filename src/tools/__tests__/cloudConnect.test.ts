@@ -138,6 +138,49 @@ describe("Cloud Connect transport contract", () => {
         ).toBe(true);
         expect(requests).toHaveLength(1);
     });
+    it("accepts full diagnostic cursors and enforces the endpoint-specific page and binding limits", async () => {
+        const cursor = "a".repeat(4096);
+        const datasetScope = {
+            provider: "gcp",
+            kind: "gcp_dataset",
+            projectId: "target-project",
+            datasetId: "a".repeat(1024),
+        };
+        response = () => new Response(JSON.stringify({ events: [], nextPageToken: cursor }));
+        const result = await handleCloudConnectRequest(
+            "explain_cloud_connect_failure",
+            { pageToken: cursor, pageSize: 200 },
+            "fixture-token"
+        );
+        expect(result.isError).not.toBe(true);
+        expect(data(result).nextPageToken).toBe(cursor);
+        expect(requests[0].url.searchParams.get("pageToken")).toBe(cursor);
+        for (const [name, args] of [
+            ["explain_cloud_connect_failure", { pageToken: `${cursor}x` }],
+            ["explain_cloud_connect_failure", { pageSize: 201 }],
+            ["explain_cloud_connect_failure", { requestId: "a".repeat(129) }],
+            ["get_cloud_connect_requirements", { scope: { ...datasetScope, datasetId: "a".repeat(1025) } }],
+            [
+                "register_cloud_connection",
+                { ...registration, bindings: [registration.bindings[0], registration.bindings[0]] },
+            ],
+            [
+                "dry_run_cloud_connection_change",
+                {
+                    operation: "register",
+                    ...registration,
+                    bindings: [registration.bindings[0], registration.bindings[0]],
+                },
+            ],
+        ] as const)
+            expect((await handleCloudConnectRequest(name, args, "fixture-token")).isError).toBe(true);
+        expect(requests).toHaveLength(1);
+        await handleCloudConnectRequest("list_cloud_connections", { pageSize: 500 }, "fixture-token");
+        expect(requests).toHaveLength(2);
+        await handleCloudConnectRequest("get_cloud_connect_requirements", { scope: datasetScope }, "fixture-token");
+        expect(requests).toHaveLength(3);
+        expect(requests[2].body.scope.datasetId).toHaveLength(1024);
+    });
     it("bypasses hosted widget conversion so check coverage and named follow-ups remain intact", async () => {
         const payload = {
             checks: [
