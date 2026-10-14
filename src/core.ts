@@ -126,6 +126,7 @@ export {
     ListCommitmentsArgumentsSchema,
     listCommitmentsTool,
 } from "./tools/commitmentManager.js";
+export { ConfirmActionArgumentsSchema, confirmActionTool } from "./tools/confirmAction.js";
 export {
     CreateDatahubDatasetArgumentsSchema,
     createDatahubDatasetTool,

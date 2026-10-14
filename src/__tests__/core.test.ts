@@ -13,6 +13,8 @@ describe("core package API", () => {
             generateTools: expect.any(Function),
             COVERED_ENDPOINTS: expect.any(Set),
             executeToolHandler: expect.any(Function),
+            confirmActionTool: expect.objectContaining({ name: "confirm_action" }),
+            ConfirmActionArgumentsSchema: expect.any(Object),
             handleChangeCustomerRequest: expect.any(Function),
             handleValidateUserRequest: expect.any(Function),
             parseValidatedUserResponse: expect.any(Function),
@@ -34,6 +36,13 @@ describe("core package API", () => {
                 openapi: expect.stringMatching(/^3\./),
             }),
         });
+    });
+
+    it("lets another transport register the confirmation tool with the shared validation contract", async () => {
+        const { ConfirmActionArgumentsSchema, confirmActionTool } = await import("../core.js");
+        expect(ConfirmActionArgumentsSchema.parse({ token: "pending-action" })).toEqual({ token: "pending-action" });
+        expect(ConfirmActionArgumentsSchema.safeParse({ token: "" }).success).toBe(false);
+        expect(confirmActionTool.annotations).toMatchObject({ destructiveHint: true, readOnlyHint: false });
     });
 
     // The remote Worker registers tools with these Zod schemas, so their `.describe()` text is what
