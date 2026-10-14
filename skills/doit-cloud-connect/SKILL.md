@@ -3,7 +3,7 @@ name: doit-cloud-connect
 description: Connect, verify, repair or disconnect AWS, Google Cloud and Azure access for DoiT Cloud Connect using DoiT MCP tools and the customer's existing deployment workflow.
 license: MIT
 metadata:
-  doit/skill-version: "1"
+  doit/skill-version: "2"
   doit/api-contract: "onboarding/v2"
 ---
 

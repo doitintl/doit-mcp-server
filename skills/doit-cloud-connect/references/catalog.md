@@ -1,13 +1,13 @@
 # Cloud Connect catalog
 
-Generated catalogVersion: `sha256-f857dec4fd9489f039093e755dabecc29f403ba8e84e4e308a2c443b5b182977`.
+Generated catalogVersion: `sha256-d9ed96b2680b14f86b0ce535d9097ad9c0542658751c94cda6d808521fb5a701`.
 
 Plan from this rendering, act only after a fresh POST /requirements response. The response wins on version mismatch. This file has no customer identity, entitlements or preconditions. Omitting featureIds is discovery, never permission selection.
 
 AWS core grants have two accepted alternatives: the complete managed-policy set (SecurityAudit, Billing and AWSSavingsPlansReadOnlyAccess), or the listed legacy action permissions. Do not require both alternatives or remove an existing valid alternative solely to match the other. Permission boundaries, deny statements and organization controls still limit access; verification remains authoritative.
 ```json
 {
-  "catalogVersion": "sha256-f857dec4fd9489f039093e755dabecc29f403ba8e84e4e308a2c443b5b182977",
+  "catalogVersion": "sha256-d9ed96b2680b14f86b0ce535d9097ad9c0542658751c94cda6d808521fb5a701",
   "scopes": [
     {
       "provider": "aws",
@@ -3180,7 +3180,31 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
       "version": "sha256-2f2f657a61c2032f489fa5861966f2b18378f524760e31484927dda576a8ec91",
       "templateUrl": "https://doit-cmp-ops-pub.s3.us-east-1.amazonaws.com/prod/member.yml",
       "registersConnection": "callback",
-      "roleName": "doitintl-cmp"
+      "roleName": "doitintl-cmp",
+      "trustAccountId": "068664126052",
+      "trustStatements": [
+        {
+          "principal": "arn:aws:iam::068664126052:root",
+          "externalIdRequired": true
+        }
+      ],
+      "templateParameters": [
+        "Attribute",
+        "Composer",
+        "DeploymentTargetID",
+        "ExpertAdvice",
+        "ExternalId",
+        "FSK8SClusterConnect",
+        "FeatureFlags",
+        "ManagementAccountID",
+        "PS4CommitmentCore",
+        "PS4CommitmentPurchase",
+        "RealTimeData",
+        "RealTimeDataBucketName",
+        "Reflex",
+        "RoleToAddPolicyTo",
+        "SpotScaling"
+      ]
     },
     {
       "artifactId": "aws-terraform-module",
@@ -3199,7 +3223,14 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
         "composer",
         "expert-advice"
       ],
-      "roleName": "doitintl_dci_cloudconnect"
+      "roleName": "doitintl_dci_cloudconnect",
+      "trustAccountId": "068664126052",
+      "trustStatements": [
+        {
+          "principal": "arn:aws:iam::068664126052:root",
+          "externalIdRequired": true
+        }
+      ]
     },
     {
       "artifactId": "gcp-gcloud-sequence",
