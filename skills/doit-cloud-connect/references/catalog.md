@@ -1,13 +1,13 @@
 # Cloud Connect catalog
 
-Generated catalogVersion: `sha256-e6f7593a571e8ec9337b79790904abd55da445bfdd844b5e8f6188c8b56b6604`.
+Generated catalogVersion: `sha256-f857dec4fd9489f039093e755dabecc29f403ba8e84e4e308a2c443b5b182977`.
 
 Plan from this rendering, act only after a fresh POST /requirements response. The response wins on version mismatch. This file has no customer identity, entitlements or preconditions. Omitting featureIds is discovery, never permission selection.
 
 AWS core grants have two accepted alternatives: the complete managed-policy set (SecurityAudit, Billing and AWSSavingsPlansReadOnlyAccess), or the listed legacy action permissions. Do not require both alternatives or remove an existing valid alternative solely to match the other. Permission boundaries, deny statements and organization controls still limit access; verification remains authoritative.
 ```json
 {
-  "catalogVersion": "sha256-e6f7593a571e8ec9337b79790904abd55da445bfdd844b5e8f6188c8b56b6604",
+  "catalogVersion": "sha256-f857dec4fd9489f039093e755dabecc29f403ba8e84e4e308a2c443b5b182977",
   "scopes": [
     {
       "provider": "aws",
@@ -75,7 +75,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "s3:List*"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -116,7 +117,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "wafv2:GetRuleGroup"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -137,7 +139,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "organizations:ListRoots"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -339,7 +342,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "transfer:ListServers"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -442,7 +446,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "arn:aws:iam::aws:policy/job-function/Billing"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -460,7 +465,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "cost-optimization-hub:ListRecommendations"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -580,7 +586,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "eks:DisassociateAccessPolicy"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -600,7 +607,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "eks:ListClusters"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -626,7 +634,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "savingsplans:ListTagsForResource"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -646,7 +655,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "savingsplans:TagResource"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -679,7 +689,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "trustedadvisor:DescribeNotificationPreferences"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -894,7 +905,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "tag:GetTagValues"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -911,7 +923,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "securityhub:GetFindings"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -948,7 +961,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "iam:PassRole"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [
@@ -967,7 +981,8 @@ AWS core grants have two accepted alternatives: the complete managed-policy set 
               "trustedadvisor:ListRecommendations"
             ],
             "healthChecks": [
-              "attached_policy_analysis"
+              "attached_policy_analysis",
+              "feature_health_check"
             ]
           },
           "consumers": [

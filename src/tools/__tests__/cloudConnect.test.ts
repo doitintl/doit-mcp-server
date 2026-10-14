@@ -203,6 +203,68 @@ describe("Cloud Connect transport contract", () => {
         expect(data(result)).toEqual(payload);
         expect(convert).not.toHaveBeenCalled();
     });
+    it("preserves hybrid source namespaces, partial availability and merged cursors through core dispatch", async () => {
+        const payload = {
+            events: [
+                { eventId: "shared-id", source: "doit_logs", evidenceSource: "doit_backend" },
+                { eventId: "shared-id", source: "customer_reports", evidenceSource: "client_reported" },
+            ],
+            partial: false,
+            sources: [
+                { source: "doit_logs", status: "available" },
+                { source: "customer_reports", status: "available" },
+            ],
+            nextPageToken: "opaque-hybrid-cursor",
+        };
+        const convert = vi.fn(() => ({ content: [] }));
+        for (const page of [
+            payload,
+            {
+                ...payload,
+                events: [payload.events[1]],
+                partial: true,
+                sources: [
+                    {
+                        source: "doit_logs",
+                        status: "unavailable",
+                        error: {
+                            code: "diagnostics_source_unavailable",
+                            message: "Diagnostic source is temporarily unavailable",
+                        },
+                    },
+                    payload.sources[1],
+                ],
+            },
+        ]) {
+            response = () => new Response(JSON.stringify(page));
+            const result = await executeToolHandler(
+                "explain_cloud_connect_failure",
+                { scope, pageToken: "previous-page" },
+                "fixture-token",
+                { convertResponse: convert, onResponseMetrics: () => {} }
+            );
+            expect(data(result)).toEqual(page);
+        }
+        expect(convert).not.toHaveBeenCalled();
+        expect(requests.every((request) => request.url.searchParams.get("pageToken") === "previous-page")).toBe(true);
+        expect(requests.every((request) => request.url.searchParams.get("projectId") === "target-project")).toBe(true);
+    });
+    it.each([
+        [409, "diagnostics_cursor_invalidated"],
+        [503, "diagnostics_unavailable"],
+    ])("preserves diagnostic failure %s without returning empty evidence or retrying", async (status, code) => {
+        response = () =>
+            new Response(JSON.stringify({ code, requestId: "history-request" }), { status: Number(status) });
+        const result = await handleCloudConnectRequest(
+            "explain_cloud_connect_failure",
+            { requestId: "original-request", pageToken: "old-page" },
+            "fixture-token"
+        );
+        expect(result.isError).toBe(true);
+        expect(data(result)).toMatchObject({ status, code, requestId: "history-request" });
+        expect(data(result).events).toBeUndefined();
+        expect(requests).toHaveLength(1);
+    });
     it("refuses raw error messages and backend provenance in customer events, then publishes classified context", async () => {
         const event = {
             provider: "gcp",
@@ -212,6 +274,7 @@ describe("Cloud Connect transport contract", () => {
         };
         for (const unsafe of [
             { ...event, evidenceSource: "doit_backend" },
+            { ...event, source: "doit_logs" },
             { ...event, error: { ...event.error, message: "Bearer private-token" } },
             { ...event, observation: { kind: "health_transition", status: "passed" } },
         ]) {

@@ -17,6 +17,9 @@ Use the response's exact code, message, missing permissions/inputs and retry tim
 | `connection_ambiguous` | Resolve competing identities/records before mutation; do not choose arbitrarily. |
 | `adapter_check_unsupported` / incomplete sample | Preserve an unverified result; do not report healthy access. |
 | HTTP 503 during event publication | Some events may already be published. Retry at most twice if opted in; telemetry failure does not block setup. |
-| Missing recent diagnostic event | Allow for audit visibility delay; use fresh connection reads/verification for completion. |
+| `diagnostics_source_unavailable` / `partial:true` | Name the unavailable source and retain available evidence. Unavailable is not empty; use reads/verification for current state. |
+| `diagnostics_cursor_invalidated` / HTTP 409 | Source availability changed. Restart a fresh bounded query with the intended filters; do not append recovered-source evidence to prior pages. |
+| HTTP 503 reading diagnostics | Both sources are unavailable. Preserve request correlation and retry only within a bounded read policy; onboarding and verification remain independent. |
+| Missing recent diagnostic event | Inspect source availability and allow for separate ingestion delays; an available query does not prove ingestion is complete. Use fresh connection reads/verification for completion. |
 
 If a repair repeatedly fails with the same evidence, summarize the unresolved prerequisite and preserve request correlation for support instead of repeating destructive actions.

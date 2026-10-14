@@ -47,11 +47,9 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
     let client: Client;
     let records: Map<string, any>;
     let requestCount: number;
-    let acknowledged: boolean;
     beforeEach(async () => {
         records = new Map();
         requestCount = 0;
-        acknowledged = false;
         api = createServer(async (req, res) => {
             const requestId = `fixture-${++requestCount}`;
             let raw = "";
@@ -94,11 +92,52 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                     identity: { status: "resolved" },
                 });
             if (family === "events") {
-                acknowledged = true;
                 return reply(202, { schemaVersion: "1", accepted: [{ index: 0, eventId: "fixture-event" }] });
             }
-            if (family === "diagnostics")
-                return reply(200, { events: [], visibility: acknowledged ? "eventually_consistent" : "empty" });
+            if (family === "diagnostics") {
+                const sources = [
+                    { source: "doit_logs", status: "available" },
+                    { source: "customer_reports", status: "available" },
+                ];
+                const historyRequest = url.searchParams.get("requestId");
+                if (historyRequest === "hybrid-unavailable")
+                    return reply(503, { code: "diagnostics_unavailable", requestId: "history-request" });
+                if (url.searchParams.get("pageToken") === "partial-next")
+                    return reply(409, { code: "diagnostics_cursor_invalidated", requestId: "history-request" });
+                if (historyRequest === "hybrid-history" && !url.searchParams.has("pageToken"))
+                    return reply(200, {
+                        events: sources.map(({ source }) => ({
+                            schemaVersion: "1",
+                            eventId: "shared-event-id",
+                            source,
+                            evidenceSource: source === "doit_logs" ? "doit_backend" : "client_reported",
+                            provider: "aws",
+                            stage: "registration",
+                            recordedAt: "2026-10-14T12:00:00Z",
+                        })),
+                        partial: false,
+                        sources,
+                        nextPageToken: "hybrid-next",
+                    });
+                if (historyRequest === "hybrid-partial")
+                    return reply(200, {
+                        events: [],
+                        partial: true,
+                        sources: [
+                            {
+                                source: "doit_logs",
+                                status: "unavailable",
+                                error: {
+                                    code: "diagnostics_source_unavailable",
+                                    message: "Diagnostic source is temporarily unavailable",
+                                },
+                            },
+                            sources[1],
+                        ],
+                        nextPageToken: "partial-next",
+                    });
+                return reply(200, { events: [], partial: false, sources });
+            }
             if (family === "verifications")
                 return reply(200, {
                     requestId,
@@ -247,7 +286,14 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                 ],
             });
             const history = await call("explain_cloud_connect_failure", { connectionId: connection.connectionId });
-            expect(history.events).toEqual([]);
+            expect(history).toMatchObject({
+                events: [],
+                partial: false,
+                sources: [
+                    { source: "doit_logs", status: "available" },
+                    { source: "customer_reports", status: "available" },
+                ],
+            });
             const remove = {
                 connectionId: connection.connectionId,
                 expectedEtag: changed.etag,
@@ -261,6 +307,33 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             expect((await call("list_cloud_connections", { scope: fixture.scope })).items).toEqual([]);
         }
     );
+    it("preserves merged history, partial availability and invalidated cursors through stdio", async () => {
+        const invoke = (args: Record<string, unknown>) =>
+            client.callTool({ name: "explain_cloud_connect_failure", arguments: args });
+        const filters = { requestId: "hybrid-history", since: "2026-10-14T00:00:00Z", until: "2026-10-14T23:59:59Z" };
+        const first = JSON.parse(text(await invoke(filters)));
+        expect(first.partial).toBe(false);
+        expect(first.events.map((event: any) => [event.source, event.eventId])).toEqual([
+            ["doit_logs", "shared-event-id"],
+            ["customer_reports", "shared-event-id"],
+        ]);
+        const next = JSON.parse(text(await invoke({ ...filters, pageToken: first.nextPageToken })));
+        expect(next).toMatchObject({ events: [], partial: false, sources: first.sources });
+        const partial = JSON.parse(text(await invoke({ requestId: "hybrid-partial" })));
+        expect(partial).toMatchObject({
+            partial: true,
+            sources: [
+                { source: "doit_logs", status: "unavailable", error: { code: "diagnostics_source_unavailable" } },
+                { source: "customer_reports", status: "available" },
+            ],
+        });
+        const invalidated = await invoke({ requestId: "hybrid-partial", pageToken: partial.nextPageToken });
+        expect(invalidated.isError).toBe(true);
+        expect(JSON.parse(text(invalidated))).toMatchObject({ status: 409, code: "diagnostics_cursor_invalidated" });
+        const unavailable = await invoke({ requestId: "hybrid-unavailable" });
+        expect(unavailable.isError).toBe(true);
+        expect(JSON.parse(text(unavailable))).toMatchObject({ status: 503, code: "diagnostics_unavailable" });
+    });
     it("serves the Skills extension manifest and prompt with digest-verifiable resources", async () => {
         const listed = await client.request({ method: "skills/list", params: {} }, z.any());
         const skill = (listed as any).skills[0];

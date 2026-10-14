@@ -339,7 +339,7 @@ export const explainCloudConnectFailureTool = tool(
     "explain_cloud_connect_failure",
     ExplainCloudConnectFailureArgumentsSchema,
     `get:${base}/diagnostics`,
-    "Read bounded Cloud Connect diagnostic history including labelled customer reports and DoiT callback outcomes. Filter by request/connection/scope/time. Audit publication is eventually queryable; absence of an event is not proof of completion. Use reads and verification for current state.",
+    "Read bounded Cloud Connect diagnostic history from DoiT logs and labelled customer reports. Inspect sources and partial before interpreting missing evidence: unavailable is not empty, and available does not mean ingestion is complete. Preserve source/eventId pairs and all pagination filters. On diagnostics_cursor_invalidated, restart a fresh bounded query; never append recovered-source entries to older pages. Both sources unavailable returns 503. History is eventually visible; use reads and verification for current state.",
     true
 );
 export const reportCloudConnectEventTool = tool(
