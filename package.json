@@ -32,8 +32,7 @@
     }
   },
   "files": [
-    "dist",
-    "skills"
+    "dist"
   ],
   "scripts": {
     "compile": "tsc",
