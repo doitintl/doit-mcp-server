@@ -214,7 +214,10 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         if (!address || typeof address === "string") throw new Error("Fixture did not start");
         client = new Client(
             { name: "cloud-connect-fixture", version: "1" },
-            { versionNegotiation: { mode: { pin: "2026-07-28" } } }
+            {
+                capabilities: { extensions: { "io.modelcontextprotocol/skills": {} } },
+                versionNegotiation: { mode: { pin: "2026-07-28" } },
+            }
         );
         await client.connect(
             new StdioClientTransport({
@@ -336,7 +339,10 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
     });
     it("serves the Skills extension manifest and prompt with digest-verifiable resources", async () => {
         const listed = await client.request({ method: "skills/list", params: {} }, z.any());
-        const skill = (listed as any).skills[0];
+        const skill = listed.skills.find(
+            (entry: { uri: string }) => entry.uri === "skill://doit-cloud-connect/SKILL.md"
+        );
+        expect(skill).toBeDefined();
         const fetched = await client.request({ method: "skills/get", params: { uri: skill.uri } }, z.any());
         expect((fetched as any).skill).toEqual(skill);
         for (const resource of skill.resources) {

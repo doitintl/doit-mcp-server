@@ -166,9 +166,14 @@ The project uses:
 - **Vitest** for testing
 - **Zod** for schema validation
 
-## Cloud Connect (2026-10-14)
+## Cloud Connect (2026-10-15)
 
 - `src/tools/cloudConnect.ts` owns ten hand-written tools for nine `/onboarding/v2` operations, including strict provider scopes, conditional writes, dry runs and classified customer events. Export registry, schemas and handlers through `/core`; preserve full result ledgers and pagination in hosted dispatch.
-- `skills/doit-cloud-connect/` is the canonical installable workflow. Edit its sources and run `yarn generate:cloud-connect-skill`; never hand-edit the generated bundle. The catalog/recipes come from the backend projection generator and must be regenerated from approved production input before release. A fresh requirements response always wins.
+- `skills/doit-cloud-connect/` is the canonical installable workflow. Edit its sources and run `yarn generate:skills`; never hand-edit the generated bundle. The catalog/recipes come from the backend projection generator and must be regenerated from approved production input before release. A fresh requirements response always wins.
 - Diagnostics preserve `events[].source`, `partial`, both source statuses and cursors. DoiT logs and customer reports remain separate namespaces; availability changes invalidate pagination with 409 and require a fresh bounded query.
 - Tests cover real stdio lifecycles, skill bytes/digests and hosted-safe core dispatch. A separately deployed Worker needs its own companion change and dependency release; publishing this package alone does not deploy hosted tools or qualify live cloud behavior.
+
+## Skills extension
+
+- Add `skills/<name>/SKILL.md`, then run `yarn generate:skills`; do not edit the generated bundle manually.
+- Keep skill files public and the registry filesystem-free. Preserve exact file bytes, frontmatter, and digest/size manifests. See [docs/skills.md](docs/skills.md).

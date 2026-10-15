@@ -1,8 +1,9 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CLOUD_CONNECT_INSTRUCTIONS, CLOUD_CONNECT_RESOURCES } from "../../../src/docs/cloudConnectSkill.js";
+import { CLOUD_CONNECT_INSTRUCTIONS } from "../../../src/docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../../../src/docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../../../src/docs/serverInstructions.js";
+import { SKILL_RESOURCES } from "../../../src/skills/index.js";
 import { SERVER_NAME, SERVER_VERSION } from "../../../src/utils/consts.js";
 import { createTestClient } from "../helpers.js";
 
@@ -57,7 +58,7 @@ describe("MCP Server Integration", () => {
             const result = await client.listResources();
 
             expect(result.resources).toEqual([
-                ...CLOUD_CONNECT_RESOURCES,
+                ...SKILL_RESOURCES,
                 {
                     uri: "doit://docs/cloudflow-authoring",
                     name: "CloudFlow authoring guide",

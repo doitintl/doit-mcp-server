@@ -8,16 +8,16 @@ import {
     type ServerContext,
     type Tool,
 } from "@modelcontextprotocol/server";
-import {
-    CLOUD_CONNECT_INSTRUCTIONS,
-    CLOUD_CONNECT_RESOURCES,
-    CLOUD_CONNECT_SKILL_EXTENSION,
-    readCloudConnectResource,
-    registerCloudConnectSkillHandlers,
-} from "./docs/cloudConnectSkill.js";
+import { CLOUD_CONNECT_INSTRUCTIONS } from "./docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
+import {
+    registerSkillHandlers,
+    SKILL_EXTENSION_CAPABILITY,
+    SKILL_REGISTRY,
+    type SkillRegistry,
+} from "./skills/index.js";
 import { handleListAccountTeamRequest } from "./tools/accountTeam.js";
 import {
     handleCreateAlertRequest,
@@ -176,7 +176,7 @@ function resolveTrackingContext(server: Server, ctx: ServerContext): TrackingCon
     };
 }
 
-export function createServer() {
+export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry?: SkillRegistry } = {}) {
     // stdio is single-process and single-user, so a stable string is sufficient as the
     // identity the approval flow is bound to. The Worker transport binds to the
     // OAuth-derived api key instead — see the remote Worker in the separate private repo.
@@ -192,7 +192,7 @@ export function createServer() {
                 tools: {},
                 prompts: {},
                 resources: {},
-                extensions: CLOUD_CONNECT_SKILL_EXTENSION,
+                extensions: SKILL_EXTENSION_CAPABILITY,
             },
             // Returned in the initialize result. Only the stdio server is constructed here —
             // the remote Worker builds its own Server and has to pass this itself.
@@ -262,7 +262,7 @@ export function createServer() {
     server.setRequestHandler("resources/list", async () => {
         return {
             resources: [
-                ...CLOUD_CONNECT_RESOURCES,
+                ...skillRegistry.resources,
                 {
                     uri: CLOUDFLOW_GUIDE_URI,
                     name: "CloudFlow authoring guide",
@@ -273,11 +273,9 @@ export function createServer() {
         };
     });
 
-    registerCloudConnectSkillHandlers(server);
-
     server.setRequestHandler("resources/read", async (request) => {
-        if (CLOUD_CONNECT_RESOURCES.some((resource) => resource.uri === request.params.uri))
-            return readCloudConnectResource(request.params.uri);
+        if (skillRegistry.resources.some((resource) => resource.uri === request.params.uri))
+            return skillRegistry.readSkillResource(request.params.uri);
         if (request.params.uri !== CLOUDFLOW_GUIDE_URI) {
             throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Unknown resource: ${request.params.uri}`);
         }
@@ -292,6 +290,8 @@ export function createServer() {
             ],
         };
     });
+
+    registerSkillHandlers(server, skillRegistry);
 
     server.setRequestHandler("tools/call", async (request, ctx) => {
         const { name, arguments: args, _meta } = request.params;

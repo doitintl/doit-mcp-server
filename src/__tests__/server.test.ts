@@ -7,14 +7,11 @@ import {
 } from "@modelcontextprotocol/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import {
-    CLOUD_CONNECT_INSTRUCTIONS,
-    CLOUD_CONNECT_RESOURCES,
-    CLOUD_CONNECT_SKILL_EXTENSION,
-} from "../docs/cloudConnectSkill.js";
+import { CLOUD_CONNECT_INSTRUCTIONS } from "../docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../docs/serverInstructions.js";
 import { prompts } from "../prompts/index.js";
+import { SKILL_RESOURCES } from "../skills/index.js";
 import { CLOUD_CONNECT_TOOLS } from "../tools/cloudConnect.js";
 import { SERVER_VERSION } from "../utils/consts.js";
 import { BEHAVIORAL_TEXT, schemaDescriptions } from "./behavioralText.js";
@@ -398,7 +395,12 @@ describe("createServer", () => {
         expect(Server).toHaveBeenCalledWith(
             { name: "doit-mcp-server", version: SERVER_VERSION },
             {
-                capabilities: { tools: {}, prompts: {}, resources: {}, extensions: CLOUD_CONNECT_SKILL_EXTENSION },
+                capabilities: {
+                    tools: {},
+                    prompts: {},
+                    resources: {},
+                    extensions: { "io.modelcontextprotocol/skills": {} },
+                },
                 instructions: `${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`,
             }
         );
@@ -901,7 +903,7 @@ describe("resources/list handler", () => {
 
         expect(response).toEqual({
             resources: [
-                ...CLOUD_CONNECT_RESOURCES,
+                ...SKILL_RESOURCES,
                 {
                     uri: "doit://docs/cloudflow-authoring",
                     name: "CloudFlow authoring guide",
