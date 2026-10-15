@@ -143,7 +143,9 @@ export function createSkillRegistry(sources: readonly SkillSource[], options: Sk
             if (byteSize > MAX_SKILL_BYTES) throw new Error(`Skill ${source.name} exceeds byte limit`);
             const resourceUri = `skill://${source.name}/${input.path.split("/").map(encodeURIComponent).join("/")}`;
             const mimeType =
-                input.mimeType ?? MIME_TYPES[input.path.split(".").at(-1) ?? ""] ?? "application/octet-stream";
+                input.mimeType ??
+                MIME_TYPES[input.path.split(".").at(-1)?.toLowerCase() ?? ""] ??
+                (input.text !== undefined ? "text/plain" : "application/octet-stream");
             const content: SkillContent =
                 input.text !== undefined
                     ? { uri: resourceUri, mimeType, text: input.text }

@@ -56,6 +56,29 @@ describe("Skills registry", () => {
         );
         expect(Object.isFrozen(first.skills[0].frontmatter)).toBe(true);
     });
+    it("serves unknown text extensions as text and recognizes uppercase extensions", () => {
+        const registry = createSkillRegistry([
+            {
+                name: "safe",
+                files: [
+                    { path: "SKILL.md", text: markdown("safe") },
+                    { path: "scripts/run.py", text: "print('hello')\n" },
+                    { path: "NOTES.MD", text: "# Notes\n" },
+                    { path: "image.PNG", blob: "AP8=" },
+                    { path: "unknown.bin", blob: "AP8=" },
+                    { path: "custom", text: "{}", mimeType: "application/json" },
+                ],
+            },
+        ]);
+        for (const [path, mimeType] of [
+            ["scripts/run.py", "text/plain"],
+            ["NOTES.MD", "text/markdown"],
+            ["image.PNG", "image/png"],
+            ["unknown.bin", "application/octet-stream"],
+            ["custom", "application/json"],
+        ])
+            expect(registry.readSkillResource(`skill://safe/${path}`).contents[0].mimeType).toBe(mimeType);
+    });
     it("uses deterministic snapshots and rejects stale, malformed, and foreign cursors", () => {
         const sources = [source("beta-workflow"), source("alpha-workflow")];
         const registry = createSkillRegistry(sources, { pageSize: 1 });
@@ -214,6 +237,20 @@ describe("Build-time discovery", () => {
             ).toThrow(/SKILL.md must be UTF-8 text/);
         }
     );
+    it.each([".inf", "-.inf", ".nan"])("rejects non-JSON frontmatter number %s during generation", (number) => {
+        const root = temporary();
+        mkdirSync(join(root, "safe"));
+        const text = `---\nname: safe\ndescription: Valid description.\nx-custom: {nested: [${number}]}\n---\n`;
+        writeFileSync(join(root, "safe", "SKILL.md"), text);
+        expect(() =>
+            execFileSync(process.execPath, [generator, "--root", root, "--output", join(root, "out.ts")], {
+                stdio: "pipe",
+            })
+        ).toThrow(/JSON-compatible/);
+        expect(() => createSkillRegistry([{ name: "safe", files: [{ path: "SKILL.md", text }] }])).toThrow(
+            /JSON-compatible/
+        );
+    });
     it("excludes ignored local files while including new skill sources", () => {
         const root = temporary();
         execFileSync("git", ["init", "--quiet", root]);
