@@ -168,6 +168,5 @@ The project uses:
 
 ## Skills extension
 
-- Add reviewed workflows under `skills/<name>/SKILL.md`, then run `yarn generate:skills`; never hand-edit `src/skills/bundle.generated.ts`. The default registry is intentionally empty.
-- Keep the registry filesystem-free for hosted consumers. Preserve all frontmatter, exact file bytes and complete digest/size manifests. Public skill resources must contain no secrets.
-- `skills/list` and `skills/get` require a modern client declaring `io.modelcontextprotocol/skills`; legacy Resources remain available. Tests cover multiple fixture skills, binary files, pagination, invalid inputs and built stdio.
+- Add `skills/<name>/SKILL.md`, then run `yarn generate:skills`; do not edit the generated bundle manually.
+- Keep skill files public and the registry filesystem-free. Preserve exact file bytes, frontmatter, and digest/size manifests. See [docs/skills.md](docs/skills.md).
