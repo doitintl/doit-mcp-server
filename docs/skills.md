@@ -16,5 +16,5 @@ Skill files are public: do not include secrets. Each skill is limited to 512 fil
 and 16 MiB; symlinks and paths outside the skill directory are rejected.
 
 The build parses frontmatter and embeds files for both local and hosted servers;
-runtime needs neither YAML parsing nor filesystem access. The `/core` export provides `createSkillRegistry`, `registerSkillHandlers`,
-and `SKILL_REGISTRY` for hosted integration.
+runtime needs neither YAML parsing nor filesystem access. The `/core` export provides
+`createSkillRegistry`, `SKILL_REGISTRY`, and `supportsSkills`; each server registers its own handlers.

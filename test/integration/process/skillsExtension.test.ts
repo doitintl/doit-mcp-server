@@ -145,6 +145,9 @@ serveStdio(() => createServer({skillRegistry}), {legacy: "serve"});
             await expect(client.request({ method: "skills/list", params: {} }, z.any())).rejects.toMatchObject({
                 code: -32601,
             });
+            await expect(
+                client.request({ method: "skills/get", params: { uri: "skill://alpha-workflow/SKILL.md" } }, z.any())
+            ).rejects.toMatchObject({ code: -32601 });
             expect((await client.readResource({ uri: "skill://alpha-workflow/SKILL.md" })).contents[0]).toHaveProperty(
                 "text"
             );

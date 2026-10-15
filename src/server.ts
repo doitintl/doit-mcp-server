@@ -11,12 +11,8 @@ import {
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
-import {
-    registerSkillHandlers,
-    SKILL_EXTENSION_CAPABILITY,
-    SKILL_REGISTRY,
-    type SkillRegistry,
-} from "./skills/index.js";
+import { registerSkillHandlers } from "./skillRegistration.js";
+import { SKILL_EXTENSION_CAPABILITY, SKILL_REGISTRY, type SkillRegistry } from "./skills/index.js";
 import { handleListAccountTeamRequest } from "./tools/accountTeam.js";
 import {
     handleCreateAlertRequest,
