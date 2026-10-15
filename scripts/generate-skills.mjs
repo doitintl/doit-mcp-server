@@ -104,7 +104,7 @@ export async function discoverSkills(root) {
             }
         }
         await walk(directory);
-        sources.push({ name: child.name, files });
+        sources.push({ name: child.name, frontmatter: fields, files });
     }
     return sources;
 }

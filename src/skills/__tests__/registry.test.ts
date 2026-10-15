@@ -9,8 +9,16 @@ import { createSkillRegistry, MAX_SKILL_BYTES, MAX_SKILL_FILES, type SkillSource
 
 const markdown = (name: string) =>
     `---\nname: ${name}\ndescription: A fixture workflow.\nmetadata:\n  tags: one,two\nx-extra:\n  tags: [one, two]\nlicense: MIT\n---\n\nRead references/checklist.md when needed.\n`;
+const metadata = (name: string) => ({
+    name,
+    description: "A fixture workflow.",
+    metadata: { tags: "one,two" },
+    "x-extra": { tags: ["one", "two"] },
+    license: "MIT",
+});
 const source = (name: string): SkillSource => ({
     name,
+    frontmatter: metadata(name),
     files: [
         { path: "SKILL.md", text: markdown(name) },
         { path: "references/checklist.md", text: "Fixture bytes: café.\n" },
@@ -60,6 +68,7 @@ describe("Skills registry", () => {
         const registry = createSkillRegistry([
             {
                 name: "safe",
+                frontmatter: metadata("safe"),
                 files: [
                     { path: "SKILL.md", text: markdown("safe") },
                     { path: "scripts/run.py", text: "print('hello')\n" },
@@ -101,18 +110,17 @@ describe("Skills registry", () => {
         expect(registry.getSkill("skill://beta-workflow/SKILL.md").skill.frontmatter.name).toBe("beta-workflow");
     });
     it.each([
-        "metadata: {tags: [one, two]}",
-        "metadata: null",
-        "license: [MIT]",
-        "allowed-tools: [Read]",
-        "compatibility: false",
-        'compatibility: ""',
-        `compatibility: ${"a".repeat(501)}`,
-    ])("rejects invalid standard frontmatter field %s", (field) => {
-        const text = `---\nname: safe\ndescription: Valid description.\n${field}\n---\n`;
-        expect(() => createSkillRegistry([{ name: "safe", files: [{ path: "SKILL.md", text }] }])).toThrow(
-            /Invalid skill/
-        );
+        { metadata: { tags: ["one", "two"] } },
+        { metadata: null },
+        { license: ["MIT"] },
+        { "allowed-tools": ["Read"] },
+        { compatibility: false },
+        { compatibility: "" },
+        { compatibility: "a".repeat(501) },
+    ])("rejects invalid compiled metadata %j", (field) => {
+        expect(() =>
+            createSkillRegistry([{ ...source("safe"), frontmatter: { ...metadata("safe"), ...field } }])
+        ).toThrow(/Invalid skill/);
     });
     it.each(["../escape", "/absolute", "nested//file", "nested/./file", "back\\slash", "line\nfeed"])(
         "rejects unsafe path %s",
@@ -121,6 +129,7 @@ describe("Skills registry", () => {
                 createSkillRegistry([
                     {
                         name: "safe",
+                        frontmatter: metadata("safe"),
                         files: [
                             { path: "SKILL.md", text: markdown("safe") },
                             { path, text: "x" },
@@ -136,6 +145,7 @@ describe("Skills registry", () => {
             createSkillRegistry([
                 {
                     name: "same",
+                    frontmatter: metadata("same"),
                     files: [
                         { path: "SKILL.md", text: markdown("same") },
                         { path: "SKILL.md", text: "other" },
@@ -144,26 +154,29 @@ describe("Skills registry", () => {
             ])
         ).toThrow(/Duplicate skill path/);
         expect(() =>
-            createSkillRegistry([{ name: "same", files: [{ path: "SKILL.md", text: markdown("other") }] }])
-        ).toThrow(/matching name/);
-        expect(() =>
             createSkillRegistry([
                 {
                     name: "same",
-                    files: [{ path: "SKILL.md", text: "---\nname: same\nname: duplicate\ndescription: x\n---\n" }],
+                    frontmatter: metadata("other"),
+                    files: [{ path: "SKILL.md", text: markdown("other") }],
                 },
             ])
-        ).toThrow(/Invalid frontmatter/);
-        expect(() => createSkillRegistry([{ name: "same", files: [{ path: "SKILL.md", blob: "invalid" }] }])).toThrow(
-            /base64/
-        );
+        ).toThrow(/matching name/);
         expect(() =>
-            createSkillRegistry([{ name: "same", files: [{ path: "SKILL.md", text: "x", blob: "eA==" }] }])
+            createSkillRegistry([
+                { name: "same", frontmatter: metadata("same"), files: [{ path: "SKILL.md", blob: "invalid" }] },
+            ])
+        ).toThrow(/base64/);
+        expect(() =>
+            createSkillRegistry([
+                { name: "same", frontmatter: metadata("same"), files: [{ path: "SKILL.md", text: "x", blob: "eA==" }] },
+            ])
         ).toThrow(/exactly one/);
         expect(() =>
             createSkillRegistry([
                 {
                     name: "same",
+                    frontmatter: metadata("same"),
                     files: [
                         { path: "SKILL.md", text: markdown("same") },
                         { path: "huge", blob: Buffer.alloc(MAX_SKILL_BYTES).toString("base64") },
@@ -175,6 +188,7 @@ describe("Skills registry", () => {
             createSkillRegistry([
                 {
                     name: "same",
+                    frontmatter: metadata("same"),
                     files: Array.from({ length: MAX_SKILL_FILES + 1 }, (_, index) => ({
                         path: `file-${index}`,
                         text: "x",
@@ -204,6 +218,7 @@ describe("Build-time discovery", () => {
         expect(generated).toContain('"alpha-workflow"');
         expect(generated).toContain('"beta-workflow"');
         expect(generated).toContain("references/checklist.md");
+        expect(generated).toContain("frontmatter:");
         run("--check");
         writeFileSync(output, "stale");
         expect(() => run("--check")).toThrow();
@@ -247,9 +262,11 @@ describe("Build-time discovery", () => {
                 stdio: "pipe",
             })
         ).toThrow(/JSON-compatible/);
-        expect(() => createSkillRegistry([{ name: "safe", files: [{ path: "SKILL.md", text }] }])).toThrow(
-            /JSON-compatible/
-        );
+        expect(() =>
+            createSkillRegistry([
+                { ...source("safe"), frontmatter: { ...metadata("safe"), "x-custom": { nested: [Number.NaN] } } },
+            ])
+        ).toThrow(/JSON-compatible/);
     });
     it("excludes ignored local files while including new skill sources", () => {
         const root = temporary();
@@ -286,17 +303,17 @@ describe("Build-time discovery", () => {
         symlinkSync(output, join(root, "skills", "safe", "linked-file"));
         expect(() => run(join(root, "skills"))).toThrow();
     });
-    it("rejects invalid standard metadata during generation", () => {
-        const root = temporary();
-        mkdirSync(join(root, "safe"));
-        writeFileSync(
-            join(root, "safe", "SKILL.md"),
-            "---\nname: safe\ndescription: Fixture.\nmetadata: {tags: [one, two]}\n---\n"
-        );
-        expect(() =>
-            execFileSync(process.execPath, [generator, "--root", root, "--output", join(root, "out.ts")], {
-                stdio: "pipe",
-            })
-        ).toThrow();
-    });
+    it.each(["metadata: {tags: [one, two]}", "name: duplicate", "x-alias: &alias {key: value}\nx-reuse: *alias"])(
+        "rejects invalid YAML or metadata during generation: %s",
+        (field) => {
+            const root = temporary();
+            mkdirSync(join(root, "safe"));
+            writeFileSync(join(root, "safe", "SKILL.md"), `---\nname: safe\ndescription: Fixture.\n${field}\n---\n`);
+            expect(() =>
+                execFileSync(process.execPath, [generator, "--root", root, "--output", join(root, "out.ts")], {
+                    stdio: "pipe",
+                })
+            ).toThrow();
+        }
+    );
 });

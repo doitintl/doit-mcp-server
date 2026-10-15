@@ -15,6 +15,6 @@ handles activation and content verification. The default registry is empty.
 Skill files are public: do not include secrets. Each skill is limited to 512 files
 and 16 MiB; symlinks and paths outside the skill directory are rejected.
 
-The build embeds files for both local and hosted servers without runtime filesystem
-access. The `/core` export provides `createSkillRegistry`, `registerSkillHandlers`,
+The build parses frontmatter and embeds files for both local and hosted servers;
+runtime needs neither YAML parsing nor filesystem access. The `/core` export provides `createSkillRegistry`, `registerSkillHandlers`,
 and `SKILL_REGISTRY` for hosted integration.

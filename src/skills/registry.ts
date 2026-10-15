@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
-import { parseDocument } from "yaml";
 
 export const SKILL_EXTENSION_CAPABILITY = { "io.modelcontextprotocol/skills": {} };
 export const MAX_SKILL_FILES = 512;
@@ -15,6 +14,8 @@ export interface SkillFile {
 }
 export interface SkillSource {
     name: string;
+    /** Parsed and validated by the build-time generator; original SKILL.md bytes are retained below. */
+    frontmatter: Record<string, unknown>;
     files: readonly SkillFile[];
 }
 export interface SkillEntry {
@@ -77,12 +78,7 @@ function validatePath(path: string) {
     if (path.split("/").some((part) => !part || part === "." || part === ".."))
         throw new Error(`Invalid skill path: ${path}`);
 }
-function frontmatterOf(name: string, file: SkillFile): Record<string, unknown> {
-    const match = file.text?.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
-    if (!match) throw new Error(`Skill ${name} must start with YAML frontmatter`);
-    const document = parseDocument(match[1], { uniqueKeys: true });
-    if (document.errors.length || document.warnings.length) throw new Error(`Invalid frontmatter for ${name}`);
-    const value: unknown = document.toJS({ maxAliasCount: 0 });
+function validatedFrontmatter(name: string, value: unknown): Record<string, unknown> {
     if (!value || typeof value !== "object" || Array.isArray(value))
         throw new Error(`Skill ${name} frontmatter must be a mapping`);
     const fields = value as Record<string, unknown>;
@@ -106,7 +102,7 @@ function frontmatterOf(name: string, file: SkillFile): Record<string, unknown> {
             Object.values(fields.metadata).some((value) => typeof value !== "string"))
     )
         throw new Error(`Invalid skill metadata: ${name}`);
-    // Clone plain JSON values, preserving every field without YAML aliases or shared mutable objects.
+    // Clone metadata so the registry never shares mutable objects with its caller.
     const serialized = JSON.stringify(fields, (_key, item) => {
         if (typeof item === "bigint" || (typeof item === "number" && !Number.isFinite(item)))
             throw new Error(`Skill ${name} frontmatter must contain JSON-compatible values`);
@@ -160,7 +156,11 @@ export function createSkillRegistry(sources: readonly SkillSource[], options: Sk
         }
         const skillFile = source.files.find((file) => file.path === "SKILL.md");
         if (!skillFile) throw new Error(`Missing SKILL.md for ${source.name}`);
-        entries.set(uri, freeze({ uri, frontmatter: frontmatterOf(source.name, skillFile), resources: manifest }));
+        if (skillFile.text === undefined) throw new Error(`SKILL.md must be UTF-8 text: ${source.name}`);
+        entries.set(
+            uri,
+            freeze({ uri, frontmatter: validatedFrontmatter(source.name, source.frontmatter), resources: manifest })
+        );
     }
     const orderedEntries = [...entries.values()];
     const snapshot = createHash("sha256").update(JSON.stringify(orderedEntries)).digest("hex");

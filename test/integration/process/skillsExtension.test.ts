@@ -16,6 +16,20 @@ const skillCapability = { extensions: { "io.modelcontextprotocol/skills": {} } }
 const temporary: string[] = [];
 const fixtureSource = (name: string) => ({
     name,
+    frontmatter:
+        name === "alpha-workflow"
+            ? {
+                  name,
+                  description: "A minimal workflow fixture for skill delivery tests.",
+                  license: "MIT",
+                  metadata: { version: "1", labels: "fixture" },
+                  "x-fixture": { labels: ["fixture"] },
+              }
+            : {
+                  name,
+                  description: "A second independent workflow fixture.",
+                  compatibility: "No external services required.",
+              },
     files: [
         { path: "SKILL.md", text: readFileSync(join(packageRoot, "test/fixtures/skills", name, "SKILL.md"), "utf8") },
         { path: "assets/blob.bin", blob: "AP+A" },
