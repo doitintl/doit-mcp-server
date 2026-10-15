@@ -12,8 +12,10 @@ RUN yarn install --frozen-lockfile
 # Copy the rest of the application
 COPY . .
 
-# Build the project
-RUN yarn build
+# Git filters ignored skill files during generation; it is not needed at runtime.
+RUN apk add --no-cache --virtual .build-deps git \
+    && yarn build \
+    && apk del .build-deps
 
 # Expose the default port (if the server uses one, otherwise remove or adjust accordingly)
 EXPOSE 3000
