@@ -165,3 +165,8 @@ The project uses:
 - **Biome** for linting and formatting
 - **Vitest** for testing
 - **Zod** for schema validation
+
+## Skills extension
+
+- Add `skills/<name>/SKILL.md`, then run `yarn generate:skills`; do not edit the generated bundle manually.
+- Keep skill files public and the registry filesystem-free. Preserve exact file bytes, frontmatter, and digest/size manifests. See [docs/skills.md](docs/skills.md).

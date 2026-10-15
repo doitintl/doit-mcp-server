@@ -60,6 +60,8 @@ Keep the token in a secret store and rotate it on a schedule. Design notes: [doc
 
 ## Local (stdio)
 
+Supports [Skills over MCP](docs/skills.md) for compatible clients. No skills are bundled by default.
+
 Requires Node.js v20 or higher and a personal API token as `DOIT_API_KEY`. Create a token from the [Personal API tokens](https://help.doit.com/docs/general/profile/api-tokens) page in the DoiT console.
 
 Example with Claude Desktop — add the following to `claude_desktop_config.json` (or Settings), then [restart Claude](https://modelcontextprotocol.io/quickstart/user#3-restart-claude):

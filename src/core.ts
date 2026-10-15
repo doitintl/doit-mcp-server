@@ -8,6 +8,7 @@ export {
 } from "./docs/cloudflowGuidance.js";
 export { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 export * from "./prompts/index.js";
+export * from "./skills/index.js";
 export { ListAccountTeamArgumentsSchema, listAccountTeamTool } from "./tools/accountTeam.js";
 export {
     CreateAlertArgumentsSchema,
@@ -125,6 +126,7 @@ export {
     ListCommitmentsArgumentsSchema,
     listCommitmentsTool,
 } from "./tools/commitmentManager.js";
+export { ConfirmActionArgumentsSchema, confirmActionTool } from "./tools/confirmAction.js";
 export {
     CreateDatahubDatasetArgumentsSchema,
     createDatahubDatasetTool,
