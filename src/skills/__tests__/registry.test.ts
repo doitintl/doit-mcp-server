@@ -185,6 +185,53 @@ describe("Build-time discovery", () => {
         writeFileSync(output, "stale");
         expect(() => run("--check")).toThrow();
     });
+    it("generates and checks a skill at the supported byte limit", () => {
+        const root = temporary();
+        const output = join(root, "generated.ts");
+        mkdirSync(join(root, "large"));
+        const instructions = markdown("large");
+        const asset = Buffer.alloc(MAX_SKILL_BYTES - Buffer.byteLength(instructions), 255);
+        writeFileSync(join(root, "large", "SKILL.md"), instructions);
+        writeFileSync(join(root, "large", "asset.bin"), asset);
+        const run = (...args: string[]) =>
+            execFileSync(process.execPath, [generator, "--root", root, "--output", output, ...args], {
+                stdio: "pipe",
+            });
+        run();
+        expect(readFileSync(output, "utf8")).toContain(asset.toString("base64"));
+        run("--check");
+    });
+    it.each([Buffer.from([255]), Buffer.from([0])])(
+        "rejects non-text SKILL.md bytes %j during generation",
+        (invalid) => {
+            const root = temporary();
+            mkdirSync(join(root, "safe"));
+            writeFileSync(join(root, "safe", "SKILL.md"), Buffer.concat([Buffer.from(markdown("safe")), invalid]));
+            expect(() =>
+                execFileSync(process.execPath, [generator, "--root", root, "--output", join(root, "out.ts")], {
+                    stdio: "pipe",
+                })
+            ).toThrow(/SKILL.md must be UTF-8 text/);
+        }
+    );
+    it("excludes ignored local files while including new skill sources", () => {
+        const root = temporary();
+        execFileSync("git", ["init", "--quiet", root]);
+        writeFileSync(join(root, ".gitignore"), ".env*\n.DS_Store\nignored/\n");
+        const skills = join(root, "skills");
+        const directory = join(skills, "safe");
+        mkdirSync(join(directory, "ignored"), { recursive: true });
+        writeFileSync(join(directory, "SKILL.md"), markdown("safe"));
+        writeFileSync(join(directory, "guide.md"), "Public supporting reference");
+        for (const path of [".env.local", ".DS_Store", "ignored/private.txt"])
+            writeFileSync(join(directory, path), "PRIVATE_FIXTURE_CONTENT");
+        const output = join(root, "generated.ts");
+        execFileSync(process.execPath, [generator, "--root", skills, "--output", output], { stdio: "pipe" });
+        const generated = readFileSync(output, "utf8");
+        expect(generated).toContain("Public supporting reference");
+        expect(generated).not.toContain("PRIVATE_FIXTURE_CONTENT");
+        expect(generated).not.toContain(".DS_Store");
+    });
     it("rejects a symlinked skill root, skill directory, or supporting file", () => {
         const root = temporary();
         const target = temporary();
