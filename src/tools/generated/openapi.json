@@ -14960,31 +14960,36 @@
                         ],
                         "properties": {
                           "metric": {
-                            "description": "Metric selector used in reports and filters.",
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                            "allOf": [
+                              {
+                                "description": "Metric selector used in reports and filters.",
+                                "type": "object",
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "properties": {
+                                  "type": {
+                                    "description": "Type of metric to use.",
+                                    "type": "string",
+                                    "enum": [
+                                      "basic",
+                                      "custom",
+                                      "extended"
+                                    ]
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                  }
+                                },
+                                "example": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                }
                               }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
+                            ],
+                            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                           },
                           "changeType": {
                             "type": "string",
@@ -16149,31 +16154,36 @@
                           ],
                           "properties": {
                             "metric": {
-                              "description": "Metric selector used in reports and filters.",
-                              "type": "object",
-                              "required": [
-                                "type",
-                                "value"
-                              ],
-                              "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                              "allOf": [
+                                {
+                                  "description": "Metric selector used in reports and filters.",
+                                  "type": "object",
+                                  "required": [
+                                    "type",
+                                    "value"
+                                  ],
+                                  "properties": {
+                                    "type": {
+                                      "description": "Type of metric to use.",
+                                      "type": "string",
+                                      "enum": [
+                                        "basic",
+                                        "custom",
+                                        "extended"
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "string",
+                                      "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                    }
+                                  },
+                                  "example": {
+                                    "type": "basic",
+                                    "value": "cost"
+                                  }
                                 }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
+                              ],
+                              "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                             },
                             "changeType": {
                               "type": "string",
@@ -17381,31 +17391,36 @@
                         ],
                         "properties": {
                           "metric": {
-                            "description": "Metric selector used in reports and filters.",
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                            "allOf": [
+                              {
+                                "description": "Metric selector used in reports and filters.",
+                                "type": "object",
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "properties": {
+                                  "type": {
+                                    "description": "Type of metric to use.",
+                                    "type": "string",
+                                    "enum": [
+                                      "basic",
+                                      "custom",
+                                      "extended"
+                                    ]
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                  }
+                                },
+                                "example": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                }
                               }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
+                            ],
+                            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                           },
                           "changeType": {
                             "type": "string",
@@ -19313,31 +19328,36 @@
                         ],
                         "properties": {
                           "metric": {
-                            "description": "Metric selector used in reports and filters.",
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                            "allOf": [
+                              {
+                                "description": "Metric selector used in reports and filters.",
+                                "type": "object",
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "properties": {
+                                  "type": {
+                                    "description": "Type of metric to use.",
+                                    "type": "string",
+                                    "enum": [
+                                      "basic",
+                                      "custom",
+                                      "extended"
+                                    ]
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                  }
+                                },
+                                "example": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                }
                               }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
+                            ],
+                            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                           },
                           "changeType": {
                             "type": "string",
@@ -20494,31 +20514,36 @@
                           ],
                           "properties": {
                             "metric": {
-                              "description": "Metric selector used in reports and filters.",
-                              "type": "object",
-                              "required": [
-                                "type",
-                                "value"
-                              ],
-                              "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                              "allOf": [
+                                {
+                                  "description": "Metric selector used in reports and filters.",
+                                  "type": "object",
+                                  "required": [
+                                    "type",
+                                    "value"
+                                  ],
+                                  "properties": {
+                                    "type": {
+                                      "description": "Type of metric to use.",
+                                      "type": "string",
+                                      "enum": [
+                                        "basic",
+                                        "custom",
+                                        "extended"
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "string",
+                                      "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                    }
+                                  },
+                                  "example": {
+                                    "type": "basic",
+                                    "value": "cost"
+                                  }
                                 }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
+                              ],
+                              "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                             },
                             "changeType": {
                               "type": "string",
@@ -21758,31 +21783,36 @@
                           ],
                           "properties": {
                             "metric": {
-                              "description": "Metric selector used in reports and filters.",
-                              "type": "object",
-                              "required": [
-                                "type",
-                                "value"
-                              ],
-                              "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                              "allOf": [
+                                {
+                                  "description": "Metric selector used in reports and filters.",
+                                  "type": "object",
+                                  "required": [
+                                    "type",
+                                    "value"
+                                  ],
+                                  "properties": {
+                                    "type": {
+                                      "description": "Type of metric to use.",
+                                      "type": "string",
+                                      "enum": [
+                                        "basic",
+                                        "custom",
+                                        "extended"
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "string",
+                                      "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                    }
+                                  },
+                                  "example": {
+                                    "type": "basic",
+                                    "value": "cost"
+                                  }
                                 }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
+                              ],
+                              "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                             },
                             "changeType": {
                               "type": "string",
@@ -23006,31 +23036,36 @@
                         ],
                         "properties": {
                           "metric": {
-                            "description": "Metric selector used in reports and filters.",
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                            "allOf": [
+                              {
+                                "description": "Metric selector used in reports and filters.",
+                                "type": "object",
+                                "required": [
+                                  "type",
+                                  "value"
+                                ],
+                                "properties": {
+                                  "type": {
+                                    "description": "Type of metric to use.",
+                                    "type": "string",
+                                    "enum": [
+                                      "basic",
+                                      "custom",
+                                      "extended"
+                                    ]
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                  }
+                                },
+                                "example": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                }
                               }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
+                            ],
+                            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                           },
                           "changeType": {
                             "type": "string",
@@ -26759,7 +26794,7 @@
                   },
                   "public": {
                     "type": "string",
-                    "description": "The type of permissions granted to all users in the organization for this resource.",
+                    "description": "The type of permissions granted to all users in the organization for this resource.\n\nAllocations (single and group) always have at least `viewer` public access, so it cannot be cleared:\n- If `public` is omitted, the stored value is kept.\n- An empty string (`\"\"`) is accepted for backward compatibility and is treated as `viewer`.\n- An explicit `null` is rejected with `400 Bad Request`.\n\nFor Reports, Budgets, and Alerts, an omitted or `null` value sets `public` to `null` (no public access).",
                     "enum": [
                       "editor",
                       "viewer"
@@ -135706,31 +135741,36 @@
             ],
             "properties": {
               "metric": {
-                "description": "Metric selector used in reports and filters.",
-                "type": "object",
-                "required": [
-                  "type",
-                  "value"
-                ],
-                "properties": {
-                  "type": {
-                    "description": "Type of metric to use.",
-                    "type": "string",
-                    "enum": [
-                      "basic",
-                      "custom",
-                      "extended"
-                    ]
-                  },
-                  "value": {
-                    "type": "string",
-                    "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                "allOf": [
+                  {
+                    "description": "Metric selector used in reports and filters.",
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "value"
+                    ],
+                    "properties": {
+                      "type": {
+                        "description": "Type of metric to use.",
+                        "type": "string",
+                        "enum": [
+                          "basic",
+                          "custom",
+                          "extended"
+                        ]
+                      },
+                      "value": {
+                        "type": "string",
+                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                      }
+                    },
+                    "example": {
+                      "type": "basic",
+                      "value": "cost"
+                    }
                   }
-                },
-                "example": {
-                  "type": "basic",
-                  "value": "cost"
-                }
+                ],
+                "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
               },
               "changeType": {
                 "type": "string",
@@ -136912,31 +136952,36 @@
         ],
         "properties": {
           "metric": {
-            "description": "Metric selector used in reports and filters.",
-            "type": "object",
-            "required": [
-              "type",
-              "value"
-            ],
-            "properties": {
-              "type": {
-                "description": "Type of metric to use.",
-                "type": "string",
-                "enum": [
-                  "basic",
-                  "custom",
-                  "extended"
-                ]
-              },
-              "value": {
-                "type": "string",
-                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+            "allOf": [
+              {
+                "description": "Metric selector used in reports and filters.",
+                "type": "object",
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "properties": {
+                  "type": {
+                    "description": "Type of metric to use.",
+                    "type": "string",
+                    "enum": [
+                      "basic",
+                      "custom",
+                      "extended"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                  }
+                },
+                "example": {
+                  "type": "basic",
+                  "value": "cost"
+                }
               }
-            },
-            "example": {
-              "type": "basic",
-              "value": "cost"
-            }
+            ],
+            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
           },
           "changeType": {
             "type": "string",
@@ -137293,31 +137338,36 @@
                 ],
                 "properties": {
                   "metric": {
-                    "description": "Metric selector used in reports and filters.",
-                    "type": "object",
-                    "required": [
-                      "type",
-                      "value"
-                    ],
-                    "properties": {
-                      "type": {
-                        "description": "Type of metric to use.",
-                        "type": "string",
-                        "enum": [
-                          "basic",
-                          "custom",
-                          "extended"
-                        ]
-                      },
-                      "value": {
-                        "type": "string",
-                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                    "allOf": [
+                      {
+                        "description": "Metric selector used in reports and filters.",
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "value"
+                        ],
+                        "properties": {
+                          "type": {
+                            "description": "Type of metric to use.",
+                            "type": "string",
+                            "enum": [
+                              "basic",
+                              "custom",
+                              "extended"
+                            ]
+                          },
+                          "value": {
+                            "type": "string",
+                            "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                          }
+                        },
+                        "example": {
+                          "type": "basic",
+                          "value": "cost"
+                        }
                       }
-                    },
-                    "example": {
-                      "type": "basic",
-                      "value": "cost"
-                    }
+                    ],
+                    "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                   },
                   "changeType": {
                     "type": "string",
@@ -138559,31 +138609,36 @@
                 ],
                 "properties": {
                   "metric": {
-                    "description": "Metric selector used in reports and filters.",
-                    "type": "object",
-                    "required": [
-                      "type",
-                      "value"
-                    ],
-                    "properties": {
-                      "type": {
-                        "description": "Type of metric to use.",
-                        "type": "string",
-                        "enum": [
-                          "basic",
-                          "custom",
-                          "extended"
-                        ]
-                      },
-                      "value": {
-                        "type": "string",
-                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                    "allOf": [
+                      {
+                        "description": "Metric selector used in reports and filters.",
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "value"
+                        ],
+                        "properties": {
+                          "type": {
+                            "description": "Type of metric to use.",
+                            "type": "string",
+                            "enum": [
+                              "basic",
+                              "custom",
+                              "extended"
+                            ]
+                          },
+                          "value": {
+                            "type": "string",
+                            "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                          }
+                        },
+                        "example": {
+                          "type": "basic",
+                          "value": "cost"
+                        }
                       }
-                    },
-                    "example": {
-                      "type": "basic",
-                      "value": "cost"
-                    }
+                    ],
+                    "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
                   },
                   "changeType": {
                     "type": "string",
