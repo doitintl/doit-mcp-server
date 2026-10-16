@@ -80,7 +80,7 @@ serveStdio(() => createServer({skillRegistry}), {legacy: "serve"});
     afterAll(() => {
         for (const directory of temporary.splice(0)) rmSync(directory, { recursive: true, force: true });
     });
-    it("advertises the official extension and serves an empty default registry", async () => {
+    it("advertises the official extension and auto-discovers the bundled Cloud Connect skill", async () => {
         const client = modernClient();
         const transport = new StdioClientTransport(params(entry));
         await client.connect(transport);
@@ -91,8 +91,17 @@ serveStdio(() => createServer({skillRegistry}), {legacy: "serve"});
                 extensions: skillCapability.extensions,
             });
             const response = await client.request({ method: "skills/list", params: {} }, z.any());
-            expect(response).toMatchObject({ ttlMs: 300000, cacheScope: "public", skills: [] });
-            expect(wire[0]).toMatchObject({ resultType: "complete", ttlMs: 300000, cacheScope: "public", skills: [] });
+            expect(response).toMatchObject({
+                ttlMs: 300000,
+                cacheScope: "public",
+                skills: [expect.objectContaining({ uri: "skill://doit-cloud-connect/SKILL.md" })],
+            });
+            expect(wire[0]).toMatchObject({
+                resultType: "complete",
+                ttlMs: 300000,
+                cacheScope: "public",
+                skills: [expect.objectContaining({ uri: "skill://doit-cloud-connect/SKILL.md" })],
+            });
             await expect(
                 client.request({ method: "skills/get", params: { uri: "skill://unknown/SKILL.md" } }, z.any())
             ).rejects.toMatchObject({ code: -32602 });

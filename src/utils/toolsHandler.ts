@@ -28,6 +28,7 @@ import {
     handleListBudgetsRequest,
     handleUpdateBudgetRequest,
 } from "../tools/budgets.js";
+import { CLOUD_CONNECT_HANDLERS } from "../tools/cloudConnect.js";
 import {
     handleFindCloudDiagramsRequest,
     handleGetCloudDiagramComponentsRequest,
@@ -221,7 +222,9 @@ export async function executeToolHandler(
                 sourceResponse = result;
                 executedToolName = innerToolName;
                 // Success adapters (e.g. hosted widgets) must not erase MCP error flags or OAuth metadata.
-                return convertResponse && !result?.isError ? convertResponse(result) : result;
+                return convertResponse && !result?.isError && !CLOUD_CONNECT_HANDLERS[innerToolName]
+                    ? convertResponse(result)
+                    : result;
             };
 
             // Two-phase commit for write-gated tools.
@@ -309,6 +312,7 @@ async function runOriginalDispatch(
     token: string,
     options?: ToolHandlerOptions
 ): Promise<any> {
+    if (CLOUD_CONNECT_HANDLERS[toolName]) return CLOUD_CONNECT_HANDLERS[toolName](args, token);
     let result: any;
     switch (toolName) {
         case "get_cloud_incidents":

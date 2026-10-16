@@ -7,9 +7,12 @@ import {
 } from "@modelcontextprotocol/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { CLOUD_CONNECT_INSTRUCTIONS } from "../docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../docs/serverInstructions.js";
 import { prompts } from "../prompts/index.js";
+import { SKILL_RESOURCES } from "../skills/index.js";
+import { CLOUD_CONNECT_TOOLS } from "../tools/cloudConnect.js";
 import { SERVER_VERSION } from "../utils/consts.js";
 import { BEHAVIORAL_TEXT, schemaDescriptions } from "./behavioralText.js";
 
@@ -398,7 +401,7 @@ describe("createServer", () => {
                     resources: {},
                     extensions: { "io.modelcontextprotocol/skills": {} },
                 },
-                instructions: SERVER_INSTRUCTIONS,
+                instructions: `${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`,
             }
         );
     });
@@ -472,6 +475,7 @@ describe("tools/list handler", () => {
 
         expect(response).toEqual({
             tools: [
+                ...CLOUD_CONNECT_TOOLS,
                 cloudOverviewTool,
                 cloudIncidentsTool,
                 cloudIncidentTool,
@@ -597,7 +601,8 @@ describe("tools/list handler", () => {
         // it alongside the stdio list.
         for (const tool of [...tools, changeCustomerTool]) {
             expect(tool.title?.trim(), tool.name).toBeTruthy();
-            expect(tool.annotations?.readOnlyHint || tool.annotations?.destructiveHint, tool.name).toBe(true);
+            expect(typeof tool.annotations?.readOnlyHint, tool.name).toBe("boolean");
+            expect(typeof tool.annotations?.destructiveHint, tool.name).toBe("boolean");
             expect(tool.annotations?.readOnlyHint && tool.annotations?.destructiveHint, tool.name).toBeFalsy();
         }
     });
@@ -898,6 +903,7 @@ describe("resources/list handler", () => {
 
         expect(response).toEqual({
             resources: [
+                ...SKILL_RESOURCES,
                 {
                     uri: "doit://docs/cloudflow-authoring",
                     name: "CloudFlow authoring guide",

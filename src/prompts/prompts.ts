@@ -1,4 +1,5 @@
 import { TicketStatus } from "../common/types.js";
+import { CLOUD_CONNECT_PROMPT } from "../docs/cloudConnectSkill.js";
 import { formatEnumValues } from "../utils/util.js";
 import { aws_global_resource_id, gcp_global_resource_id } from "./filterFields.js";
 import type { Prompt } from "./types.js";
@@ -22,6 +23,7 @@ const SEARCH_EXPERT_INQUIRIES_PROMPT_TEXT = `Search expert inquiries from the Do
  * e.g. { name: "my_new_prompt", description: "...", text: "..." }
  */
 export const prompts: Prompt[] = [
+    CLOUD_CONNECT_PROMPT,
     {
         name: "cloud_overview",
         description: "Get a high-level overview dashboard of your entire cloud infrastructure",

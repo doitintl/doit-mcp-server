@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { CLOUD_CONNECT_INSTRUCTIONS } from "../../../../src/docs/cloudConnectSkill.js";
 import { SERVER_INSTRUCTIONS } from "../../../../src/docs/serverInstructions.js";
 import { SERVER_NAME, SERVER_VERSION } from "../../../../src/utils/consts.js";
 import { createModernTestClient, MODERN_PROTOCOL_VERSION } from "./helpers.js";
@@ -41,7 +42,7 @@ describe("2026-07-28 handshake", () => {
     });
 
     it("receives the server instructions without an initialize result", () => {
-        expect(ctx.client.getInstructions()).toBe(SERVER_INSTRUCTIONS);
+        expect(ctx.client.getInstructions()).toBe(`${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`);
     });
 
     it("receives the tools, prompts and resources capabilities", () => {
