@@ -166,12 +166,12 @@ The project uses:
 - **Vitest** for testing
 - **Zod** for schema validation
 
-## Cloud Connect (2026-10-15)
+## Cloud Connect
 
-- `src/tools/cloudConnect.ts` owns ten hand-written tools for nine `/onboarding/v2` operations, including strict provider scopes, conditional writes, dry runs and classified customer events. Export registry, schemas and handlers through `/core`; preserve full result ledgers and pagination in hosted dispatch.
-- `skills/doit-cloud-connect/` is the canonical installable workflow. Edit its sources and run `yarn generate:skills`; never hand-edit the generated bundle. The catalog/recipes come from the backend projection generator and must be regenerated from approved production input before release. A fresh requirements response always wins.
-- Diagnostics preserve `events[].source`, `partial`, both source statuses and cursors. DoiT logs and customer reports remain separate namespaces; availability changes invalidate pagination with 409 and require a fresh bounded query.
-- Tests cover real stdio lifecycles, skill bytes/digests and hosted-safe core dispatch. A separately deployed Worker needs its own companion change and dependency release; publishing this package alone does not deploy hosted tools or qualify live cloud behavior.
+- `src/tools/cloudConnect.ts` owns eight hand-written tools for the seven AWS-only `/onboarding/v2` operations (requirements, list/get/create/patch/delete connections, verify action) plus a read-only dry-run tool. Writes send `If-Match`, an `Idempotency-Key` (generated and echoed when not supplied) and PATCH as `application/merge-patch+json`. Export registry, schemas and handlers through `/core`; preserve full results in hosted dispatch.
+- `skills/doit-cloud-connect/` is the canonical installable workflow. Edit its sources and run `yarn generate:skills`; never hand-edit the generated bundle. There is no offline catalog; a fresh requirements response is the only authority.
+- GCP, Azure, diagnostics and event reporting are out of this API version. Add them back only with their endpoints.
+- Tests cover the transport contract, a real stdio lifecycle against a fake API, skill bytes/digests and hosted-safe core dispatch. A separately deployed Worker needs its own companion change and dependency release; publishing this package alone does not deploy hosted tools or qualify live cloud behavior.
 
 ## Skills extension
 

@@ -15,8 +15,6 @@ const toolSchemas = [
     [core.removeCloudConnectionTool, core.RemoveCloudConnectionArgumentsSchema],
     [core.dryRunCloudConnectionChangeTool, core.DryRunCloudConnectionChangeArgumentsSchema],
     [core.verifyCloudConnectTool, core.VerifyCloudConnectArgumentsSchema],
-    [core.explainCloudConnectFailureTool, core.ExplainCloudConnectFailureArgumentsSchema],
-    [core.reportCloudConnectEventTool, core.ReportCloudConnectEventArgumentsSchema],
 
     [core.listAccountTeamTool, core.ListAccountTeamArgumentsSchema],
     [core.listAlertsTool, core.ListAlertsArgumentsSchema],

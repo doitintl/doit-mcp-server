@@ -10,35 +10,8 @@ import { z } from "zod";
 
 const SERVER_ENTRY = fileURLToPath(new URL("../../../dist/index.js", import.meta.url));
 const text = (result: any) => result.content.find((part: any) => part.type === "text")?.text ?? "";
-const fixtures = [
-    {
-        scope: { provider: "aws", kind: "aws_account", accountId: "123456789012" },
-        identity: { kind: "aws_iam_role", roleArn: "arn:aws:iam::123456789012:role/fixture" },
-    },
-    {
-        scope: { provider: "gcp", kind: "gcp_project", projectId: "target-project" },
-        identity: {
-            kind: "gcp_service_account",
-            email: "fixture@identity-project.iam.gserviceaccount.com",
-            uniqueId: "123456789012345678901",
-            projectId: "identity-project",
-        },
-        credentialMode: "workload_identity_federation",
-    },
-    {
-        scope: {
-            provider: "azure",
-            kind: "azure_management_group",
-            tenantId: "11111111-1111-4111-8111-111111111111",
-            managementGroupId: "fixture-group",
-        },
-        identity: {
-            kind: "azure_enterprise_application",
-            tenantId: "11111111-1111-4111-8111-111111111111",
-            principalId: "22222222-2222-4222-8222-222222222222",
-        },
-    },
-];
+const scope = { provider: "aws", kind: "aws_account", accountId: "123456789012" };
+const identity = { kind: "aws_iam_role", roleArn: "arn:aws:iam::123456789012:role/fixture" };
 
 // Real stdio + disposable local API exercise the packaged tool/skill contract.
 // These fixtures do not qualify a real cloud deployment or the hosted Worker.
@@ -58,20 +31,31 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             const url = new URL(req.url ?? "/", "http://localhost");
             const reply = (status: number, data: any, etag?: string) => {
                 res.writeHead(status, {
-                    "Content-Type": "application/json",
-                    "X-Request-Id": requestId,
+                    "Content-Type": status >= 400 ? "application/problem+json" : "application/json",
+                    "Request-Id": requestId,
                     ...(etag ? { ETag: etag } : {}),
                 });
-                res.end(JSON.stringify(data));
+                res.end(status === 204 ? undefined : JSON.stringify(data));
             };
+            const problem = (status: number, code: string) =>
+                reply(status, {
+                    type: `https://developer.doit.com/errors/${code}`,
+                    title: code,
+                    status,
+                    detail: code,
+                    instance: `https://api.doit.com/requests/${requestId}`,
+                    code,
+                    retryable: false,
+                });
             if (
                 req.headers.authorization !== "Bearer disposable-fixture-key" ||
                 req.headers["x-tenant-id"] !== "fixture-customer"
             )
-                return reply(401, { code: "unauthorized", requestId });
-            if (!url.pathname.startsWith("/onboarding/v2/")) return reply(404, { code: "wrong_route", requestId });
-            const family = url.pathname.split("/")[3];
-            const id = decodeURIComponent(url.pathname.split("/")[4] ?? "");
+                return problem(401, "unauthorized");
+            if (!url.pathname.startsWith("/onboarding/v2/")) return problem(404, "wrong_route");
+            const parts = url.pathname.split("/").slice(3);
+            const family = parts[0];
+            const id = decodeURIComponent(parts[1] ?? "");
             if (family === "requirements")
                 return reply(200, {
                     catalogVersion: "fixture-current",
@@ -79,135 +63,82 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                     features: (body.featureIds ?? ["core"]).map((id: string) => ({
                         id,
                         status: "available",
-                        permissionSet: {
-                            scopeKind: body.scope.kind,
-                            permissions: ["fixture.permission"],
-                            healthChecks: ["fixture_probe"],
-                        },
+                        requirementsSatisfied: !!body.featureIds,
                     })),
                     artifacts: [
-                        { artifactId: "fixture-controller", registersConnection: false, deployable: !!body.featureIds },
+                        {
+                            artifactId: "fixture-controller",
+                            registration: "manual",
+                            requirementsSatisfied: !!body.featureIds,
+                        },
                     ],
-                    preconditions: { status: "satisfied" },
-                    identity: { status: "resolved" },
                 });
-            if (family === "events") {
-                return reply(202, { schemaVersion: "1", accepted: [{ index: 0, eventId: "fixture-event" }] });
-            }
-            if (family === "diagnostics") {
-                const sources = [
-                    { source: "doit_logs", status: "available" },
-                    { source: "customer_reports", status: "available" },
-                ];
-                const historyRequest = url.searchParams.get("requestId");
-                if (historyRequest === "hybrid-unavailable")
-                    return reply(503, { code: "diagnostics_unavailable", requestId: "history-request" });
-                if (url.searchParams.get("pageToken") === "partial-next")
-                    return reply(409, { code: "diagnostics_cursor_invalidated", requestId: "history-request" });
-                if (historyRequest === "hybrid-history" && !url.searchParams.has("pageToken"))
-                    return reply(200, {
-                        events: sources.map(({ source }) => ({
-                            schemaVersion: "1",
-                            eventId: "shared-event-id",
-                            source,
-                            evidenceSource: source === "doit_logs" ? "doit_backend" : "client_reported",
-                            provider: "aws",
-                            stage: "registration",
-                            recordedAt: "2026-10-14T12:00:00Z",
-                        })),
-                        partial: false,
-                        sources,
-                        nextPageToken: "hybrid-next",
-                    });
-                if (historyRequest === "hybrid-partial")
-                    return reply(200, {
-                        events: [],
-                        partial: true,
-                        sources: [
-                            {
-                                source: "doit_logs",
-                                status: "unavailable",
-                                error: {
-                                    code: "diagnostics_source_unavailable",
-                                    message: "Diagnostic source is temporarily unavailable",
-                                },
-                            },
-                            sources[1],
-                        ],
-                        nextPageToken: "partial-next",
-                    });
-                return reply(200, { events: [], partial: false, sources });
-            }
-            if (family === "verifications")
+            if (parts[2] === "actions" && parts[3] === "verify")
                 return reply(200, {
-                    requestId,
                     catalogVersion: "fixture-current",
-                    connectionRevision: records.get(body.connectionId)?.revision,
+                    connectionRevision: records.get(id)?.revision,
                     authentication: { status: "passed" },
                     checks: [
                         {
                             bindingId: "fixture-binding",
                             featureId: "core",
+                            kind: "feature_health_check",
                             status: "passed",
                             coverage: { complete: true, truncated: false, sampledResources: [] },
                         },
                     ],
+                    recorded: true,
                 });
             if (req.method === "GET") {
-                if (!id) return reply(200, { items: [...records.values()], nextPageToken: null });
+                if (!id) return reply(200, { items: [...records.values()], pageToken: null });
                 const record = records.get(id);
-                return record
-                    ? reply(200, record, `"${record.revision}"`)
-                    : reply(404, { code: "not_found", requestId });
+                return record ? reply(200, record, record.etag) : problem(404, "not_found");
             }
+            if (!req.headers["idempotency-key"]) return problem(400, "idempotency_key_required");
             if (body.catalogVersion && body.catalogVersion !== "fixture-current")
-                return reply(409, { code: "catalog_version_stale", requestId });
-            if (req.method !== "POST" && req.headers["if-match"] !== `"${records.get(id)?.revision}"`)
-                return reply(412, {
-                    code: "revision_mismatch",
-                    requestId,
-                    findings: [{ code: "revision_mismatch", message: "Read the current connection" }],
-                });
+                return problem(409, "onboarding.catalog_version_stale");
+            if (req.method !== "POST") {
+                if (!records.has(id)) return problem(404, "not_found");
+                if (!req.headers["if-match"]) return problem(428, "precondition_required");
+                if (req.headers["if-match"] !== records.get(id).etag) return problem(412, "precondition_failed");
+            }
+            if (req.method === "PATCH" && req.headers["content-type"] !== "application/merge-patch+json")
+                return problem(415, "unsupported_media_type");
             if (url.searchParams.get("dryRun") === "true")
                 return reply(200, {
                     dryRun: true,
                     wouldApply: true,
                     doitSideEffects:
-                        req.method === "DELETE"
-                            ? [{ kind: "delete_bigquery_dataset", destructive: true, dataLoss: true }]
-                            : [],
+                        req.method === "DELETE" ? [{ kind: "deconfigure_cloudtrail_bucket", destructive: false }] : [],
                     resultingBindings: body.bindings,
                 });
             if (req.method === "POST") {
-                const connectionId = `${body.bindings[0].scope.provider}-fixture`;
-                const existing = records.get(connectionId);
-                if (existing) return reply(200, existing, `"${existing.revision}"`);
+                const connectionId = "amazon-web-services-fixture";
+                if (records.has(connectionId)) return problem(409, "onboarding.connection_exists");
                 const record = {
-                    connectionId,
+                    id: connectionId,
+                    etag: '"1.fixture"',
+                    revision: "1",
                     identity: body.identity,
                     bindings: body.bindings.map((binding: any) => ({ ...binding, bindingId: "fixture-binding" })),
-                    revision: "1",
-                    followUps: [{ kind: "fixture-follow-up", status: "succeeded" }],
+                    followUps: [
+                        { bindingId: "fixture-binding", featureId: "core", kind: "fixture", status: "succeeded" },
+                    ],
                 };
                 records.set(connectionId, record);
-                return reply(201, record, '"1"');
+                return reply(201, record, record.etag);
             }
             if (req.method === "PATCH") {
-                const record = { ...records.get(id), revision: "2" };
+                const record = { ...records.get(id), revision: "2", etag: '"2.fixture"', bindings: body.bindings };
                 records.set(id, record);
-                return reply(200, record, '"2"');
+                return reply(200, record, record.etag);
             }
             if (req.method === "DELETE") {
-                if (url.searchParams.get("cleanupScope") !== "doit_only")
-                    return reply(400, { code: "cleanup_scope_required", requestId });
+                if (url.searchParams.get("cleanupScope") !== "doit_only") return problem(400, "cleanup_scope_required");
                 records.delete(id);
-                return reply(200, {
-                    connectionId: id,
-                    doitCleanup: { status: "succeeded" },
-                    cloudCleanup: { status: "customer_review_required" },
-                });
+                return reply(204, undefined);
             }
-            return reply(405, { code: "unsupported", requestId });
+            return problem(405, "unsupported");
         });
         await new Promise<void>((resolve) => api.listen(0, "127.0.0.1", resolve));
         const address = api.address();
@@ -238,104 +169,56 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         await new Promise<void>((resolve, reject) => api.close((error) => (error ? reject(error) : resolve())));
     });
 
-    it.each(fixtures)(
-        "resolves, previews, registers, repairs, verifies and disconnects $scope.provider",
-        async (fixture) => {
-            const call = async (name: string, args: any) => {
-                const result = await client.callTool({ name, arguments: args });
-                expect(result.isError, text(result)).not.toBe(true);
-                return JSON.parse(text(result));
-            };
-            const discovery = await call("get_cloud_connect_requirements", { scope: fixture.scope });
-            expect(discovery.artifacts[0].deployable).toBe(false);
-            const requirements = await call("get_cloud_connect_requirements", {
-                scope: fixture.scope,
-                featureIds: ["core"],
-            });
-            const registration = {
-                identity: fixture.identity,
-                ...(fixture.credentialMode ? { credentialMode: fixture.credentialMode } : {}),
-                bindings: [{ scope: fixture.scope, featureIds: ["core"] }],
-                catalogVersion: requirements.catalogVersion,
-            };
-            await call("dry_run_cloud_connection_change", { operation: "register", ...registration });
-            expect(records.size).toBe(0);
-            const connection = await call("register_cloud_connection", registration);
-            await call("register_cloud_connection", registration);
-            expect(records.size).toBe(1);
-            const read = await call("get_cloud_connection", { connectionId: connection.connectionId });
-            expect(read.etag).toBe(connection.etag);
-            const patch = {
-                connectionId: connection.connectionId,
-                expectedEtag: read.etag,
-                catalogVersion: requirements.catalogVersion,
-                followUps: { retry: [{ bindingId: "fixture-binding", featureId: "core", kind: "fixture-follow-up" }] },
-            };
-            await call("dry_run_cloud_connection_change", { operation: "update", ...patch });
-            const changed = await call("update_cloud_connection", patch);
-            const stale = await client.callTool({ name: "update_cloud_connection", arguments: patch });
-            expect(stale.isError).toBe(true);
-            expect(JSON.parse(text(stale)).code).toBe("revision_mismatch");
-            const verified = await call("verify_cloud_connect", { connectionId: connection.connectionId });
-            expect(verified.checks[0].coverage.complete).toBe(true);
-            await call("report_cloud_connect_event", {
-                events: [
-                    {
-                        provider: fixture.scope.provider,
-                        stage: "deployment",
-                        scope: fixture.scope,
-                        observation: { kind: "deployment_context", toolId: "customer_controller" },
-                    },
-                ],
-            });
-            const history = await call("explain_cloud_connect_failure", { connectionId: connection.connectionId });
-            expect(history).toMatchObject({
-                events: [],
-                partial: false,
-                sources: [
-                    { source: "doit_logs", status: "available" },
-                    { source: "customer_reports", status: "available" },
-                ],
-            });
-            const remove = {
-                connectionId: connection.connectionId,
-                expectedEtag: changed.etag,
-                cleanupScope: "doit_only",
-            };
-            const preview = await call("dry_run_cloud_connection_change", { operation: "remove", ...remove });
-            expect(preview.doitSideEffects[0].dataLoss).toBe(true);
-            expect(records.size).toBe(1);
-            const removed = await call("remove_cloud_connection", remove);
-            expect(removed.cloudCleanup.status).toBe("customer_review_required");
-            expect((await call("list_cloud_connections", { scope: fixture.scope })).items).toEqual([]);
-        }
-    );
-    it("preserves merged history, partial availability and invalidated cursors through stdio", async () => {
-        const invoke = (args: Record<string, unknown>) =>
-            client.callTool({ name: "explain_cloud_connect_failure", arguments: args });
-        const filters = { requestId: "hybrid-history", since: "2026-10-14T00:00:00Z", until: "2026-10-14T23:59:59Z" };
-        const first = JSON.parse(text(await invoke(filters)));
-        expect(first.partial).toBe(false);
-        expect(first.events.map((event: any) => [event.source, event.eventId])).toEqual([
-            ["doit_logs", "shared-event-id"],
-            ["customer_reports", "shared-event-id"],
-        ]);
-        const next = JSON.parse(text(await invoke({ ...filters, pageToken: first.nextPageToken })));
-        expect(next).toMatchObject({ events: [], partial: false, sources: first.sources });
-        const partial = JSON.parse(text(await invoke({ requestId: "hybrid-partial" })));
-        expect(partial).toMatchObject({
-            partial: true,
-            sources: [
-                { source: "doit_logs", status: "unavailable", error: { code: "diagnostics_source_unavailable" } },
-                { source: "customer_reports", status: "available" },
-            ],
-        });
-        const invalidated = await invoke({ requestId: "hybrid-partial", pageToken: partial.nextPageToken });
-        expect(invalidated.isError).toBe(true);
-        expect(JSON.parse(text(invalidated))).toMatchObject({ status: 409, code: "diagnostics_cursor_invalidated" });
-        const unavailable = await invoke({ requestId: "hybrid-unavailable" });
-        expect(unavailable.isError).toBe(true);
-        expect(JSON.parse(text(unavailable))).toMatchObject({ status: 503, code: "diagnostics_unavailable" });
+    it("resolves, previews, registers, updates, verifies and disconnects an AWS account", async () => {
+        const call = async (name: string, args: any) => {
+            const result = await client.callTool({ name, arguments: args });
+            expect(result.isError, text(result)).not.toBe(true);
+            return JSON.parse(text(result));
+        };
+        const failure = async (name: string, args: any) => {
+            const result = await client.callTool({ name, arguments: args });
+            expect(result.isError).toBe(true);
+            return JSON.parse(text(result));
+        };
+        const discovery = await call("get_cloud_connect_requirements", { scope });
+        expect(discovery.artifacts[0].requirementsSatisfied).toBe(false);
+        const requirements = await call("get_cloud_connect_requirements", { scope, featureIds: ["core"] });
+        expect(requirements.artifacts[0]).toMatchObject({ registration: "manual", requirementsSatisfied: true });
+        const registration = {
+            identity,
+            bindings: [{ scope, featureIds: ["core"] }],
+            catalogVersion: requirements.catalogVersion,
+        };
+        await call("dry_run_cloud_connection_change", { operation: "register", ...registration });
+        expect(records.size).toBe(0);
+        const connection = await call("register_cloud_connection", registration);
+        expect(connection.idempotencyKey).toBeTruthy();
+        const duplicate = await failure("register_cloud_connection", registration);
+        expect(duplicate).toMatchObject({ status: 409, code: "onboarding.connection_exists" });
+        expect(records.size).toBe(1);
+        const read = await call("get_cloud_connection", { connectionId: connection.id });
+        expect(read.etag).toBe(connection.etag);
+        const listed = await call("list_cloud_connections", { scope, featureId: "core" });
+        expect(listed.items).toHaveLength(1);
+        const patch = {
+            connectionId: connection.id,
+            expectedEtag: read.etag,
+            catalogVersion: requirements.catalogVersion,
+            bindings: [{ bindingId: "fixture-binding", featureIds: ["core", "quotas"] }],
+        };
+        await call("dry_run_cloud_connection_change", { operation: "update", ...patch });
+        const changed = await call("update_cloud_connection", patch);
+        expect(changed.etag).toBe('"2.fixture"');
+        const stale = await failure("update_cloud_connection", patch);
+        expect(stale).toMatchObject({ status: 412, code: "precondition_failed", requestId: expect.any(String) });
+        const verified = await call("verify_cloud_connect", { connectionId: connection.id });
+        expect(verified.checks[0].coverage.complete).toBe(true);
+        const remove = { connectionId: connection.id, expectedEtag: changed.etag, cleanupScope: "doit_only" };
+        const preview = await call("dry_run_cloud_connection_change", { operation: "remove", ...remove });
+        expect(preview.doitSideEffects).toHaveLength(1);
+        expect(records.size).toBe(1);
+        expect(await call("remove_cloud_connection", remove)).toMatchObject({ deleted: true });
+        expect((await call("list_cloud_connections", { scope })).items).toEqual([]);
     });
     it("serves the Skills extension manifest and prompt with digest-verifiable resources", async () => {
         const listed = await client.request({ method: "skills/list", params: {} }, z.any());

@@ -1,25 +1,28 @@
 # Findings and recovery
 
-Use the response's exact code, message, missing permissions/inputs and retry timing. Do not infer the cause from a generic HTTP failure.
+Use the response's exact code, detail, `details`, missing permissions/inputs and `retryable`. Service codes are `onboarding.<code>`.
 
 | Code or condition | Next step |
 |---|---|
-| `catalog_version_stale` | Resolve fresh requirements; compare the changed static contract before retrying. |
-| HTTP 412 / stale revision | Read the connection and review the proposed change against the new bindings. |
-| `mutation_in_progress` or unfinished work | Read state and its follow-ups; do not start a conflicting mutation. |
-| `identity_auth_failed` | Check deployed identity, tenant/account, federation/trust and customer-owned credentials. |
-| `required_check_failed` | Inspect the specific permission/integration check and repair the authoritative cloud source. |
-| `prerequisite_not_satisfied` | Satisfy the stated preceding check; later checks may correctly be not_checked. |
-| `feature_not_entitled` | Resolve the customer's DoiT entitlement; changing cloud IAM cannot grant it. |
-| `aws_asset_not_associated` | Complete the DoiT account association prerequisite outside this access setup. |
-| `aws_management_account_unrecognized` / `not_payer_account` | Resolve the correct management/payer context before organization deployment. |
-| `registration_incomplete` / failed follow-up | Repair the named backend step and retry it using a conditional PATCH. |
-| `connection_ambiguous` | Resolve competing identities/records before mutation; do not choose arbitrarily. |
-| `adapter_check_unsupported` / incomplete sample | Preserve an unverified result; do not report healthy access. |
-| HTTP 503 during event publication | Some events may already be published. Retry at most twice if opted in; telemetry failure does not block setup. |
-| `diagnostics_source_unavailable` / `partial:true` | Name the unavailable source and retain available evidence. Unavailable is not empty; use reads/verification for current state. |
-| `diagnostics_cursor_invalidated` / HTTP 409 | Source availability changed. Restart a fresh bounded query with the intended filters; do not append recovered-source evidence to prior pages. |
-| HTTP 503 reading diagnostics | Both sources are unavailable. Preserve request correlation and retry only within a bounded read policy; onboarding and verification remain independent. |
-| Missing recent diagnostic event | Inspect source availability and allow for separate ingestion delays; an available query does not prove ingestion is complete. Use fresh connection reads/verification for completion. |
+| `onboarding.catalog_version_stale` | Resolve fresh requirements, review changed permissions/artifacts, then retry with the new `catalogVersion`. |
+| `onboarding.connection_exists` | A record exists for the account (`details` carries its `id`). Read it; change it with a reviewed conditional update. Do not redeploy expecting a new registration. |
+| `onboarding.registration_gate_failed` | The live check (AssumeRole + GetRole) failed. Check role ARN, trust principal and External ID (the DoiT customer ID), and role existence in the right account. |
+| `onboarding.cleanup_failed` | The record is kept. Read `details` for failed steps; retry the same removal with a fresh `etag`. |
+| `412` stale `etag` | Read the connection and review the change against the current state. |
+| `428` | Send `If-Match` with the latest `etag`. |
+| `415` | PATCH is JSON merge patch; the tool sets this, so a hand-built call must too. |
+| `400 idempotency_key_required` / `422 idempotency_key_reused` | Use one key per logical write and the same key only for the identical body. |
+| `409 idempotency_request_in_progress` | The first attempt is still running. Wait, then read state; do not start a conflicting write. |
+| `onboarding.provider_unsupported` | Only AWS accounts are supported; stop. |
+| `validation_failed` | Fix the named field. Check the account ID digits and that real-time inputs are complete. |
+| `aws_broker_requires_registration` (dry-run authentication) | A new role cannot be probed before registration. Explain the limit and proceed with authorized registration. |
+| `aws_asset_not_associated` | Complete the DoiT account association outside this setup; IAM changes cannot fix it. |
+| `aws_management_account_unrecognized` / `not_payer_account` | Resolve the correct management/payer context before an organization deployment. |
+| `feature_not_entitled` | Resolve DoiT entitlement; cloud IAM cannot grant it. |
+| verify: authentication `failed` | Every feature is `not_checked`. Repair trust, External ID or role existence first. |
+| verify: `required_permission_missing` | `missingPermissions` lists what is absent; fix the authoritative IAM source and apply in place. |
+| verify: `entitlement` / `catalog_preconditions` check failed | The customer's entitlement or the stored selection no longer fits the current catalog; re-resolve requirements. |
+| failed follow-up (e.g. real-time bucket) | Repair the named step's cause (often a bucket resource policy) and re-send the current desired state with a conditional update. |
+| HTTP 503 / `retryable: true` | Retry within a bounded policy using the same idempotency key for the identical write. |
 
-If a repair repeatedly fails with the same evidence, summarize the unresolved prerequisite and preserve request correlation for support instead of repeating destructive actions.
+If a repair repeatedly fails with the same evidence, summarize the unresolved prerequisite and keep the `requestId` values for support instead of repeating destructive actions.

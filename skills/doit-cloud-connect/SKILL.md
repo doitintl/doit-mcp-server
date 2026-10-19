@@ -1,80 +1,74 @@
 ---
 name: doit-cloud-connect
-description: Connect, verify, repair or disconnect AWS, Google Cloud and Azure access for DoiT Cloud Connect using DoiT MCP tools and the customer's existing deployment workflow.
+description: Connect, verify, repair or disconnect AWS access for DoiT Cloud Connect using DoiT MCP tools and the customer's existing deployment workflow.
 license: MIT
 metadata:
-  doit/skill-version: "2"
+  doit/skill-version: "3"
   doit/api-contract: "onboarding/v2"
 ---
 
-# DoiT Cloud Connect
+# DoiT Cloud Connect (AWS)
 
 Requires DoiT MCP tools and customer-authorized access to their deployment tooling.
 
-Use this workflow for Cloud Connect access. Billing exports, account signup and data-ingestion completion are separate tasks. Loading the skill grants no permission to deploy or remove resources.
+This API version supports AWS accounts only: seven operations, no diagnostics or event reporting. For Google Cloud or Azure, say it is not available through this skill; do not improvise with these tools. Billing exports, account signup and data-ingestion completion are separate tasks. Loading the skill grants no permission to deploy or remove anything.
 
 ## Discover and resolve
 
-Identify the customer's intended cloud scope, requested features and authoritative deployment source. Use `list_cloud_connections` with exact scope filters; follow pagination before concluding a registration is absent. Read an existing record with `get_cloud_connection` before changing it.
+1. Identify the account, the requested features and the authoritative deployment source (Terraform, CloudFormation stack/StackSet or other controller). Validate the 12-digit account ID (digits only; a letter `o` is not a zero) and any organization root/OU target (`r-…`, `ou-…`) before using them.
+2. `list_cloud_connections` with the exact account filter, following `pageToken`. An existing record changes the plan: read it with `get_cloud_connection` and update it instead of deploying a second role.
+3. `get_cloud_connect_requirements`. Omit `featureIds` only to see what is available, then call again with the explicitly chosen features. The response has no inline catalog beyond what you asked for; it is the only authority, and its `catalogVersion` is what mutations must carry.
 
-Call `get_cloud_connect_requirements`. Omit feature IDs only to discover the full scope slice, then call again with the explicitly selected features. Do not treat discovery as enabling all features. Use returned identity, inline permission sets, consumers, required/resolved inputs, preconditions, artifacts and follow-ups. A feature with unknown entitlement or unmet prerequisites is not ready to deploy. Resolve pending Azure consent in the customer's tenant, then call requirements again.
+Interpret the response precisely:
 
-The generated [catalog](references/catalog.md) is an offline planning aid. The fresh requirements response wins when its version differs. Never deploy from the static half alone. A `catalog_version_stale` response requires another resolution and review of changed permissions/artifacts; no version-matching fetch loop is needed.
+- Gate deployment on the **selected artifact's** `requirementsSatisfied` and `findings`, not on feature-level flags or `preconditions` alone. Discovery returns non-satisfied artifacts with empty `parameters`; so do blocked ones. Clear the reported blockers and resolve again.
+- `requirementsSatisfied` means entitlement, inputs, account prerequisites and artifact support are resolved. It does not prove the role, bucket, region or any cloud resource exists, nor that deployment will work.
+- `aws_asset_not_associated`, `aws_management_account_unrecognized` and `not_payer_account` are DoiT-side prerequisites. A `discoveryInputs.managementAccountId` hint does not associate an undiscovered member account. Report the missing association step; do not retry IAM changes.
+- Forward returned artifact `parameters` verbatim, including spelling and structure (`real-time-data`, `spot-scaling`, `expert_advice` differ on purpose). Never normalize hyphens/underscores or add parameters the artifact did not return.
+- Real-time inputs (`bucketName`, `bucketRegion`) must come from the customer's actual cloud context. A 200 does not prove the bucket exists or that the region is right; preserve that uncertainty until verification.
 
 ## Prepare and deploy
 
-Read the relevant provider reference: [AWS](references/aws.md), [Google Cloud](references/gcp.md), or [Azure](references/azure.md). Read [deployment tools](references/deployment-tools.md) for local plan checks and evidence handling.
+Read [AWS](references/aws.md) and [deployment tools](references/deployment-tools.md). Prefer a change to the customer's existing Terraform/module/stack/controller source and preserve unrelated grants. Before creating anything, list existing IAM roles and stacks and identify who owns `doitintl-cmp`, `DoiT-Support-Gateway`, `doitintl_cmp` and other DoiT-named resources; never delete or replace a role another stack or product owns just to avoid a name collision.
 
-Prefer a change to the customer's existing Terraform/module/stack/controller source. Identify who owns the current role, service account, policy and registration; multiple bindings may legitimately cover the same feature. Preserve unrelated grants and avoid taking over resources controlled elsewhere.
+Show the reviewable patch and its concrete effects. Carry existing authorization forward; this skill adds no second approval for an action the customer already authorized. Execute through the customer's controller and wait for its terminal result. A parent StackSet success does not prove each member finished.
 
-Use only deployable artifacts returned for the selected features. Fill required inputs from cloud discovery and customer context, validate enumerations, and have the customer resolve ambiguous choices. Inspect the preview against the fresh response: intended identity and exact scope, trust/External ID, required grants and artifact parameters. Surface unexpected grant removals, replacements, shared-policy changes and unknown planned values. An incomplete preview remains explicitly unverified.
+## Reconcile registration
 
-Prepare a reviewable patch and explain concrete effects before asking for deployment approval when the customer's workflow requires it. Carry existing authorization forward; the skill does not introduce a second approval for an already-authorized action. Execute through the customer's chosen controller and wait for its actual terminal result. A parent StackSet success alone does not prove each member finished.
+Read the artifact's `registration`:
 
-## Reconcile registration and verify
+- `provider` (DoiT Terraform provider) or `callback` (CloudFormation `DoitCmpHook`): the deployment registers the account. Wait for the controller's result, then `get_cloud_connection`. Never POST afterwards. An existing record does not prove the latest callback succeeded: check `registrationTime`, desired features and `followUps`. A feature-only stack update may not notify DoiT; see the AWS reference.
+- `manual`: the deployment only grants access. Run `dry_run_cloud_connection_change` (`register`), review the preview, then `register_cloud_connection` with the same identity, binding, inputs and fresh `catalogVersion`. A new role can return `aws_broker_requires_registration`; that is a known limit, not proof of access.
 
-Read the artifact's `registersConnection` value:
+POST for an account that already has a record returns `409 connection_exists` with the existing `id`: read it and use a reviewed conditional update.
 
-- `true`: the provider/resource owns registration. Inspect its result and read the resulting connection; never add a second POST.
-- `callback`: wait for the deployment callback, then read the connection and relevant diagnostics. An existing record does not prove the latest callback completed.
-- `false`: once access exists, run `dry_run_cloud_connection_change` with operation `register`. Address failed preconditions/live checks (see the AWS new-role dry-run limitation in the provider reference), review DoiT side effects, then call `register_cloud_connection` with the same identity, bindings, feature inputs and fresh catalog version.
+## Change, retry and disconnect
 
-Before updating, dry-run the exact scoped change using the latest returned `etag` as `expectedEtag`. A 412 means the record changed: read it again and re-evaluate the intended change instead of silently replacing the revision. POST must not bypass PATCH revision checks. Retry only failed/incomplete named follow-ups from the ledger, including unfinished prerequisites before dependent steps; do not re-run completed steps by recreating registration. Identity replacement is currently rejected: plan a separately reviewed registration transition instead of promising an in-place identity PATCH.
+Writes need `If-Match` (the latest `etag`) and an `Idempotency-Key`. The tools generate a key and return it as `idempotencyKey`. Rules:
 
-Call `verify_cloud_connect` after deployment/registration or repair. Completion requires the intended binding and desired features to be present, baseline identity checks to pass, every required feature check to pass with adequate coverage, and required backend follow-ups to succeed. `partial`, `not_checked`, empty or truncated sampling, stale evidence and failed follow-ups are not completion. Healthy access does not establish billing data arrival.
+- One key per logical write. After a timeout or lost response, **read first**. If the write must be repeated unchanged, resend the identical request with the same key; never reuse a key for a different body.
+- `update_cloud_connection` sends the complete desired features and inputs for the one binding (merge patch). It cannot add bindings or replace the identity. Re-sending the current desired state retries failed follow-ups. A `412` means the record changed: re-read and re-evaluate, do not overwrite.
+- Dry-run every update and removal first and show side effects and customer cleanup. Confirm removals with the user unless they already authorized exactly that.
+- `remove_cloud_connection` needs `cleanupScope=doit_only`. `deleted: true` means the record is gone. `409 cleanup_failed` keeps it: retry with a fresh `etag`. Later `404` means already absent; do not recreate it to get a success response. Customer IAM, stacks and Terraform resources need their own reviewed change.
 
-For inherited GCP organization access at a project, use verification with `scopeSelection.kind=at_scope`; ancestry is only a discovery aid. This targeted result has `recorded:false` and does not update registered-scope coverage. Record the actual target and sampled coverage in the result.
+## Verify
 
-## Lost responses and interrupted work
+Call `verify_cloud_connect` after deployment, registration or repair. Completion requires: baseline authentication passed, every selected feature's check `passed` with adequate coverage, and required follow-ups `succeeded`. `partial`, `not_checked`, truncated sampling and failed follow-ups are not completion. Checks compare declared permissions; they do not evaluate inline policies, boundaries, SCPs or conditions, so say "declared access verified", not "effective access proven". `recorded: false` means the observation was not stored (stale revision/catalog or concurrent write); re-read before concluding. Healthy access does not mean billing data has arrived.
 
-After a timeout or lost mutation response, read/list first. Reconcile POST only with the identical identity and desired bindings; never replay it to change configuration. For PATCH, read the current record, compare the desired state and ledger, then use the exact reviewed change and observed etag. Successful sibling follow-ups remain completed; retry only unfinished prerequisite/dependent steps.
+## Failures
 
-An interrupted teardown resumes by repeating the exact DELETE request after the API permits retry. Named PATCH follow-up retries reject teardown. If the lost DELETE completed, a read/list showing absence or a repeated DELETE returning 404 means the registration is already absent; do not recreate it merely to obtain a success response. Preserve remaining customer-cloud cleanup for separate review.
-
-## Repair, diagnostics and disconnect
-
-Use `explain_cloud_connect_failure` with the response request ID, connection ID, scope and a bounded time window. Distinguish DoiT observations from labelled customer reports. Review [failure codes](references/failure-codes.md) and fix the source-controlled grants or required inputs before another verification. Respect any retry timing; bound polling and explain a pending external prerequisite rather than claiming success.
-
-Read `sources` and `partial` before interpreting diagnostic history. DoiT observations use `source:doit_logs`; customer reports use `source:customer_reports`, with provenance in `evidenceSource`. An unavailable source is not an empty successful query. `partial:true` means one source is unavailable; both unavailable return 503. `available` only means that query succeeded, not that all evidence has arrived. Missing history never proves a callback was absent or completed.
-
-Keep source and event ID together: the same event ID in different sources represents distinct evidence. Follow `nextPageToken` with the original filters and bounded time window. A `409 diagnostics_cursor_invalidated` means source availability changed: discard that pagination traversal and start a fresh bounded query, without inserting recovered-source events after older pages. A fresh poll can find late arrivals; neither source promises a shared snapshot. DoiT logs and customer reports can have different retention windows. The tool exposes sanitized evidence, never raw log access.
-
-Customer-side telemetry is opt-in. `report_cloud_connect_event` accepts classified deployment failures/context, never credentials or raw logs. Classify locally before calling a hosted tool. Publication acknowledgement can precede diagnostic visibility; partial publication may accompany a 503, and a fresh submission may receive new IDs. Limit retries to two, preserve that uncertainty and continue the onboarding task if telemetry fails. Use connection reads and verification to determine completion.
-
-For disconnect, first read the connection and dry-run operation `remove` with `cleanupScope=doit_only` and the exact etag. Explain affected consumers, DoiT cleanup and any data loss; obtain the user's confirmation of those effects before removal unless already explicitly authorized. GCP DoiT cleanup may delete a BigQuery dataset and its contents. After `remove_cloud_connection`, inspect the returned cleanup result and read/list to reconcile uncertainty. Customer-owned IAM, stacks and Terraform resources require a separately reviewed change through their controller. Do not remove a shared role/principal while its ownership or consumers are unresolved.
+Use the exact `code`, `detail`, `details`, `retryable` and `requestId` from the error; do not infer cause from a bare HTTP status. See [failure codes](references/failure-codes.md). This API has no diagnostics endpoint: the customer's own CloudFormation stack events, Terraform output and CloudTrail are the evidence. Collect stack ID, failed resource and CloudFormation `RequestId` locally and give them with the DoiT `requestId` to support; DoiT-side Lambda logs are not readable by the customer. If the same failure repeats with the same evidence, stop and summarize the unresolved prerequisite instead of retrying.
 
 ## Tool map
 
 | Intent | Tool |
 |---|---|
-| Resolve permissions, identity and artifacts | `get_cloud_connect_requirements` |
+| Resolve identity trust, permissions and artifacts | `get_cloud_connect_requirements` |
 | Discover and read registrations | `list_cloud_connections`, `get_cloud_connection` |
-| Preview registration, update or removal | `dry_run_cloud_connection_change` |
-| Register access without a registration-owning controller | `register_cloud_connection` |
-| Change binding/features or retry a named follow-up | `update_cloud_connection` |
+| Preview register, update or remove | `dry_run_cloud_connection_change` |
+| Register after a `manual` artifact | `register_cloud_connection` |
+| Change desired features or retry follow-ups | `update_cloud_connection` |
 | Fresh access checks | `verify_cloud_connect` |
-| Diagnostic history | `explain_cloud_connect_failure` |
-| Opt-in classified customer report | `report_cloud_connect_event` |
-| Disconnect DoiT state | `remove_cloud_connection` |
+| Remove the DoiT record | `remove_cloud_connection` |
 
 The optional [host snippet](assets/agents-snippet.md) is for the customer to copy. Never edit their agent configuration merely because this skill was loaded.
