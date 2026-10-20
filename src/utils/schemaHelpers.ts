@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+/** Description of the transport-level override; it is not part of API business payloads. */
+export const CUSTOMER_CONTEXT_DESCRIPTION =
+    "DoiT Console customer ID to scope API calls to a specific customer. Overrides the CUSTOMER_CONTEXT environment variable when provided.";
+
 /**
  * Converts a Zod schema into a JSON Schema object format used for tool definition's
  * inputSchema field.
@@ -20,6 +24,15 @@ export function zodToMcpInputSchema(schema: z.ZodType): Record<string, unknown> 
         target: "draft-2020-12",
         unrepresentable: "any",
     });
+    // Context is consumed outside the business-argument parser. Add it only at the
+    // root so handlers that spread parsed arguments cannot leak it into API bodies.
+    // Preserve tools such as change_customer that define their own context semantics.
+    if (jsonSchema.properties && !("customerContext" in jsonSchema.properties)) {
+        jsonSchema.properties.customerContext = {
+            type: "string",
+            description: CUSTOMER_CONTEXT_DESCRIPTION,
+        };
+    }
     return closeOpenObjects(jsonSchema) as Record<string, unknown>;
 }
 
