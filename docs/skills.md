@@ -3,7 +3,7 @@
 The server supports the official [Skills extension](https://modelcontextprotocol.io/extensions/skills/overview).
 Clients use `skills/list` or `skills/get` for metadata and `resources/read` for files.
 Native loading requires protocol `2026-07-28` and client Skills support; the host
-handles activation and content verification. The default registry includes the [Cloud Connect workflow](cloud-connect-delivery.md).
+handles activation and content verification. The default registry includes the [Cloud Connect workflow](../skills/doit-cloud-connect/SKILL.md).
 
 ## Add a skill
 
