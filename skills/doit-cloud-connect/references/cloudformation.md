@@ -6,9 +6,9 @@ Read this for CloudFormation, StackSets or CDK, including AWS CLI commands that 
 
 Download the returned template and compare its SHA-256 with the artifact `version` (`sha256-<hex>`): the digest covers the exact bytes at `templateUrl`, before any edits. A mismatch requires fresh requirements and, if it persists, a corrected release. Keep this verified source when adapting the template or composing a change in the customer's existing source. Compare the final implementation with fresh requirements and review its change set; the published digest authenticates the original only. Deploy the reviewed final template rather than fetching a mutable URL again.
 
-Deployment requirements for the DoiT member template: deploy in `us-east-1` with `CAPABILITY_NAMED_IAM`. This deployment region is separate from the CloudTrail/real-time bucket region (`bucketRegion`); confirm both against the template you reviewed.
+The DoiT Console deploys the member template in `us-east-1` with `CAPABILITY_NAMED_IAM`; these are Console command conventions, not fields of the requirements response. This deployment region is separate from the CloudTrail/real-time bucket region (`bucketRegion`); confirm both against the template you reviewed.
 
-The DoiT management template accepts one `DeploymentTargetID`; check the selected version and existing rollout before extending to another OU. This is a DoiT template constraint, not a general AWS StackSets limit. SCPs in member accounts can deny `cloudformation:CreateStack` for the execution role; that is a customer policy decision, not something to bypass.
+The DoiT Console's StackSet management template, which the requirements API does not return, accepts one `DeploymentTargetID`; check the selected version and existing rollout before extending to another OU. This is a DoiT template constraint, not a general AWS StackSets limit. SCPs in member accounts can deny `cloudformation:CreateStack` for the execution role; that is a customer policy decision, not something to bypass.
 
 ## Source, ownership and rollout
 

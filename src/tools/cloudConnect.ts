@@ -193,7 +193,7 @@ export const registerCloudConnectionTool = tool(
     "register_cloud_connection",
     RegisterCloudConnectionArgumentsSchema,
     `post:${base}/connections`,
-    "Register a deployed IAM role for a supported manual registration handoff. Retained DoiT Terraform provider resources and CloudFormation callbacks perform registration through their own workflow; an additional registration duplicates that operation. An existing connection for the account returns 409 connection_exists; changes to that record use a conditional update. Fresh requirements describe prerequisites, and dry_run_cloud_connection_change previews the request. Registration alone does not establish feature access.",
+    "Register a deployed IAM role explicitly when the final deployment does not register it automatically and no connection exists yet. Retained DoiT Terraform provider resources and CloudFormation callbacks perform registration through their own workflow; an additional registration duplicates that operation. An existing connection for the account returns 409 connection_exists; changes to that record use a conditional update. Fresh requirements describe prerequisites, and dry_run_cloud_connection_change previews the request. Registration alone does not establish feature access.",
     false
 );
 export const updateCloudConnectionTool = tool(

@@ -6,15 +6,15 @@ Use this after selecting AWS in the main skill. The current API supports individ
 
 1. Identify the account, the requested features and the authoritative deployment source (Terraform, CloudFormation stack/StackSet or other controller). Validate the 12-digit account ID (digits only; a letter `o` is not a zero) and any organization root/OU target (`r-…`, `ou-…`) before using them.
 2. `list_cloud_connections` with the exact account filter, following `pageToken`, then read matches with `get_cloud_connection`. Use the current record and requested outcome to decide whether to verify, update or remove it; avoid a duplicate role or registration.
-3. `get_cloud_connect_requirements`. Omit `featureIds` only to see what is available, then call again with the explicitly chosen features. The response has no inline catalog beyond what you asked for; it is the only authority, and its `catalogVersion` is what mutations must carry.
+3. `get_cloud_connect_requirements`. Omitting `featureIds` is discovery: it returns every available feature at this scope with no selection and no satisfied artifact. Call again with the explicitly chosen features to resolve them. The selected-feature response is the only authority for permissions, inputs and artifacts, and its `catalogVersion` is what mutations must carry.
 
-Use the tool and field descriptions to interpret the selected artifact. Resolve reported blockers, using the provider findings below to distinguish DoiT prerequisite work from cloud changes, then request fresh requirements. Establish cloud resources and access through customer-side discovery and verification.
+Use the tool and field descriptions to interpret the selected artifact. Artifact findings `feature_selection_required`, `missing_required_inputs` and `artifact_feature_unsupported` keep `requirementsSatisfied` false alongside the preconditions below; `feature_unsupported_at_scope` rejects the request itself. Resolve reported blockers, using the provider findings below to distinguish DoiT prerequisite work from cloud changes, then request fresh requirements. Establish cloud resources and access through customer-side discovery and verification.
 
 Parameter spelling examples: `real-time-data`, `spot-scaling` and `expert_advice` differ on purpose. Keep those names when using the returned artifact. For an adapted implementation, make the mapping into its own interface explicit in the proposed change; do not add unsupported artifact arguments or normalize names blindly.
 
 ## Trust and ownership
 
-`identity.trust` gives the DoiT principal and External ID (the DoiT customer ID, the same value for every account; do not generate a random one). An artifact's `trustStatements` lists its full cross-account `Allow sts:AssumeRole` policy; an omitted `externalId` means that statement is unconditional. Compare every statement with the rendered plan and surface unconditional or broader grants. Unexpected differences block deployment.
+`identity.trust` gives the DoiT principal and External ID (the DoiT customer ID, the same value for every account; do not generate a random one). Only the Terraform artifact returns `trustStatements`, its full cross-account `Allow sts:AssumeRole` policy; an omitted `externalId` means that statement is unconditional. The CloudFormation artifact has none: read the role's trust policy in the downloaded template and compare it with `identity.trust`. Compare every statement with the rendered plan or change set and surface unconditional or broader grants. Unexpected differences block deployment.
 
 Before creating roles or stacks, list what already exists. Customer cases show the same failures repeatedly:
 
@@ -27,10 +27,10 @@ Apply the shared [deployment rules](deployment-tools.md), then read the relevant
 
 ## Reconcile registration
 
-The artifact's `registration` describes the original implementation. For an adapted deployment, determine whether it retains the provider resource or callback, or uses a supported explicit manual handoff. Follow the final implementation's registration path:
+The artifact's `registration` describes the original implementation. For an adapted deployment, determine whether it retains the provider resource or callback; otherwise registration is an explicit API call. Follow the final implementation's registration path:
 
 - Retained `provider` (DoiT Terraform provider) or `callback` (CloudFormation `DoitCmpHook`): the deployment registers the account. Wait for the controller's result, then `get_cloud_connection`. Never POST afterwards. An existing record does not prove the latest callback succeeded: check `registrationTime`, desired features and `followUps`. A feature-only stack update may not notify DoiT; see the CloudFormation reference.
-- `manual` artifact or supported manual handoff in the adapted implementation: the deployment only grants access. Run `dry_run_cloud_connection_change` (`register`), review the preview, then `register_cloud_connection` with the same identity, binding, inputs and fresh `catalogVersion`. A new role can return `aws_broker_requires_registration`; that is a known limit, not proof of access.
+- No automatic registrar (a `manual` artifact, or an adapted implementation without the provider resource or callback): the deployment only grants access and the agent registers explicitly. Confirm with `list_cloud_connections` that no record exists; an existing record needs reconciliation through a conditional update instead. Then run `dry_run_cloud_connection_change` (`register`), review the preview, and call `register_cloud_connection` with the same identity, binding, inputs and fresh `catalogVersion`. No returned artifact is `manual` today, so this path applies to adapted deployments. A new role can return `aws_broker_requires_registration` in the dry run; that is a known limit, not proof of access.
 
 POST for an account that already has a record returns `409 connection_exists` with the existing `id`: read it and use a reviewed conditional update.
 
@@ -51,7 +51,7 @@ Call `verify_cloud_connect` after deployment, registration or repair. Completion
 
 Verification checks compare declared permissions and accepted managed policies; they do not evaluate inline policies, permission boundaries, SCPs or resource conditions. Describe a passing result as declared access verified, preserving those coverage limits. Real-time data and Expert Advice have their own runtime checks (bucket details, notification configuration, sampled object access; external integration status). These can fail because of bucket resource policies even when the role policy looks right. Notification setup must preserve existing customer notifications.
 
-`recorded: false` means the observation was not stored because of a stale revision/catalog or concurrent write; re-read before concluding. Registration, callback outcome, follow-ups and verification are separate evidence. A healthy older record does not prove a new member callback succeeded, and healthy access does not establish that billing data has arrived.
+`recorded: false` means no cell of the observation was stored: the record or catalog changed, the record was recreated during the probe, or every checked cell already held a newer observation. Re-read before concluding; the response itself remains fresh evidence. Registration, callback outcome, follow-ups and verification are separate evidence. A healthy older record does not prove a new member callback succeeded, and healthy access does not establish that billing data has arrived.
 
 ## Findings and possible checks
 
@@ -74,7 +74,7 @@ Use the returned finding, authentication reason or failed check to decide which 
 | Resolve identity trust, permissions and artifacts | `get_cloud_connect_requirements` |
 | Discover and read registrations | `list_cloud_connections`, `get_cloud_connection` |
 | Preview register, update or remove | `dry_run_cloud_connection_change` |
-| Register when the final deployment uses a manual handoff | `register_cloud_connection` |
+| Register explicitly when the final deployment has no automatic registrar | `register_cloud_connection` |
 | Change desired features or retry follow-ups | `update_cloud_connection` |
 | Fresh access checks | `verify_cloud_connect` |
 | Remove the DoiT record | `remove_cloud_connection` |
