@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.7.0 (2026-10-20)
+
+**Full diff:** [`v2.6.0...v2.7.0`](../../compare/v2.6.0...v2.7.0)
+
+### Features
+
+- feat(cloud-connect): refactor documentation and add provider-specific references (`6cd93d0`)
+- feat: refresh generated OpenAPI spec snapshot (`9027ed9`)
+- feat(cloud-connect): update catalog and documentation for mvp release (`0ce0cfb`)
+- feat(cloud-connect): enforce validation schemas for cloud connect tools (`7587d05`)
+- feat(cloud-connect): implement cloud connect mvp tools and workflow (`e22519b`)
+
+### Other Changes
+
+- docs(cloud-connect): clarify manual registration and deployment workflows (`6fc206a`)
+- test(cloud-connect): fix formatting in skill delivery test (`4606543`)
+- refactor(cloud-connect): remove deprecated assets snippet from documentation (`1b59e63`)
+- docs(cloud-connect): remove delivery guide and update skills reference (`d746f9f`)
+- refactor(cloud-connect): remove deprecated azure and gcp reference docs (`308b1c5`)
+- docs(cloud-connect): clarify cloudformation update and verification behavior (`1e2d9f0`)
+- docs(cloud-connect): document cloudformation member template behavior (`2753146`)
+- docs(cloud-connect): clarify diagnostic event provenance and pagination (`03eae00`)
+- docs(cloud-connect): update aws and gcp reference documentation (`ec701ed`)
 ## v2.6.0 (2026-10-19)
 
 **Full diff:** [`v2.5.0...v2.6.0`](../../compare/v2.5.0...v2.6.0)
