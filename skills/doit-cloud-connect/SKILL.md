@@ -70,5 +70,3 @@ Use the exact `code`, `detail`, `details`, `retryable` and `requestId` from the 
 | Change desired features or retry follow-ups | `update_cloud_connection` |
 | Fresh access checks | `verify_cloud_connect` |
 | Remove the DoiT record | `remove_cloud_connection` |
-
-The optional [host snippet](assets/agents-snippet.md) is for the customer to copy. Never edit their agent configuration merely because this skill was loaded.

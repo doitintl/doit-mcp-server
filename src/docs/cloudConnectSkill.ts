@@ -12,5 +12,5 @@ export const CLOUD_CONNECT_PROMPT = {
     name: "connect_cloud",
     description:
         "Set up, verify, repair or disconnect DoiT Cloud Connect for AWS through the customer's deployment workflow.",
-    text: instructions.text.replace(/\]\((references|assets)\//g, "](skill://doit-cloud-connect/$1/"),
+    text: instructions.text.replace(/\]\((references)\//g, "](skill://doit-cloud-connect/$1/"),
 };
