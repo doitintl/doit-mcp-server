@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -297,7 +297,7 @@ describe("Build-time discovery", () => {
         mkdirSync(join(root, "skills"));
         symlinkSync(target, join(root, "skills", "linked-skill"));
         expect(() => run(join(root, "skills"))).toThrow();
-        rmSync(join(root, "skills", "linked-skill"));
+        unlinkSync(join(root, "skills", "linked-skill"));
         mkdirSync(join(root, "skills", "safe"));
         writeFileSync(join(root, "skills", "safe", "SKILL.md"), markdown("safe"));
         symlinkSync(output, join(root, "skills", "safe", "linked-file"));
