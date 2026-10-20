@@ -8,6 +8,7 @@ import {
     type ServerContext,
     type Tool,
 } from "@modelcontextprotocol/server";
+import { CLOUD_CONNECT_INSTRUCTIONS } from "./docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
@@ -191,7 +192,7 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
             },
             // Returned in the initialize result. Only the stdio server is constructed here —
             // the remote Worker builds its own Server and has to pass this itself.
-            instructions: SERVER_INSTRUCTIONS,
+            instructions: `${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`,
         }
     );
 

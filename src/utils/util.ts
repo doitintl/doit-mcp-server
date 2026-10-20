@@ -312,6 +312,8 @@ export async function makeDoitRequest<T>(
         headers?: Record<string, string>;
         /** Opt-in access to successful response headers without changing the parsed body. */
         onResponseHeaders?: (headers: Headers) => void;
+        /** Endpoint-specific structured problem capture. Receives a clone; standard error sanitization still runs. */
+        onErrorResponse?: (response: Response) => Promise<void>;
     } = {}
 ): Promise<T | null> {
     const {
@@ -384,6 +386,7 @@ export async function makeDoitRequest<T>(
         responseStatus = response.status;
 
         if (!response.ok) {
+            await options.onErrorResponse?.(response.clone());
             throw await createHttpError(response, token, headers, method, readOnly);
         }
         options.onResponseHeaders?.(response.headers);

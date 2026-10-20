@@ -124,6 +124,18 @@ export async function handleMyToolRequest(args: any, token: string) {
 }
 ```
 
+### Tool descriptions and parameter help
+
+Apply this guidance when adding or editing tool metadata, including generated overrides:
+
+- Describe the tool's capability, when it applies, inputs, side effects, important preconditions, and result meanings or limits. Match the implementation; distinguish API-enforced requirements from recommended workflow steps.
+- Keep parameter formats, accepted values, and field-specific caveats in the exported Zod schema's `.describe()` text. Keep essential use constraints in metadata even when a skill also explains them.
+- Prefer concrete contract facts: "A stale etag returns 412" or "A passing prerequisite check does not prove deployed access." Tool-specific usage guidance is appropriate; imperative wording is not automatically forbidden.
+- Avoid instructions about the model's role, response style, or unrelated behavior; forced unrelated tool calls; interference with other tools; system-prompt overrides; promotion; and fetching external behavioral instructions. A relevant tool reference can explain a capability or dependency without imposing an unconditional call sequence.
+- Put extended task procedures and deployment examples in skills or references. Preserve essential input/output semantics when moving guidance; do not assume every client loads optional workflow material.
+
+Anthropic's [tool-definition guidance](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools#best-practices-for-tool-definitions) recommends describing appropriate use and caveats. Its [connector review criteria](https://claude.com/docs/connectors/building/review-criteria#avoid-prompt-injection-patterns) reject behavioral redirection beyond the tool's function. These are different from a blanket ban on usage guidance. The placement choices above are this repo's authoring convention, not an Anthropic length or grammar rule.
+
 ### Utility Functions
 
 Common utilities are located in `src/utils/util.ts`:
@@ -140,7 +152,7 @@ Common utilities are located in `src/utils/util.ts`:
 When adding a new MCP tool:
 
 1. Create tool file in `src/tools/`
-2. Define and export one Zod argument schema with inline `.describe()` text, then derive `inputSchema` with `zodToMcpInputSchema` (see example above). Both transports must use this same schema.
+2. Define and export one Zod argument schema with inline `.describe()` text, then derive `inputSchema` with `zodToMcpInputSchema` (see example above). Both transports must use this same schema. Follow [tool-description guidance](#tool-descriptions-and-parameter-help) for the tool and its fields.
 3. Implement handler function
 4. Register tool in `src/server.ts` (stdio transport) — via `src/tools/handWrittenTools.ts`'s `HAND_WRITTEN_TOOLS` array
 5. Export the tool and its schema from `src/core.ts` so the remote Worker (separate private repo) can register it
@@ -165,6 +177,13 @@ The project uses:
 - **Biome** for linting and formatting
 - **Vitest** for testing
 - **Zod** for schema validation
+
+## Cloud Connect
+
+- `src/tools/cloudConnect.ts` owns eight hand-written tools for the seven AWS-only `/onboarding/v2` operations (requirements, list/get/create/patch/delete connections, verify action) plus a read-only dry-run tool. Writes send `If-Match`, an `Idempotency-Key` (generated and echoed when not supplied) and PATCH as `application/merge-patch+json`. Export registry, schemas and handlers through `/core`; preserve full results in hosted dispatch.
+- `skills/doit-cloud-connect/` is the canonical installable workflow. Edit its sources and run `yarn generate:skills`; never hand-edit the generated bundle. There is no offline catalog; a fresh requirements response is the only authority.
+- GCP, Azure, diagnostics and event reporting are out of this API version. Add them back only with their endpoints.
+- Tests cover the transport contract, a real stdio lifecycle against a fake API, skill bytes/digests and hosted-safe core dispatch. A separately deployed Worker needs its own companion change and dependency release; publishing this package alone does not deploy hosted tools or qualify live cloud behavior.
 
 ## Skills extension
 

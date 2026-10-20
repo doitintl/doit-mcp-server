@@ -1,5 +1,6 @@
 import generatedToolsOpenApiSpec from "./tools/generated/openapi.json" with { type: "json" };
 
+export * from "./docs/cloudConnectSkill.js";
 export {
     CLOUDFLOW_AUTHORING_GUIDE,
     CLOUDFLOW_BUILDER_HINT,
@@ -74,6 +75,7 @@ export {
     changeCustomerTool,
     handleChangeCustomerRequest,
 } from "./tools/changeCustomer.js";
+export * from "./tools/cloudConnect.js";
 export {
     FindCloudDiagramsArgumentsSchema,
     findCloudDiagramsTool,
@@ -275,5 +277,4 @@ export {
     runWithTracking,
     type TrackingContext,
 } from "./utils/util.js";
-
 export { generatedToolsOpenApiSpec };
