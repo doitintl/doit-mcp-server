@@ -66,6 +66,11 @@ export async function discoverSkills(root) {
         const document = parseDocument(match[1], { uniqueKeys: true });
         if (document.errors.length || document.warnings.length) throw new Error(`Invalid frontmatter: ${child.name}`);
         const fields = document.toJS({ maxAliasCount: 0 });
+        JSON.stringify(fields, (_key, value) => {
+            if (typeof value === "bigint" || (typeof value === "number" && !Number.isFinite(value)))
+                throw new Error(`Skill ${child.name} frontmatter must contain JSON-compatible values`);
+            return value;
+        });
         if (fields?.name !== child.name || typeof fields.description !== "string" || !fields.description.trim() || fields.description.length > 1024)
             throw new Error(`Skill ${child.name} requires matching name and description`);
 
@@ -99,7 +104,7 @@ export async function discoverSkills(root) {
             }
         }
         await walk(directory);
-        sources.push({ name: child.name, files });
+        sources.push({ name: child.name, frontmatter: fields, files });
     }
     return sources;
 }

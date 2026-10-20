@@ -17,8 +17,9 @@ describe("package exports", () => {
                 import: "./dist/core.js",
             },
         });
-        expect(packageJson.files).toEqual(["dist", "skills"]);
-        expect(packageJson.dependencies.yaml).toBeDefined();
+        expect(packageJson.files).toEqual(["dist"]);
+        expect(packageJson.dependencies.yaml).toBeUndefined();
+        expect(packageJson.devDependencies.yaml).toBeDefined();
         expect(packageJson.scripts.prepare).toBeUndefined();
         // Publishing happens only from CI (release.yml, behind the `npm` environment).
         expect(packageJson.scripts.deploy).toBeUndefined();

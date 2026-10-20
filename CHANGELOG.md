@@ -1,5 +1,27 @@
 # Changelog
 
+## v2.6.0 (2026-10-19)
+
+**Full diff:** [`v2.5.0...v2.6.0`](../../compare/v2.5.0...v2.6.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`96ac24a`)
+- feat: refresh generated OpenAPI spec snapshot (`7daf93d`)
+- feat(mcp): improve mime type detection and validate frontmatter values (`ad89d90`)
+- feat(mcp): filter skill files via git and validate utf-8 (`8e7e427`)
+- feat: refresh generated OpenAPI spec snapshot (`5aa43c1`)
+- feat(mcp): export confirm action tool and schema (`8ca5fa7`)
+- feat(mcp): implement skills extension support (`b900c57`)
+
+### Other Changes
+
+- refactor(mcp): move skill registration logic to separate module (`129ff59`)
+- refactor(mcp): move frontmatter parsing to build-time (`f50f3ed`)
+- test(mcp): update package exports expectation to remove skills directory (`5df2452`)
+- build(mcp): remove skills directory from package files (`5e5b239`)
+- build(docker): install git during build to support skill file filtering (`e2bdbbf`)
+- docs(mcp): simplify skills extension documentation (`2e14224`)
 ## v2.5.0 (2026-10-13)
 
 **Full diff:** [`v2.4.0...v2.5.0`](../../compare/v2.4.0...v2.5.0)

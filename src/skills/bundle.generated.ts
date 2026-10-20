@@ -4,6 +4,16 @@ import type { SkillSource } from "./registry.js";
 export const BUNDLED_SKILLS: readonly SkillSource[] = [
     {
         name: "doit-cloud-connect",
+        frontmatter: {
+            name: "doit-cloud-connect",
+            description:
+                "Connect, verify, repair or disconnect AWS access for DoiT Cloud Connect using DoiT MCP tools and the customer's existing deployment workflow.",
+            license: "MIT",
+            metadata: {
+                "doit/skill-version": "3",
+                "doit/api-contract": "onboarding/v2",
+            },
+        },
         files: [
             {
                 path: "SKILL.md",

@@ -16,6 +16,20 @@ const skillCapability = { extensions: { "io.modelcontextprotocol/skills": {} } }
 const temporary: string[] = [];
 const fixtureSource = (name: string) => ({
     name,
+    frontmatter:
+        name === "alpha-workflow"
+            ? {
+                  name,
+                  description: "A minimal workflow fixture for skill delivery tests.",
+                  license: "MIT",
+                  metadata: { version: "1", labels: "fixture" },
+                  "x-fixture": { labels: ["fixture"] },
+              }
+            : {
+                  name,
+                  description: "A second independent workflow fixture.",
+                  compatibility: "No external services required.",
+              },
     files: [
         { path: "SKILL.md", text: readFileSync(join(packageRoot, "test/fixtures/skills", name, "SKILL.md"), "utf8") },
         { path: "assets/blob.bin", blob: "AP+A" },
@@ -140,6 +154,9 @@ serveStdio(() => createServer({skillRegistry}), {legacy: "serve"});
             await expect(client.request({ method: "skills/list", params: {} }, z.any())).rejects.toMatchObject({
                 code: -32601,
             });
+            await expect(
+                client.request({ method: "skills/get", params: { uri: "skill://alpha-workflow/SKILL.md" } }, z.any())
+            ).rejects.toMatchObject({ code: -32601 });
             expect((await client.readResource({ uri: "skill://alpha-workflow/SKILL.md" })).contents[0]).toHaveProperty(
                 "text"
             );
