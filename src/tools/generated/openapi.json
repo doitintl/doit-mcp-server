@@ -14955,107 +14955,17 @@
                         }
                       },
                       "metricFilter": {
-                        "description": "Metric filter to limit report rows by metric value.",
-                        "type": "object",
-                        "required": [
-                          "metric",
-                          "operator",
-                          "values"
-                        ],
-                        "properties": {
-                          "metric": {
-                            "description": "Metric selector used in reports and filters.",
+                        "allOf": [
+                          {
+                            "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                             "type": "object",
                             "required": [
-                              "type",
-                              "value"
+                              "metric",
+                              "operator",
+                              "values"
                             ],
                             "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                              }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
-                          },
-                          "operator": {
-                            "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                            "type": "string",
-                            "enum": [
-                              "gt",
-                              "lt",
-                              "lte",
-                              "gte",
-                              "b",
-                              "nb",
-                              "e",
-                              "ne"
-                            ]
-                          },
-                          "values": {
-                            "type": "array",
-                            "items": {
-                              "type": "number",
-                              "format": "double"
-                            }
-                          },
-                          "operand": {
-                            "type": "string",
-                            "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                            "enum": [
-                              "single_value",
-                              "series_total"
-                            ],
-                            "default": "single_value"
-                          }
-                        },
-                        "example": {
-                          "metric": {
-                            "type": "basic",
-                            "value": "cost"
-                          },
-                          "operator": "gt",
-                          "values": [
-                            50
-                          ]
-                        }
-                      },
-                      "limitAggregation": {
-                        "type": "string",
-                        "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                        "enum": [
-                          "none",
-                          "top",
-                          "all"
-                        ],
-                        "default": "none"
-                      },
-                      "limitByChange": {
-                        "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                        "type": "object",
-                        "required": [
-                          "metric",
-                          "changeType",
-                          "operator",
-                          "values",
-                          "includeIncompleteData"
-                        ],
-                        "properties": {
-                          "metric": {
-                            "allOf": [
-                              {
+                              "metric": {
                                 "description": "Metric selector used in reports and filters.",
                                 "type": "object",
                                 "required": [
@@ -15081,54 +14991,154 @@
                                   "type": "basic",
                                   "value": "cost"
                                 }
+                              },
+                              "operator": {
+                                "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                                "type": "string",
+                                "enum": [
+                                  "gt",
+                                  "lt",
+                                  "lte",
+                                  "gte",
+                                  "b",
+                                  "nb",
+                                  "e",
+                                  "ne"
+                                ]
+                              },
+                              "values": {
+                                "type": "array",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              },
+                              "operand": {
+                                "type": "string",
+                                "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                                "enum": [
+                                  "single_value",
+                                  "series_total"
+                                ],
+                                "default": "single_value"
                               }
-                            ],
-                            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                          },
-                          "changeType": {
-                            "type": "string",
-                            "enum": [
-                              "percentage",
-                              "absolute"
-                            ]
-                          },
-                          "operator": {
-                            "type": "string",
-                            "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                            "enum": [
-                              "gt",
-                              "gte",
-                              "lt",
-                              "lte",
-                              "b",
-                              "nb"
-                            ]
-                          },
-                          "values": {
-                            "type": "array",
-                            "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                            "items": {
-                              "type": "number",
-                              "format": "double"
+                            },
+                            "example": {
+                              "metric": {
+                                "type": "basic",
+                                "value": "cost"
+                              },
+                              "operator": "gt",
+                              "values": [
+                                50
+                              ]
                             }
-                          },
-                          "includeIncompleteData": {
-                            "type": "boolean",
-                            "description": "When true, keeps rows whose deltas could not be evaluated."
                           }
-                        },
-                        "example": {
-                          "metric": {
-                            "type": "basic",
-                            "value": "cost"
-                          },
-                          "changeType": "percentage",
-                          "operator": "gte",
-                          "values": [
-                            50
-                          ],
-                          "includeIncompleteData": false
-                        }
+                        ],
+                        "nullable": true
+                      },
+                      "limitAggregation": {
+                        "type": "string",
+                        "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                        "enum": [
+                          "none",
+                          "top",
+                          "all"
+                        ],
+                        "default": "none"
+                      },
+                      "limitByChange": {
+                        "allOf": [
+                          {
+                            "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                            "type": "object",
+                            "required": [
+                              "metric",
+                              "changeType",
+                              "operator",
+                              "values",
+                              "includeIncompleteData"
+                            ],
+                            "properties": {
+                              "metric": {
+                                "allOf": [
+                                  {
+                                    "description": "Metric selector used in reports and filters.",
+                                    "type": "object",
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ],
+                                    "properties": {
+                                      "type": {
+                                        "description": "Type of metric to use.",
+                                        "type": "string",
+                                        "enum": [
+                                          "basic",
+                                          "custom",
+                                          "extended"
+                                        ]
+                                      },
+                                      "value": {
+                                        "type": "string",
+                                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                      }
+                                    },
+                                    "example": {
+                                      "type": "basic",
+                                      "value": "cost"
+                                    }
+                                  }
+                                ],
+                                "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                              },
+                              "changeType": {
+                                "type": "string",
+                                "enum": [
+                                  "percentage",
+                                  "absolute"
+                                ]
+                              },
+                              "operator": {
+                                "type": "string",
+                                "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                                "enum": [
+                                  "gt",
+                                  "gte",
+                                  "lt",
+                                  "lte",
+                                  "b",
+                                  "nb"
+                                ]
+                              },
+                              "values": {
+                                "type": "array",
+                                "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              },
+                              "includeIncompleteData": {
+                                "type": "boolean",
+                                "description": "When true, keeps rows whose deltas could not be evaluated."
+                              }
+                            },
+                            "example": {
+                              "metric": {
+                                "type": "basic",
+                                "value": "cost"
+                              },
+                              "changeType": "percentage",
+                              "operator": "gte",
+                              "values": [
+                                50
+                              ],
+                              "includeIncompleteData": false
+                            }
+                          }
+                        ],
+                        "nullable": true
                       },
                       "aggregation": {
                         "description": "How to aggregate data values in the report.",
@@ -15878,8 +15888,9 @@
                         }
                       },
                       "customTimeRange": {
-                        "description": "Required when the time range is set to \"custom\".",
+                        "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                         "type": "object",
+                        "nullable": true,
                         "properties": {
                           "from": {
                             "type": "string",
@@ -15897,7 +15908,8 @@
                       },
                       "count": {
                         "type": "object",
-                        "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                        "nullable": true,
+                        "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                         "required": [
                           "id",
                           "type"
@@ -16149,107 +16161,17 @@
                           }
                         },
                         "metricFilter": {
-                          "description": "Metric filter to limit report rows by metric value.",
-                          "type": "object",
-                          "required": [
-                            "metric",
-                            "operator",
-                            "values"
-                          ],
-                          "properties": {
-                            "metric": {
-                              "description": "Metric selector used in reports and filters.",
+                          "allOf": [
+                            {
+                              "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                               "type": "object",
                               "required": [
-                                "type",
-                                "value"
+                                "metric",
+                                "operator",
+                                "values"
                               ],
                               "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                                }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
-                            },
-                            "operator": {
-                              "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                              "type": "string",
-                              "enum": [
-                                "gt",
-                                "lt",
-                                "lte",
-                                "gte",
-                                "b",
-                                "nb",
-                                "e",
-                                "ne"
-                              ]
-                            },
-                            "values": {
-                              "type": "array",
-                              "items": {
-                                "type": "number",
-                                "format": "double"
-                              }
-                            },
-                            "operand": {
-                              "type": "string",
-                              "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                              "enum": [
-                                "single_value",
-                                "series_total"
-                              ],
-                              "default": "single_value"
-                            }
-                          },
-                          "example": {
-                            "metric": {
-                              "type": "basic",
-                              "value": "cost"
-                            },
-                            "operator": "gt",
-                            "values": [
-                              50
-                            ]
-                          }
-                        },
-                        "limitAggregation": {
-                          "type": "string",
-                          "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                          "enum": [
-                            "none",
-                            "top",
-                            "all"
-                          ],
-                          "default": "none"
-                        },
-                        "limitByChange": {
-                          "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                          "type": "object",
-                          "required": [
-                            "metric",
-                            "changeType",
-                            "operator",
-                            "values",
-                            "includeIncompleteData"
-                          ],
-                          "properties": {
-                            "metric": {
-                              "allOf": [
-                                {
+                                "metric": {
                                   "description": "Metric selector used in reports and filters.",
                                   "type": "object",
                                   "required": [
@@ -16275,54 +16197,154 @@
                                     "type": "basic",
                                     "value": "cost"
                                   }
+                                },
+                                "operator": {
+                                  "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                                  "type": "string",
+                                  "enum": [
+                                    "gt",
+                                    "lt",
+                                    "lte",
+                                    "gte",
+                                    "b",
+                                    "nb",
+                                    "e",
+                                    "ne"
+                                  ]
+                                },
+                                "values": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number",
+                                    "format": "double"
+                                  }
+                                },
+                                "operand": {
+                                  "type": "string",
+                                  "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                                  "enum": [
+                                    "single_value",
+                                    "series_total"
+                                  ],
+                                  "default": "single_value"
                                 }
-                              ],
-                              "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                            },
-                            "changeType": {
-                              "type": "string",
-                              "enum": [
-                                "percentage",
-                                "absolute"
-                              ]
-                            },
-                            "operator": {
-                              "type": "string",
-                              "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                              "enum": [
-                                "gt",
-                                "gte",
-                                "lt",
-                                "lte",
-                                "b",
-                                "nb"
-                              ]
-                            },
-                            "values": {
-                              "type": "array",
-                              "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                              "items": {
-                                "type": "number",
-                                "format": "double"
+                              },
+                              "example": {
+                                "metric": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                },
+                                "operator": "gt",
+                                "values": [
+                                  50
+                                ]
                               }
-                            },
-                            "includeIncompleteData": {
-                              "type": "boolean",
-                              "description": "When true, keeps rows whose deltas could not be evaluated."
                             }
-                          },
-                          "example": {
-                            "metric": {
-                              "type": "basic",
-                              "value": "cost"
-                            },
-                            "changeType": "percentage",
-                            "operator": "gte",
-                            "values": [
-                              50
-                            ],
-                            "includeIncompleteData": false
-                          }
+                          ],
+                          "nullable": true
+                        },
+                        "limitAggregation": {
+                          "type": "string",
+                          "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                          "enum": [
+                            "none",
+                            "top",
+                            "all"
+                          ],
+                          "default": "none"
+                        },
+                        "limitByChange": {
+                          "allOf": [
+                            {
+                              "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                              "type": "object",
+                              "required": [
+                                "metric",
+                                "changeType",
+                                "operator",
+                                "values",
+                                "includeIncompleteData"
+                              ],
+                              "properties": {
+                                "metric": {
+                                  "allOf": [
+                                    {
+                                      "description": "Metric selector used in reports and filters.",
+                                      "type": "object",
+                                      "required": [
+                                        "type",
+                                        "value"
+                                      ],
+                                      "properties": {
+                                        "type": {
+                                          "description": "Type of metric to use.",
+                                          "type": "string",
+                                          "enum": [
+                                            "basic",
+                                            "custom",
+                                            "extended"
+                                          ]
+                                        },
+                                        "value": {
+                                          "type": "string",
+                                          "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                        }
+                                      },
+                                      "example": {
+                                        "type": "basic",
+                                        "value": "cost"
+                                      }
+                                    }
+                                  ],
+                                  "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                                },
+                                "changeType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "percentage",
+                                    "absolute"
+                                  ]
+                                },
+                                "operator": {
+                                  "type": "string",
+                                  "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                                  "enum": [
+                                    "gt",
+                                    "gte",
+                                    "lt",
+                                    "lte",
+                                    "b",
+                                    "nb"
+                                  ]
+                                },
+                                "values": {
+                                  "type": "array",
+                                  "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                                  "items": {
+                                    "type": "number",
+                                    "format": "double"
+                                  }
+                                },
+                                "includeIncompleteData": {
+                                  "type": "boolean",
+                                  "description": "When true, keeps rows whose deltas could not be evaluated."
+                                }
+                              },
+                              "example": {
+                                "metric": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                },
+                                "changeType": "percentage",
+                                "operator": "gte",
+                                "values": [
+                                  50
+                                ],
+                                "includeIncompleteData": false
+                              }
+                            }
+                          ],
+                          "nullable": true
                         },
                         "aggregation": {
                           "description": "How to aggregate data values in the report.",
@@ -17072,8 +17094,9 @@
                           }
                         },
                         "customTimeRange": {
-                          "description": "Required when the time range is set to \"custom\".",
+                          "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                           "type": "object",
+                          "nullable": true,
                           "properties": {
                             "from": {
                               "type": "string",
@@ -17091,7 +17114,8 @@
                         },
                         "count": {
                           "type": "object",
-                          "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                          "nullable": true,
+                          "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                           "required": [
                             "id",
                             "type"
@@ -17386,107 +17410,17 @@
                         }
                       },
                       "metricFilter": {
-                        "description": "Metric filter to limit report rows by metric value.",
-                        "type": "object",
-                        "required": [
-                          "metric",
-                          "operator",
-                          "values"
-                        ],
-                        "properties": {
-                          "metric": {
-                            "description": "Metric selector used in reports and filters.",
+                        "allOf": [
+                          {
+                            "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                             "type": "object",
                             "required": [
-                              "type",
-                              "value"
+                              "metric",
+                              "operator",
+                              "values"
                             ],
                             "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                              }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
-                          },
-                          "operator": {
-                            "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                            "type": "string",
-                            "enum": [
-                              "gt",
-                              "lt",
-                              "lte",
-                              "gte",
-                              "b",
-                              "nb",
-                              "e",
-                              "ne"
-                            ]
-                          },
-                          "values": {
-                            "type": "array",
-                            "items": {
-                              "type": "number",
-                              "format": "double"
-                            }
-                          },
-                          "operand": {
-                            "type": "string",
-                            "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                            "enum": [
-                              "single_value",
-                              "series_total"
-                            ],
-                            "default": "single_value"
-                          }
-                        },
-                        "example": {
-                          "metric": {
-                            "type": "basic",
-                            "value": "cost"
-                          },
-                          "operator": "gt",
-                          "values": [
-                            50
-                          ]
-                        }
-                      },
-                      "limitAggregation": {
-                        "type": "string",
-                        "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                        "enum": [
-                          "none",
-                          "top",
-                          "all"
-                        ],
-                        "default": "none"
-                      },
-                      "limitByChange": {
-                        "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                        "type": "object",
-                        "required": [
-                          "metric",
-                          "changeType",
-                          "operator",
-                          "values",
-                          "includeIncompleteData"
-                        ],
-                        "properties": {
-                          "metric": {
-                            "allOf": [
-                              {
+                              "metric": {
                                 "description": "Metric selector used in reports and filters.",
                                 "type": "object",
                                 "required": [
@@ -17512,54 +17446,154 @@
                                   "type": "basic",
                                   "value": "cost"
                                 }
+                              },
+                              "operator": {
+                                "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                                "type": "string",
+                                "enum": [
+                                  "gt",
+                                  "lt",
+                                  "lte",
+                                  "gte",
+                                  "b",
+                                  "nb",
+                                  "e",
+                                  "ne"
+                                ]
+                              },
+                              "values": {
+                                "type": "array",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              },
+                              "operand": {
+                                "type": "string",
+                                "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                                "enum": [
+                                  "single_value",
+                                  "series_total"
+                                ],
+                                "default": "single_value"
                               }
-                            ],
-                            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                          },
-                          "changeType": {
-                            "type": "string",
-                            "enum": [
-                              "percentage",
-                              "absolute"
-                            ]
-                          },
-                          "operator": {
-                            "type": "string",
-                            "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                            "enum": [
-                              "gt",
-                              "gte",
-                              "lt",
-                              "lte",
-                              "b",
-                              "nb"
-                            ]
-                          },
-                          "values": {
-                            "type": "array",
-                            "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                            "items": {
-                              "type": "number",
-                              "format": "double"
+                            },
+                            "example": {
+                              "metric": {
+                                "type": "basic",
+                                "value": "cost"
+                              },
+                              "operator": "gt",
+                              "values": [
+                                50
+                              ]
                             }
-                          },
-                          "includeIncompleteData": {
-                            "type": "boolean",
-                            "description": "When true, keeps rows whose deltas could not be evaluated."
                           }
-                        },
-                        "example": {
-                          "metric": {
-                            "type": "basic",
-                            "value": "cost"
-                          },
-                          "changeType": "percentage",
-                          "operator": "gte",
-                          "values": [
-                            50
-                          ],
-                          "includeIncompleteData": false
-                        }
+                        ],
+                        "nullable": true
+                      },
+                      "limitAggregation": {
+                        "type": "string",
+                        "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                        "enum": [
+                          "none",
+                          "top",
+                          "all"
+                        ],
+                        "default": "none"
+                      },
+                      "limitByChange": {
+                        "allOf": [
+                          {
+                            "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                            "type": "object",
+                            "required": [
+                              "metric",
+                              "changeType",
+                              "operator",
+                              "values",
+                              "includeIncompleteData"
+                            ],
+                            "properties": {
+                              "metric": {
+                                "allOf": [
+                                  {
+                                    "description": "Metric selector used in reports and filters.",
+                                    "type": "object",
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ],
+                                    "properties": {
+                                      "type": {
+                                        "description": "Type of metric to use.",
+                                        "type": "string",
+                                        "enum": [
+                                          "basic",
+                                          "custom",
+                                          "extended"
+                                        ]
+                                      },
+                                      "value": {
+                                        "type": "string",
+                                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                      }
+                                    },
+                                    "example": {
+                                      "type": "basic",
+                                      "value": "cost"
+                                    }
+                                  }
+                                ],
+                                "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                              },
+                              "changeType": {
+                                "type": "string",
+                                "enum": [
+                                  "percentage",
+                                  "absolute"
+                                ]
+                              },
+                              "operator": {
+                                "type": "string",
+                                "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                                "enum": [
+                                  "gt",
+                                  "gte",
+                                  "lt",
+                                  "lte",
+                                  "b",
+                                  "nb"
+                                ]
+                              },
+                              "values": {
+                                "type": "array",
+                                "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              },
+                              "includeIncompleteData": {
+                                "type": "boolean",
+                                "description": "When true, keeps rows whose deltas could not be evaluated."
+                              }
+                            },
+                            "example": {
+                              "metric": {
+                                "type": "basic",
+                                "value": "cost"
+                              },
+                              "changeType": "percentage",
+                              "operator": "gte",
+                              "values": [
+                                50
+                              ],
+                              "includeIncompleteData": false
+                            }
+                          }
+                        ],
+                        "nullable": true
                       },
                       "aggregation": {
                         "description": "How to aggregate data values in the report.",
@@ -18309,8 +18343,9 @@
                         }
                       },
                       "customTimeRange": {
-                        "description": "Required when the time range is set to \"custom\".",
+                        "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                         "type": "object",
+                        "nullable": true,
                         "properties": {
                           "from": {
                             "type": "string",
@@ -18328,7 +18363,8 @@
                       },
                       "count": {
                         "type": "object",
-                        "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                        "nullable": true,
+                        "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                         "required": [
                           "id",
                           "type"
@@ -19323,107 +19359,17 @@
                         }
                       },
                       "metricFilter": {
-                        "description": "Metric filter to limit report rows by metric value.",
-                        "type": "object",
-                        "required": [
-                          "metric",
-                          "operator",
-                          "values"
-                        ],
-                        "properties": {
-                          "metric": {
-                            "description": "Metric selector used in reports and filters.",
+                        "allOf": [
+                          {
+                            "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                             "type": "object",
                             "required": [
-                              "type",
-                              "value"
+                              "metric",
+                              "operator",
+                              "values"
                             ],
                             "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                              }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
-                          },
-                          "operator": {
-                            "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                            "type": "string",
-                            "enum": [
-                              "gt",
-                              "lt",
-                              "lte",
-                              "gte",
-                              "b",
-                              "nb",
-                              "e",
-                              "ne"
-                            ]
-                          },
-                          "values": {
-                            "type": "array",
-                            "items": {
-                              "type": "number",
-                              "format": "double"
-                            }
-                          },
-                          "operand": {
-                            "type": "string",
-                            "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                            "enum": [
-                              "single_value",
-                              "series_total"
-                            ],
-                            "default": "single_value"
-                          }
-                        },
-                        "example": {
-                          "metric": {
-                            "type": "basic",
-                            "value": "cost"
-                          },
-                          "operator": "gt",
-                          "values": [
-                            50
-                          ]
-                        }
-                      },
-                      "limitAggregation": {
-                        "type": "string",
-                        "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                        "enum": [
-                          "none",
-                          "top",
-                          "all"
-                        ],
-                        "default": "none"
-                      },
-                      "limitByChange": {
-                        "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                        "type": "object",
-                        "required": [
-                          "metric",
-                          "changeType",
-                          "operator",
-                          "values",
-                          "includeIncompleteData"
-                        ],
-                        "properties": {
-                          "metric": {
-                            "allOf": [
-                              {
+                              "metric": {
                                 "description": "Metric selector used in reports and filters.",
                                 "type": "object",
                                 "required": [
@@ -19449,54 +19395,154 @@
                                   "type": "basic",
                                   "value": "cost"
                                 }
+                              },
+                              "operator": {
+                                "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                                "type": "string",
+                                "enum": [
+                                  "gt",
+                                  "lt",
+                                  "lte",
+                                  "gte",
+                                  "b",
+                                  "nb",
+                                  "e",
+                                  "ne"
+                                ]
+                              },
+                              "values": {
+                                "type": "array",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              },
+                              "operand": {
+                                "type": "string",
+                                "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                                "enum": [
+                                  "single_value",
+                                  "series_total"
+                                ],
+                                "default": "single_value"
                               }
-                            ],
-                            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                          },
-                          "changeType": {
-                            "type": "string",
-                            "enum": [
-                              "percentage",
-                              "absolute"
-                            ]
-                          },
-                          "operator": {
-                            "type": "string",
-                            "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                            "enum": [
-                              "gt",
-                              "gte",
-                              "lt",
-                              "lte",
-                              "b",
-                              "nb"
-                            ]
-                          },
-                          "values": {
-                            "type": "array",
-                            "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                            "items": {
-                              "type": "number",
-                              "format": "double"
+                            },
+                            "example": {
+                              "metric": {
+                                "type": "basic",
+                                "value": "cost"
+                              },
+                              "operator": "gt",
+                              "values": [
+                                50
+                              ]
                             }
-                          },
-                          "includeIncompleteData": {
-                            "type": "boolean",
-                            "description": "When true, keeps rows whose deltas could not be evaluated."
                           }
-                        },
-                        "example": {
-                          "metric": {
-                            "type": "basic",
-                            "value": "cost"
-                          },
-                          "changeType": "percentage",
-                          "operator": "gte",
-                          "values": [
-                            50
-                          ],
-                          "includeIncompleteData": false
-                        }
+                        ],
+                        "nullable": true
+                      },
+                      "limitAggregation": {
+                        "type": "string",
+                        "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                        "enum": [
+                          "none",
+                          "top",
+                          "all"
+                        ],
+                        "default": "none"
+                      },
+                      "limitByChange": {
+                        "allOf": [
+                          {
+                            "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                            "type": "object",
+                            "required": [
+                              "metric",
+                              "changeType",
+                              "operator",
+                              "values",
+                              "includeIncompleteData"
+                            ],
+                            "properties": {
+                              "metric": {
+                                "allOf": [
+                                  {
+                                    "description": "Metric selector used in reports and filters.",
+                                    "type": "object",
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ],
+                                    "properties": {
+                                      "type": {
+                                        "description": "Type of metric to use.",
+                                        "type": "string",
+                                        "enum": [
+                                          "basic",
+                                          "custom",
+                                          "extended"
+                                        ]
+                                      },
+                                      "value": {
+                                        "type": "string",
+                                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                      }
+                                    },
+                                    "example": {
+                                      "type": "basic",
+                                      "value": "cost"
+                                    }
+                                  }
+                                ],
+                                "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                              },
+                              "changeType": {
+                                "type": "string",
+                                "enum": [
+                                  "percentage",
+                                  "absolute"
+                                ]
+                              },
+                              "operator": {
+                                "type": "string",
+                                "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                                "enum": [
+                                  "gt",
+                                  "gte",
+                                  "lt",
+                                  "lte",
+                                  "b",
+                                  "nb"
+                                ]
+                              },
+                              "values": {
+                                "type": "array",
+                                "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              },
+                              "includeIncompleteData": {
+                                "type": "boolean",
+                                "description": "When true, keeps rows whose deltas could not be evaluated."
+                              }
+                            },
+                            "example": {
+                              "metric": {
+                                "type": "basic",
+                                "value": "cost"
+                              },
+                              "changeType": "percentage",
+                              "operator": "gte",
+                              "values": [
+                                50
+                              ],
+                              "includeIncompleteData": false
+                            }
+                          }
+                        ],
+                        "nullable": true
                       },
                       "aggregation": {
                         "description": "How to aggregate data values in the report.",
@@ -20246,8 +20292,9 @@
                         }
                       },
                       "customTimeRange": {
-                        "description": "Required when the time range is set to \"custom\".",
+                        "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                         "type": "object",
+                        "nullable": true,
                         "properties": {
                           "from": {
                             "type": "string",
@@ -20265,7 +20312,8 @@
                       },
                       "count": {
                         "type": "object",
-                        "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                        "nullable": true,
+                        "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                         "required": [
                           "id",
                           "type"
@@ -20509,107 +20557,17 @@
                           }
                         },
                         "metricFilter": {
-                          "description": "Metric filter to limit report rows by metric value.",
-                          "type": "object",
-                          "required": [
-                            "metric",
-                            "operator",
-                            "values"
-                          ],
-                          "properties": {
-                            "metric": {
-                              "description": "Metric selector used in reports and filters.",
+                          "allOf": [
+                            {
+                              "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                               "type": "object",
                               "required": [
-                                "type",
-                                "value"
+                                "metric",
+                                "operator",
+                                "values"
                               ],
                               "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                                }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
-                            },
-                            "operator": {
-                              "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                              "type": "string",
-                              "enum": [
-                                "gt",
-                                "lt",
-                                "lte",
-                                "gte",
-                                "b",
-                                "nb",
-                                "e",
-                                "ne"
-                              ]
-                            },
-                            "values": {
-                              "type": "array",
-                              "items": {
-                                "type": "number",
-                                "format": "double"
-                              }
-                            },
-                            "operand": {
-                              "type": "string",
-                              "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                              "enum": [
-                                "single_value",
-                                "series_total"
-                              ],
-                              "default": "single_value"
-                            }
-                          },
-                          "example": {
-                            "metric": {
-                              "type": "basic",
-                              "value": "cost"
-                            },
-                            "operator": "gt",
-                            "values": [
-                              50
-                            ]
-                          }
-                        },
-                        "limitAggregation": {
-                          "type": "string",
-                          "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                          "enum": [
-                            "none",
-                            "top",
-                            "all"
-                          ],
-                          "default": "none"
-                        },
-                        "limitByChange": {
-                          "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                          "type": "object",
-                          "required": [
-                            "metric",
-                            "changeType",
-                            "operator",
-                            "values",
-                            "includeIncompleteData"
-                          ],
-                          "properties": {
-                            "metric": {
-                              "allOf": [
-                                {
+                                "metric": {
                                   "description": "Metric selector used in reports and filters.",
                                   "type": "object",
                                   "required": [
@@ -20635,54 +20593,154 @@
                                     "type": "basic",
                                     "value": "cost"
                                   }
+                                },
+                                "operator": {
+                                  "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                                  "type": "string",
+                                  "enum": [
+                                    "gt",
+                                    "lt",
+                                    "lte",
+                                    "gte",
+                                    "b",
+                                    "nb",
+                                    "e",
+                                    "ne"
+                                  ]
+                                },
+                                "values": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number",
+                                    "format": "double"
+                                  }
+                                },
+                                "operand": {
+                                  "type": "string",
+                                  "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                                  "enum": [
+                                    "single_value",
+                                    "series_total"
+                                  ],
+                                  "default": "single_value"
                                 }
-                              ],
-                              "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                            },
-                            "changeType": {
-                              "type": "string",
-                              "enum": [
-                                "percentage",
-                                "absolute"
-                              ]
-                            },
-                            "operator": {
-                              "type": "string",
-                              "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                              "enum": [
-                                "gt",
-                                "gte",
-                                "lt",
-                                "lte",
-                                "b",
-                                "nb"
-                              ]
-                            },
-                            "values": {
-                              "type": "array",
-                              "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                              "items": {
-                                "type": "number",
-                                "format": "double"
+                              },
+                              "example": {
+                                "metric": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                },
+                                "operator": "gt",
+                                "values": [
+                                  50
+                                ]
                               }
-                            },
-                            "includeIncompleteData": {
-                              "type": "boolean",
-                              "description": "When true, keeps rows whose deltas could not be evaluated."
                             }
-                          },
-                          "example": {
-                            "metric": {
-                              "type": "basic",
-                              "value": "cost"
-                            },
-                            "changeType": "percentage",
-                            "operator": "gte",
-                            "values": [
-                              50
-                            ],
-                            "includeIncompleteData": false
-                          }
+                          ],
+                          "nullable": true
+                        },
+                        "limitAggregation": {
+                          "type": "string",
+                          "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                          "enum": [
+                            "none",
+                            "top",
+                            "all"
+                          ],
+                          "default": "none"
+                        },
+                        "limitByChange": {
+                          "allOf": [
+                            {
+                              "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                              "type": "object",
+                              "required": [
+                                "metric",
+                                "changeType",
+                                "operator",
+                                "values",
+                                "includeIncompleteData"
+                              ],
+                              "properties": {
+                                "metric": {
+                                  "allOf": [
+                                    {
+                                      "description": "Metric selector used in reports and filters.",
+                                      "type": "object",
+                                      "required": [
+                                        "type",
+                                        "value"
+                                      ],
+                                      "properties": {
+                                        "type": {
+                                          "description": "Type of metric to use.",
+                                          "type": "string",
+                                          "enum": [
+                                            "basic",
+                                            "custom",
+                                            "extended"
+                                          ]
+                                        },
+                                        "value": {
+                                          "type": "string",
+                                          "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                        }
+                                      },
+                                      "example": {
+                                        "type": "basic",
+                                        "value": "cost"
+                                      }
+                                    }
+                                  ],
+                                  "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                                },
+                                "changeType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "percentage",
+                                    "absolute"
+                                  ]
+                                },
+                                "operator": {
+                                  "type": "string",
+                                  "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                                  "enum": [
+                                    "gt",
+                                    "gte",
+                                    "lt",
+                                    "lte",
+                                    "b",
+                                    "nb"
+                                  ]
+                                },
+                                "values": {
+                                  "type": "array",
+                                  "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                                  "items": {
+                                    "type": "number",
+                                    "format": "double"
+                                  }
+                                },
+                                "includeIncompleteData": {
+                                  "type": "boolean",
+                                  "description": "When true, keeps rows whose deltas could not be evaluated."
+                                }
+                              },
+                              "example": {
+                                "metric": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                },
+                                "changeType": "percentage",
+                                "operator": "gte",
+                                "values": [
+                                  50
+                                ],
+                                "includeIncompleteData": false
+                              }
+                            }
+                          ],
+                          "nullable": true
                         },
                         "aggregation": {
                           "description": "How to aggregate data values in the report.",
@@ -21432,8 +21490,9 @@
                           }
                         },
                         "customTimeRange": {
-                          "description": "Required when the time range is set to \"custom\".",
+                          "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                           "type": "object",
+                          "nullable": true,
                           "properties": {
                             "from": {
                               "type": "string",
@@ -21451,7 +21510,8 @@
                         },
                         "count": {
                           "type": "object",
-                          "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                          "nullable": true,
+                          "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                           "required": [
                             "id",
                             "type"
@@ -21778,107 +21838,17 @@
                           }
                         },
                         "metricFilter": {
-                          "description": "Metric filter to limit report rows by metric value.",
-                          "type": "object",
-                          "required": [
-                            "metric",
-                            "operator",
-                            "values"
-                          ],
-                          "properties": {
-                            "metric": {
-                              "description": "Metric selector used in reports and filters.",
+                          "allOf": [
+                            {
+                              "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                               "type": "object",
                               "required": [
-                                "type",
-                                "value"
+                                "metric",
+                                "operator",
+                                "values"
                               ],
                               "properties": {
-                                "type": {
-                                  "description": "Type of metric to use.",
-                                  "type": "string",
-                                  "enum": [
-                                    "basic",
-                                    "custom",
-                                    "extended"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                                }
-                              },
-                              "example": {
-                                "type": "basic",
-                                "value": "cost"
-                              }
-                            },
-                            "operator": {
-                              "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                              "type": "string",
-                              "enum": [
-                                "gt",
-                                "lt",
-                                "lte",
-                                "gte",
-                                "b",
-                                "nb",
-                                "e",
-                                "ne"
-                              ]
-                            },
-                            "values": {
-                              "type": "array",
-                              "items": {
-                                "type": "number",
-                                "format": "double"
-                              }
-                            },
-                            "operand": {
-                              "type": "string",
-                              "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                              "enum": [
-                                "single_value",
-                                "series_total"
-                              ],
-                              "default": "single_value"
-                            }
-                          },
-                          "example": {
-                            "metric": {
-                              "type": "basic",
-                              "value": "cost"
-                            },
-                            "operator": "gt",
-                            "values": [
-                              50
-                            ]
-                          }
-                        },
-                        "limitAggregation": {
-                          "type": "string",
-                          "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                          "enum": [
-                            "none",
-                            "top",
-                            "all"
-                          ],
-                          "default": "none"
-                        },
-                        "limitByChange": {
-                          "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                          "type": "object",
-                          "required": [
-                            "metric",
-                            "changeType",
-                            "operator",
-                            "values",
-                            "includeIncompleteData"
-                          ],
-                          "properties": {
-                            "metric": {
-                              "allOf": [
-                                {
+                                "metric": {
                                   "description": "Metric selector used in reports and filters.",
                                   "type": "object",
                                   "required": [
@@ -21904,54 +21874,154 @@
                                     "type": "basic",
                                     "value": "cost"
                                   }
+                                },
+                                "operator": {
+                                  "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                                  "type": "string",
+                                  "enum": [
+                                    "gt",
+                                    "lt",
+                                    "lte",
+                                    "gte",
+                                    "b",
+                                    "nb",
+                                    "e",
+                                    "ne"
+                                  ]
+                                },
+                                "values": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number",
+                                    "format": "double"
+                                  }
+                                },
+                                "operand": {
+                                  "type": "string",
+                                  "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                                  "enum": [
+                                    "single_value",
+                                    "series_total"
+                                  ],
+                                  "default": "single_value"
                                 }
-                              ],
-                              "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                            },
-                            "changeType": {
-                              "type": "string",
-                              "enum": [
-                                "percentage",
-                                "absolute"
-                              ]
-                            },
-                            "operator": {
-                              "type": "string",
-                              "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                              "enum": [
-                                "gt",
-                                "gte",
-                                "lt",
-                                "lte",
-                                "b",
-                                "nb"
-                              ]
-                            },
-                            "values": {
-                              "type": "array",
-                              "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                              "items": {
-                                "type": "number",
-                                "format": "double"
+                              },
+                              "example": {
+                                "metric": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                },
+                                "operator": "gt",
+                                "values": [
+                                  50
+                                ]
                               }
-                            },
-                            "includeIncompleteData": {
-                              "type": "boolean",
-                              "description": "When true, keeps rows whose deltas could not be evaluated."
                             }
-                          },
-                          "example": {
-                            "metric": {
-                              "type": "basic",
-                              "value": "cost"
-                            },
-                            "changeType": "percentage",
-                            "operator": "gte",
-                            "values": [
-                              50
-                            ],
-                            "includeIncompleteData": false
-                          }
+                          ],
+                          "nullable": true
+                        },
+                        "limitAggregation": {
+                          "type": "string",
+                          "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                          "enum": [
+                            "none",
+                            "top",
+                            "all"
+                          ],
+                          "default": "none"
+                        },
+                        "limitByChange": {
+                          "allOf": [
+                            {
+                              "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                              "type": "object",
+                              "required": [
+                                "metric",
+                                "changeType",
+                                "operator",
+                                "values",
+                                "includeIncompleteData"
+                              ],
+                              "properties": {
+                                "metric": {
+                                  "allOf": [
+                                    {
+                                      "description": "Metric selector used in reports and filters.",
+                                      "type": "object",
+                                      "required": [
+                                        "type",
+                                        "value"
+                                      ],
+                                      "properties": {
+                                        "type": {
+                                          "description": "Type of metric to use.",
+                                          "type": "string",
+                                          "enum": [
+                                            "basic",
+                                            "custom",
+                                            "extended"
+                                          ]
+                                        },
+                                        "value": {
+                                          "type": "string",
+                                          "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                        }
+                                      },
+                                      "example": {
+                                        "type": "basic",
+                                        "value": "cost"
+                                      }
+                                    }
+                                  ],
+                                  "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                                },
+                                "changeType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "percentage",
+                                    "absolute"
+                                  ]
+                                },
+                                "operator": {
+                                  "type": "string",
+                                  "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                                  "enum": [
+                                    "gt",
+                                    "gte",
+                                    "lt",
+                                    "lte",
+                                    "b",
+                                    "nb"
+                                  ]
+                                },
+                                "values": {
+                                  "type": "array",
+                                  "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                                  "items": {
+                                    "type": "number",
+                                    "format": "double"
+                                  }
+                                },
+                                "includeIncompleteData": {
+                                  "type": "boolean",
+                                  "description": "When true, keeps rows whose deltas could not be evaluated."
+                                }
+                              },
+                              "example": {
+                                "metric": {
+                                  "type": "basic",
+                                  "value": "cost"
+                                },
+                                "changeType": "percentage",
+                                "operator": "gte",
+                                "values": [
+                                  50
+                                ],
+                                "includeIncompleteData": false
+                              }
+                            }
+                          ],
+                          "nullable": true
                         },
                         "aggregation": {
                           "description": "How to aggregate data values in the report.",
@@ -22701,8 +22771,9 @@
                           }
                         },
                         "customTimeRange": {
-                          "description": "Required when the time range is set to \"custom\".",
+                          "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                           "type": "object",
+                          "nullable": true,
                           "properties": {
                             "from": {
                               "type": "string",
@@ -22720,7 +22791,8 @@
                         },
                         "count": {
                           "type": "object",
-                          "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                          "nullable": true,
+                          "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                           "required": [
                             "id",
                             "type"
@@ -23031,107 +23103,17 @@
                         }
                       },
                       "metricFilter": {
-                        "description": "Metric filter to limit report rows by metric value.",
-                        "type": "object",
-                        "required": [
-                          "metric",
-                          "operator",
-                          "values"
-                        ],
-                        "properties": {
-                          "metric": {
-                            "description": "Metric selector used in reports and filters.",
+                        "allOf": [
+                          {
+                            "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                             "type": "object",
                             "required": [
-                              "type",
-                              "value"
+                              "metric",
+                              "operator",
+                              "values"
                             ],
                             "properties": {
-                              "type": {
-                                "description": "Type of metric to use.",
-                                "type": "string",
-                                "enum": [
-                                  "basic",
-                                  "custom",
-                                  "extended"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                              }
-                            },
-                            "example": {
-                              "type": "basic",
-                              "value": "cost"
-                            }
-                          },
-                          "operator": {
-                            "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                            "type": "string",
-                            "enum": [
-                              "gt",
-                              "lt",
-                              "lte",
-                              "gte",
-                              "b",
-                              "nb",
-                              "e",
-                              "ne"
-                            ]
-                          },
-                          "values": {
-                            "type": "array",
-                            "items": {
-                              "type": "number",
-                              "format": "double"
-                            }
-                          },
-                          "operand": {
-                            "type": "string",
-                            "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                            "enum": [
-                              "single_value",
-                              "series_total"
-                            ],
-                            "default": "single_value"
-                          }
-                        },
-                        "example": {
-                          "metric": {
-                            "type": "basic",
-                            "value": "cost"
-                          },
-                          "operator": "gt",
-                          "values": [
-                            50
-                          ]
-                        }
-                      },
-                      "limitAggregation": {
-                        "type": "string",
-                        "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                        "enum": [
-                          "none",
-                          "top",
-                          "all"
-                        ],
-                        "default": "none"
-                      },
-                      "limitByChange": {
-                        "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                        "type": "object",
-                        "required": [
-                          "metric",
-                          "changeType",
-                          "operator",
-                          "values",
-                          "includeIncompleteData"
-                        ],
-                        "properties": {
-                          "metric": {
-                            "allOf": [
-                              {
+                              "metric": {
                                 "description": "Metric selector used in reports and filters.",
                                 "type": "object",
                                 "required": [
@@ -23157,54 +23139,154 @@
                                   "type": "basic",
                                   "value": "cost"
                                 }
+                              },
+                              "operator": {
+                                "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                                "type": "string",
+                                "enum": [
+                                  "gt",
+                                  "lt",
+                                  "lte",
+                                  "gte",
+                                  "b",
+                                  "nb",
+                                  "e",
+                                  "ne"
+                                ]
+                              },
+                              "values": {
+                                "type": "array",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              },
+                              "operand": {
+                                "type": "string",
+                                "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                                "enum": [
+                                  "single_value",
+                                  "series_total"
+                                ],
+                                "default": "single_value"
                               }
-                            ],
-                            "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                          },
-                          "changeType": {
-                            "type": "string",
-                            "enum": [
-                              "percentage",
-                              "absolute"
-                            ]
-                          },
-                          "operator": {
-                            "type": "string",
-                            "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                            "enum": [
-                              "gt",
-                              "gte",
-                              "lt",
-                              "lte",
-                              "b",
-                              "nb"
-                            ]
-                          },
-                          "values": {
-                            "type": "array",
-                            "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                            "items": {
-                              "type": "number",
-                              "format": "double"
+                            },
+                            "example": {
+                              "metric": {
+                                "type": "basic",
+                                "value": "cost"
+                              },
+                              "operator": "gt",
+                              "values": [
+                                50
+                              ]
                             }
-                          },
-                          "includeIncompleteData": {
-                            "type": "boolean",
-                            "description": "When true, keeps rows whose deltas could not be evaluated."
                           }
-                        },
-                        "example": {
-                          "metric": {
-                            "type": "basic",
-                            "value": "cost"
-                          },
-                          "changeType": "percentage",
-                          "operator": "gte",
-                          "values": [
-                            50
-                          ],
-                          "includeIncompleteData": false
-                        }
+                        ],
+                        "nullable": true
+                      },
+                      "limitAggregation": {
+                        "type": "string",
+                        "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                        "enum": [
+                          "none",
+                          "top",
+                          "all"
+                        ],
+                        "default": "none"
+                      },
+                      "limitByChange": {
+                        "allOf": [
+                          {
+                            "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                            "type": "object",
+                            "required": [
+                              "metric",
+                              "changeType",
+                              "operator",
+                              "values",
+                              "includeIncompleteData"
+                            ],
+                            "properties": {
+                              "metric": {
+                                "allOf": [
+                                  {
+                                    "description": "Metric selector used in reports and filters.",
+                                    "type": "object",
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ],
+                                    "properties": {
+                                      "type": {
+                                        "description": "Type of metric to use.",
+                                        "type": "string",
+                                        "enum": [
+                                          "basic",
+                                          "custom",
+                                          "extended"
+                                        ]
+                                      },
+                                      "value": {
+                                        "type": "string",
+                                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                                      }
+                                    },
+                                    "example": {
+                                      "type": "basic",
+                                      "value": "cost"
+                                    }
+                                  }
+                                ],
+                                "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                              },
+                              "changeType": {
+                                "type": "string",
+                                "enum": [
+                                  "percentage",
+                                  "absolute"
+                                ]
+                              },
+                              "operator": {
+                                "type": "string",
+                                "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                                "enum": [
+                                  "gt",
+                                  "gte",
+                                  "lt",
+                                  "lte",
+                                  "b",
+                                  "nb"
+                                ]
+                              },
+                              "values": {
+                                "type": "array",
+                                "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              },
+                              "includeIncompleteData": {
+                                "type": "boolean",
+                                "description": "When true, keeps rows whose deltas could not be evaluated."
+                              }
+                            },
+                            "example": {
+                              "metric": {
+                                "type": "basic",
+                                "value": "cost"
+                              },
+                              "changeType": "percentage",
+                              "operator": "gte",
+                              "values": [
+                                50
+                              ],
+                              "includeIncompleteData": false
+                            }
+                          }
+                        ],
+                        "nullable": true
                       },
                       "aggregation": {
                         "description": "How to aggregate data values in the report.",
@@ -23954,8 +24036,9 @@
                         }
                       },
                       "customTimeRange": {
-                        "description": "Required when the time range is set to \"custom\".",
+                        "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                         "type": "object",
+                        "nullable": true,
                         "properties": {
                           "from": {
                             "type": "string",
@@ -23973,7 +24056,8 @@
                       },
                       "count": {
                         "type": "object",
-                        "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                        "nullable": true,
+                        "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                         "required": [
                           "id",
                           "type"
@@ -138791,107 +138875,17 @@
             }
           },
           "metricFilter": {
-            "description": "Metric filter to limit report rows by metric value.",
-            "type": "object",
-            "required": [
-              "metric",
-              "operator",
-              "values"
-            ],
-            "properties": {
-              "metric": {
-                "description": "Metric selector used in reports and filters.",
+            "allOf": [
+              {
+                "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                 "type": "object",
                 "required": [
-                  "type",
-                  "value"
+                  "metric",
+                  "operator",
+                  "values"
                 ],
                 "properties": {
-                  "type": {
-                    "description": "Type of metric to use.",
-                    "type": "string",
-                    "enum": [
-                      "basic",
-                      "custom",
-                      "extended"
-                    ]
-                  },
-                  "value": {
-                    "type": "string",
-                    "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                  }
-                },
-                "example": {
-                  "type": "basic",
-                  "value": "cost"
-                }
-              },
-              "operator": {
-                "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                "type": "string",
-                "enum": [
-                  "gt",
-                  "lt",
-                  "lte",
-                  "gte",
-                  "b",
-                  "nb",
-                  "e",
-                  "ne"
-                ]
-              },
-              "values": {
-                "type": "array",
-                "items": {
-                  "type": "number",
-                  "format": "double"
-                }
-              },
-              "operand": {
-                "type": "string",
-                "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                "enum": [
-                  "single_value",
-                  "series_total"
-                ],
-                "default": "single_value"
-              }
-            },
-            "example": {
-              "metric": {
-                "type": "basic",
-                "value": "cost"
-              },
-              "operator": "gt",
-              "values": [
-                50
-              ]
-            }
-          },
-          "limitAggregation": {
-            "type": "string",
-            "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-            "enum": [
-              "none",
-              "top",
-              "all"
-            ],
-            "default": "none"
-          },
-          "limitByChange": {
-            "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-            "type": "object",
-            "required": [
-              "metric",
-              "changeType",
-              "operator",
-              "values",
-              "includeIncompleteData"
-            ],
-            "properties": {
-              "metric": {
-                "allOf": [
-                  {
+                  "metric": {
                     "description": "Metric selector used in reports and filters.",
                     "type": "object",
                     "required": [
@@ -138917,54 +138911,154 @@
                       "type": "basic",
                       "value": "cost"
                     }
+                  },
+                  "operator": {
+                    "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                    "type": "string",
+                    "enum": [
+                      "gt",
+                      "lt",
+                      "lte",
+                      "gte",
+                      "b",
+                      "nb",
+                      "e",
+                      "ne"
+                    ]
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "format": "double"
+                    }
+                  },
+                  "operand": {
+                    "type": "string",
+                    "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                    "enum": [
+                      "single_value",
+                      "series_total"
+                    ],
+                    "default": "single_value"
                   }
-                ],
-                "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-              },
-              "changeType": {
-                "type": "string",
-                "enum": [
-                  "percentage",
-                  "absolute"
-                ]
-              },
-              "operator": {
-                "type": "string",
-                "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                "enum": [
-                  "gt",
-                  "gte",
-                  "lt",
-                  "lte",
-                  "b",
-                  "nb"
-                ]
-              },
-              "values": {
-                "type": "array",
-                "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                "items": {
-                  "type": "number",
-                  "format": "double"
+                },
+                "example": {
+                  "metric": {
+                    "type": "basic",
+                    "value": "cost"
+                  },
+                  "operator": "gt",
+                  "values": [
+                    50
+                  ]
                 }
-              },
-              "includeIncompleteData": {
-                "type": "boolean",
-                "description": "When true, keeps rows whose deltas could not be evaluated."
               }
-            },
-            "example": {
-              "metric": {
-                "type": "basic",
-                "value": "cost"
-              },
-              "changeType": "percentage",
-              "operator": "gte",
-              "values": [
-                50
-              ],
-              "includeIncompleteData": false
-            }
+            ],
+            "nullable": true
+          },
+          "limitAggregation": {
+            "type": "string",
+            "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+            "enum": [
+              "none",
+              "top",
+              "all"
+            ],
+            "default": "none"
+          },
+          "limitByChange": {
+            "allOf": [
+              {
+                "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                "type": "object",
+                "required": [
+                  "metric",
+                  "changeType",
+                  "operator",
+                  "values",
+                  "includeIncompleteData"
+                ],
+                "properties": {
+                  "metric": {
+                    "allOf": [
+                      {
+                        "description": "Metric selector used in reports and filters.",
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "value"
+                        ],
+                        "properties": {
+                          "type": {
+                            "description": "Type of metric to use.",
+                            "type": "string",
+                            "enum": [
+                              "basic",
+                              "custom",
+                              "extended"
+                            ]
+                          },
+                          "value": {
+                            "type": "string",
+                            "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                          }
+                        },
+                        "example": {
+                          "type": "basic",
+                          "value": "cost"
+                        }
+                      }
+                    ],
+                    "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                  },
+                  "changeType": {
+                    "type": "string",
+                    "enum": [
+                      "percentage",
+                      "absolute"
+                    ]
+                  },
+                  "operator": {
+                    "type": "string",
+                    "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                    "enum": [
+                      "gt",
+                      "gte",
+                      "lt",
+                      "lte",
+                      "b",
+                      "nb"
+                    ]
+                  },
+                  "values": {
+                    "type": "array",
+                    "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                    "items": {
+                      "type": "number",
+                      "format": "double"
+                    }
+                  },
+                  "includeIncompleteData": {
+                    "type": "boolean",
+                    "description": "When true, keeps rows whose deltas could not be evaluated."
+                  }
+                },
+                "example": {
+                  "metric": {
+                    "type": "basic",
+                    "value": "cost"
+                  },
+                  "changeType": "percentage",
+                  "operator": "gte",
+                  "values": [
+                    50
+                  ],
+                  "includeIncompleteData": false
+                }
+              }
+            ],
+            "nullable": true
           },
           "aggregation": {
             "description": "How to aggregate data values in the report.",
@@ -139714,8 +139808,9 @@
             }
           },
           "customTimeRange": {
-            "description": "Required when the time range is set to \"custom\".",
+            "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
             "type": "object",
+            "nullable": true,
             "properties": {
               "from": {
                 "type": "string",
@@ -139733,7 +139828,8 @@
           },
           "count": {
             "type": "object",
-            "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+            "nullable": true,
+            "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
             "required": [
               "id",
               "type"
@@ -140012,7 +140108,7 @@
         }
       },
       "ExternalConfigMetricFilter": {
-        "description": "Metric filter to limit report rows by metric value.",
+        "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
         "type": "object",
         "required": [
           "metric",
@@ -140090,7 +140186,7 @@
         }
       },
       "ExternalLimitByChange": {
-        "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
+        "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
         "type": "object",
         "required": [
           "metric",
@@ -140388,107 +140484,17 @@
                 }
               },
               "metricFilter": {
-                "description": "Metric filter to limit report rows by metric value.",
-                "type": "object",
-                "required": [
-                  "metric",
-                  "operator",
-                  "values"
-                ],
-                "properties": {
-                  "metric": {
-                    "description": "Metric selector used in reports and filters.",
+                "allOf": [
+                  {
+                    "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                     "type": "object",
                     "required": [
-                      "type",
-                      "value"
+                      "metric",
+                      "operator",
+                      "values"
                     ],
                     "properties": {
-                      "type": {
-                        "description": "Type of metric to use.",
-                        "type": "string",
-                        "enum": [
-                          "basic",
-                          "custom",
-                          "extended"
-                        ]
-                      },
-                      "value": {
-                        "type": "string",
-                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                      }
-                    },
-                    "example": {
-                      "type": "basic",
-                      "value": "cost"
-                    }
-                  },
-                  "operator": {
-                    "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                    "type": "string",
-                    "enum": [
-                      "gt",
-                      "lt",
-                      "lte",
-                      "gte",
-                      "b",
-                      "nb",
-                      "e",
-                      "ne"
-                    ]
-                  },
-                  "values": {
-                    "type": "array",
-                    "items": {
-                      "type": "number",
-                      "format": "double"
-                    }
-                  },
-                  "operand": {
-                    "type": "string",
-                    "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                    "enum": [
-                      "single_value",
-                      "series_total"
-                    ],
-                    "default": "single_value"
-                  }
-                },
-                "example": {
-                  "metric": {
-                    "type": "basic",
-                    "value": "cost"
-                  },
-                  "operator": "gt",
-                  "values": [
-                    50
-                  ]
-                }
-              },
-              "limitAggregation": {
-                "type": "string",
-                "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                "enum": [
-                  "none",
-                  "top",
-                  "all"
-                ],
-                "default": "none"
-              },
-              "limitByChange": {
-                "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                "type": "object",
-                "required": [
-                  "metric",
-                  "changeType",
-                  "operator",
-                  "values",
-                  "includeIncompleteData"
-                ],
-                "properties": {
-                  "metric": {
-                    "allOf": [
-                      {
+                      "metric": {
                         "description": "Metric selector used in reports and filters.",
                         "type": "object",
                         "required": [
@@ -140514,54 +140520,154 @@
                           "type": "basic",
                           "value": "cost"
                         }
+                      },
+                      "operator": {
+                        "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                        "type": "string",
+                        "enum": [
+                          "gt",
+                          "lt",
+                          "lte",
+                          "gte",
+                          "b",
+                          "nb",
+                          "e",
+                          "ne"
+                        ]
+                      },
+                      "values": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "format": "double"
+                        }
+                      },
+                      "operand": {
+                        "type": "string",
+                        "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                        "enum": [
+                          "single_value",
+                          "series_total"
+                        ],
+                        "default": "single_value"
                       }
-                    ],
-                    "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                  },
-                  "changeType": {
-                    "type": "string",
-                    "enum": [
-                      "percentage",
-                      "absolute"
-                    ]
-                  },
-                  "operator": {
-                    "type": "string",
-                    "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                    "enum": [
-                      "gt",
-                      "gte",
-                      "lt",
-                      "lte",
-                      "b",
-                      "nb"
-                    ]
-                  },
-                  "values": {
-                    "type": "array",
-                    "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                    "items": {
-                      "type": "number",
-                      "format": "double"
+                    },
+                    "example": {
+                      "metric": {
+                        "type": "basic",
+                        "value": "cost"
+                      },
+                      "operator": "gt",
+                      "values": [
+                        50
+                      ]
                     }
-                  },
-                  "includeIncompleteData": {
-                    "type": "boolean",
-                    "description": "When true, keeps rows whose deltas could not be evaluated."
                   }
-                },
-                "example": {
-                  "metric": {
-                    "type": "basic",
-                    "value": "cost"
-                  },
-                  "changeType": "percentage",
-                  "operator": "gte",
-                  "values": [
-                    50
-                  ],
-                  "includeIncompleteData": false
-                }
+                ],
+                "nullable": true
+              },
+              "limitAggregation": {
+                "type": "string",
+                "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                "enum": [
+                  "none",
+                  "top",
+                  "all"
+                ],
+                "default": "none"
+              },
+              "limitByChange": {
+                "allOf": [
+                  {
+                    "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                    "type": "object",
+                    "required": [
+                      "metric",
+                      "changeType",
+                      "operator",
+                      "values",
+                      "includeIncompleteData"
+                    ],
+                    "properties": {
+                      "metric": {
+                        "allOf": [
+                          {
+                            "description": "Metric selector used in reports and filters.",
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "value"
+                            ],
+                            "properties": {
+                              "type": {
+                                "description": "Type of metric to use.",
+                                "type": "string",
+                                "enum": [
+                                  "basic",
+                                  "custom",
+                                  "extended"
+                                ]
+                              },
+                              "value": {
+                                "type": "string",
+                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                              }
+                            },
+                            "example": {
+                              "type": "basic",
+                              "value": "cost"
+                            }
+                          }
+                        ],
+                        "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                      },
+                      "changeType": {
+                        "type": "string",
+                        "enum": [
+                          "percentage",
+                          "absolute"
+                        ]
+                      },
+                      "operator": {
+                        "type": "string",
+                        "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                        "enum": [
+                          "gt",
+                          "gte",
+                          "lt",
+                          "lte",
+                          "b",
+                          "nb"
+                        ]
+                      },
+                      "values": {
+                        "type": "array",
+                        "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                        "items": {
+                          "type": "number",
+                          "format": "double"
+                        }
+                      },
+                      "includeIncompleteData": {
+                        "type": "boolean",
+                        "description": "When true, keeps rows whose deltas could not be evaluated."
+                      }
+                    },
+                    "example": {
+                      "metric": {
+                        "type": "basic",
+                        "value": "cost"
+                      },
+                      "changeType": "percentage",
+                      "operator": "gte",
+                      "values": [
+                        50
+                      ],
+                      "includeIncompleteData": false
+                    }
+                  }
+                ],
+                "nullable": true
               },
               "aggregation": {
                 "description": "How to aggregate data values in the report.",
@@ -141311,8 +141417,9 @@
                 }
               },
               "customTimeRange": {
-                "description": "Required when the time range is set to \"custom\".",
+                "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                 "type": "object",
+                "nullable": true,
                 "properties": {
                   "from": {
                     "type": "string",
@@ -141330,7 +141437,8 @@
               },
               "count": {
                 "type": "object",
-                "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                "nullable": true,
+                "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                 "required": [
                   "id",
                   "type"
@@ -141659,107 +141767,17 @@
                 }
               },
               "metricFilter": {
-                "description": "Metric filter to limit report rows by metric value.",
-                "type": "object",
-                "required": [
-                  "metric",
-                  "operator",
-                  "values"
-                ],
-                "properties": {
-                  "metric": {
-                    "description": "Metric selector used in reports and filters.",
+                "allOf": [
+                  {
+                    "description": "Metric filter to limit report rows by metric value.\nOn PATCH, omit to preserve the existing filter; send null to remove it.",
                     "type": "object",
                     "required": [
-                      "type",
-                      "value"
+                      "metric",
+                      "operator",
+                      "values"
                     ],
                     "properties": {
-                      "type": {
-                        "description": "Type of metric to use.",
-                        "type": "string",
-                        "enum": [
-                          "basic",
-                          "custom",
-                          "extended"
-                        ]
-                      },
-                      "value": {
-                        "type": "string",
-                        "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
-                      }
-                    },
-                    "example": {
-                      "type": "basic",
-                      "value": "cost"
-                    }
-                  },
-                  "operator": {
-                    "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
-                    "type": "string",
-                    "enum": [
-                      "gt",
-                      "lt",
-                      "lte",
-                      "gte",
-                      "b",
-                      "nb",
-                      "e",
-                      "ne"
-                    ]
-                  },
-                  "values": {
-                    "type": "array",
-                    "items": {
-                      "type": "number",
-                      "format": "double"
-                    }
-                  },
-                  "operand": {
-                    "type": "string",
-                    "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
-                    "enum": [
-                      "single_value",
-                      "series_total"
-                    ],
-                    "default": "single_value"
-                  }
-                },
-                "example": {
-                  "metric": {
-                    "type": "basic",
-                    "value": "cost"
-                  },
-                  "operator": "gt",
-                  "values": [
-                    50
-                  ]
-                }
-              },
-              "limitAggregation": {
-                "type": "string",
-                "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
-                "enum": [
-                  "none",
-                  "top",
-                  "all"
-                ],
-                "default": "none"
-              },
-              "limitByChange": {
-                "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.",
-                "type": "object",
-                "required": [
-                  "metric",
-                  "changeType",
-                  "operator",
-                  "values",
-                  "includeIncompleteData"
-                ],
-                "properties": {
-                  "metric": {
-                    "allOf": [
-                      {
+                      "metric": {
                         "description": "Metric selector used in reports and filters.",
                         "type": "object",
                         "required": [
@@ -141785,54 +141803,154 @@
                           "type": "basic",
                           "value": "cost"
                         }
+                      },
+                      "operator": {
+                        "description": "Comparison operator for filtering metric values: `gt` (Greater Than), `lt` (Less\nThan), `lte` (Less Than or Equals), `gte` (Greater Than or Equals), `b` (Between),\n`nb` (Not Between), `e` (Equals), `ne` (Not Equals).",
+                        "type": "string",
+                        "enum": [
+                          "gt",
+                          "lt",
+                          "lte",
+                          "gte",
+                          "b",
+                          "nb",
+                          "e",
+                          "ne"
+                        ]
+                      },
+                      "values": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "format": "double"
+                        }
+                      },
+                      "operand": {
+                        "type": "string",
+                        "description": "Whether the threshold applies to each value (default) or the series total.\nSame field as the DoiT Console metric filter `operand` (`OperandSingleValue` /\n`OperandSeriesTotal`). On input, omitted defaults to `single_value`. GET responses\necho the effective value (`single_value` or `series_total`).",
+                        "enum": [
+                          "single_value",
+                          "series_total"
+                        ],
+                        "default": "single_value"
                       }
-                    ],
-                    "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
-                  },
-                  "changeType": {
-                    "type": "string",
-                    "enum": [
-                      "percentage",
-                      "absolute"
-                    ]
-                  },
-                  "operator": {
-                    "type": "string",
-                    "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
-                    "enum": [
-                      "gt",
-                      "gte",
-                      "lt",
-                      "lte",
-                      "b",
-                      "nb"
-                    ]
-                  },
-                  "values": {
-                    "type": "array",
-                    "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
-                    "items": {
-                      "type": "number",
-                      "format": "double"
+                    },
+                    "example": {
+                      "metric": {
+                        "type": "basic",
+                        "value": "cost"
+                      },
+                      "operator": "gt",
+                      "values": [
+                        50
+                      ]
                     }
-                  },
-                  "includeIncompleteData": {
-                    "type": "boolean",
-                    "description": "When true, keeps rows whose deltas could not be evaluated."
                   }
-                },
-                "example": {
-                  "metric": {
-                    "type": "basic",
-                    "value": "cost"
-                  },
-                  "changeType": "percentage",
-                  "operator": "gte",
-                  "values": [
-                    50
-                  ],
-                  "includeIncompleteData": false
-                }
+                ],
+                "nullable": true
+              },
+              "limitAggregation": {
+                "type": "string",
+                "description": "Controls how rows excluded by limits are rendered. Applies when any limit type is active\n(`metricFilter`, `limitByChange`, or a `group` entry with a `limit`). A report may configure\nat most two of those three limit types — not all three. When `displayValues` is not\n`actuals_only`, this field must be `none` (or omitted, which defaults to `none`).",
+                "enum": [
+                  "none",
+                  "top",
+                  "all"
+                ],
+                "default": "none"
+              },
+              "limitByChange": {
+                "allOf": [
+                  {
+                    "description": "Limit by change filter; a report may configure at most two of `metricFilter`,\n`limitByChange` and rank `group` limits. Without `secondaryTimeRange` the change is\na period-over-period delta between adjacent time buckets. With it, each row's\nprimary-range total is compared with its secondary-range total, so column dimensions\n(`dimensions`, which `timeInterval` fills implicitly when omitted) only add buckets\nto those totals, while `group` gives every row its own change. A percentage change\nis comparable while both periods hold the same number of buckets; an absolute change\nis their plain difference and so scales with the bucket count. A row present in only\none range counts as zero there, so a percentage threshold cannot be met from zero. A\npercentage-typed custom metric, or count aggregation, is rejected with\n`LIMIT_BY_CHANGE_METRIC_NOT_ADDITIVE_WITH_SECONDARY`.\nOn PATCH, omit to preserve the existing limit; send null to remove it.",
+                    "type": "object",
+                    "required": [
+                      "metric",
+                      "changeType",
+                      "operator",
+                      "values",
+                      "includeIncompleteData"
+                    ],
+                    "properties": {
+                      "metric": {
+                        "allOf": [
+                          {
+                            "description": "Metric selector used in reports and filters.",
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "value"
+                            ],
+                            "properties": {
+                              "type": {
+                                "description": "Type of metric to use.",
+                                "type": "string",
+                                "enum": [
+                                  "basic",
+                                  "custom",
+                                  "extended"
+                                ]
+                              },
+                              "value": {
+                                "type": "string",
+                                "description": "For basic metrics, the value can be one of: [\"cost\", \"usage\", \"savings\"]\nIf using custom metrics, the value must refer to an existing custom metric ID."
+                              }
+                            },
+                            "example": {
+                              "type": "basic",
+                              "value": "cost"
+                            }
+                          }
+                        ],
+                        "description": "The metric the change is measured on. It must also be listed in the report's\n`config.metrics`; otherwise the request is rejected with a 400 and nothing is saved."
+                      },
+                      "changeType": {
+                        "type": "string",
+                        "enum": [
+                          "percentage",
+                          "absolute"
+                        ]
+                      },
+                      "operator": {
+                        "type": "string",
+                        "description": "Comparison operator for period-over-period deltas: `gt` (Greater Than), `gte`\n(Greater Than or Equals), `lt` (Less Than), `lte` (Less Than or Equals), `b`\n(Between), `nb` (Not Between).",
+                        "enum": [
+                          "gt",
+                          "gte",
+                          "lt",
+                          "lte",
+                          "b",
+                          "nb"
+                        ]
+                      },
+                      "values": {
+                        "type": "array",
+                        "description": "Threshold value(s). Unary operators (`gt`, `gte`, `lt`, `lte`) use one entry; the range\noperators (`b`, `nb`) require two ordered entries.",
+                        "items": {
+                          "type": "number",
+                          "format": "double"
+                        }
+                      },
+                      "includeIncompleteData": {
+                        "type": "boolean",
+                        "description": "When true, keeps rows whose deltas could not be evaluated."
+                      }
+                    },
+                    "example": {
+                      "metric": {
+                        "type": "basic",
+                        "value": "cost"
+                      },
+                      "changeType": "percentage",
+                      "operator": "gte",
+                      "values": [
+                        50
+                      ],
+                      "includeIncompleteData": false
+                    }
+                  }
+                ],
+                "nullable": true
               },
               "aggregation": {
                 "description": "How to aggregate data values in the report.",
@@ -142582,8 +142700,9 @@
                 }
               },
               "customTimeRange": {
-                "description": "Required when the time range is set to \"custom\".",
+                "description": "Required when the time range is set to \"custom\". On PATCH, omit to preserve the existing range; send null to remove it.\nA PATCH that sets `timeRange` to a mode other than \"custom\" without sending `customTimeRange` removes it.\nSending null while `timeRange.mode` stays \"custom\" is rejected.",
                 "type": "object",
+                "nullable": true,
                 "properties": {
                   "from": {
                     "type": "string",
@@ -142601,7 +142720,8 @@
               },
               "count": {
                 "type": "object",
-                "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".",
+                "nullable": true,
+                "description": "The field to count distinct values of. Only applicable when aggregation is set to \"count\".\nOn PATCH, omit to preserve the existing field; send null to remove it.\nA PATCH that sets `aggregation` to a value other than \"count\" without sending `count` removes it.",
                 "required": [
                   "id",
                   "type"
