@@ -37,9 +37,7 @@ describe("Cloud Connect skill delivery through the shared core", () => {
         const text = resource.text;
         const frontmatter = text.split("---\n")[1];
         expect(getSkill(CLOUD_CONNECT_SKILL_URI).skill.frontmatter).toEqual(parse(frontmatter));
-        expect(CLOUD_CONNECT_PROMPT.text).toBe(
-            text.replace(/\]\((references)\//g, "](skill://doit-cloud-connect/$1/")
-        );
+        expect(CLOUD_CONNECT_PROMPT.text).toBe(text.replace(/\]\((references)\//g, "](skill://doit-cloud-connect/$1/"));
     });
     it("cannot read another path or silently accept an invalid cursor", () => {
         expect(() => readSkillResource("skill://doit-cloud-connect/../../private.env")).toThrow();
