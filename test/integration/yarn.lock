@@ -48,23 +48,23 @@
   resolved "https://registry.yarnpkg.com/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.5.tgz#6912b00d2c631c0d15ce1a7ab57cd657f2a8f8ba"
   integrity sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==
 
-"@modelcontextprotocol/client@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/client/-/client-2.2.0.tgz#95ccc22cccf717d23263a69fb66bb3035b9da8a4"
-  integrity sha512-LxCou/CSYQ6dwEnjhLZY0KnEuc8V4UJ3IEQCl/uR2yHobSQIEdJKUlKLRYRF5i5FqRGHy1eK7une3aAWDHLtig==
+"@modelcontextprotocol/client@2.3.0":
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/client/-/client-2.3.0.tgz#4df4c3ba90d4b2fb121eb91955b74904a019c832"
+  integrity sha512-pbHtGj6EeFCHngFE8gtNPaKrsj8Mb1IMw45BLcaPML/m2WTxI7pyYmeNQvaux88Lw8BSO5r7nyRbUyIkICmGrg==
   dependencies:
-    "@modelcontextprotocol/core" "2.2.0"
+    "@modelcontextprotocol/core" "2.3.0"
     cross-spawn "^7.0.5"
     eventsource "^3.0.2"
-    eventsource-parser "^3.0.0"
+    eventsource-parser "^3.0.8"
     jose "^6.1.3"
     pkce-challenge "^5.0.0"
     zod "^4.2.0"
 
-"@modelcontextprotocol/core@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/core/-/core-2.2.0.tgz#7740ee515d179ecd10e924fc7f35654a00e557bb"
-  integrity sha512-iLhmprRmWI8EcosOA3wVvww22z02NkgqhV4fBH6f/odQBsi7xnJc0HGmi21yWO+/iKw2yzqVE127Zhna5/+JXw==
+"@modelcontextprotocol/core@2.3.0":
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/core/-/core-2.3.0.tgz#e16da853964147db06c34e12fab7269a07e10ed6"
+  integrity sha512-09BHFaNVBe5pB2AhzCfLj0cqmsKLERvZQ4FblzP90UMGLaXVqdZPByFjURwsUYCmxonUW2yAwgTTvle+8O2/8w==
   dependencies:
     zod "^4.2.0"
 
@@ -561,10 +561,10 @@ etag@^1.8.1:
   resolved "https://registry.yarnpkg.com/etag/-/etag-1.8.1.tgz#41ae2eeb65efa62268aebfea83ac7d79299b0887"
   integrity sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==
 
-eventsource-parser@^3.0.0, eventsource-parser@^3.0.1:
-  version "3.0.6"
-  resolved "https://registry.yarnpkg.com/eventsource-parser/-/eventsource-parser-3.0.6.tgz#292e165e34cacbc936c3c92719ef326d4aeb4e90"
-  integrity sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg==
+eventsource-parser@^3.0.0, eventsource-parser@^3.0.1, eventsource-parser@^3.0.8:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/eventsource-parser/-/eventsource-parser-3.1.1.tgz#b96cbb7dace4f3774f58a9e3b1ae9a4a524872e2"
+  integrity sha512-EKN1vKAMcZ8MlYMpaNuxN6R9yakzH6uajHcHVTqWJzvu5pWw9DyhbP35HH8MVBQ+dZjAfDxk+A8NiR9KWaXiyQ==
 
 eventsource@^3.0.2:
   version "3.0.7"
@@ -1467,12 +1467,7 @@ zod-to-json-schema@^3.25.1:
   resolved "https://registry.yarnpkg.com/zod-to-json-schema/-/zod-to-json-schema-3.25.1.tgz#7f24962101a439ddade2bf1aeab3c3bfec7d84ba"
   integrity sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==
 
-"zod@^3.25 || ^4.0":
-  version "4.3.6"
-  resolved "https://registry.yarnpkg.com/zod/-/zod-4.3.6.tgz#89c56e0aa7d2b05107d894412227087885ab112a"
-  integrity sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==
-
-zod@^4.2.0:
+"zod@^3.25 || ^4.0", zod@^4.2.0:
   version "4.6.5"
   resolved "https://registry.yarnpkg.com/zod/-/zod-4.6.5.tgz#e3af3edbdc260239c52f73caad05dbbffe6e82cd"
   integrity sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==

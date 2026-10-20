@@ -9,7 +9,7 @@
     "test:live:request-errors": "node live/requestErrors.mjs"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.2.0",
+    "@modelcontextprotocol/client": "2.3.0",
     "@modelcontextprotocol/sdk": "^1.31.0",
     "@types/node": "^22",
     "msw": "^2.15.0",
