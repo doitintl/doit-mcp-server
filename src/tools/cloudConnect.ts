@@ -45,7 +45,7 @@ const expectedEtag = z
     .string()
     .regex(/^"[\x21\x23-\x7e]+"$/)
     .describe(
-        "Exact quoted `etag` returned by the latest read or write. Never synthesize it; a stale value returns 412 and requires a fresh read and reviewed change."
+        "Exact quoted `etag` returned by the latest read or write, not a synthesized value. A stale value returns 412; retrying requires the current etag and a re-evaluated change."
     );
 const catalogVersion = id
     .optional()
@@ -58,19 +58,19 @@ const idempotencyKey = z
     .max(255)
     .optional()
     .describe(
-        "Optional. One key per logical write. When omitted a fresh key is generated and returned as `idempotencyKey` in the result or error. After a lost response or timeout, read the connection first; if the write must be repeated unchanged, send the identical request with the same key. Never reuse a key for a different body."
+        "Optional. One key per logical write. When omitted a fresh key is generated and returned as `idempotencyKey` in the result or error. A lost response or timeout can leave the outcome uncertain; the connection record supports reconciliation before retrying. An unchanged retry uses the identical request and key; a different body requires a different key."
     );
 export const GetCloudConnectRequirementsArgumentsSchema = z.object({
     scope: CloudConnectScopeSchema,
     featureIds: featureIds
         .optional()
         .describe(
-            "Omit only to discover the available features. Discovery selects nothing, and its artifacts are not requirementsSatisfied until features are chosen."
+            "Omitting this field discovers available features without selecting any. Discovery artifacts are not requirementsSatisfied until features are chosen."
         ),
     featureInputs: inputs
         .optional()
         .describe(
-            "Only inputs published by the selected features (real-time-data: bucketName and bucketRegion). Take them from the customer's actual cloud context; the API does not prove a bucket exists."
+            "Only inputs published by the selected features (real-time-data: bucketName and bucketRegion), identifying the customer's actual cloud resources. The API does not prove the bucket exists or that its region is correct."
         ),
     discoveryInputs: z
         .object({
@@ -79,7 +79,7 @@ export const GetCloudConnectRequirementsArgumentsSchema = z.object({
                 .regex(/^\d{12}$/)
                 .optional()
                 .describe(
-                    "Optional hint for member accounts. It does not associate an undiscovered member with the customer."
+                    "Optional management-account hint for member accounts. It does not associate an undiscovered member with the customer or override DoiT account/payer prerequisites."
                 ),
         })
         .strict()
@@ -131,7 +131,7 @@ export const RemoveCloudConnectionArgumentsSchema = z.object({
     cleanupScope: z
         .literal("doit_only")
         .describe(
-            "Required acknowledgement. Removes the DoiT record and DoiT-side cleanup only; customer IAM, stacks and Terraform stay customer-owned. Read the dry-run side effects first."
+            "Required acknowledgement. Removes the DoiT record and DoiT-side cleanup only; customer IAM, stacks and Terraform stay customer-owned. The removal dry run exposes side effects for review."
         ),
     idempotencyKey,
 });
@@ -172,35 +172,35 @@ export const getCloudConnectRequirementsTool = tool(
     "get_cloud_connect_requirements",
     GetCloudConnectRequirementsArgumentsSchema,
     `post:${base}/requirements`,
-    "Resolve fresh customer-specific AWS Cloud Connect prerequisites, identity trust, permission sets, inputs and deployment artifacts. Read-only. Plan from this response; omitted featureIds is discovery only. Gate deployment on the selected artifact's requirementsSatisfied and findings, not on feature-level flags. It does not prove cloud resources, deployment success or access. Does not enable billing exports.",
+    "Resolve fresh customer-specific AWS Cloud Connect prerequisites, identity trust, per-feature permissions, inputs and deployment artifacts. Read-only. Artifacts are reference implementations for adaptation to customer tooling; their requirements and registration behavior remain relevant when adapted. The selected artifact's requirementsSatisfied and findings determine artifact readiness; feature-level flags or preconditions alone do not. requirementsSatisfied covers entitlement, inputs, account prerequisites and artifact support; it does not prove cloud resources, deployment success or access. Discovery and blocked artifacts have requirementsSatisfied=false and empty parameters. Returned artifact parameters have exact spelling and structure; unchanged artifacts require them verbatim, while adapted implementations require an explicit mapping of the same requirements. Does not enable billing exports.",
     true
 );
 export const listCloudConnectionsTool = tool(
     "list_cloud_connections",
     ListCloudConnectionsArgumentsSchema,
     `get:${base}/connections`,
-    "Discover existing Cloud Connect records by exact account/feature filters. An empty list means no registration, not that cloud resources are absent. Follow pageToken with the same filters.",
+    "Discover existing Cloud Connect records by exact account/feature filters. An empty list means no matching registration, not that cloud resources are absent. Subsequent pages use pageToken with the same filters.",
     true
 );
 export const getCloudConnectionTool = tool(
     "get_cloud_connection",
     GetCloudConnectionArgumentsSchema,
     `get:${base}/connections/{connectionId}`,
-    "Read a connection's bindings, desired features, last verification summary and named follow-ups. Returns the etag for conditional writes. Stored state is not a fresh access probe; use verify_cloud_connect.",
+    "Read a connection's bindings, desired features, last verification summary and named follow-ups. Returns the etag for conditional writes. Stored state is not a fresh access probe; fresh checks are available through verify_cloud_connect.",
     true
 );
 export const registerCloudConnectionTool = tool(
     "register_cloud_connection",
     RegisterCloudConnectionArgumentsSchema,
     `post:${base}/connections`,
-    "Register a deployed IAM role after fresh requirements and dry_run_cloud_connection_change, only when the artifact's registration is `manual`. Never call it after a `provider` (Terraform provider) or `callback` (CloudFormation hook) artifact; read the record instead. An existing connection for the account returns 409 connection_exists; use a conditional update instead. Registration is not feature access; verify afterwards.",
+    "Register a deployed IAM role for a supported manual registration handoff. Retained DoiT Terraform provider resources and CloudFormation callbacks perform registration through their own workflow; an additional registration duplicates that operation. An existing connection for the account returns 409 connection_exists; changes to that record use a conditional update. Fresh requirements describe prerequisites, and dry_run_cloud_connection_change previews the request. Registration alone does not establish feature access.",
     false
 );
 export const updateCloudConnectionTool = tool(
     "update_cloud_connection",
     UpdateCloudConnectionArgumentsSchema,
     `patch:${base}/connections/{connectionId}`,
-    "Change a binding's desired features/inputs, or retry failed follow-ups by re-sending the current desired state. Read the connection and dry-run this exact change first; send its latest etag. A 412 means re-read and re-evaluate. Confirm removals with the user. Does not change IAM or the identity.",
+    "Change a binding's desired features/inputs, or retry failed follow-ups by re-sending the current desired state. Requires the latest connection etag; 412 indicates a stale value and a change that needs re-evaluation. dry_run_cloud_connection_change previews the exact request and its effects, including removals. Does not change IAM or the identity.",
     false,
     true
 );
@@ -208,7 +208,7 @@ export const removeCloudConnectionTool = tool(
     "remove_cloud_connection",
     RemoveCloudConnectionArgumentsSchema,
     `delete:${base}/connections/{connectionId}`,
-    "Disconnect the DoiT record after reading and dry-running removal and confirming the effects with the user. Uses the exact etag and cleanupScope doit_only; customer IAM/IaC cleanup remains separate. 204 means the record is gone; a 409 cleanup_failed keeps it, so retry with a fresh etag. A later 404 means already absent.",
+    "Disconnect the DoiT record using its exact etag and cleanupScope doit_only; customer IAM/IaC cleanup remains separate. dry_run_cloud_connection_change previews removal effects. 204 means the record is gone; a 409 cleanup_failed keeps it, and another removal attempt requires a fresh etag. A later 404 means already absent.",
     false,
     true
 );
@@ -216,14 +216,14 @@ export const dryRunCloudConnectionChangeTool = tool(
     "dry_run_cloud_connection_change",
     DryRunCloudConnectionChangeArgumentsSchema,
     null,
-    "Validate a register, update or remove request and run available live checks without committing (dryRun=true). A new, unregistered AWS role returns aws_broker_requires_registration: explain that limit and do not claim access verified. Returns preconditions, DoiT side effects, follow-ups and customer cleanup to review. wouldApply is informational, not a reservation or approval.",
+    "Validate a register, update or remove request and run available live checks without committing (dryRun=true). A new, unregistered AWS role returns aws_broker_requires_registration because the broker cannot probe it before registration; this result does not verify access. Returns preconditions, DoiT side effects, follow-ups and customer cleanup for review. wouldApply is informational, not a reservation or approval.",
     true
 );
 export const verifyCloudConnectTool = tool(
     "verify_cloud_connect",
     VerifyCloudConnectArgumentsSchema,
     `post:${base}/connections/{connectionId}/actions/verify`,
-    "Fresh synchronous access checks for a registered connection. Read authentication, every per-feature check and its coverage, and `recorded`. partial, not_checked and failed checks are not passed; a failed authentication leaves every feature not_checked. Declared-permission checks do not prove effective access, and access never proves billing data arrived. Nothing is stored as a run; correlate with the requestId.",
+    "Run fresh synchronous access checks for a registered connection. Results include authentication, per-feature checks and coverage, and `recorded` indicating whether the observation was stored. partial, not_checked and failed checks are not passed; a failed authentication leaves every feature not_checked. Declared-permission checks do not prove effective access, and access never proves billing data arrived. Nothing is stored as a run; requestId provides correlation.",
     false
 );
 export const CLOUD_CONNECT_TOOLS = [

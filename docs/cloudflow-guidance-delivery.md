@@ -216,9 +216,11 @@ Following the repo's `__tests__` convention:
 
 ## 5. Proposed `CLOUDFLOW_INSTRUCTIONS` text
 
-Kept to what changes behavior; everything else lives in the resource. All three tiers state facts
-about the platform rather than rules for the model: directory review (e.g. the Claude Connectors
-Directory) rejects tool text that tells the model to always call other tools or what it may claim.
+Kept to what changes behavior; everything else lives in the resource. All three tiers focus on
+platform behavior, relevant usage conditions and result limits. The Claude Connectors
+[review criteria](https://claude.com/docs/connectors/building/review-criteria#avoid-prompt-injection-patterns)
+reject unrelated behavioral instructions and coerced tool calls, while tool-specific preconditions
+and caveats remain useful. See the repo's [tool-description guidance](../AGENTS.md#tool-descriptions-and-parameter-help).
 
 The current instruction text is `CLOUDFLOW_INSTRUCTIONS` in
 [`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts). It distinguishes both
