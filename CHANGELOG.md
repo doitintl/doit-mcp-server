@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.7.1 (2026-10-21)
+
+**Full diff:** [`v2.7.0...v2.7.1`](../../compare/v2.7.0...v2.7.1)
+
+### Chores
+
+- chore(deps): bump vite from 8.3.2 to 8.3.5 (`35c032b`)
+- chore(deps-dev): bump @modelcontextprotocol/sdk in /test/integration (`f841150`)
+- chore(deps): bump @modelcontextprotocol/server from 2.2.0 to 2.3.0 (`3fb1dc6`)
+- chore(deps-dev): bump @modelcontextprotocol/client in /test/integration (`c04df9b`)
+
+### Other Changes
+
+- test(skills): use unlinkSync for symlink cleanup in registry tests (`e64b922`)
 ## v2.7.0 (2026-10-20)
 
 **Full diff:** [`v2.6.0...v2.7.0`](../../compare/v2.6.0...v2.7.0)
