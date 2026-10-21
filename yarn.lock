@@ -93,19 +93,19 @@
   resolved "https://registry.yarnpkg.com/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.5.tgz#6912b00d2c631c0d15ce1a7ab57cd657f2a8f8ba"
   integrity sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==
 
-"@modelcontextprotocol/core@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/core/-/core-2.2.0.tgz#7740ee515d179ecd10e924fc7f35654a00e557bb"
-  integrity sha512-iLhmprRmWI8EcosOA3wVvww22z02NkgqhV4fBH6f/odQBsi7xnJc0HGmi21yWO+/iKw2yzqVE127Zhna5/+JXw==
+"@modelcontextprotocol/core@2.3.0":
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/core/-/core-2.3.0.tgz#e16da853964147db06c34e12fab7269a07e10ed6"
+  integrity sha512-09BHFaNVBe5pB2AhzCfLj0cqmsKLERvZQ4FblzP90UMGLaXVqdZPByFjURwsUYCmxonUW2yAwgTTvle+8O2/8w==
   dependencies:
     zod "^4.2.0"
 
 "@modelcontextprotocol/server@^2.1.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/server/-/server-2.2.0.tgz#af951523ef955adb6791f6a8ef92ec04e53ebe7a"
-  integrity sha512-qFnltjus6Gk8Lx6J1w2RXmr3YPN22MNT6qD6zjAkaiWIlFIFxWClz0rXHNuJF/KSUyn5YGhkSvXkWDbQHVLFEQ==
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/server/-/server-2.3.0.tgz#02a721e2614482af6fc94b6ee0083cff13cc18f5"
+  integrity sha512-+6b0LdsQLmHsvS7J6sQJ4weTpzUn61fU1JKS+321/+IyDYoHW5CR2Tgqcs6GgAAQvlesCo6yX3xttgmx+XGtJw==
   dependencies:
-    "@modelcontextprotocol/core" "2.2.0"
+    "@modelcontextprotocol/core" "2.3.0"
     zod "^4.2.0"
 
 "@nodelib/fs.scandir@2.1.5":
