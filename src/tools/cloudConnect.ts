@@ -382,8 +382,9 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
         return createSuccessResponse(
             JSON.stringify(
                 {
-                    ...data,
+                    // The body validator is for writes; compression can weaken the HTTP header.
                     ...(etag ? { etag } : {}),
+                    ...data,
                     ...(requestId ? { requestId } : {}),
                     ...(usedKey ? { idempotencyKey: usedKey } : {}),
                 },
