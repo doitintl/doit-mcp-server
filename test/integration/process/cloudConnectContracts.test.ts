@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { brotliCompressSync, gzipSync } from "node:zlib";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -20,7 +21,9 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
     let client: Client;
     let records: Map<string, any>;
     let requestCount: number;
+    let encoding: "identity" | "gzip" | "br";
     beforeEach(async () => {
+        encoding = "identity";
         records = new Map();
         requestCount = 0;
         api = createServer(async (req, res) => {
@@ -33,9 +36,14 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                 res.writeHead(status, {
                     "Content-Type": status >= 400 ? "application/problem+json" : "application/json",
                     "Request-Id": requestId,
-                    ...(etag ? { ETag: etag } : {}),
+                    ...(etag ? { ETag: encoding === "identity" ? etag : `W/${etag}` } : {}),
+                    ...(status !== 204 && encoding !== "identity" ? { "Content-Encoding": encoding } : {}),
                 });
-                res.end(status === 204 ? undefined : JSON.stringify(data));
+                if (status === 204) return res.end();
+                const payload = Buffer.from(JSON.stringify(data));
+                res.end(
+                    encoding === "gzip" ? gzipSync(payload) : encoding === "br" ? brotliCompressSync(payload) : payload
+                );
             };
             const problem = (status: number, code: string) =>
                 reply(status, {
@@ -169,7 +177,8 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         await new Promise<void>((resolve, reject) => api.close((error) => (error ? reject(error) : resolve())));
     });
 
-    it("resolves, previews, registers, updates, verifies and disconnects an AWS account", async () => {
+    it.each(["identity", "gzip", "br"] as const)("round-trips connection etags with %s responses", async (value) => {
+        encoding = value;
         const call = async (name: string, args: any) => {
             const result = await client.callTool({ name, arguments: args });
             expect(result.isError, text(result)).not.toBe(true);
@@ -197,6 +206,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         expect(duplicate).toMatchObject({ status: 409, code: "onboarding.connection_exists" });
         expect(records.size).toBe(1);
         const read = await call("get_cloud_connection", { connectionId: connection.id });
+        expect(read.etag).toBe('"1.fixture"');
         expect(read.etag).toBe(connection.etag);
         const listed = await call("list_cloud_connections", { scope, featureId: "core" });
         expect(listed.items).toHaveLength(1);

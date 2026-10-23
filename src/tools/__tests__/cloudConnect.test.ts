@@ -72,6 +72,19 @@ describe("Cloud Connect transport contract", () => {
         expect(requests[0].url.pathname).toBe("/onboarding/v2/connections");
         expect(requests[0].body).toEqual(registration);
     });
+    it.each([
+        ['"body"', 'W/"body"', '"body"'],
+        ['"body"', '"header"', '"body"'],
+        ['"body"', undefined, '"body"'],
+        [undefined, '"header"', '"header"'],
+    ])("returns body etag %s with header %s as %s", async (bodyEtag, headerEtag, expected) => {
+        response = () =>
+            new Response(JSON.stringify({ id: "fixture", ...(bodyEtag ? { etag: bodyEtag } : {}) }), {
+                headers: headerEtag ? { etag: headerEtag } : {},
+            });
+        const result = await executeToolHandler("get_cloud_connection", { connectionId: "fixture" }, "fixture-token");
+        expect(data(result).etag).toBe(expected);
+    });
     it("keeps a caller-supplied Idempotency-Key for an identical retry", async () => {
         await handleCloudConnectRequest(
             "register_cloud_connection",
@@ -145,6 +158,7 @@ describe("Cloud Connect transport contract", () => {
             ["get_cloud_connect_requirements", { scope: { ...scope, accountId: "11111111111o" } }],
             ["register_cloud_connection", { ...registration, identity: { ...identity, private_key: "secret" } }],
             ["remove_cloud_connection", { connectionId: "c", expectedEtag: "*", cleanupScope: "doit_only" }],
+            ["remove_cloud_connection", { connectionId: "c", expectedEtag: 'W/"1"', cleanupScope: "doit_only" }],
             [
                 "register_cloud_connection",
                 { ...registration, bindings: [registration.bindings[0], registration.bindings[0]] },
