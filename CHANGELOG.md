@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.7.2 (2026-10-23)
+
+**Full diff:** [`v2.7.1...v2.7.2`](../../compare/v2.7.1...v2.7.2)
+
+### Bug Fixes
+
+- fix(cloud-connect): ensure etag round-trip consistency with compressed responses (`ddf71d5`)
 ## v2.7.1 (2026-10-21)
 
 **Full diff:** [`v2.7.0...v2.7.1`](../../compare/v2.7.0...v2.7.1)
