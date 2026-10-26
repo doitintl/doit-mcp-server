@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.8.1 (2026-10-26)
+
+**Full diff:** [`v2.8.0...v2.8.1`](../../compare/v2.8.0...v2.8.1)
+
+### Other Changes
+
+- docs(aws): add guidance for organization root and OU rollouts (`6f05be4`)
 ## v2.8.0 (2026-10-26)
 
 **Full diff:** [`v2.7.2...v2.8.0`](../../compare/v2.7.2...v2.8.0)
