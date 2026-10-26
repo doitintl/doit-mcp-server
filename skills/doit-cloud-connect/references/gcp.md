@@ -1,21 +1,34 @@
 # Google Cloud Cloud Connect
 
-Choose the native scope before requesting requirements:
+Use `provider: gcp` and choose the scope:
 
-| Scope | Required identifiers | Use |
+| Scope | Identifiers | Use |
 |---|---|---|
-| `gcp_organization` | `organizationId` | Organization features and inherited access across projects. Requires organization IAM administration. |
-| `gcp_project` | `projectId` | Project features, including projects with no organization. |
-| `gcp_dataset` | `projectId`, `datasetId` | Access to a specific existing BigQuery dataset, plus separately returned project prerequisites. |
+| `gcp_organization` | `organizationId` | Organization features and inherited project access. |
+| `gcp_project` | `projectId` | Project features, including projects without an organization. |
+| `gcp_dataset` | `projectId`, `datasetId` | One BigQuery dataset plus returned project prerequisites. |
 
-Every scope uses `provider: "gcp"`. Use a service account dedicated to one customer and scope; an identity already registered to another customer cannot be claimed again. A project binding remains useful when an organization connection exists: some features need project setup or a project-specific identity. Do not request organization IAM access merely because the customer uses a company account.
+Use a dedicated service account per customer and scope. Organization access does not replace
+project-specific setup. Reconcile legacy connections with multiple organization bindings before writes.
 
-1. List with `provider: "gcp"` and the complete native scope. Inspect existing service-account ownership. A legacy organization connection may contain several organization bindings; reconcile that layout before mutating it through these tools.
-2. Request fresh requirements for the chosen scope and features. Supply `identityInputs.projectId` for the service-account host project when requested; optional `serviceAccountId` and `roleId` select customer-owned names. Respect entitlement, prerequisite and missing-input findings.
-3. Read the returned shell artifact's `content`, version, parameters and proposed changes. Save it and its parameters locally. Run its default read-only plan; use `--apply` only within the customer's authorization and owning workflow. If existing IaC owns a role, account or grant, update that source instead. Preserve unrelated grants and conditions. Dataset setup requires `bq` as well as `gcloud`, `jq` and Bash.
-4. The script produces a **service-account descriptor**, not a private key. Use only its `email`, `uniqueId` and `projectId` under `identity: {kind: "gcp_service_account", serviceAccount: {...}}`, with optional `roleId`. Never create, upload or send a service-account private key. Registration is manual through `register_cloud_connection` after a successful preview and live cloud setup. Match the scope and selected features to the requirements; include returned feature inputs such as sink location.
-5. Inspect follow-ups and verification. Impersonation proves the account identity; effective permission observations are scope-specific. Dataset checks sample tables and report incomplete or truncated coverage. IAM permission results do not prove service-perimeter access, feature readiness or data arrival. A `not_checked` or `partial` result is not full acceptance.
-6. For updates, read the current connection and carry its exact strong ETag into preview and apply. Send the complete desired feature selection. Retry failed follow-ups by reconciling through an update; preserve an identical idempotency key only when retrying an identical write. Re-read after a stale ETag or uncertain response.
-7. Disconnect with `cleanupScope: "doit_only"`. Review the preview and retained resources. Registration and owned DoiT metadata are removed; customer service accounts, IAM roles/grants, datasets, log sinks and pipeline resources remain. Remove customer resources separately through their owner only when authorized.
+1. List with `provider: gcp` and the complete scope. Request fresh requirements for the desired
+   features. Supply the organization account's host `identityInputs.projectId` and a dataset
+   `serviceAccountId` when requested; respect entitlement and input findings.
+2. Read the shell artifact's content, digest, parameters and changes. Run its read-only plan.
+   Apply authorized changes through the existing IaC owner, or the returned script when appropriate.
+   Preserve unrelated grants and conditions. Dataset setup also requires `bq`.
+3. Preview and register with `identity.kind: gcp_service_account` and descriptor `serviceAccount`
+   fields `email`, `uniqueId`, `projectId`; `roleId` is optional. The setup script grants access but
+   does not register. Never create or submit a private key. Include the chosen scope, features
+   and returned feature inputs.
+4. Inspect follow-ups and verification. Authentication checks identity; effective IAM checks are
+   scope-specific. Dataset table samples can yield `partial` or `not_checked`; neither is a pass.
+   IAM results do not prove service-perimeter access, feature readiness or data arrival.
+5. Update with the current strong ETag and complete desired feature selection. Reconcile failed
+   follow-ups through an update. Reuse an idempotency key only for an identical retry; re-read after
+   a stale ETag or uncertain result.
+6. Preview disconnect with `cleanupScope: doit_only`. Registration and owned DoiT metadata are
+   removed; service accounts, IAM, datasets, sinks and pipelines remain. Remove customer resources
+   separately through their owner only when authorized.
 
-GCP billing signup, billing exports and organization creation are separate workflows. These tools do not turn a personal Google account into an organization.
+Billing signup, exports and organization creation are separate workflows.
