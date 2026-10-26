@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.8.0 (2026-10-26)
+
+**Full diff:** [`v2.7.2...v2.8.0`](../../compare/v2.7.2...v2.8.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`cae5891`)
+
+### Chores
+
+- chore(deps): bump zod from 4.6.5 to 4.6.6 (`230e30d`)
+- chore(deps): bump undici from 6.29.0 to 6.29.1 (`56ff649`)
+- chore(deps): bump fast-uri from 3.1.7 to 3.1.9 in /test/integration (`7ac88d9`)
+- chore(deps): bump vite from 8.2.2 to 8.3.5 in /test/integration (`b57de59`)
 ## v2.7.2 (2026-10-23)
 
 **Full diff:** [`v2.7.1...v2.7.2`](../../compare/v2.7.1...v2.7.2)
