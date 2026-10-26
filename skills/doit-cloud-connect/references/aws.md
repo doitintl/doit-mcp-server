@@ -18,6 +18,10 @@ Parameter spelling examples: `real-time-data`, `spot-scaling` and `expert_advice
 
 `identity.trust` gives the DoiT principal and External ID (the DoiT customer ID, the same value for every account; do not generate a random one). Only the Terraform artifact returns `trustStatements`, its full cross-account `Allow sts:AssumeRole` policy; an omitted `externalId` means that statement is unconditional. The CloudFormation artifact has none: read the role's trust policy in the downloaded template and compare it with `identity.trust`. Compare every statement with the rendered plan or change set and surface unconditional or broader grants. Unexpected differences block deployment.
 
+For a fresh installation, prefer `doitintl_dci_cloudconnect` through the current deployment artifact. For an existing installation, preserve its registered role ARN, role name and owning controller, including `doitintl-cmp`. Artifact role names are defaults for new resources; keep existing role parameters when adapting requirements for an update.
+
+Setup, resumption and failed verification do not authorize role or controller migration. Diagnose permission failures, including an explicit Deny, and review an authorized repair on the existing role. If the repair requires migration, report that as separate work and stop that change.
+
 Before creating roles or stacks, list what already exists. Customer cases show the same failures repeatedly:
 
 - Fixed role names (`doitintl-cmp`, `DoiT-Support-Gateway`, `doitintl_cmp`, `doitintl_dci_cloudconnect`) collide with roles from an earlier CloudFormation stack, StackSet, another DoiT product or a Service Catalog stack. Find the owning stack first. Do not delete a role to "make the retry pass", and never rename it blindly (a `…_2` role leaves the old one authoritative elsewhere).
