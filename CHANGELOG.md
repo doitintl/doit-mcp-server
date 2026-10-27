@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.9.0 (2026-10-27)
+
+**Full diff:** [`v2.8.1...v2.9.0`](../../compare/v2.8.1...v2.9.0)
+
+### Features
+
+- feat(aws): update organization artifact to use file-based structure (`f08813f`)
+- feat(aws): add support for organization root and OU requirements (`8dea395`)
+
+### Other Changes
+
+- test(aws): update organization artifact integration test for file-based structure (`c4f76f9`)
+- docs(aws): clarify migration confirmation rules for cloud connect roles (`6bf0bea`)
+- docs(aws): clarify guidance on preserving existing roles during onboarding (`ed5556d`)
+- docs(aws): clarify guidance on preserving existing identity and controller (`9d0dd3d`)
+- docs(aws): clarify role and controller preservation guidance (`9c6b5e4`)
 ## v2.8.1 (2026-10-26)
 
 **Full diff:** [`v2.8.0...v2.8.1`](../../compare/v2.8.0...v2.8.1)
