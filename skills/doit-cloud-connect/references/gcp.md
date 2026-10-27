@@ -11,6 +11,21 @@ Use `provider: gcp` and choose the scope:
 Use a dedicated service account per customer and scope. Organization access does not replace
 project-specific setup. Reconcile legacy connections with multiple organization bindings before writes.
 
+For organization setup, choose a host project for the service account. Create one only when
+authorized; organization IAM setup does not require a new billing account. The operator needs
+`iam.roles.get`, `iam.roles.create` and `iam.roles.update` on the organization, plus access to read
+and update its IAM policy. Organization Admin alone does not include custom-role management;
+an authorized administrator can grant Organization Role Administrator for that work. The host
+project also needs service-account management and API-enablement access. Run the artifact plan
+to check these permissions before applying; do not grant broader access automatically.
+
+Domain-restricted sharing can reject the returned DoiT Token Creator principal, especially in
+a new organization. If `iam.allowedPolicyMemberDomains` or `iam.managed.allowedPolicyMembers`
+blocks that binding, stop before registration and involve the policy owner. Preserve the
+organization restriction. Any authorized exception must cover only the necessary host project
+and returned principal; do not disable organization-wide sharing restrictions or allow an entire
+external domain automatically. See [Google's domain-restricted sharing guidance](https://docs.cloud.google.com/organization-policy/restrict-domains).
+
 1. List with `provider: gcp` and the complete scope. Request fresh requirements for the desired
    features. Supply the organization account's host `identityInputs.projectId` and a dataset
    `serviceAccountId` when requested; respect entitlement and input findings.
@@ -21,8 +36,9 @@ project-specific setup. Reconcile legacy connections with multiple organization 
    fields `email`, `uniqueId`, `projectId`; `roleId` is optional. The setup script grants access but
    does not register. Never create or submit a private key. Include the chosen scope, features
    and returned feature inputs.
-4. Inspect follow-ups and verification. Authentication checks identity; effective IAM checks are
-   scope-specific. Dataset table samples can yield `partial` or `not_checked`; neither is a pass.
+4. Inspect follow-ups and verification. After IAM changes, allow propagation and recheck the
+   existing binding before repeating or broadening grants. Authentication checks identity;
+   effective IAM checks are scope-specific. Dataset table samples can yield `partial` or `not_checked`; neither is a pass.
    IAM results do not prove service-perimeter access, feature readiness or data arrival.
 5. Update with the current strong ETag and complete desired feature selection. Reconcile failed
    follow-ups through an update. Reuse an idempotency key only for an identical retry; re-read after
