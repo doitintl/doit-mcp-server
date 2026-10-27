@@ -19,8 +19,6 @@ yarn install
 `test/integration` are separate projects with their own modern `yarn.lock` files and
 `packageManager` pins. Both use the `node-modules` linker. CI installs with
 `yarn install --immutable`; migrate both projects and their workflows together.
-For local disk sharing, configure `nmMode: hardlinks-global` once in your home
-`.yarnrc.yml`. That preference is inherited by both projects without a per-install flag.
 
 **Never run `npm install`.** npm lockfiles are gitignored, rejected by the `no-npm-lockfiles`
 pre-commit hook, and fail the `Enforce yarn` step in `test.yml`. `npm` is still used deliberately
