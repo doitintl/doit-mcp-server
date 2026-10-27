@@ -51,15 +51,19 @@ describe("Cloud Connect transport contract", () => {
             artifactId: "aws-cloudformation-organization",
             kind: "cloudformation",
             registration: "callback",
-            templateUrl: "https://example.com/management.yml",
-            version: "sha256-parent",
+            entrypoint: "management.yml",
             requirementsSatisfied: true,
             parameters: { DeploymentTargetID: targetId, SourceTemplateURL: "https://example.com/member.yml" },
-            dependencies: [
+            files: [
                 {
-                    artifactId: "aws-cloudformation-member",
-                    templateUrl: "https://example.com/member.yml",
-                    version: "sha256-member",
+                    path: "management.yml",
+                    url: "https://example.com/management.yml",
+                    sha256: "1".repeat(64),
+                },
+                {
+                    path: "member.yml",
+                    url: "https://example.com/member.yml",
+                    sha256: "2".repeat(64),
                 },
             ],
         };
