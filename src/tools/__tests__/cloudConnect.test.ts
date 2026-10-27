@@ -289,6 +289,7 @@ describe("Google Cloud scopes", () => {
         { provider: "gcp", kind: "gcp_organization", organizationId: "123456789012" },
         { provider: "gcp", kind: "gcp_project", projectId: "example-project" },
         { provider: "gcp", kind: "gcp_dataset", projectId: "example-project", datasetId: "example_dataset" },
+        { provider: "gcp", kind: "gcp_dataset", projectId: "example-project", datasetId: "2026_export" },
     ])("registers and filters native scope $kind", async (scope) => {
         await executeToolHandler(
             "register_cloud_connection",

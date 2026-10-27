@@ -13,7 +13,7 @@ project-specific setup. Reconcile legacy connections with multiple organization 
 
 For organization setup, choose a host project for the service account. Create one only when
 authorized; organization IAM setup does not require a new billing account. The operator needs
-`iam.roles.get`, `iam.roles.create` and `iam.roles.update` on the organization, plus access to read
+`iam.roles.get` and `iam.roles.create` on the organization, plus access to read
 and update its IAM policy. Organization Admin alone does not include custom-role management;
 an authorized administrator can grant Organization Role Administrator for that work. The host
 project also needs service-account management and API-enablement access. Run the artifact plan
@@ -31,9 +31,13 @@ external domain automatically. See [Google's domain-restricted sharing guidance]
    `serviceAccountId` when requested; respect entitlement and input findings.
 2. Read the shell artifact's content, digest, parameters and changes. Run its read-only plan.
    Apply authorized changes through the existing IaC owner, or the returned script when appropriate.
-   Preserve unrelated grants and conditions. Dataset setup also requires `bq`.
+   Preserve unrelated grants and conditions. The current setup binds the live service-account
+   description to this customer; new registrations verify that marker. If an existing role lacks
+   permissions, choose an unused `identityInputs.roleId` or involve its owner; the script never
+   extends existing roles. Dataset setup also requires `bq`.
 3. Preview and register with `identity.kind: gcp_service_account` and descriptor `serviceAccount`
-   fields `email`, `uniqueId`, `projectId`; `roleId` is optional. The setup script grants access but
+   fields `email`, `uniqueId`, `projectId`; copy the artifact's `roleId` into `identity.roleId`.
+   The setup script grants access but
    does not register. Never create or submit a private key. Include the chosen scope, features
    and returned feature inputs.
 4. Inspect follow-ups and verification. After IAM changes, allow propagation and recheck the

@@ -24,7 +24,7 @@ const datasetId = z
     .string()
     .min(1)
     .max(1024)
-    .regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
+    .regex(/^[A-Za-z0-9_]+$/);
 const serviceAccountId = z.string().regex(/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/);
 const roleId = z.string().regex(/^[A-Za-z0-9_.]{3,64}$/);
 export const CloudConnectScopeSchema = z
