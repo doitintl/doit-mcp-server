@@ -78,23 +78,28 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                             ? [
                                   {
                                       artifactId: "aws-cloudformation-organization",
+                                      kind: "cloudformation",
                                       registration: "callback",
                                       requirementsSatisfied: !!body.featureIds,
-                                      templateUrl: "https://example.com/management.yml",
-                                      version: "sha256-parent",
+                                      entrypoint: "management.yml",
+                                      files: [
+                                          {
+                                              path: "management.yml",
+                                              url: "https://example.com/management.yml",
+                                              sha256: "1".repeat(64),
+                                          },
+                                          {
+                                              path: "member.yml",
+                                              url: "https://example.com/member.yml",
+                                              sha256: "2".repeat(64),
+                                          },
+                                      ],
                                       parameters: body.featureIds
                                           ? {
                                                 DeploymentTargetID: body.scope.targetId,
                                                 SourceTemplateURL: "https://example.com/member.yml",
                                             }
                                           : {},
-                                      dependencies: [
-                                          {
-                                              artifactId: "aws-cloudformation-member",
-                                              templateUrl: "https://example.com/member.yml",
-                                              version: "sha256-member",
-                                          },
-                                      ],
                                   },
                               ]
                             : [
@@ -201,7 +206,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         await new Promise<void>((resolve, reject) => api.close((error) => (error ? reject(error) : resolve())));
     });
 
-    it("hands organization artifacts and nested source versions through the packaged MCP server", async () => {
+    it("preserves flat organization artifact files through the packaged MCP server", async () => {
         const scope = {
             provider: "aws",
             kind: "aws_organization",
@@ -220,14 +225,32 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         });
         expect(result.isError, text(result)).not.toBe(true);
         const artifact = JSON.parse(text(result)).artifacts[0];
-        expect(artifact).toMatchObject({
+        expect(artifact).toEqual({
             artifactId: "aws-cloudformation-organization",
+            kind: "cloudformation",
             registration: "callback",
             requirementsSatisfied: true,
+            entrypoint: "management.yml",
+            files: [
+                {
+                    path: "management.yml",
+                    url: "https://example.com/management.yml",
+                    sha256: "1".repeat(64),
+                },
+                {
+                    path: "member.yml",
+                    url: "https://example.com/member.yml",
+                    sha256: "2".repeat(64),
+                },
+            ],
+            parameters: {
+                DeploymentTargetID: scope.targetId,
+                SourceTemplateURL: "https://example.com/member.yml",
+            },
         });
-        expect(artifact.parameters.DeploymentTargetID).toBe(scope.targetId);
-        expect(artifact.parameters.SourceTemplateURL).toBe(artifact.dependencies[0].templateUrl);
-        expect(artifact.dependencies[0].version).toBe("sha256-member");
+        expect(artifact.parameters.SourceTemplateURL).toBe(
+            artifact.files.find((file: { path: string }) => file.path === "member.yml").url
+        );
         const calls = requestCount;
         const rejected = await client.callTool({
             name: "register_cloud_connection",
