@@ -45,6 +45,68 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Cloud Connect transport contract", () => {
+    it.each(["r-ab12", "ou-ab12-cdef3456"])("resolves organization artifact requirements for %s", async (targetId) => {
+        const scope = { provider: "aws", kind: "aws_organization", managementAccountId: "111111111111", targetId };
+        const artifact = {
+            artifactId: "aws-cloudformation-organization",
+            kind: "cloudformation",
+            registration: "callback",
+            entrypoint: "management.yml",
+            requirementsSatisfied: true,
+            parameters: { DeploymentTargetID: targetId, SourceTemplateURL: "https://example.com/member.yml" },
+            files: [
+                {
+                    path: "management.yml",
+                    url: "https://example.com/management.yml",
+                    sha256: "1".repeat(64),
+                },
+                {
+                    path: "member.yml",
+                    url: "https://example.com/member.yml",
+                    sha256: "2".repeat(64),
+                },
+            ],
+        };
+        response = () => new Response(JSON.stringify({ scope, artifacts: [artifact] }));
+        const result = await executeToolHandler(
+            "get_cloud_connect_requirements",
+            { scope, featureIds: ["core", "quotas"] },
+            "fixture-token"
+        );
+        expect(requests[0].url.pathname).toBe("/onboarding/v2/requirements");
+        expect(requests[0].body).toEqual({ scope, featureIds: ["core", "quotas"] });
+        expect(data(result).artifacts).toEqual([artifact]);
+        expect(requests[0].options.headers).not.toHaveProperty("Idempotency-Key");
+    });
+    it("rejects organization bindings and malformed targets before HTTP", async () => {
+        const scope = {
+            provider: "aws",
+            kind: "aws_organization",
+            managementAccountId: "111111111111",
+            targetId: "r-ab12",
+        };
+        for (const args of [
+            { scope: { ...scope, targetId: "ou-invalid" } },
+            { scope: { ...scope, targetId: "r-ab12,r-cd34" } },
+            { scope: { ...scope, accountId: "111111111111" } },
+            { scope: { ...scope, managementAccountId: "11111111111o" } },
+        ]) {
+            expect(
+                (await handleCloudConnectRequest("get_cloud_connect_requirements", args, "fixture-token")).isError
+            ).toBe(true);
+        }
+        for (const [tool, args] of [
+            ["register_cloud_connection", { ...registration, bindings: [{ scope, featureIds: ["core"] }] }],
+            [
+                "dry_run_cloud_connection_change",
+                { operation: "register", ...registration, bindings: [{ scope, featureIds: ["core"] }] },
+            ],
+            ["list_cloud_connections", { scope }],
+        ] as const) {
+            expect((await handleCloudConnectRequest(tool, args, "fixture-token")).isError).toBe(true);
+        }
+        expect(requests).toHaveLength(0);
+    });
     it("wraps the seven AWS operations plus a read-only dry-run tool", () => {
         expect(CLOUD_CONNECT_TOOLS).toHaveLength(8);
         expect(new Set(CLOUD_CONNECT_TOOLS.map((tool) => tool.coversEndpoint).filter(Boolean)).size).toBe(7);

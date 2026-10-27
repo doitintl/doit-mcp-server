@@ -30,6 +30,21 @@ export const CloudConnectScopeSchema = z
     .describe(
         "One AWS account. Organization roots and OUs are deployment targets only, never connection scopes. This API version supports AWS only."
     );
+export const CloudConnectRequirementsScopeSchema = z
+    .union([
+        CloudConnectScopeSchema,
+        z
+            .object({
+                provider: z.literal("aws"),
+                kind: z.literal("aws_organization"),
+                managementAccountId: z.string().regex(/^\d{12}$/),
+                targetId: z.string().regex(/^(r-[a-z0-9]{4,32}|ou-[a-z0-9]{4,32}-[a-z0-9]{8,32})$/),
+            })
+            .strict(),
+    ])
+    .describe(
+        "One AWS account, or organization deployment requirements with managementAccountId and one root/OU targetId. Organization requirements return the management StackSet template and its member dependency; they do not create a fleet connection or validate AWS membership. Connection tools accept aws_account only."
+    );
 export const CloudConnectIdentitySchema = z
     .object({
         kind: z.literal("aws_iam_role"),
@@ -61,7 +76,7 @@ const idempotencyKey = z
         "Optional. One key per logical write. When omitted a fresh key is generated and returned as `idempotencyKey` in the result or error. A lost response or timeout can leave the outcome uncertain; the connection record supports reconciliation before retrying. An unchanged retry uses the identical request and key; a different body requires a different key."
     );
 export const GetCloudConnectRequirementsArgumentsSchema = z.object({
-    scope: CloudConnectScopeSchema,
+    scope: CloudConnectRequirementsScopeSchema,
     featureIds: featureIds
         .optional()
         .describe(
@@ -79,7 +94,7 @@ export const GetCloudConnectRequirementsArgumentsSchema = z.object({
                 .regex(/^\d{12}$/)
                 .optional()
                 .describe(
-                    "Optional management-account hint for member accounts. It does not associate an undiscovered member with the customer or override DoiT account/payer prerequisites."
+                    "Optional management-account hint for aws_account member requests only; omit for aws_organization. It does not associate an undiscovered member with the customer or override DoiT account/payer prerequisites."
                 ),
         })
         .strict()
@@ -172,7 +187,7 @@ export const getCloudConnectRequirementsTool = tool(
     "get_cloud_connect_requirements",
     GetCloudConnectRequirementsArgumentsSchema,
     `post:${base}/requirements`,
-    "Resolve fresh customer-specific AWS Cloud Connect prerequisites, identity trust, per-feature permissions, inputs and deployment artifacts for one account. Read-only. Returns the account CloudFormation template and per-account Terraform module; no organization management template or root/OU rollout operation is returned. Artifacts are reference implementations for adaptation to customer tooling; their requirements and registration behavior remain relevant when adapted. The selected artifact's requirementsSatisfied and findings determine artifact readiness; feature-level flags or preconditions alone do not. requirementsSatisfied covers entitlement, inputs, account prerequisites and artifact support; it does not prove cloud resources, deployment success or access. Discovery and blocked artifacts have requirementsSatisfied=false and empty parameters. Returned artifact parameters have exact spelling and structure; unchanged artifacts require them verbatim, while adapted implementations require an explicit mapping of the same requirements. Does not enable billing exports.",
+    "Resolve fresh customer-specific AWS Cloud Connect prerequisites, identity trust, per-feature permissions, inputs and deployment artifacts. Read-only. Account scopes return the account CloudFormation template and per-account Terraform module. Organization scopes return one management StackSet artifact with entrypoint, a flat files list (path, URL and SHA-256 for both templates) and parameters for one root/OU; no fleet connection or rollout operation is created. AWS membership, Organizations/StackSets prerequisites, deployment success and access remain separate checks. Organization real-time bucket/enrollment configuration is unsupported by the pinned artifact. Artifacts are reference implementations for adaptation to customer tooling; their requirements and registration behavior remain relevant when adapted. The selected artifact's requirementsSatisfied and findings determine artifact readiness; feature-level flags or preconditions alone do not. Discovery and blocked artifacts have requirementsSatisfied=false and empty parameters. Returned parameters preserve the artifact's exact spelling and structure. Does not enable billing exports.",
     true
 );
 export const listCloudConnectionsTool = tool(
