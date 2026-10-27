@@ -8,6 +8,8 @@ Identify the DoiT environment/customer, management account, requested features a
 
 Discover existing parent stacks, nested stacks, StackSets and fixed roles before creating resources. The Console management template owns the fixed `DoiT-DCI-CloudConnect` StackSet and normally uses `doitintl_dci_cloudconnect`. Another parent or renamed role is not a safe way to extend an existing rollout. Use its owning source and execution workflow, or resolve migration first.
 
+For already-connected members, compare their registered roles and owning stacks with the proposed StackSet. Existing per-account deployments may need cleanup or migration so the StackSet can manage permissions and future updates centrally. A legacy role name alone does not establish that need. Explain the specific conflict and transition to the user, follow the shared [migration confirmation rule](deployment-tools.md), and preserve unrelated billing/support resources. After migration, reconcile registration and verify required features.
+
 The DoiT management template deploys a local management-account nested stack as well as member StackSet instances. **An OU-targeted rollout therefore changes the management account too.** Include it in the reviewed account set. AWS service-managed StackSets themselves exclude the management account and include descendant OUs. [AWS deployment behavior](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-orgs-associate-stackset-with-org.html)
 
 ## Establish prerequisites and obtain the artifact

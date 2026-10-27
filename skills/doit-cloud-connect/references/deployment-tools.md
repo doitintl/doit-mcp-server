@@ -2,6 +2,10 @@
 
 Treat each returned artifact as a reference implementation that you inspect and adapt to the customer's environment. Use your judgment to modify it, compose a new implementation, or translate it into the customer's existing tooling. Preserve the required identity, trust, scope, permissions and provider constraints from fresh requirements. An artifact's format does not require the customer to adopt another tool or state store. Resolve reported prerequisites before treating an adapted implementation as ready.
 
+For an existing installation, retain its registered identity and owning controller unless the user confirms a migration plan. Identity defaults in returned artifacts apply to new resources; preserve existing identity parameters when adapting requirements for an ordinary update.
+
+Setup, resumption and failed verification do not by themselves authorize identity or controller migration. Diagnose permission failures and review authorized repairs on the existing identity. If migration is needed, prepare the concrete changes and available previews. Explain its purpose, affected resources and integrations, expected disruption and recovery plan, then obtain explicit user confirmation before changing identities or ownership, unlinking accounts or deleting resources. Once confirmed, the agent may execute that plan, reconcile registration and verify required features.
+
 Verify the original artifact's version or digest before adapting it. Keep the original and the proposed diff; validate the final implementation separately. Confirm who performs registration after adaptation: preserve the provider resource or callback, or use an explicitly supported registration handoff. Downloaded metadata alone does not establish what the adapted deployment does.
 
 ## Choose the relevant reference

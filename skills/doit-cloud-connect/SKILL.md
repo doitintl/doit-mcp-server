@@ -3,7 +3,7 @@ name: doit-cloud-connect
 description: Route DoiT Cloud Connect setup, verification, repair or disconnect by cloud provider and deployment method, including AWS organization root/OU rollouts. Google Cloud and Azure paths are not implemented.
 license: MIT
 metadata:
-  doit/skill-version: "8"
+  doit/skill-version: "9"
   doit/api-contract: "onboarding/v2"
 ---
 
@@ -37,7 +37,7 @@ Read additional method references when adapting between formats or working acros
 
 After selecting a supported provider, use the stages relevant to the requested operation:
 
-1. **Discover current state and ownership.** Use `list_cloud_connections` and `get_cloud_connection` to inspect registration state, and inspect the owning source before proposing new resources or registration.
+1. **Discover current state and ownership.** Use `list_cloud_connections` and `get_cloud_connection` to inspect registration state, and inspect the owning source before proposing new resources or registration. Preserve the registered identity and resource controller unless the user confirms a migration plan under the shared deployment rules.
 2. **Get fresh requirements.** Use `get_cloud_connect_requirements` for the selected features, per-feature permissions, identity trust, inputs and deployment prerequisites. These describe required access; they do not prove deployment or live access.
 3. **Inspect and adapt.** Use the customer's repository and IaC/CLI tools to inspect artifacts as reference implementations. Modify, compose or translate them while preserving authoritative requirements, provider constraints and unrelated grants.
 4. **Review and validate.** Show the proposed patch and concrete effects. Use `dry_run_cloud_connection_change` for planned API mutations and the controller's plan for cloud changes where available; explain what remains unverified. Carry existing authorization forward and confirm any removal whose effects are not already authorized.
