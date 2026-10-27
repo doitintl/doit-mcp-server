@@ -23,7 +23,7 @@ Identify the cloud, target scope, requested features and outcome, and the custom
 
 For Azure, explain that its Cloud Connect workflow is not implemented in these MCP tools yet. End that provider's execution path. For a request spanning several clouds, handle each provider separately.
 
-For AWS, distinguish a single account from an organization root/OU rollout before selecting an artifact. For organization setup, expansion, feature updates or recovery, read [AWS organizations](references/aws-organizations.md). Organization deployment uses the management-account controller; MCP requirements and connections remain per account.
+For AWS, distinguish a single account from an organization root/OU rollout before selecting an artifact. For organization setup, expansion, feature updates or recovery, read [AWS organizations](references/aws-organizations.md). Organization requirements return the management-account controller artifact; registration and verification remain per account.
 
 For a supported provider, read the shared [deployment rules](references/deployment-tools.md) and the relevant method reference:
 
