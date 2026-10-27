@@ -2,7 +2,7 @@
 
 Use this after selecting AWS in the main skill. The current API supports individual AWS accounts through seven operations; it has no diagnostics or event-reporting endpoint. Organization roots and OUs are deployment targets only. Use the response's provider variant, payer association, identity trust and artifact parameters.
 
-For a root/OU rollout or an existing organization controller, follow [AWS organizations](aws-organizations.md) first. The account workflow below supplies requirements, registration reconciliation and verification for each account; it does not provision an organization or return its management template.
+For a root/OU rollout or an existing organization controller, follow [AWS organizations](aws-organizations.md) first to obtain the management artifact through organization requirements. The account workflow below supplies per-account requirements, registration reconciliation and verification.
 
 ## Discover and resolve
 

@@ -73,13 +73,37 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                         status: "available",
                         requirementsSatisfied: !!body.featureIds,
                     })),
-                    artifacts: [
-                        {
-                            artifactId: "fixture-controller",
-                            registration: "manual",
-                            requirementsSatisfied: !!body.featureIds,
-                        },
-                    ],
+                    artifacts:
+                        body.scope?.kind === "aws_organization"
+                            ? [
+                                  {
+                                      artifactId: "aws-cloudformation-organization",
+                                      registration: "callback",
+                                      requirementsSatisfied: !!body.featureIds,
+                                      templateUrl: "https://example.com/management.yml",
+                                      version: "sha256-parent",
+                                      parameters: body.featureIds
+                                          ? {
+                                                DeploymentTargetID: body.scope.targetId,
+                                                SourceTemplateURL: "https://example.com/member.yml",
+                                            }
+                                          : {},
+                                      dependencies: [
+                                          {
+                                              artifactId: "aws-cloudformation-member",
+                                              templateUrl: "https://example.com/member.yml",
+                                              version: "sha256-member",
+                                          },
+                                      ],
+                                  },
+                              ]
+                            : [
+                                  {
+                                      artifactId: "fixture-controller",
+                                      registration: "manual",
+                                      requirementsSatisfied: !!body.featureIds,
+                                  },
+                              ],
                 });
             if (parts[2] === "actions" && parts[3] === "verify")
                 return reply(200, {
@@ -175,6 +199,43 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
     afterEach(async () => {
         await client?.close();
         await new Promise<void>((resolve, reject) => api.close((error) => (error ? reject(error) : resolve())));
+    });
+
+    it("hands organization artifacts and nested source versions through the packaged MCP server", async () => {
+        const scope = {
+            provider: "aws",
+            kind: "aws_organization",
+            managementAccountId: "123456789012",
+            targetId: "ou-ab12-cdef3456",
+        };
+        const discovery = await client.callTool({ name: "get_cloud_connect_requirements", arguments: { scope } });
+        expect(discovery.isError, text(discovery)).not.toBe(true);
+        expect(JSON.parse(text(discovery)).artifacts[0]).toMatchObject({
+            requirementsSatisfied: false,
+            parameters: {},
+        });
+        const result = await client.callTool({
+            name: "get_cloud_connect_requirements",
+            arguments: { scope, featureIds: ["core", "quotas"] },
+        });
+        expect(result.isError, text(result)).not.toBe(true);
+        const artifact = JSON.parse(text(result)).artifacts[0];
+        expect(artifact).toMatchObject({
+            artifactId: "aws-cloudformation-organization",
+            registration: "callback",
+            requirementsSatisfied: true,
+        });
+        expect(artifact.parameters.DeploymentTargetID).toBe(scope.targetId);
+        expect(artifact.parameters.SourceTemplateURL).toBe(artifact.dependencies[0].templateUrl);
+        expect(artifact.dependencies[0].version).toBe("sha256-member");
+        const calls = requestCount;
+        const rejected = await client.callTool({
+            name: "register_cloud_connection",
+            arguments: { identity, bindings: [{ scope, featureIds: ["core"] }] },
+        });
+        expect(rejected.isError).toBe(true);
+        expect(requestCount).toBe(calls);
+        expect(records.size).toBe(0);
     });
 
     it.each(["identity", "gzip", "br"] as const)("round-trips connection etags with %s responses", async (value) => {

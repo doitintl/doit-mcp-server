@@ -3,7 +3,7 @@ name: doit-cloud-connect
 description: Route DoiT Cloud Connect setup, verification, repair or disconnect by cloud provider and deployment method, including AWS organization root/OU rollouts. Google Cloud and Azure paths are not implemented.
 license: MIT
 metadata:
-  doit/skill-version: "6"
+  doit/skill-version: "7"
   doit/api-contract: "onboarding/v2"
 ---
 
@@ -23,7 +23,7 @@ Identify the cloud, target scope, requested features and outcome, and the custom
 
 For GCP or Azure, name the provider and explain that its Cloud Connect workflow is not implemented in these MCP tools yet. End that provider's execution path without calling AWS tools or inventing a setup procedure. For a request spanning several clouds, handle each provider separately.
 
-For AWS, distinguish a single account from an organization root/OU rollout before selecting an artifact. For organization setup, expansion, feature updates or recovery, read [AWS organizations](references/aws-organizations.md). Organization deployment uses the management-account controller; MCP requirements and connections remain per account.
+For AWS, distinguish a single account from an organization root/OU rollout before selecting an artifact. For organization setup, expansion, feature updates or recovery, read [AWS organizations](references/aws-organizations.md). Organization requirements return the management-account controller artifact; registration and verification remain per account.
 
 For a supported provider, read the shared [deployment rules](references/deployment-tools.md) and the relevant method reference:
 

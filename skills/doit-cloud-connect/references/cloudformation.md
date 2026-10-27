@@ -10,7 +10,7 @@ Download the returned template and compare its SHA-256 with the artifact `versio
 
 The DoiT Console deploys the member template in `us-east-1` with `CAPABILITY_NAMED_IAM`; these are Console command conventions, not fields of the requirements response. This deployment region is separate from the CloudTrail/real-time bucket region (`bucketRegion`); confirm both against the template you reviewed.
 
-The DoiT Console's StackSet management template, which the requirements API does not return, accepts one `DeploymentTargetID`; check the selected version and existing rollout before extending to another OU. This is a DoiT template constraint, not a general AWS StackSets limit. SCPs in member accounts can deny `cloudformation:CreateStack` for the execution role; that is a customer policy decision, not something to bypass.
+Organization requirements return the StackSet management template, which accepts one `DeploymentTargetID`, plus a versioned member-template dependency. Verify both sources and check the existing rollout before extending to another OU. This is a DoiT template constraint, not a general AWS StackSets limit. SCPs in member accounts can deny `cloudformation:CreateStack` for the execution role; that is a customer policy decision, not something to bypass.
 
 ## Source, ownership and rollout
 
