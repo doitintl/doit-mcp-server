@@ -18,12 +18,12 @@ Parameter spelling examples: `real-time-data`, `spot-scaling` and `expert_advice
 
 `identity.trust` gives the DoiT principal and External ID (the DoiT customer ID, the same value for every account; do not generate a random one). Only the Terraform artifact returns `trustStatements`, its full cross-account `Allow sts:AssumeRole` policy; an omitted `externalId` means that statement is unconditional. The CloudFormation artifact has none: read the role's trust policy in the downloaded template and compare it with `identity.trust`. Compare every statement with the rendered plan or change set and surface unconditional or broader grants. Unexpected differences block deployment.
 
-For a fresh AWS installation, prefer `doitintl_dci_cloudconnect` through the current deployment artifact. Keep existing AWS role ARNs and names, including `doitintl-cmp`, when updating or repairing an installation.
+For a fresh AWS installation, prefer `doitintl_dci_cloudconnect` through the current deployment artifact. Keep existing AWS role ARNs and names, including `doitintl-cmp`, when updating or repairing an installation unless the user confirms a role migration under the shared deployment rules.
 
 Before creating roles or stacks, list what already exists. Customer cases show the same failures repeatedly:
 
-- Fixed role names (`doitintl-cmp`, `DoiT-Support-Gateway`, `doitintl_cmp`, `doitintl_dci_cloudconnect`) collide with roles from an earlier CloudFormation stack, StackSet, another DoiT product or a Service Catalog stack. Find the owning stack first. Do not delete a role to "make the retry pass", and never rename it blindly (a `…_2` role leaves the old one authoritative elsewhere).
-- Moving from CloudFormation to Terraform: do not delete the old stacks and recreate roles. Deleting or rewriting the billing role (`doitintl_cmp`) or the support gateway can stop cost ingestion while Cloud Connect still looks healthy. Import or hand off ownership deliberately and keep one owner per role.
+- Fixed role names (`doitintl-cmp`, `DoiT-Support-Gateway`, `doitintl_cmp`, `doitintl_dci_cloudconnect`) collide with roles from an earlier CloudFormation stack, StackSet, another DoiT product or a Service Catalog stack. Find the owning stack first. Role cleanup follows the shared migration confirmation rule; never rename it blindly (a `…_2` role leaves the old one authoritative elsewhere).
+- Moving from CloudFormation to Terraform: review import or ownership transfer before considering stack deletion and role recreation. Deleting or rewriting the billing role (`doitintl_cmp`) or the support gateway can stop cost ingestion while Cloud Connect still looks healthy. Preserve unrelated resources and keep one owner per role.
 
 ## Deployment methods
 
