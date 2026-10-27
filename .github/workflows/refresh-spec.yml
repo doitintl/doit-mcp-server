@@ -44,8 +44,11 @@ jobs:
         with:
           node-version: 20
 
+      - name: Enable Corepack
+        run: npm install --global --force corepack@0.34.7 && corepack enable
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Keep previous snapshot for the diff report
         run: cp src/tools/generated/openapi.json /tmp/openapi.previous.json

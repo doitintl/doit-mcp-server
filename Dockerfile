@@ -4,10 +4,12 @@ FROM node:lts-alpine
 WORKDIR /app
 
 # Copy dependency definitions
-COPY package.json yarn.lock ./
+COPY package.json yarn.lock .yarnrc.yml ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN npm install --global --force corepack@0.34.7 \
+    && corepack enable \
+    && yarn install --immutable
 
 # Copy the rest of the application
 COPY . .

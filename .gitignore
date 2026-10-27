@@ -45,7 +45,7 @@ coverage/
 # Optional REPL history
 .node_repl_history
 
-# npm lockfiles - this project uses Yarn 1; yarn.lock is committed
+# npm lockfiles - this project uses Yarn 4; yarn.lock is committed
 package-lock.json
 npm-shrinkwrap.json
 
