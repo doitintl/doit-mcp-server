@@ -5,7 +5,8 @@ describe("package exports", () => {
     it("exposes the CLI root and transport-independent core entry", () => {
         const packageJson = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
 
-        expect(packageJson.bin).toEqual({ "doit-mcp-server": "dist/index.js" });
+        const cliPath = typeof packageJson.bin === "string" ? packageJson.bin : packageJson.bin["doit-mcp-server"];
+        expect(cliPath).toBe("dist/index.js");
         expect(packageJson.repository?.url).toBe("git+https://github.com/doitintl/doit-mcp-server.git");
         expect(packageJson.exports).toEqual({
             ".": {

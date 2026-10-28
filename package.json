@@ -18,9 +18,7 @@
   },
   "author": "",
   "type": "module",
-  "bin": {
-    "doit-mcp-server": "dist/index.js"
-  },
+  "bin": "dist/index.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -69,9 +67,8 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "yarn@4.18.1",
   "volta": {
-    "node": "22.21.1",
-    "yarn": "1.22.22"
+    "node": "22.21.1"
   }
 }

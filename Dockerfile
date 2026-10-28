@@ -4,17 +4,22 @@ FROM node:lts-alpine
 WORKDIR /app
 
 # Copy dependency definitions
-COPY package.json yarn.lock ./
+COPY package.json yarn.lock .yarnrc.yml ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN npm install --global --force corepack@0.34.7 \
+    && corepack enable \
+    && yarn install --immutable
 
 # Copy the rest of the application
 COPY . .
 
-# Git filters ignored skill files during generation; it is not needed at runtime.
+# Recreate only the Git metadata needed to apply .gitignore to skill sources.
+# The host checkout's .git directory is excluded from the build context.
 RUN apk add --no-cache --virtual .build-deps git \
+    && git init --quiet \
     && yarn build \
+    && rm -rf .git \
     && apk del .build-deps
 
 # Expose the default port (if the server uses one, otherwise remove or adjust accordingly)
