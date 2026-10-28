@@ -140,7 +140,6 @@ jobs:
       # Trusted publishing needs npm >= 11.5.1. Pinned to major 11 because
       # npm@latest can require a newer Node than this job runs (npm@12 needs
       # Node >= 22.22, which broke the first publish attempt on Node 20).
-
       - name: Update npm
         run: npm install -g npm@11
 
