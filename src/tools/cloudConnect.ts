@@ -21,14 +21,15 @@ const inputs = z.record(id, z.record(id, z.string().max(1024)));
 const awsAccountId = z
     .string()
     .regex(/^\d{12}$/, "Use the 12-digit AWS account ID (digits only; a letter o is not a zero).");
-const projectId = z.string().regex(/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/);
+const gcpIdPattern = "[a-z][a-z0-9-]{4,28}[a-z0-9]";
+const projectId = z.string().regex(new RegExp(`^${gcpIdPattern}$`));
 const organizationId = z.string().regex(/^[1-9][0-9]{0,24}$/);
 const datasetId = z
     .string()
     .min(1)
     .max(1024)
     .regex(/^[A-Za-z0-9_]+$/);
-const serviceAccountId = z.string().regex(/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/);
+const serviceAccountId = projectId;
 const roleId = z.string().regex(/^[A-Za-z0-9_.]{3,64}$/);
 export const CloudConnectScopeSchema = z
     .discriminatedUnion("kind", [
@@ -75,9 +76,7 @@ export const CloudConnectIdentitySchema = z.discriminatedUnion("kind", [
                 .object({
                     email: z
                         .string()
-                        .regex(
-                            /^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\.iam\.gserviceaccount\.com$/
-                        ),
+                        .regex(new RegExp(`^${gcpIdPattern}@${gcpIdPattern}\\.iam\\.gserviceaccount\\.com$`)),
                     uniqueId: z.string().regex(/^[0-9]{1,32}$/),
                     projectId,
                 })
@@ -237,15 +236,14 @@ export const getCloudConnectRequirementsTool = tool(
     "get_cloud_connect_requirements",
     GetCloudConnectRequirementsArgumentsSchema,
     `post:${base}/requirements`,
-    "Resolve fresh customer-specific AWS or GCP Cloud Connect prerequisites, identity trust, per-feature permissions, inputs and deployment artifacts. Read-only. GCP organization, project and dataset scopes use the returned inline shell artifact. Account scopes return the account CloudFormation template and per-account Terraform module. Organization scopes return one management StackSet artifact with entrypoint, a flat files list (path, URL and SHA-256 for both templates) and parameters for one root/OU; no fleet connection or rollout operation is created. AWS membership, Organizations/StackSets prerequisites, deployment success and access remain separate checks. Organization real-time bucket/enrollment configuration is unsupported by the pinned artifact. Artifacts are reference implementations for adaptation to customer tooling; their requirements and registration behavior remain relevant when adapted. The selected artifact's requirementsSatisfied and findings determine artifact readiness; feature-level flags or preconditions alone do not. Discovery and blocked artifacts have requirementsSatisfied=false and empty parameters. Returned parameters preserve the artifact's exact spelling and structure. Does not enable billing exports.",
-
+    "Resolve fresh customer-specific AWS or GCP Cloud Connect prerequisites, identity trust, per-feature permissions, inputs and deployment artifacts. Read-only. GCP organization, project and dataset scopes use the returned inline shell artifact. AWS account scopes return the account CloudFormation template and per-account Terraform module. AWS organization scopes return one management StackSet artifact with entrypoint, a flat files list (path, URL and SHA-256 for both templates) and parameters for one root/OU; no fleet connection or rollout operation is created. AWS membership, Organizations/StackSets prerequisites, deployment success and access remain separate checks. AWS organization real-time bucket/enrollment configuration is unsupported by the pinned artifact. Artifacts are reference implementations for adaptation to customer tooling; their requirements and registration behavior remain relevant when adapted. The selected artifact's requirementsSatisfied and findings determine artifact readiness; feature-level flags or preconditions alone do not. Discovery and blocked artifacts have requirementsSatisfied=false and empty parameters. Returned parameters preserve the artifact's exact spelling and structure. Does not enable billing exports.",
     true
 );
 export const listCloudConnectionsTool = tool(
     "list_cloud_connections",
     ListCloudConnectionsArgumentsSchema,
     `get:${base}/connections`,
-    "Discover existing Cloud Connect records by exact account/feature filters. An empty list means no matching registration, not that cloud resources are absent. Subsequent pages use pageToken with the same filters.",
+    "Discover existing Cloud Connect records by exact provider, scope and feature filters. An empty list means no matching registration, not that cloud resources are absent. Subsequent pages use pageToken with the same filters.",
     true
 );
 export const getCloudConnectionTool = tool(
@@ -259,7 +257,7 @@ export const registerCloudConnectionTool = tool(
     "register_cloud_connection",
     RegisterCloudConnectionArgumentsSchema,
     `post:${base}/connections`,
-    "Register a deployed AWS IAM role or GCP service account explicitly when the final deployment does not register it automatically and no connection exists yet. Retained DoiT Terraform provider resources and CloudFormation callbacks perform registration through their own workflow; an additional registration duplicates that operation. An existing connection for the account returns 409 connection_exists; changes to that record use a conditional update. Fresh requirements describe prerequisites, and dry_run_cloud_connection_change previews the request. GCP setup scripts grant access but do not register: use descriptor metadata and the selected GCP scope. Registration alone does not establish feature readiness or data arrival.",
+    "Register a deployed AWS IAM role or GCP service account explicitly when the final deployment does not register it automatically and no connection exists yet. For AWS, retained DoiT Terraform provider resources and CloudFormation callbacks perform registration through their own workflow; an additional registration duplicates that operation. An existing connection for the scope returns 409 connection_exists; changes to that record use a conditional update. Fresh requirements describe prerequisites, and dry_run_cloud_connection_change previews the request. GCP setup scripts grant access but do not register: use descriptor metadata and the selected GCP scope. Registration alone does not establish feature readiness or data arrival.",
     false
 );
 export const updateCloudConnectionTool = tool(
