@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.10.0 (2026-10-29)
+
+**Full diff:** [`v2.9.2...v2.10.0`](../../compare/v2.9.2...v2.10.0)
+
+### Features
+
+- feat(cloudflow): append skill guide URIs to tool descriptions for legacy clients (`8d37e45`)
+- feat(cloudflow): migrate authoring guidance to on-demand skill (`64eb1c4`)
+
+### Other Changes
+
+- refactor(cloudflow): remove legacy skill instructions from server initialization (`3d08a82`)
 ## v2.9.2 (2026-10-29)
 
 **Full diff:** [`v2.9.1...v2.9.2`](../../compare/v2.9.1...v2.9.2)
