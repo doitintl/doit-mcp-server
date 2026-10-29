@@ -11,8 +11,9 @@ Use `provider: gcp` and choose the scope:
 Use a dedicated service account per customer and scope. Organization access does not replace
 project-specific setup. Reconcile legacy connections with multiple organization bindings before writes.
 
-For organization setup, use an existing host project for the service account. Never create
-projects. If no suitable project is available, request an existing project from the customer.
+For organization setup, first find a suitable existing project to host the service account.
+If none is suitable, ask the customer whether they want to create one and wait for their
+approval before creating it.
 Organization IAM setup does not require a new billing account. The operator needs
 `iam.roles.get` and `iam.roles.create` on the organization, plus access to read
 and update its IAM policy. Organization Admin alone does not include custom-role management;
