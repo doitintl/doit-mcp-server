@@ -6,7 +6,6 @@ import { StdioClientTransport as ModernStdioClientTransport } from "@modelcontex
 import { Client as LegacyClient } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport as LegacyStdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { describe, expect, it } from "vitest";
-import { CLOUD_CONNECT_INSTRUCTIONS } from "../../../src/docs/cloudConnectSkill.js";
 import { SERVER_INSTRUCTIONS } from "../../../src/docs/serverInstructions.js";
 import { generatedTools } from "../../../src/tools/generated/registry.js";
 import { HAND_WRITTEN_TOOLS } from "../../../src/tools/handWrittenTools.js";
@@ -62,7 +61,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built stdio binar
             const result = await client.callTool({ name: "list_organizations", arguments: {} });
 
             expect(client.getServerVersion()?.name).toBe("doit-mcp-server");
-            expect(client.getInstructions()).toBe(`${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`);
+            expect(client.getInstructions()).toBe(SERVER_INSTRUCTIONS);
             expect(client.getInstructions()).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
             expect(tools.map((tool) => tool.name).sort()).toEqual(EXPECTED_TOOL_NAMES);
             expectCloudflowToolCaveats(tools);
@@ -87,9 +86,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built stdio binar
 
             expect(client.getNegotiatedProtocolVersion()).toBe("2026-07-28");
             expect(client.getProtocolEra()).toBe("modern");
-            expect(client.getDiscoverResult()?.instructions).toBe(
-                `${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`
-            );
+            expect(client.getDiscoverResult()?.instructions).toBe(SERVER_INSTRUCTIONS);
             expect(client.getDiscoverResult()?.instructions).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
             expect(tools.map((tool) => tool.name).sort()).toEqual(EXPECTED_TOOL_NAMES);
             expectCloudflowToolCaveats(tools);

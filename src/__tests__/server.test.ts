@@ -8,7 +8,6 @@ import {
 } from "@modelcontextprotocol/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { CLOUD_CONNECT_INSTRUCTIONS } from "../docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../docs/serverInstructions.js";
 import { SKILL_GUIDE_POINTERS } from "../docs/skillGuidePointers.js";
@@ -403,7 +402,7 @@ describe("createServer", () => {
                     resources: {},
                     extensions: { "io.modelcontextprotocol/skills": {} },
                 },
-                instructions: `${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`,
+                instructions: SERVER_INSTRUCTIONS,
             }
         );
     });

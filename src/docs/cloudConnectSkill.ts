@@ -1,6 +1,10 @@
 import { readSkillResource } from "../skills/index.js";
 
 export const CLOUD_CONNECT_SKILL_URI = "skill://doit-cloud-connect/SKILL.md";
+/**
+ * @deprecated Retained for /core consumers; no longer sent as server instructions.
+ * Clients without native Skills support find the skill URI in the Cloud Connect tool descriptions.
+ */
 export const CLOUD_CONNECT_INSTRUCTIONS =
     "For DoiT Cloud Connect access setup, verification, repair or disconnect, consult skill://doit-cloud-connect/SKILL.md or the connect_cloud prompt. Identify the cloud provider and deployment method first. AWS is supported; Google Cloud and Azure paths are not implemented in these MCP tools yet. Resolve fresh requirements, preserve the customer's registration owner, preview changes and verify access; billing ingestion is separate.";
 

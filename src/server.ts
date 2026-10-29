@@ -9,7 +9,6 @@ import {
     type ServerContext,
     type Tool,
 } from "@modelcontextprotocol/server";
-import { CLOUD_CONNECT_INSTRUCTIONS } from "./docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { CLOUDFLOW_GUIDE_URI, withSkillGuidePointers } from "./docs/skillGuidePointers.js";
@@ -193,8 +192,9 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
                 extensions: SKILL_EXTENSION_CAPABILITY,
             },
             // Returned in the initialize result. Only the stdio server is constructed here —
-            // the remote Worker builds its own Server and has to pass this itself.
-            instructions: `${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`,
+            // the remote Worker builds its own Server and has to pass this itself. Domain
+            // workflows are not repeated here; tools/list names their guides when needed.
+            instructions: SERVER_INSTRUCTIONS,
         }
     );
 
