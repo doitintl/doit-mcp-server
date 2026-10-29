@@ -1,6 +1,10 @@
 # Delivering CloudFlow authoring guidance to the model
 
 Status: **implemented** in this package and in the remote Worker in a separate private repo.
+CloudFlow workflow guidance now loads through the
+[authoring skill](../skills/doit-cloudflow-authoring/SKILL.md), rather than global server
+instructions. The package migration is complete; hosted adoption requires a package release
+and a dependency update in the separate consumer (see §9).
 The Worker consumes the `/core` exports: it passes `SERVER_INSTRUCTIONS` to both the legacy
 `initialize` and modern `server/discover` paths, serves the CloudFlow authoring guide resource,
 and integrates the shared skill registry, including native discovery for supported clients.
@@ -11,10 +15,12 @@ Original implementation scope: `doitintl/doit-mcp-server` only. No API change, n
 flow builder; the companion Worker adoption is now implemented separately.
 
 This document preserves the original delivery design: §§1–5 describe the problem and decisions
-at the time, including the need for a companion Worker change. §§6–8 record current delivery
-status and remaining validation. Runtime wording is maintained only in
-[`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts): JavaScript is the default,
-bare upstream input access fails the node, and test runs can execute real actions on drafts.
+at the time, including the need for a companion Worker change. §§6–9 record current delivery
+status and remaining validation. The canonical guide lives in the
+[skill reference](../skills/doit-cloudflow-authoring/references/authoring-guide.md);
+[`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts) retains essential tool hints
+and exports the same bundled guide bytes. JavaScript is the default, bare upstream input
+access fails the node, and test runs can execute real actions on drafts.
 
 ## 1. The problem
 
@@ -227,7 +233,7 @@ platform behavior, relevant usage conditions and result limits. The Claude Conne
 reject unrelated behavioral instructions and coerced tool calls, while tool-specific preconditions
 and caveats remain useful. See the repo's [tool-description guidance](../AGENTS.md#tool-descriptions-and-parameter-help).
 
-The current instruction text is `CLOUDFLOW_INSTRUCTIONS` in
+The historical instruction text is retained as the deprecated `CLOUDFLOW_INSTRUCTIONS` export in
 [`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts). It distinguishes both
 codeNode languages, validation from real draft execution, and build/refine results.
 
@@ -235,10 +241,8 @@ codeNode languages, validation from real draft execution, and build/refine resul
 
 - **Instructions are a shared budget.** CloudFlow is one domain among many in this server. Twelve
   lines for one domain sets a precedent that does not scale — if every family claims the same,
-  the instructions stop being read. Keep this tier to the cross-cutting rules (verify before
-  claiming success; the codeNode contract, which is the one silent failure) and push everything
-  else to the resource. If a second domain needs the same treatment, that is the moment to
-  design a real per-domain guidance mechanism rather than growing one string.
+  the instructions stop being read. Domain workflows now belong in skills; essential codeNode
+  and execution contracts remain in tool metadata for clients that do not load a skill.
 - **Resources are pull, not push.** Most clients never read a resource unprompted. The resource
   tier is for depth on request; it must not be where a load-bearing rule lives alone.
 - **Delivery is implemented; client context needs separate evidence.** Driving the built server
@@ -250,10 +254,11 @@ codeNode languages, validation from real draft execution, and build/refine resul
   individual clients surface those instructions into model context still requires client-specific
   evidence. The original guidance-enabled versus
   guidance-disabled behavioural comparison in §7 remains unverified.
-- **Skill delivery is separate from guidance migration.** The Worker integrates the shared
+- **Skill delivery is separate from hosted migration.** The Worker integrates the shared
   skill registry, serving its resources and exposing native `skills/list` and `skills/get` to
-  clients with protocol `2026-07-28` and Skills extension support. Moving CloudFlow guidance into
-  an on-demand skill is separate work; registry support does not mean that migration is complete.
+  clients with protocol `2026-07-28` and Skills extension support. The package now includes
+  CloudFlow authoring in that registry; hosted connections require the release and dependency
+  update in §9 before they receive it.
 - **This does not fix the builder.** It tells the model to expect broken code and verify. The
   generated code is still wrong as often as before, and repairing it still means
   export → edit → import as a new flow, because the API has no flow-update endpoint.
@@ -283,6 +288,31 @@ stdio delivery is verified (see §6); the behavioural check below needs a live t
 4. **Remaining validation.** Establish client-specific model-context behaviour and complete the
    original guidance-enabled versus guidance-disabled behavioural comparison in §7. Implemented
    Worker delivery alone does not establish either result.
-5. **On-demand CloudFlow skill — separate work.** Moving the guidance out of global server
-   instructions into an on-demand skill remains a distinct migration, not a completed part of
-   Worker adoption.
+5. **On-demand CloudFlow skill — implemented in this package.** See §9 for delivery and rollout.
+
+## 9. On-demand CloudFlow guidance
+
+The original instructions channel made the codeNode contract visible during every connection
+because validation can accept code that produces the wrong result. That delivery addressed a
+real failure, but it also imposed a domain-specific workflow on cost, report, ticket and other
+unrelated sessions. Global instructions are a shared context budget, so CloudFlow now uses:
+
+- **Skill:** `doit-cloudflow-authoring` provides the authoring loop and a reference containing
+  the full guide. The build embeds both files through the existing shared registry.
+- **Tool metadata:** build/refine, import/export and test-run descriptions retain the runtime
+  and execution caveats at the point of use, including codeNode inputs/return/schema and real
+  actions during draft test runs. Native Skills support is not required to read these facts.
+- **Guide resource:** `doit://docs/cloudflow-authoring` continues to serve the unchanged guide,
+  using exactly the same bytes as the skill reference. Older clients can read both resources.
+- **Global instructions:** `SERVER_INSTRUCTIONS` contains only a generic skill-discovery
+  pointer. The deprecated `CLOUDFLOW_INSTRUCTIONS` export remains for API compatibility and
+  is not sent by the server.
+
+Fixture tests cover legacy `initialize`, modern `server/discover`, tool metadata, native
+skill discovery, manifests/file reads and the existing guide. They establish delivery, not
+client activation or live CloudFlow behavior; the original behavioral comparison remains open.
+
+Release this package before updating the separate Worker's dependency and lockfile. Both of
+its protocol paths already consume `SERVER_INSTRUCTIONS` and the shared registry from `/core`;
+the companion change must verify the released contents and update its old instruction tests.
+Publishing this package does not update or deploy the hosted Worker.

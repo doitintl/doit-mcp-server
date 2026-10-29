@@ -141,7 +141,7 @@ const generatedToolDefinitions = generatedTools.map((tool) => ({
 }));
 
 // Resources are pull-only: a client has to ask. This is the depth-on-request tier — the
-// load-bearing rules also ride the tool descriptions and the server instructions.
+// essential contracts also ride tool descriptions; the authoring workflow lives in the skill.
 const CLOUDFLOW_GUIDE_URI = "doit://docs/cloudflow-authoring";
 
 /**

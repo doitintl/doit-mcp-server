@@ -406,11 +406,11 @@ describe("createServer", () => {
         );
     });
 
-    it("passes non-empty instructions covering the codeNode contract", () => {
+    it("keeps CloudFlow workflow and runtime rules out of global instructions", () => {
         const [, options] = (Server as any).mock.calls[0];
 
-        expect(options.instructions).toContain('nodes["<node name>"]');
-        expect(options.instructions).toContain("{message: null}");
+        expect(options.instructions).toContain(SERVER_INSTRUCTIONS);
+        expect(options.instructions).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
     });
 
     it("registers handlers for all required schemas", () => {

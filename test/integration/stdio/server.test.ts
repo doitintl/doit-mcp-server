@@ -45,11 +45,9 @@ describe("MCP Server Integration", () => {
             expect(caps?.resources).toBeDefined();
         });
 
-        // src/server.ts registers its own InitializeRequestSchema handler, replacing the SDK's,
-        // so the `instructions` constructor option is only delivered if that handler echoes it.
-        // Asserting it through a real client is the only check that catches the omission.
-        it("delivers server instructions to the client", async () => {
+        it("delivers shared instructions without CloudFlow rules to the legacy client", async () => {
             expect(client.getInstructions()).toBe(`${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`);
+            expect(client.getInstructions()).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
         });
     });
 

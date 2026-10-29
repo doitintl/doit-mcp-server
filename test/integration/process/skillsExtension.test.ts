@@ -80,7 +80,7 @@ serveStdio(() => createServer({skillRegistry}), {legacy: "serve"});
     afterAll(() => {
         for (const directory of temporary.splice(0)) rmSync(directory, { recursive: true, force: true });
     });
-    it("advertises the official extension and auto-discovers the bundled Cloud Connect skill", async () => {
+    it("discovers both bundled skills and delivers the complete CloudFlow authoring files", async () => {
         const client = modernClient();
         const transport = new StdioClientTransport(params(entry));
         await client.connect(transport);
@@ -94,17 +94,63 @@ serveStdio(() => createServer({skillRegistry}), {legacy: "serve"});
             expect(response).toMatchObject({
                 ttlMs: 300000,
                 cacheScope: "public",
-                skills: [expect.objectContaining({ uri: "skill://doit-cloud-connect/SKILL.md" })],
+                skills: [
+                    expect.objectContaining({ uri: "skill://doit-cloud-connect/SKILL.md" }),
+                    expect.objectContaining({ uri: "skill://doit-cloudflow-authoring/SKILL.md" }),
+                ],
             });
             expect(wire[0]).toMatchObject({
                 resultType: "complete",
                 ttlMs: 300000,
                 cacheScope: "public",
-                skills: [expect.objectContaining({ uri: "skill://doit-cloud-connect/SKILL.md" })],
+                skills: response.skills,
             });
+            const uri = "skill://doit-cloudflow-authoring/SKILL.md";
+            const { skill } = await client.request({ method: "skills/get", params: { uri } }, z.any());
+            expect(skill).toEqual(response.skills.find((entry: { uri: string }) => entry.uri === uri));
+            expect(skill.resources.map((resource: { uri: string }) => resource.uri)).toEqual([
+                uri,
+                "skill://doit-cloudflow-authoring/references/authoring-guide.md",
+            ]);
+            for (const resource of skill.resources) {
+                const file = (await client.readResource({ uri: resource.uri })).contents[0];
+                expect(file.mimeType).toBe("text/markdown");
+                const bytes = Buffer.from(file.text as string);
+                expect(bytes.length).toBe(resource.size);
+                expect(`sha256:${createHash("sha256").update(bytes).digest("hex")}`).toBe(resource.digest);
+            }
+            const guide = await client.readResource({ uri: "doit://docs/cloudflow-authoring" });
+            const reference = await client.readResource({
+                uri: "skill://doit-cloudflow-authoring/references/authoring-guide.md",
+            });
+            expect(guide.contents[0]).toMatchObject({ text: reference.contents[0].text });
             await expect(
                 client.request({ method: "skills/get", params: { uri: "skill://unknown/SKILL.md" } }, z.any())
             ).rejects.toMatchObject({ code: -32602 });
+        } finally {
+            await client.close();
+        }
+    });
+    it("keeps the original CloudFlow guide and skill files available to legacy clients", async () => {
+        const client = new LegacyClient({ name: "legacy-cloudflow-test", version: "1.0.0" });
+        await client.connect(new LegacyStdioClientTransport(params(entry)));
+        try {
+            const resources = (await client.listResources()).resources.map((resource) => resource.uri);
+            for (const uri of [
+                "doit://docs/cloudflow-authoring",
+                "skill://doit-cloudflow-authoring/SKILL.md",
+                "skill://doit-cloudflow-authoring/references/authoring-guide.md",
+            ])
+                expect(resources).toContain(uri);
+            const skill = await client.readResource({ uri: "skill://doit-cloudflow-authoring/SKILL.md" });
+            expect(skill.contents[0]).toMatchObject({ text: expect.stringContaining("# DoiT CloudFlow authoring") });
+            const guide = await client.readResource({ uri: "doit://docs/cloudflow-authoring" });
+            const reference = await client.readResource({
+                uri: "skill://doit-cloudflow-authoring/references/authoring-guide.md",
+            });
+            expect(guide.contents[0]).toMatchObject({ text: reference.contents[0].text });
+            expect(guide.contents[0].text).toContain("# CloudFlow authoring over MCP");
+            expect(guide.contents[0].text).toContain("even for drafts");
         } finally {
             await client.close();
         }
