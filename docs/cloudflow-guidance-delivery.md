@@ -1,13 +1,18 @@
 # Delivering CloudFlow authoring guidance to the model
 
-Status: **implemented** in this package; companion Worker delivery is covered by consumer tests. Implementation
-spec for one change: making the CloudFlow runtime contract reach the model that is writing flows,
-through this server. Kept in the repo as the record of what was decided and why — the code it
-describes lives in `src/docs/cloudflowGuidance.ts`.
+Status: **implemented** in this package and in the remote Worker in a separate private repo.
+The Worker consumes the `/core` exports: it passes `SERVER_INSTRUCTIONS` to both the legacy
+`initialize` and modern `server/discover` paths, serves the CloudFlow authoring guide resource,
+and integrates the shared skill registry, including native discovery for supported clients.
+These delivery capabilities do not establish whether an individual client puts the instructions
+into model context or whether the original behavioural comparison passed (see §§6–7).
 
-Scope: `doitintl/doit-mcp-server` only. No API change, no change to the flow builder.
+Original implementation scope: `doitintl/doit-mcp-server` only. No API change, no change to the
+flow builder; the companion Worker adoption is now implemented separately.
 
-This document records the original delivery design. Runtime wording is maintained only in
+This document preserves the original delivery design: §§1–5 describe the problem and decisions
+at the time, including the need for a companion Worker change. §§6–8 record current delivery
+status and remaining validation. Runtime wording is maintained only in
 [`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts): JavaScript is the default,
 bare upstream input access fails the node, and test runs can execute real actions on drafts.
 
@@ -236,12 +241,19 @@ codeNode languages, validation from real draft execution, and build/refine resul
   design a real per-domain guidance mechanism rather than growing one string.
 - **Resources are pull, not push.** Most clients never read a resource unprompted. The resource
   tier is for depth on request; it must not be where a load-bearing rule lives alone.
-- **Verified for stdio; unverified beyond it.** Driving the built server over stdio with a real
-  MCP client confirms all three tiers: `instructions` arrives in the `initialize` result, the
-  guide lists and reads at `doit://docs/cloudflow-authoring`, and the description suffixes appear
-  in `tools/list`. What remains unverified from this repo is whether the remote Worker forwards
-  `instructions` at `initialize`, and whether the major clients surface it into model context at
-  all. The description tier is deliberately sufficient on its own for exactly this reason.
+- **Delivery is implemented; client context needs separate evidence.** Driving the built server
+  over stdio with a real MCP client confirms all three tiers: `instructions` arrives in the
+  `initialize` result, the guide lists and reads at `doit://docs/cloudflow-authoring`, and the
+  description suffixes appear in `tools/list`. The remote Worker in a separate private repo also
+  passes `SERVER_INSTRUCTIONS` from `/core` to the legacy `initialize` and modern
+  `server/discover` paths and serves the guide; consumer tests cover that delivery. Whether
+  individual clients surface those instructions into model context still requires client-specific
+  evidence. The original guidance-enabled versus
+  guidance-disabled behavioural comparison in §7 remains unverified.
+- **Skill delivery is separate from guidance migration.** The Worker integrates the shared
+  skill registry, serving its resources and exposing native `skills/list` and `skills/get` to
+  clients with protocol `2026-07-28` and Skills extension support. Moving CloudFlow guidance into
+  an on-demand skill is separate work; registry support does not mean that migration is complete.
 - **This does not fix the builder.** It tells the model to expect broken code and verify. The
   generated code is still wrong as often as before, and repairing it still means
   export → edit → import as a new flow, because the API has no flow-update endpoint.
@@ -264,7 +276,13 @@ stdio delivery is verified (see §6); the behavioural check below needs a live t
 1. ~~**C1, C2, C5, C6** — the description tier plus the shared constants. Reaches both transports
    with no change outside this repo. Ship first.~~ **Done.**
 2. ~~**C3, C4** — instructions and the resource, for the stdio server.~~ **Done**, with the
-   `InitializeRequestSchema` correction noted in C3.
-3. **Worker adoption** — the companion change in the separate private repo, importing the
-   constants from `/core`. Tracked there, not here. **Still outstanding**, and it is what carries
-   the instructions and resource tiers to the transport that served the motivating session.
+   historical `InitializeRequestSchema` correction noted in C3, since superseded by SDK v2.
+3. **Worker adoption — done.** The remote Worker in a separate private repo imports the shared
+   `/core` exports, passes `SERVER_INSTRUCTIONS` through both protocol paths, serves the guide,
+   and integrates the shared skill registry, including native discovery for supported clients.
+4. **Remaining validation.** Establish client-specific model-context behaviour and complete the
+   original guidance-enabled versus guidance-disabled behavioural comparison in §7. Implemented
+   Worker delivery alone does not establish either result.
+5. **On-demand CloudFlow skill — separate work.** Moving the guidance out of global server
+   instructions into an on-demand skill remains a distinct migration, not a completed part of
+   Worker adoption.
