@@ -1,6 +1,5 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CLOUD_CONNECT_INSTRUCTIONS } from "../../../src/docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../../../src/docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../../../src/docs/serverInstructions.js";
 import { SKILL_RESOURCES } from "../../../src/skills/index.js";
@@ -45,11 +44,9 @@ describe("MCP Server Integration", () => {
             expect(caps?.resources).toBeDefined();
         });
 
-        // src/server.ts registers its own InitializeRequestSchema handler, replacing the SDK's,
-        // so the `instructions` constructor option is only delivered if that handler echoes it.
-        // Asserting it through a real client is the only check that catches the omission.
-        it("delivers server instructions to the client", async () => {
-            expect(client.getInstructions()).toBe(`${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`);
+        it("delivers shared instructions without CloudFlow rules to the legacy client", async () => {
+            expect(client.getInstructions()).toBe(SERVER_INSTRUCTIONS);
+            expect(client.getInstructions()).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
         });
     });
 

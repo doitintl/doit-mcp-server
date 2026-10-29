@@ -1,15 +1,15 @@
 # CloudFlow authoring over MCP
 
-This guidance now lives in code, at [`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts),
-which is its single source of truth.
+The canonical guide is the [CloudFlow authoring skill reference](../skills/doit-cloudflow-authoring/references/authoring-guide.md).
+Start with the [authoring skill](../skills/doit-cloudflow-authoring/SKILL.md) for the workflow.
 
-It moved because it is guidance *for models*, and a markdown file in this repo reaches none of
-them: `package.json` publishes only `dist`, and the remote Cloudflare Worker transport is a
-bundle with no filesystem. As a TypeScript constant it is delivered three ways — as a suffix on
-the CloudFlow tool descriptions, as the server's `instructions`, and as the
-`doit://docs/cloudflow-authoring` MCP resource.
+The build embeds the skill files in `dist` for discovery and resource reads without runtime
+filesystem access. [`src/docs/cloudflowGuidance.ts`](../src/docs/cloudflowGuidance.ts) serves
+the same reference bytes through the existing `doit://docs/cloudflow-authoring` resource and
+keeps essential runtime facts in tool-description suffixes. Global server instructions no
+longer include CloudFlow workflow or runtime rules.
 
-Read the module for the full contract: the authoring loop, idempotency-key retry semantics, the
+Read the skill reference for the full contract: the authoring loop, idempotency-key retry semantics, the
 language-specific `codeNode` runtime contract, what an exported bundle cannot carry,
 and the tenant-scoping caveat.
 

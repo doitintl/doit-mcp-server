@@ -6,6 +6,7 @@ import { StdioClientTransport as ModernStdioClientTransport } from "@modelcontex
 import { Client as LegacyClient } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport as LegacyStdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { describe, expect, it } from "vitest";
+import { SERVER_INSTRUCTIONS } from "../../../src/docs/serverInstructions.js";
 import { generatedTools } from "../../../src/tools/generated/registry.js";
 import { HAND_WRITTEN_TOOLS } from "../../../src/tools/handWrittenTools.js";
 import { EMPLOYEE_ONLY_TOOLS } from "../../../src/utils/employeeAccess.js";
@@ -36,6 +37,21 @@ const serverParams = { command: process.execPath, args: [SERVER_ENTRY], cwd: tmp
 type TextResult = { content: Array<{ type: string; text?: string }> };
 const textOf = (result: unknown) => (result as TextResult).content.find((c) => c.type === "text")?.text ?? "";
 
+function expectCloudflowToolCaveats(tools: Array<{ name: string; description?: string }>) {
+    const description = (name: string) => tools.find((tool) => tool.name === name)?.description;
+    for (const name of ["import_cloudflow_flow", "export_cloudflow_flow"]) {
+        expect(description(name)).toContain('JavaScript (default) uses $nodes["<node name>"]');
+        expect(description(name)).toContain("Python uses nodes and variables");
+        expect(description(name)).toContain("top-level return");
+        expect(description(name)).toContain("{message: null}");
+        expect(description(name)).toContain("Bare input is not injected");
+        expect(description(name)).toContain("schema (JSON Schema string) is required");
+    }
+    expect(description("test_run_cloudflow_flow")).toContain("executes real actions even on drafts");
+    for (const name of ["build_cloud_flow", "refine_cloudflow"])
+        expect(description(name)).toContain("Test runs execute real actions, including on drafts");
+}
+
 describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built stdio binary (dist/index.js)", () => {
     it("serves a 2025-era v1 SDK client over initialize", async () => {
         const client = new LegacyClient({ name: "process-legacy-client", version: "1.0.0" });
@@ -45,7 +61,10 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built stdio binar
             const result = await client.callTool({ name: "list_organizations", arguments: {} });
 
             expect(client.getServerVersion()?.name).toBe("doit-mcp-server");
+            expect(client.getInstructions()).toBe(SERVER_INSTRUCTIONS);
+            expect(client.getInstructions()).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
             expect(tools.map((tool) => tool.name).sort()).toEqual(EXPECTED_TOOL_NAMES);
+            expectCloudflowToolCaveats(tools);
             expect(textOf(result)).toContain("Unauthorized");
         } finally {
             await client.close();
@@ -67,7 +86,10 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built stdio binar
 
             expect(client.getNegotiatedProtocolVersion()).toBe("2026-07-28");
             expect(client.getProtocolEra()).toBe("modern");
+            expect(client.getDiscoverResult()?.instructions).toBe(SERVER_INSTRUCTIONS);
+            expect(client.getDiscoverResult()?.instructions).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
             expect(tools.map((tool) => tool.name).sort()).toEqual(EXPECTED_TOOL_NAMES);
+            expectCloudflowToolCaveats(tools);
             expect(textOf(result)).toContain("Unauthorized");
         } finally {
             await client.close();

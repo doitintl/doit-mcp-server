@@ -31,8 +31,10 @@ describe("CloudFlow guidance", () => {
         expect(CLOUDFLOW_INSTRUCTIONS.split("\n").length).toBeLessThanOrEqual(16);
     });
 
-    it("serves the instructions as the server instructions", () => {
-        expect(SERVER_INSTRUCTIONS).toBe(CLOUDFLOW_INSTRUCTIONS);
+    it("keeps domain workflows out of shared global instructions", () => {
+        expect(SERVER_INSTRUCTIONS).toContain("skill");
+        expect(SERVER_INSTRUCTIONS).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
+        expect(SERVER_INSTRUCTIONS).not.toBe(CLOUDFLOW_INSTRUCTIONS);
     });
 
     it("distinguishes structural validation from draft execution in all execution guidance", () => {
@@ -73,10 +75,10 @@ describe("CloudFlow guidance", () => {
         }
     });
 
-    it("leaves docs/cloudflow-authoring.md as a pointer, not a second copy that can drift", () => {
+    it("leaves docs/cloudflow-authoring.md as a pointer to the canonical skill reference", () => {
         const doc = readFileSync(new URL("../../../docs/cloudflow-authoring.md", import.meta.url), "utf8");
 
-        expect(doc).toContain("src/docs/cloudflowGuidance.ts");
+        expect(doc).toContain("skills/doit-cloudflow-authoring/references/authoring-guide.md");
         expect(doc.length).toBeLessThan(CLOUDFLOW_AUTHORING_GUIDE.length);
     });
 });
