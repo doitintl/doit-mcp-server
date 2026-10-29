@@ -11,6 +11,9 @@ CloudFlow workflows are loaded on demand rather than sent in global server instr
 Clients without native Skills support retain the tool descriptions and the existing
 `doit://docs/cloudflow-authoring` guide resource. Skill files also remain readable through
 core Resources. The guide resource and the skill reference serve the same bundled text.
+For those clients, `tools/list` appends the guide URI to the CloudFlow and Cloud Connect
+tools listed in `SKILL_GUIDE_POINTERS` (`src/docs/skillGuidePointers.ts`); clients with native
+Skills support receive the descriptions unchanged.
 
 ## Add a skill
 

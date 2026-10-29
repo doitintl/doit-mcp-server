@@ -8,6 +8,7 @@ export {
     CLOUDFLOW_INSTRUCTIONS,
 } from "./docs/cloudflowGuidance.js";
 export { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
+export { CLOUDFLOW_GUIDE_URI, SKILL_GUIDE_POINTERS, withSkillGuidePointers } from "./docs/skillGuidePointers.js";
 export * from "./prompts/index.js";
 export * from "./skills/index.js";
 export { ListAccountTeamArgumentsSchema, listAccountTeamTool } from "./tools/accountTeam.js";

@@ -1,4 +1,5 @@
 import {
+    CLIENT_CAPABILITIES_META_KEY,
     CLIENT_INFO_META_KEY,
     type Implementation,
     PROTOCOL_VERSION_META_KEY,
@@ -11,9 +12,10 @@ import {
 import { CLOUD_CONNECT_INSTRUCTIONS } from "./docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
+import { CLOUDFLOW_GUIDE_URI, withSkillGuidePointers } from "./docs/skillGuidePointers.js";
 import { applyPromptMessageArguments, filterPromptArgs, prompts, resolvePromptMessages } from "./prompts/index.js";
 import { registerSkillHandlers } from "./skillRegistration.js";
-import { SKILL_EXTENSION_CAPABILITY, SKILL_REGISTRY, type SkillRegistry } from "./skills/index.js";
+import { SKILL_EXTENSION_CAPABILITY, SKILL_REGISTRY, type SkillRegistry, supportsSkills } from "./skills/index.js";
 import { handleListAccountTeamRequest } from "./tools/accountTeam.js";
 import {
     handleCreateAlertRequest,
@@ -142,7 +144,7 @@ const generatedToolDefinitions = generatedTools.map((tool) => ({
 
 // Resources are pull-only: a client has to ask. This is the depth-on-request tier — the
 // essential contracts also ride tool descriptions; the authoring workflow lives in the skill.
-const CLOUDFLOW_GUIDE_URI = "doit://docs/cloudflow-authoring";
+// Clients without native Skills support find the guide URI in the tool descriptions.
 
 /**
  * MCP client identity, attached to every tool call for analytics.
@@ -196,8 +198,14 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
         }
     );
 
-    server.setRequestHandler("tools/list", async () => {
+    server.setRequestHandler("tools/list", async (_request, ctx) => {
         const employee = isDoitEmployee(process.env.DOIT_API_KEY);
+        // 2025-era requests carry no envelope, so those clients never support native Skills.
+        const envelope = ctx.mcpReq.envelope as Record<string, unknown> | undefined;
+        const skillsSupported = supportsSkills(
+            envelope?.[PROTOCOL_VERSION_META_KEY],
+            envelope?.[CLIENT_CAPABILITIES_META_KEY]
+        );
         return {
             // v2 types handler returns from the method name, so this array is now checked
             // against the spec `Tool` type. Two of our fields aren't spec vocabulary:
@@ -207,10 +215,13 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
             // this SDK swap stays behaviour-neutral; relocating `securitySchemes` under
             // `_meta` and dropping `coversEndpoint` are wire-visible changes that belong
             // in their own commit.
-            tools: [
-                ...HAND_WRITTEN_TOOLS.filter((tool) => employee || !EMPLOYEE_ONLY_TOOLS.has(tool.name)),
-                ...generatedToolDefinitions,
-            ] as unknown as Tool[],
+            tools: withSkillGuidePointers(
+                [
+                    ...HAND_WRITTEN_TOOLS.filter((tool) => employee || !EMPLOYEE_ONLY_TOOLS.has(tool.name)),
+                    ...generatedToolDefinitions,
+                ],
+                skillsSupported
+            ) as unknown as Tool[],
         };
     });
 

@@ -155,6 +155,35 @@ serveStdio(() => createServer({skillRegistry}), {legacy: "serve"});
             await client.close();
         }
     });
+    it("names the skill guides in tool descriptions only for clients without native Skills support", async () => {
+        const guides = {
+            build_cloud_flow: "doit://docs/cloudflow-authoring",
+            verify_cloud_connect: "skill://doit-cloud-connect/SKILL.md",
+        };
+        const description = (tools: { name: string; description?: string }[], name: string) =>
+            tools.find((tool) => tool.name === name)?.description ?? "";
+        const legacy = new LegacyClient({ name: "legacy-guide-test", version: "1.0.0" });
+        await legacy.connect(new LegacyStdioClientTransport(params(entry)));
+        try {
+            const { tools } = await legacy.listTools();
+            for (const [name, uri] of Object.entries(guides)) expect(description(tools, name)).toContain(uri);
+        } finally {
+            await legacy.close();
+        }
+        for (const supportsSkills of [false, true]) {
+            const client = modernClient(supportsSkills);
+            await client.connect(new StdioClientTransport(params(entry)));
+            try {
+                const { tools } = await client.listTools();
+                for (const [name, uri] of Object.entries(guides))
+                    expect(description(tools, name).includes(uri), `${name} supportsSkills=${supportsSkills}`).toBe(
+                        !supportsSkills
+                    );
+            } finally {
+                await client.close();
+            }
+        }
+    });
     it("serves multiple complete skills, pagination, text and blobs with exact manifest integrity", async () => {
         const client = modernClient();
         const transport = new StdioClientTransport(params(fixtureEntry));
