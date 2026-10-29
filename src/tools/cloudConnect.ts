@@ -18,6 +18,9 @@ const featureIds = z
     .max(100)
     .refine((values) => new Set(values).size === values.length, "Feature IDs must be unique.");
 const inputs = z.record(id, z.record(id, z.string().max(1024)));
+const awsAccountId = z
+    .string()
+    .regex(/^\d{12}$/, "Use the 12-digit AWS account ID (digits only; a letter o is not a zero).");
 const projectId = z.string().regex(/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/);
 const organizationId = z.string().regex(/^[1-9][0-9]{0,24}$/);
 const datasetId = z
@@ -33,7 +36,7 @@ export const CloudConnectScopeSchema = z
             .object({
                 provider: z.literal("aws"),
                 kind: z.literal("aws_account"),
-                accountId: z.string().regex(/^\d{12}$/),
+                accountId: awsAccountId,
             })
             .strict(),
         z.object({ provider: z.literal("gcp"), kind: z.literal("gcp_organization"), organizationId }).strict(),
@@ -44,13 +47,13 @@ export const CloudConnectScopeSchema = z
         "One AWS account or GCP organization, project or BigQuery dataset. AWS roots/OUs are deployment targets. GCP organization inheritance does not prove project-specific feature setup or data arrival."
     );
 export const CloudConnectRequirementsScopeSchema = z
-    .union([
-        CloudConnectScopeSchema,
+    .discriminatedUnion("kind", [
+        ...CloudConnectScopeSchema.options,
         z
             .object({
                 provider: z.literal("aws"),
                 kind: z.literal("aws_organization"),
-                managementAccountId: z.string().regex(/^\d{12}$/),
+                managementAccountId: awsAccountId,
                 targetId: z.string().regex(/^(r-[a-z0-9]{4,32}|ou-[a-z0-9]{4,32}-[a-z0-9]{8,32})$/),
             })
             .strict(),
@@ -132,9 +135,7 @@ export const GetCloudConnectRequirementsArgumentsSchema = z.object({
         ),
     discoveryInputs: z
         .object({
-            managementAccountId: z
-                .string()
-                .regex(/^\d{12}$/)
+            managementAccountId: awsAccountId
                 .optional()
                 .describe(
                     "Optional management-account hint for aws_account member requests only; omit for aws_organization. It does not associate an undiscovered member with the customer or override DoiT account/payer prerequisites."
