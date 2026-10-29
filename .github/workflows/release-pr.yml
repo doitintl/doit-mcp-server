@@ -44,6 +44,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Enable Corepack
+        run: npm install --global --force corepack@0.34.7 && corepack enable
+
       - name: Determine next version
         id: version
         run: |
@@ -57,7 +60,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.version.outputs.tag != ''
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Prepare the release
         if: steps.version.outputs.tag != ''

@@ -1,0 +1,8 @@
+.git
+**/node_modules
+.yarn
+dist
+coverage
+**/.env*
+**/*.key
+**/*.pem

@@ -15,13 +15,10 @@ before running any commands:
 yarn install
 ```
 
-**Yarn 1 (classic), pinned.** Both `yarn.lock` files are v1 format and CI resolves `yarn` from the
-runner image, so the version is pinned in `package.json` via `packageManager` (for Corepack) and
-`volta` (for Volta) — in this directory *and* in `test/integration`, which is a separate project
-with its own lockfile. Running a Yarn 2+ binary here fails with "This package doesn't seem to be
-present in your lockfile" or "The lockfile would have been modified by this install"; if you see
-either, your shell resolved an unpinned Yarn. Do not commit a berry-format lockfile or a
-`.yarnrc.yml` without migrating both projects and all four workflows together.
+**Yarn 4.18.1 via Corepack.** Enable Corepack before using Yarn. The root project and
+`test/integration` are separate projects with their own modern `yarn.lock` files and
+`packageManager` pins. Both use the `node-modules` linker. CI installs with
+`yarn install --immutable`; migrate both projects and their workflows together.
 
 **Never run `npm install`.** npm lockfiles are gitignored, rejected by the `no-npm-lockfiles`
 pre-commit hook, and fail the `Enforce yarn` step in `test.yml`. `npm` is still used deliberately

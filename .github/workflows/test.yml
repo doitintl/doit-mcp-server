@@ -36,7 +36,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # This project is Yarn 1 (see the packageManager/volta pins). A committed
+      # This project is Yarn 4 (see the packageManager pins). A committed
       # npm lockfile means someone ran `npm install`, which silently diverges from
       # yarn.lock. `|| true` keeps a no-match grep from failing the step.
       - name: Enforce yarn (no npm lockfiles committed)
@@ -44,7 +44,7 @@ jobs:
         run: |
           found="$(git ls-files | grep -E '(^|/)(package-lock\.json|npm-shrinkwrap\.json)$' || true)"
           if [ -n "$found" ]; then
-            echo "::error::This project uses Yarn 1 - remove the npm lockfile(s): $found"
+            echo "::error::This project uses Yarn 4 - remove the npm lockfile(s): $found"
             exit 1
           fi
 
@@ -53,8 +53,11 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      - name: Enable Corepack
+        run: npm install --global --force corepack@0.34.7 && corepack enable
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Run lint and format checks
         if: matrix.primary
@@ -86,11 +89,14 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      - name: Enable Corepack
+        run: npm install --global --force corepack@0.34.7 && corepack enable
+
       - name: Install root dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Install integration test dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
         working-directory: test/integration
 
       # test/integration/process/ spawns the built CLI (dist/index.js) over real stdio.
