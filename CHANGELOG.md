@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.9.1 (2026-10-28)
+
+**Full diff:** [`v2.9.0...v2.9.1`](../../compare/v2.9.0...v2.9.1)
+
+### Chores
+
+- chore(deps): bump qs from 6.16.0 to 6.17.0 in /test/integration (`ddf6e47`)
+- chore(yarn): clean up configuration and dockerignore (`49398af`)
+
+### Other Changes
+
+- build(docker): optimize build context and secure sensitive files (`4ad78de`)
+- docs(yarn): remove outdated global hardlinks configuration (`5c817c8`)
+- build(deps): migrate to yarn 4 and enable corepack (`8ac5e84`)
 ## v2.9.0 (2026-10-27)
 
 **Full diff:** [`v2.8.1...v2.9.0`](../../compare/v2.8.1...v2.9.0)
