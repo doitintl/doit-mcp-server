@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.9.2 (2026-10-29)
+
+**Full diff:** [`v2.9.1...v2.9.2`](../../compare/v2.9.1...v2.9.2)
+
+### Other Changes
+
+- docs(cloudflow): update delivery status and worker adoption details (`050d03c`)
 ## v2.9.1 (2026-10-28)
 
 **Full diff:** [`v2.9.0...v2.9.1`](../../compare/v2.9.0...v2.9.1)
