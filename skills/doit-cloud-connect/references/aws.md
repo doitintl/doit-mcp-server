@@ -45,6 +45,7 @@ Registration, update and removal use an `Idempotency-Key`; the tools generate on
 - One key per logical write. After a timeout or lost response, **read first**. If the write must be repeated unchanged, resend the identical request with the same key; never reuse a key for a different body.
 - `update_cloud_connection` sends the complete desired features and inputs for the one binding (merge patch). It cannot add bindings or replace the identity. Re-sending the current desired state retries failed follow-ups. A `412` means the record changed: re-read and re-evaluate, do not overwrite.
 - Dry-run every update and removal first and show side effects and customer cleanup. Confirm removals with the user unless they already authorized exactly that.
+- Turning a feature off (a narrower desired selection) does not remove its AWS permissions. When the customer also wants that access removed, follow [Remove unused AWS feature permissions](aws-permission-removal.md).
 - `remove_cloud_connection` needs `cleanupScope=doit_only`. `deleted: true` means the record is gone. `409 cleanup_failed` keeps it: inspect the failed steps and use a fresh `etag` if another removal is warranted. Later `404` means already absent; do not recreate it to get a success response. Customer IAM, stacks and Terraform resources need their own reviewed change.
 
 ## Permissions and verification
