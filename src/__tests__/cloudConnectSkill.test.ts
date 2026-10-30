@@ -39,6 +39,10 @@ describe("Cloud Connect skill delivery through the shared core", () => {
         expect(getSkill(CLOUD_CONNECT_SKILL_URI).skill.frontmatter).toEqual(parse(frontmatter));
         expect(CLOUD_CONNECT_PROMPT.text).toBe(text.replace(/\]\((references)\//g, "](skill://doit-cloud-connect/$1/"));
     });
+    it("serves the GCP walkthrough", () => {
+        const gcp = readSkillResource("skill://doit-cloud-connect/references/gcp.md").contents[0];
+        expect(gcp).toMatchObject({ text: expect.stringContaining("gcp_organization") });
+    });
     it("cannot read another path or silently accept an invalid cursor", () => {
         expect(() => readSkillResource("skill://doit-cloud-connect/../../private.env")).toThrow();
         expect(() => getSkill("skill://another/SKILL.md")).toThrow();

@@ -232,6 +232,42 @@ describe("Cloud Connect transport contract", () => {
             expect((await handleCloudConnectRequest(name, args, "fixture-token")).isError).toBe(true);
         expect(requests).toHaveLength(0);
     });
+    it.each([
+        ["get_cloud_connect_requirements", { scope: { ...scope, accountId: "11111111111o" } }, "scope.accountId"],
+        ["list_cloud_connections", { scope: { ...scope, accountId: "11111111111o" } }, "scope.accountId"],
+        [
+            "register_cloud_connection",
+            {
+                ...registration,
+                bindings: [{ ...registration.bindings[0], scope: { ...scope, accountId: "11111111111o" } }],
+            },
+            "bindings.0.scope.accountId",
+        ],
+        [
+            "get_cloud_connect_requirements",
+            {
+                scope: {
+                    provider: "aws",
+                    kind: "aws_organization",
+                    managementAccountId: "11111111111o",
+                    targetId: "r-abcd",
+                },
+            },
+            "scope.managementAccountId",
+        ],
+        [
+            "get_cloud_connect_requirements",
+            { scope, discoveryInputs: { managementAccountId: "11111111111o" } },
+            "discoveryInputs.managementAccountId",
+        ],
+    ] as const)("explains invalid AWS IDs for %s before HTTP", async (name, args, field) => {
+        const result = await handleCloudConnectRequest(name, args, "fixture-token");
+        expect(result.isError).toBe(true);
+        expect(text(result)).toContain(
+            `${field}: Use the 12-digit AWS account ID (digits only; a letter o is not a zero).`
+        );
+        expect(requests).toHaveLength(0);
+    });
     it("sends requirements with discovery inputs and no catalogVersion, without a write key", async () => {
         await handleCloudConnectRequest(
             "get_cloud_connect_requirements",
@@ -338,5 +374,79 @@ describe("Cloud Connect transport contract", () => {
         );
         expect(data(result)).toEqual(payload);
         expect(convert).not.toHaveBeenCalled();
+    });
+});
+
+describe("Google Cloud scopes", () => {
+    const serviceAccount = {
+        email: "doit-cmp@example-project.iam.gserviceaccount.com",
+        uniqueId: "100000000000000000001",
+        projectId: "example-project",
+    };
+    it.each([
+        { provider: "gcp", kind: "gcp_organization", organizationId: "123456789012" },
+        { provider: "gcp", kind: "gcp_project", projectId: "example-project" },
+        { provider: "gcp", kind: "gcp_dataset", projectId: "example-project", datasetId: "example_dataset" },
+        { provider: "gcp", kind: "gcp_dataset", projectId: "example-project", datasetId: "2026_export" },
+    ])("registers and filters native scope $kind", async (scope) => {
+        await executeToolHandler(
+            "register_cloud_connection",
+            { identity: { kind: "gcp_service_account", serviceAccount }, bindings: [{ scope, featureIds: ["core"] }] },
+            "fixture-token"
+        );
+        expect(requests[0].body.identity.serviceAccount).toEqual(serviceAccount);
+        expect(requests[0].body.bindings[0].scope).toEqual(scope);
+        await executeToolHandler("list_cloud_connections", { scope }, "fixture-token");
+        const filter = requests[1].url.searchParams.get("filter");
+        expect(filter).toContain("provider:gcp");
+        expect(filter).toContain(`bindings.scope.kind:${scope.kind}`);
+        for (const [key, value] of Object.entries(scope))
+            if (key !== "provider" && key !== "kind") expect(filter).toContain(`bindings.scope.${key}:${value}`);
+    });
+    it("rejects a cross-provider identity before HTTP", async () => {
+        const result = await executeToolHandler(
+            "register_cloud_connection",
+            {
+                identity,
+                bindings: [
+                    {
+                        scope: { provider: "gcp", kind: "gcp_project", projectId: "example-project" },
+                        featureIds: ["core"],
+                    },
+                ],
+            },
+            "fixture-token"
+        );
+        expect(result.isError).toBe(true);
+        expect(requests).toHaveLength(0);
+    });
+    it("rejects service-account private key material", async () => {
+        const result = await executeToolHandler(
+            "register_cloud_connection",
+            {
+                identity: {
+                    kind: "gcp_service_account",
+                    serviceAccount: { ...serviceAccount, private_key: "fixture-forbidden-key" },
+                },
+                bindings: [
+                    {
+                        scope: { provider: "gcp", kind: "gcp_project", projectId: "example-project" },
+                        featureIds: ["core"],
+                    },
+                ],
+            },
+            "fixture-token"
+        );
+        expect(result.isError).toBe(true);
+        expect(requests).toHaveLength(0);
+    });
+    it("rejects provider and scope mismatch on list", async () => {
+        const result = await executeToolHandler(
+            "list_cloud_connections",
+            { provider: "aws", scope: { provider: "gcp", kind: "gcp_project", projectId: "example-project" } },
+            "fixture-token"
+        );
+        expect(result.isError).toBe(true);
+        expect(requests).toHaveLength(0);
     });
 });
