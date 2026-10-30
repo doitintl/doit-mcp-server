@@ -30,6 +30,18 @@ const datasetId = z
     .max(1024)
     .regex(/^[A-Za-z0-9_]+$/);
 const serviceAccountId = projectId;
+const tenantId = z
+    .string()
+    .regex(/^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/)
+    .describe(
+        "Existing Microsoft Entra tenant UUID supplied in the prompt or selected by the user. Missing identifiers require clarification; onboarding does not create a tenant."
+    );
+const managementGroupId = z
+    .string()
+    .regex(/^[A-Za-z0-9._()-]{1,90}$/)
+    .describe(
+        "Existing root or child management-group ID selected by the user. Ask when missing; a tenant UUID or CLI default does not select its root group. Setup does not create groups or move subscriptions."
+    );
 const roleId = z.string().regex(/^[A-Za-z0-9_.]{3,64}$/);
 export const CloudConnectScopeSchema = z
     .discriminatedUnion("kind", [
@@ -43,9 +55,17 @@ export const CloudConnectScopeSchema = z
         z.object({ provider: z.literal("gcp"), kind: z.literal("gcp_organization"), organizationId }).strict(),
         z.object({ provider: z.literal("gcp"), kind: z.literal("gcp_project"), projectId }).strict(),
         z.object({ provider: z.literal("gcp"), kind: z.literal("gcp_dataset"), projectId, datasetId }).strict(),
+        z
+            .object({
+                provider: z.literal("azure"),
+                kind: z.literal("azure_management_group"),
+                tenantId,
+                managementGroupId,
+            })
+            .strict(),
     ])
     .describe(
-        "One AWS account or GCP organization, project or BigQuery dataset. AWS roots/OUs are deployment targets. GCP organization inheritance does not prove project-specific feature setup or data arrival."
+        "One existing target selected by the user: an AWS account, GCP organization/project/dataset or Azure management group (tenantId and managementGroupId). Azure includes root or child management groups and descendants; tenant billing grants are separate. AWS roots/OUs are deployment targets. GCP organization inheritance does not prove project-specific feature setup or data arrival."
     );
 export const CloudConnectRequirementsScopeSchema = z
     .discriminatedUnion("kind", [
@@ -60,9 +80,15 @@ export const CloudConnectRequirementsScopeSchema = z
             .strict(),
     ])
     .describe(
-        "An AWS account, GCP organization/project/dataset, or AWS organization deployment requirements with managementAccountId and one root/OU targetId. AWS organization requirements return the management StackSet template and member dependency; they do not create a fleet connection or validate membership. AWS connections remain account-scoped."
+        "An existing AWS account, GCP organization/project/dataset or Azure management group, or AWS organization deployment requirements with managementAccountId and one root/OU targetId. AWS organization requirements return the management StackSet template and member dependency; they do not create a fleet connection or validate membership. AWS connections remain account-scoped."
     );
 export const CloudConnectIdentitySchema = z.discriminatedUnion("kind", [
+    z
+        .object({ kind: z.literal("azure_service_principal"), tenantId })
+        .strict()
+        .describe(
+            "The returned DoiT enterprise application in this tenant. tenantId must equal the binding tenantId. No Azure passwords, user tokens or customer client secrets are accepted."
+        ),
     z
         .object({
             kind: z.literal("aws_iam_role"),
@@ -89,7 +115,9 @@ export const CloudConnectIdentitySchema = z.discriminatedUnion("kind", [
         .strict(),
 ]);
 const binding = z.object({ scope: CloudConnectScopeSchema, featureIds, featureInputs: inputs.optional() }).strict();
-const connectionId = id.describe("Connection ID (`id`) from list_cloud_connections or get_cloud_connection.");
+const connectionId = id.describe(
+    "Exact connection `id` returned by register_cloud_connection, list_cloud_connections or get_cloud_connection. This is distinct from a cloud account, project, organization or tenant ID; do not construct it from those identifiers."
+);
 const expectedEtag = z
     .string()
     .regex(/^"[\x21\x23-\x7e]+"$/)
@@ -145,10 +173,10 @@ export const GetCloudConnectRequirementsArgumentsSchema = z.object({
 });
 export const ListCloudConnectionsArgumentsSchema = z.object({
     provider: z
-        .enum(["aws", "gcp"])
+        .enum(["aws", "gcp", "azure"])
         .optional()
         .describe(
-            "Provider filter when scope is omitted. Defaults to aws for existing clients; use gcp for Google Cloud discovery."
+            "Provider filter when scope is omitted. Defaults to aws for existing clients; use gcp or azure for those providers. Azure legacy tenant billing records can be read but cannot be deployed through this path."
         ),
     scope: CloudConnectScopeSchema.optional().describe(
         "Exact native scope filter, including provider and every identifier in this scope."
@@ -171,7 +199,7 @@ const patch = {
         .array(
             z
                 .object({
-                    bindingId: id,
+                    bindingId: id.describe("Exact bindingId from the registration response or latest connection read."),
                     featureIds: featureIds
                         .optional()
                         .describe("Complete desired feature list for this binding, not a delta."),
@@ -236,14 +264,15 @@ export const getCloudConnectRequirementsTool = tool(
     "get_cloud_connect_requirements",
     GetCloudConnectRequirementsArgumentsSchema,
     `post:${base}/requirements`,
-    "Resolve fresh customer-specific AWS or GCP Cloud Connect prerequisites, identity trust, per-feature permissions, inputs and deployment artifacts. Read-only. GCP organization, project and dataset scopes use the returned inline shell artifact. AWS account scopes return the account CloudFormation template and per-account Terraform module. AWS organization scopes return one management StackSet artifact with entrypoint, a flat files list (path, URL and SHA-256 for both templates) and parameters for one root/OU; no fleet connection or rollout operation is created. AWS membership, Organizations/StackSets prerequisites, deployment success and access remain separate checks. AWS organization real-time bucket/enrollment configuration is unsupported by the pinned artifact. Artifacts are reference implementations for adaptation to customer tooling; their requirements and registration behavior remain relevant when adapted. The selected artifact's requirementsSatisfied and findings determine artifact readiness; feature-level flags or preconditions alone do not. Discovery and blocked artifacts have requirementsSatisfied=false and empty parameters. Returned parameters preserve the artifact's exact spelling and structure. Does not enable billing exports.",
+    "Resolve fresh customer-specific AWS, GCP or Azure Cloud Connect prerequisites, identity trust, per-feature permissions, inputs and deployment artifacts. Read-only. Azure management-group requirements return an inline Azure CLI plan/apply script with exact selected roles and a customer binding; it grants access without registering and does not elevate the operator. GCP organization, project and dataset scopes use the returned inline shell artifact. AWS account scopes return the account CloudFormation template and per-account Terraform module. AWS organization scopes return one management StackSet artifact with entrypoint, a flat files list (path, URL and SHA-256 for both templates) and parameters for one root/OU; no fleet connection or rollout operation is created. AWS membership, Organizations/StackSets prerequisites, deployment success and access remain separate checks. AWS organization real-time bucket/enrollment configuration is unsupported by the pinned artifact. Artifacts are reference implementations for adaptation to customer tooling; their requirements and registration behavior remain relevant when adapted. The selected artifact's requirementsSatisfied and findings determine artifact readiness; feature-level flags or preconditions alone do not. Discovery and blocked artifacts have requirementsSatisfied=false and empty parameters. Returned parameters preserve the artifact's exact spelling and structure. Does not enable billing exports.",
+
     true
 );
 export const listCloudConnectionsTool = tool(
     "list_cloud_connections",
     ListCloudConnectionsArgumentsSchema,
     `get:${base}/connections`,
-    "Discover existing Cloud Connect records by exact provider, scope and feature filters. An empty list means no matching registration, not that cloud resources are absent. Subsequent pages use pageToken with the same filters.",
+    "Discover existing Cloud Connect records by structured provider, scope and featureId filters. Pass provider azure or gcp, or that provider’s exact scope, for non-AWS discovery; omitting both provider and scope defaults to AWS. An empty list means no matching registration, not that cloud resources are absent. Subsequent pages use pageToken with the same filters.",
     true
 );
 export const getCloudConnectionTool = tool(
@@ -257,7 +286,7 @@ export const registerCloudConnectionTool = tool(
     "register_cloud_connection",
     RegisterCloudConnectionArgumentsSchema,
     `post:${base}/connections`,
-    "Register a deployed AWS IAM role or GCP service account explicitly when the final deployment does not register it automatically and no connection exists yet. For AWS, retained DoiT Terraform provider resources and CloudFormation callbacks perform registration through their own workflow; an additional registration duplicates that operation. An existing connection for the scope returns 409 connection_exists; changes to that record use a conditional update. Fresh requirements describe prerequisites, and dry_run_cloud_connection_change previews the request. GCP setup scripts grant access but do not register: use descriptor metadata and the selected GCP scope. Registration alone does not establish feature readiness or data arrival.",
+    "Register a deployed AWS IAM role, GCP service account or Azure DoiT enterprise application explicitly when the final deployment does not register it automatically and no connection exists yet. For AWS, retained DoiT Terraform provider resources and CloudFormation callbacks perform registration through their own workflow; an additional registration duplicates that operation. An existing connection for the scope returns 409 connection_exists; changes to that record use a conditional update. Fresh requirements describe prerequisites, and dry_run_cloud_connection_change previews the request. GCP setup scripts grant access but do not register: use descriptor metadata and the selected GCP scope. Azure uses identity.kind azure_service_principal with tenantId and one management-group binding; the live selected grants must carry the setup-written customer binding. The response returns the authoritative connection id, bindingId and registered scope identifiers for subsequent operations. Registration records an existing cloud target; it does not create an account, project, organization or Azure tenant/group. Registration alone does not establish feature readiness or data arrival.",
     false
 );
 export const updateCloudConnectionTool = tool(
@@ -287,7 +316,7 @@ export const verifyCloudConnectTool = tool(
     "verify_cloud_connect",
     VerifyCloudConnectArgumentsSchema,
     `post:${base}/connections/{connectionId}/actions/verify`,
-    "Run fresh synchronous access checks for a registered connection. Results include authentication, per-feature checks and coverage, and `recorded` indicating whether the observation was stored. partial, not_checked and failed checks are not passed; a failed authentication leaves every feature not_checked. AWS declared-policy checks do not prove effective access. GCP checks effective scope permissions; BigQuery dataset results expose sampled table coverage. Access never proves billing data arrived. Nothing is stored as a run; requestId provides correlation.",
+    "Run fresh synchronous access checks for a registered connection. Results include authentication, per-feature checks and coverage, and `recorded` indicating whether the observation was stored. partial, not_checked and failed checks are not passed; a failed authentication leaves every feature not_checked. AWS declared-policy checks do not prove effective access. GCP checks effective scope permissions; BigQuery dataset results expose sampled table coverage. Azure checks fresh management-group access and unconditional role assignments held by the DoiT application at that exact scope; this does not evaluate every effective permission or deny assignment. Access never proves billing data arrived. Nothing is stored as a run; requestId provides correlation.",
     false
 );
 export const CLOUD_CONNECT_TOOLS = [
@@ -353,8 +382,18 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
             body = selection;
         } else if (action === "register_cloud_connection") {
             method = "POST";
-            if ((fields.identity.kind === "gcp_service_account") !== (fields.bindings[0].scope.provider === "gcp"))
+            const identityKinds: Record<string, string> = {
+                aws: "aws_iam_role",
+                gcp: "gcp_service_account",
+                azure: "azure_service_principal",
+            };
+            if (fields.identity.kind !== identityKinds[fields.bindings[0].scope.provider])
                 return createErrorResponse("identity.kind must match the binding provider");
+            if (
+                fields.identity.kind === "azure_service_principal" &&
+                fields.identity.tenantId.toLowerCase() !== fields.bindings[0].scope.tenantId.toLowerCase()
+            )
+                return createErrorResponse("Azure identity tenantId must match scope.tenantId");
             body = fields;
         } else if (action === "list_cloud_connections") {
             const { scope, provider, featureId, ...paging } = fields;

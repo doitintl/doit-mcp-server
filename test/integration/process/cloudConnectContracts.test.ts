@@ -292,13 +292,15 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         const read = await call("get_cloud_connection", { connectionId: connection.id });
         expect(read.etag).toBe('"1.fixture"');
         expect(read.etag).toBe(connection.etag);
+        expect(read.bindings[0]).toEqual(connection.bindings[0]);
+        expect(read.bindings[0].scope).toEqual(scope);
         const listed = await call("list_cloud_connections", { scope, featureId: "core" });
         expect(listed.items).toHaveLength(1);
         const patch = {
             connectionId: connection.id,
             expectedEtag: read.etag,
             catalogVersion: requirements.catalogVersion,
-            bindings: [{ bindingId: "fixture-binding", featureIds: ["core", "quotas"] }],
+            bindings: [{ bindingId: read.bindings[0].bindingId, featureIds: ["core", "quotas"] }],
         };
         await call("dry_run_cloud_connection_change", { operation: "update", ...patch });
         const changed = await call("update_cloud_connection", patch);
