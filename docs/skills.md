@@ -3,7 +3,17 @@
 The server supports the official [Skills extension](https://modelcontextprotocol.io/extensions/skills/overview).
 Clients use `skills/list` or `skills/get` for metadata and `resources/read` for files.
 Native loading requires protocol `2026-07-28` and client Skills support; the host
-handles activation and content verification. The default registry includes the [Cloud Connect workflow](../skills/doit-cloud-connect/SKILL.md).
+handles activation and content verification. The default registry includes the
+[Cloud Connect workflow](../skills/doit-cloud-connect/SKILL.md) and
+[CloudFlow authoring](../skills/doit-cloudflow-authoring/SKILL.md).
+
+CloudFlow workflows are loaded on demand rather than sent in global server instructions.
+Clients without native Skills support retain the tool descriptions and the existing
+`doit://docs/cloudflow-authoring` guide resource. Skill files also remain readable through
+core Resources. The guide resource and the skill reference serve the same bundled text.
+For those clients, `tools/list` appends the guide URI to the CloudFlow and Cloud Connect
+tools listed in `SKILL_GUIDE_POINTERS` (`src/docs/skillGuidePointers.ts`); clients with native
+Skills support receive the descriptions unchanged.
 
 ## Add a skill
 

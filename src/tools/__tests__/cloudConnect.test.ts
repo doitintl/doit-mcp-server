@@ -290,6 +290,42 @@ describe("Cloud Connect transport contract", () => {
             expect((await handleCloudConnectRequest(name, args, "fixture-token")).isError).toBe(true);
         expect(requests).toHaveLength(0);
     });
+    it.each([
+        ["get_cloud_connect_requirements", { scope: { ...scope, accountId: "11111111111o" } }, "scope.accountId"],
+        ["list_cloud_connections", { scope: { ...scope, accountId: "11111111111o" } }, "scope.accountId"],
+        [
+            "register_cloud_connection",
+            {
+                ...registration,
+                bindings: [{ ...registration.bindings[0], scope: { ...scope, accountId: "11111111111o" } }],
+            },
+            "bindings.0.scope.accountId",
+        ],
+        [
+            "get_cloud_connect_requirements",
+            {
+                scope: {
+                    provider: "aws",
+                    kind: "aws_organization",
+                    managementAccountId: "11111111111o",
+                    targetId: "r-abcd",
+                },
+            },
+            "scope.managementAccountId",
+        ],
+        [
+            "get_cloud_connect_requirements",
+            { scope, discoveryInputs: { managementAccountId: "11111111111o" } },
+            "discoveryInputs.managementAccountId",
+        ],
+    ] as const)("explains invalid AWS IDs for %s before HTTP", async (name, args, field) => {
+        const result = await handleCloudConnectRequest(name, args, "fixture-token");
+        expect(result.isError).toBe(true);
+        expect(text(result)).toContain(
+            `${field}: Use the 12-digit AWS account ID (digits only; a letter o is not a zero).`
+        );
+        expect(requests).toHaveLength(0);
+    });
     it("sends requirements with discovery inputs and no catalogVersion, without a write key", async () => {
         await handleCloudConnectRequest(
             "get_cloud_connect_requirements",

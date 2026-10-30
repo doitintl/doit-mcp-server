@@ -1,5 +1,38 @@
 # Changelog
 
+## v2.10.0 (2026-10-29)
+
+**Full diff:** [`v2.9.2...v2.10.0`](../../compare/v2.9.2...v2.10.0)
+
+### Features
+
+- feat(cloudflow): append skill guide URIs to tool descriptions for legacy clients (`8d37e45`)
+- feat(cloudflow): migrate authoring guidance to on-demand skill (`64eb1c4`)
+
+### Other Changes
+
+- refactor(cloudflow): remove legacy skill instructions from server initialization (`3d08a82`)
+## v2.9.2 (2026-10-29)
+
+**Full diff:** [`v2.9.1...v2.9.2`](../../compare/v2.9.1...v2.9.2)
+
+### Other Changes
+
+- docs(cloudflow): update delivery status and worker adoption details (`050d03c`)
+## v2.9.1 (2026-10-28)
+
+**Full diff:** [`v2.9.0...v2.9.1`](../../compare/v2.9.0...v2.9.1)
+
+### Chores
+
+- chore(deps): bump qs from 6.16.0 to 6.17.0 in /test/integration (`ddf6e47`)
+- chore(yarn): clean up configuration and dockerignore (`49398af`)
+
+### Other Changes
+
+- build(docker): optimize build context and secure sensitive files (`4ad78de`)
+- docs(yarn): remove outdated global hardlinks configuration (`5c817c8`)
+- build(deps): migrate to yarn 4 and enable corepack (`8ac5e84`)
 ## v2.9.0 (2026-10-27)
 
 **Full diff:** [`v2.8.1...v2.9.0`](../../compare/v2.8.1...v2.9.0)

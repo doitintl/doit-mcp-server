@@ -1,4 +1,5 @@
 import {
+    CLIENT_CAPABILITIES_META_KEY,
     CLIENT_INFO_META_KEY,
     PROTOCOL_VERSION_META_KEY,
     ProtocolError,
@@ -7,9 +8,9 @@ import {
 } from "@modelcontextprotocol/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { CLOUD_CONNECT_INSTRUCTIONS } from "../docs/cloudConnectSkill.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "../docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "../docs/serverInstructions.js";
+import { SKILL_GUIDE_POINTERS } from "../docs/skillGuidePointers.js";
 import { prompts } from "../prompts/index.js";
 import { SKILL_RESOURCES } from "../skills/index.js";
 import { CLOUD_CONNECT_TOOLS } from "../tools/cloudConnect.js";
@@ -401,16 +402,16 @@ describe("createServer", () => {
                     resources: {},
                     extensions: { "io.modelcontextprotocol/skills": {} },
                 },
-                instructions: `${SERVER_INSTRUCTIONS}\n\n${CLOUD_CONNECT_INSTRUCTIONS}`,
+                instructions: SERVER_INSTRUCTIONS,
             }
         );
     });
 
-    it("passes non-empty instructions covering the codeNode contract", () => {
+    it("keeps CloudFlow workflow and runtime rules out of global instructions", () => {
         const [, options] = (Server as any).mock.calls[0];
 
-        expect(options.instructions).toContain('nodes["<node name>"]');
-        expect(options.instructions).toContain("{message: null}");
+        expect(options.instructions).toContain(SERVER_INSTRUCTIONS);
+        expect(options.instructions).not.toMatch(/CloudFlow|codeNode|test-run|\$nodes/);
     });
 
     it("registers handlers for all required schemas", () => {
@@ -424,11 +425,23 @@ describe("createServer", () => {
 });
 
 describe("tools/list handler", () => {
+    // `envelope` is present only on 2026-07-28 requests; 2025-era clients cannot load skills.
+    const legacyCtx = { mcpReq: { id: 1 } };
+    const skillsCtx = {
+        mcpReq: {
+            id: 1,
+            envelope: {
+                [PROTOCOL_VERSION_META_KEY]: "2026-07-28",
+                [CLIENT_CAPABILITIES_META_KEY]: { extensions: { "io.modelcontextprotocol/skills": {} } },
+            },
+        },
+    };
+
     it("hides employee-only tools from a customer key", async () => {
         process.env.DOIT_API_KEY = fakeApiKey({ sub: "user@example.com" });
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
-        const { tools } = await handler();
+        const { tools } = await handler({}, legacyCtx);
 
         expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
         expect(tools.map((tool: { name: string }) => tool.name)).toContain("list_assets");
@@ -441,7 +454,7 @@ describe("tools/list handler", () => {
         process.env.DOIT_API_KEY = fakeApiKey(payload);
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
-        const { tools } = await handler();
+        const { tools } = await handler({}, legacyCtx);
 
         expect(tools.map((tool: { name: string }) => tool.name)).toContain("search_customers");
     });
@@ -453,7 +466,7 @@ describe("tools/list handler", () => {
         process.env.DOIT_API_KEY = key;
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
-        const { tools } = await handler();
+        const { tools } = await handler({}, legacyCtx);
 
         expect(tools.map((tool: { name: string }) => tool.name)).not.toContain("search_customers");
     });
@@ -462,7 +475,7 @@ describe("tools/list handler", () => {
         process.env.DOIT_API_KEY = fakeApiKey({ sub: "employee@doit.com" });
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
-        await handler();
+        await handler({}, legacyCtx);
 
         expect(handleValidateUserRequest).not.toHaveBeenCalled();
     });
@@ -471,7 +484,7 @@ describe("tools/list handler", () => {
         process.env.DOIT_API_KEY = fakeApiKey({ sub: "employee@doit.com" });
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
-        const response = await handler();
+        const response = await handler({}, skillsCtx);
 
         expect(response).toEqual({
             tools: [
@@ -584,10 +597,31 @@ describe("tools/list handler", () => {
         });
     });
 
+    it("names the skill guide in tool descriptions for a client without native Skills support", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler({}, legacyCtx);
+        const listed = new Map(tools.map((tool: { name: string; description: string }) => [tool.name, tool]));
+
+        for (const [name, pointer] of Object.entries(SKILL_GUIDE_POINTERS)) {
+            expect(listed.get(name)?.description.endsWith(` ${pointer}`), name).toBe(true);
+        }
+        expect(listed.get("list_cloudflows")?.description).not.toContain("doit://docs/cloudflow-authoring");
+    });
+
+    it("leaves tool descriptions unchanged for a client with native Skills support", async () => {
+        const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
+        const { tools } = await handler({}, skillsCtx);
+
+        for (const tool of tools) {
+            for (const pointer of new Set(Object.values(SKILL_GUIDE_POINTERS)))
+                expect(tool.description, tool.name).not.toContain(pointer);
+        }
+    });
+
     it("includes a generated tool for a non-blacklisted OpenAPI operation", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
 
-        const response = await handler();
+        const response = await handler({}, legacyCtx);
 
         expect(generatedToolDefinitions.length).toBeGreaterThan(0);
         expect(response.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "delete_alert" })]));
@@ -596,7 +630,7 @@ describe("tools/list handler", () => {
     // The connector directory requires an applicable true hint for both reads and writes.
     it("every listed tool has a title and appropriate read/write hints", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
-        const { tools } = await handler();
+        const { tools } = await handler({}, legacyCtx);
         // change_customer is registered only by the remote Worker (for DoiT employees), so check
         // it alongside the stdio list.
         for (const tool of [...tools, changeCustomerTool]) {
@@ -610,7 +644,7 @@ describe("tools/list handler", () => {
     /** Mutating tools that previously lacked MCP hints: destructive annotations carry the confirmation signal. */
     it("list_tools: user, invite, and DataHub mutating tools expose destructive hints", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
-        const { tools } = await handler();
+        const { tools } = await handler({}, legacyCtx);
         const names = [
             "update_user",
             "invite_user",
@@ -634,7 +668,7 @@ describe("tools/list handler", () => {
     // Descriptions say what a tool does and when it applies; confirmation rides on annotations.
     it("no tool description or server instruction prescribes model behavior", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
-        const { tools } = await handler();
+        const { tools } = await handler({}, legacyCtx);
         // Generated from the upstream OpenAPI spec, whose description says "Agents should present
         // consentUrl … and poll". The fix belongs in the spec; remove this once it is refreshed.
         const upstreamSpecExceptions = new Set(["create_signup_request"]);
@@ -652,7 +686,7 @@ describe("tools/list handler", () => {
     // A description that points at a tool which doesn't exist sends the model to a dead end.
     it("every tool name a description mentions is a real tool", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
-        const { tools } = await handler();
+        const { tools } = await handler({}, legacyCtx);
         const listed = [...tools, changeCustomerTool];
         const names = new Set(listed.map((tool: { name: string }) => tool.name));
         // Tool-shaped words that are not tools: a column name in the DataHub export description.
@@ -673,7 +707,7 @@ describe("tools/list handler", () => {
 
     it("run_query names the DoiT Cloud Analytics API it calls", async () => {
         const handler = setRequestHandlerMock.mock.calls.find((call) => call[0] === "tools/list")?.[1];
-        const { tools } = await handler();
+        const { tools } = await handler({}, legacyCtx);
         const runQuery = tools.find((t: { name: string }) => t.name === "run_query");
         expect(runQuery.description).toContain("DoiT Cloud Analytics API");
         expect(runQuery.description).toContain("https://developer.doit.com/reference/query");

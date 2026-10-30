@@ -43,6 +43,7 @@ describe("generated tool overrides", () => {
         const description = byName.get("test_run_cloudflow_flow")?.description ?? "";
         expect(description).toContain("fail silently");
         expect(description).toContain("get_cloudflow_flow_run");
+        expect(description).toContain("without dryRun it executes real actions even on drafts");
         expect(description).not.toContain(CLOUDFLOW_BUILDER_HINT);
     });
 

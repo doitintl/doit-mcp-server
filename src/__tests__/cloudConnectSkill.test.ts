@@ -3,7 +3,6 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import {
-    CLOUD_CONNECT_INSTRUCTIONS,
     CLOUD_CONNECT_PROMPT,
     CLOUD_CONNECT_SKILL_URI,
     getSkill,
@@ -40,9 +39,8 @@ describe("Cloud Connect skill delivery through the shared core", () => {
         expect(getSkill(CLOUD_CONNECT_SKILL_URI).skill.frontmatter).toEqual(parse(frontmatter));
         expect(CLOUD_CONNECT_PROMPT.text).toBe(text.replace(/\]\((references)\//g, "](skill://doit-cloud-connect/$1/"));
     });
-    it("advertises GCP support consistently in discovery and the provider walkthrough", () => {
-        expect(CLOUD_CONNECT_INSTRUCTIONS).toContain("AWS, Google Cloud and Azure management groups");
-        expect(CLOUD_CONNECT_INSTRUCTIONS).toContain("organization, project and BigQuery dataset scopes");
+    it("advertises Azure support and serves both provider walkthroughs", () => {
+        expect(CLOUD_CONNECT_PROMPT.text).toContain("Azure management groups are supported");
         expect(CLOUD_CONNECT_PROMPT.description).toContain(
             "AWS, Google Cloud and Azure management groups are supported"
         );
