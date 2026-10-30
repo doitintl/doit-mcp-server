@@ -3,7 +3,7 @@ name: doit-cloud-connect
 description: Route DoiT Cloud Connect setup, verification, repair or disconnect by cloud provider and deployment method. AWS, including organization root/OU rollouts, and Google Cloud are supported; Azure is not implemented.
 license: MIT
 metadata:
-  doit/skill-version: "12"
+  doit/skill-version: "13"
   doit/api-contract: "onboarding/v2"
 ---
 
@@ -40,7 +40,7 @@ After selecting a supported provider, use the stages relevant to the requested o
 1. **Discover current state and ownership.** Use `list_cloud_connections` and `get_cloud_connection` to inspect registration state, and inspect the owning source before proposing new resources or registration. Preserve the registered identity and resource controller unless the user confirms a migration plan under the shared deployment rules.
 2. **Get fresh requirements.** Use `get_cloud_connect_requirements` for the selected features, per-feature permissions, identity trust, inputs and deployment prerequisites. These describe required access; they do not prove deployment or live access.
 3. **Inspect and adapt.** Use the customer's repository and IaC/CLI tools to inspect artifacts as reference implementations. Modify, compose or translate them while preserving authoritative requirements, provider constraints and unrelated grants.
-4. **Review and validate.** Show the proposed patch and concrete effects. Use `dry_run_cloud_connection_change` for planned API mutations and the controller's plan for cloud changes where available; explain what remains unverified. Carry existing authorization forward and confirm any removal whose effects are not already authorized.
+4. **Review and validate.** Show the proposed patch and concrete effects. Use the controller's plan for cloud changes where available; explain what remains unverified. Before every `register_cloud_connection`, `update_cloud_connection` or `remove_cloud_connection`, call `dry_run_cloud_connection_change` with the same request, and preview again if the body or `etag` changes. When the preview matches the intended change, proceed without asking. Stop and report to the user when it fails a precondition or blocks the change, differs from the request (features, scope or identity), or shows a removal or DoiT-side cleanup that is not already authorized. Carry existing authorization forward.
 5. **Execute and reconcile.** Deploy through the owning workflow and inspect terminal results. Use `register_cloud_connection` only when the final deployment has no automatic registrar (no retained DoiT Terraform provider resource or CloudFormation callback) and no connection exists yet; use `update_cloud_connection` or `remove_cloud_connection` for requested API changes. Preserve the final implementation's registration owner, avoid duplicate registration and follow the provider walkthrough's concurrency/retry rules.
 6. **Verify and report.** Use `verify_cloud_connect` for fresh access checks and `get_cloud_connection` to inspect required follow-ups. Assess coverage and report observed results, remaining failures and uncertainty; keep registration, access health and data arrival distinct.
 
