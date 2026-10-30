@@ -7,13 +7,29 @@ handles activation and content verification. The default registry includes the
 [Cloud Connect workflow](../skills/doit-cloud-connect/SKILL.md) and
 [CloudFlow authoring](../skills/doit-cloudflow-authoring/SKILL.md).
 
-CloudFlow workflows are loaded on demand rather than sent in global server instructions.
-Clients without native Skills support retain the tool descriptions and the existing
-`doit://docs/cloudflow-authoring` guide resource. Skill files also remain readable through
-core Resources. The guide resource and the skill reference serve the same bundled text.
-For those clients, `tools/list` appends the guide URI to the CloudFlow and Cloud Connect
-tools listed in `SKILL_GUIDE_POINTERS` (`src/docs/skillGuidePointers.ts`); clients with native
-Skills support receive the descriptions unchanged.
+## Domain guidance delivery
+
+Global server instructions carry only a generic skill-discovery line. CloudFlow and Cloud
+Connect workflows used to live there, which put about a dozen lines of domain rules into every
+session, including sessions that never touched those tools. CloudFlow needed the guidance
+because generated `codeNode` code can pass every validation gate and still return the wrong
+result. Each piece of guidance now goes to one of these channels:
+
+- **Skills** (`skills/doit-cloudflow-authoring`, `skills/doit-cloud-connect`) hold the
+  workflows and full references, loaded on demand.
+- **Tool descriptions** keep the contract facts at the point of use, such as `codeNode`
+  inputs and return values, and that test runs execute real actions even on drafts. See
+  `src/docs/cloudflowGuidance.ts` and `src/tools/generated/overrides.ts`.
+- **Guide pointers.** Clients without native Skills support see only tool metadata, so
+  `tools/list` adds the guide URI to the tools in `SKILL_GUIDE_POINTERS`
+  (`src/docs/skillGuidePointers.ts`). Clients with native Skills support get the descriptions
+  unchanged.
+- **Resources.** `doit://docs/cloudflow-authoring` serves the same bundled bytes as the
+  CloudFlow skill reference, and every skill file stays readable through core Resources.
+  Resources are pull-only, so no rule is delivered through a resource alone.
+
+The deprecated `CLOUDFLOW_INSTRUCTIONS` and `CLOUD_CONNECT_INSTRUCTIONS` exports remain for
+`/core` compatibility; neither server sends them.
 
 ## Add a skill
 
