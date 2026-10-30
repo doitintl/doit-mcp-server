@@ -41,10 +41,13 @@ describe("Cloud Connect skill delivery through the shared core", () => {
         expect(CLOUD_CONNECT_PROMPT.text).toBe(text.replace(/\]\((references)\//g, "](skill://doit-cloud-connect/$1/"));
     });
     it("advertises GCP support consistently in discovery and the provider walkthrough", () => {
-        expect(CLOUD_CONNECT_INSTRUCTIONS).toContain("AWS and Google Cloud");
+        expect(CLOUD_CONNECT_INSTRUCTIONS).toContain("AWS, Google Cloud and Azure management groups");
         expect(CLOUD_CONNECT_INSTRUCTIONS).toContain("organization, project and BigQuery dataset scopes");
-        expect(CLOUD_CONNECT_PROMPT.description).toContain("AWS and Google Cloud are supported");
-        expect(CLOUD_CONNECT_PROMPT.description).toContain("Azure is not implemented");
+        expect(CLOUD_CONNECT_PROMPT.description).toContain(
+            "AWS, Google Cloud and Azure management groups are supported"
+        );
+        const azure = readSkillResource("skill://doit-cloud-connect/references/azure.md").contents[0];
+        expect(azure).toMatchObject({ text: expect.stringContaining("azure_management_group") });
         const gcp = readSkillResource("skill://doit-cloud-connect/references/gcp.md").contents[0];
         expect(gcp).toMatchObject({ text: expect.stringContaining("gcp_organization") });
     });

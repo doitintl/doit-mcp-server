@@ -177,9 +177,9 @@ The project uses:
 
 ## Cloud Connect
 
-- `src/tools/cloudConnect.ts` owns eight hand-written tools for the seven AWS/GCP `/onboarding/v2` operations (requirements, list/get/create/patch/delete connections, verify action) plus a read-only dry-run tool. Writes send `If-Match`, an `Idempotency-Key` (generated and echoed when not supplied) and PATCH as `application/merge-patch+json`. Export registry, schemas and handlers through `/core`; preserve full results in hosted dispatch.
+- `src/tools/cloudConnect.ts` owns eight hand-written tools for the seven AWS/GCP/Azure `/onboarding/v2` operations (requirements, list/get/create/patch/delete connections, verify action) plus a read-only dry-run tool. Writes send `If-Match`, an `Idempotency-Key` (generated and echoed when not supplied) and PATCH as `application/merge-patch+json`. Export registry, schemas and handlers through `/core`; preserve full results in hosted dispatch.
 - `skills/doit-cloud-connect/` is the canonical installable workflow. Edit its sources and run `yarn generate:skills`; never hand-edit the generated bundle. There is no offline catalog; a fresh requirements response is the only authority.
-- GCP supports organization, project and BigQuery dataset scopes with keyless service-account descriptors. Azure, diagnostics and event reporting remain outside this API version.
+- GCP supports organization, project and BigQuery dataset scopes with keyless service-account descriptors. Azure supports management-group setup and fresh role-assignment verification; legacy tenant billing records are read-only. Diagnostics and event reporting remain outside this API version.
 - Tests cover the transport contract, a real stdio lifecycle against a fake API, skill bytes/digests and hosted-safe core dispatch. A separately deployed Worker needs its own companion change and dependency release; publishing this package alone does not deploy hosted tools or qualify live cloud behavior.
 
 ## Skills extension

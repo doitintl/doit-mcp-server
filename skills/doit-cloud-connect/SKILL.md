@@ -1,9 +1,9 @@
 ---
 name: doit-cloud-connect
-description: Route DoiT Cloud Connect setup, verification, repair or disconnect by cloud provider and deployment method. AWS, including organization root/OU rollouts, and Google Cloud are supported; Azure is not implemented.
+description: Route DoiT Cloud Connect setup, verification, repair or disconnect by cloud provider and deployment method. AWS, including organization root/OU rollouts, Google Cloud and Azure management groups are supported.
 license: MIT
 metadata:
-  doit/skill-version: "9"
+  doit/skill-version: "17"
   doit/api-contract: "onboarding/v2"
 ---
 
@@ -19,9 +19,15 @@ Identify the cloud, target scope, requested features and outcome, and the custom
 |---|---|
 | AWS | Supported. Read the [AWS walkthrough](references/aws.md). |
 | Google Cloud (GCP) | Read the [GCP walkthrough](references/gcp.md). |
-| Azure | Not implemented in these MCP tools yet. |
+| Azure | Read the [Azure walkthrough](references/azure.md). |
 
-For Azure, explain that its Cloud Connect workflow is not implemented in these MCP tools yet. End that provider's execution path. For a request spanning several clouds, handle each provider separately.
+Use the existing target identified in the user's prompt or source. Resolve an explicitly named target through read-only discovery. If the target is unspecified or required IDs remain unresolved, ask the user to supply or select it before changes. A CLI default, placeholder or missing ID does not select a target. Validate supplied IDs without silently substituting another scope.
+
+The registration endpoint is authoritative for the registered identifiers. After registration, take the connection `id`, `bindings[].bindingId` and account, project, organization or Azure scope IDs from its response; use the latest connection read for an existing registration. Do not construct IDs from naming conventions or ask the user to invent a registration ID. The initial request supplies the selected existing cloud target; registration records it and does not create that cloud target. If the returned scope differs from the requested target, stop and reconcile before further changes.
+
+Onboarding does not authorize creating a cloud account, subscription, tenant, project, organization or management group, or moving resources between them. Create or move these targets only when the user explicitly asks for that work. If a target is missing or inaccessible, explain the result and resolve it with the user; do not provision a replacement or expand to a parent scope. Required access identities and grants remain subject to the reviewed onboarding plan.
+
+For a request spanning several clouds, handle each provider separately.
 
 For AWS, distinguish a single account from an organization root/OU rollout before selecting an artifact. For organization setup, expansion, feature updates or recovery, read [AWS organizations](references/aws-organizations.md). Organization requirements return the management-account controller artifact; registration and verification remain per account.
 
