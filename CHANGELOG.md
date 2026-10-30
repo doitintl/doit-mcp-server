@@ -1,5 +1,31 @@
 # Changelog
 
+## v2.11.0 (2026-10-30)
+
+**Full diff:** [`v2.10.0...v2.11.0`](../../compare/v2.10.0...v2.11.0)
+
+### Features
+
+- feat(cloud-connect): refine gcp registration and dataset validation (`10038eb`)
+- feat(cloud-connect): add support for google cloud platform (`dacfb23`)
+
+### Bug Fixes
+
+- fix(cloud-connect): enforce 12-digit aws account id validation (`7e643b0`)
+
+### Chores
+
+- chore(cloud-connect): remove stale node_modules symlink (`b1aae90`)
+
+### Other Changes
+
+- docs(cloud-connect): update preview and dry-run guidance (`bba39d4`)
+- docs(cloud-connect): add external_id verification guidance for terraform (`ca4a271`)
+- refactor(cloud-connect): standardize gcp id validation and update documentation (`824176c`)
+- docs(cloud-connect): clarify gcp host project creation policy (`540676a`)
+- docs(cloud-connect): clarify gcp organization host project requirements (`bf14311`)
+- docs(cloud-connect): add gcp organization setup guidance and update skill version (`7c02fa2`)
+- docs(cloud-connect): refine gcp reference documentation (`de175fe`)
 ## v2.10.0 (2026-10-29)
 
 **Full diff:** [`v2.9.2...v2.10.0`](../../compare/v2.9.2...v2.10.0)
