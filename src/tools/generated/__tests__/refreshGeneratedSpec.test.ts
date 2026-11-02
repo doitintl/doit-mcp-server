@@ -86,6 +86,13 @@ describe("refresh-generated-spec script", { timeout: 30_000 }, () => {
         expect(existsSync(output)).toBe(false);
     });
 
+    it("accepts x- extension keys in components", () => {
+        const result = run(specWith("  x-doc-anchors:\n    things: things-section\n"));
+
+        expect(result.status).toBe(0);
+        expect(existsSync(output)).toBe(true);
+    });
+
     it("escapes spec-controlled keys in error output so they cannot inject workflow commands", () => {
         const result = run(specWith("").replace("info:\n", 'info:\n  "a\\n::warning title=spoof::injected": x\n'));
 

@@ -127,6 +127,7 @@ function assertExpectedShape(document) {
             problems.push(`"components" must be an object`);
         } else {
             for (const [key, value] of Object.entries(document.components)) {
+                if (key.startsWith("x-")) continue;
                 if (!COMPONENT_KEYS.has(key)) problems.push(`unexpected key ${JSON.stringify(`components.${key}`)}`);
                 else if (!isPlainObject(value)) problems.push(`"components.${key}" must be an object`);
             }
