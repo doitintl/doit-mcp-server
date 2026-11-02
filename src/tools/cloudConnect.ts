@@ -32,13 +32,16 @@ const datasetId = z
 const serviceAccountId = projectId;
 const tenantId = z
     .string()
-    .regex(/^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/)
+    .regex(/^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/, "Use the Microsoft Entra tenant ID in UUID format.")
     .describe(
         "Existing Microsoft Entra tenant UUID supplied in the prompt or selected by the user. Missing identifiers require clarification; onboarding does not create a tenant."
     );
 const managementGroupId = z
     .string()
-    .regex(/^[A-Za-z0-9._()-]{1,90}$/)
+    .regex(
+        /^[A-Za-z0-9._()-]{1,90}$/,
+        "Use the bare Azure management group ID (for example, example-group), not a display name or full ARM resource path."
+    )
     .describe(
         "Existing root or child management-group ID selected by the user. Ask when missing; a tenant UUID or CLI default does not select its root group. Setup does not create groups or move subscriptions."
     );
