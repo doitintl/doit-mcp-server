@@ -45,6 +45,64 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Cloud Connect transport contract", () => {
+    it("uses the complete Azure management-group scope and tenant identity across requirements, discovery and registration", async () => {
+        const tenantId = "11111111-1111-4111-8111-111111111111";
+        const scope = {
+            provider: "azure",
+            kind: "azure_management_group",
+            tenantId,
+            managementGroupId: "example-child",
+        };
+        const identity = { kind: "azure_service_principal", tenantId };
+        const bindings = [{ scope, featureIds: ["advisor", "attribute"] }];
+        await handleCloudConnectRequest(
+            "get_cloud_connect_requirements",
+            { scope, featureIds: ["attribute"] },
+            "fixture-token"
+        );
+        expect(requests[0].body).toEqual({ scope, featureIds: ["attribute"] });
+        await handleCloudConnectRequest("list_cloud_connections", { scope }, "fixture-token");
+        expect(requests[1].url.searchParams.get("filter")).toBe(
+            `provider:azure|bindings.scope.kind:azure_management_group|bindings.scope.tenantId:${tenantId}|bindings.scope.managementGroupId:example-child`
+        );
+        await handleCloudConnectRequest("register_cloud_connection", { identity, bindings }, "fixture-token");
+        expect(requests[2].body).toEqual({ identity, bindings });
+        expect(requests[2].options.headers).toHaveProperty("Idempotency-Key");
+        const tool = CLOUD_CONNECT_TOOLS.find((tool) => tool.name === "register_cloud_connection");
+        expect(JSON.stringify(tool?.inputSchema)).toContain("azure_service_principal");
+        expect(JSON.stringify(tool?.inputSchema)).toContain("managementGroupId");
+    });
+    it("rejects mismatched Azure identities, foreign identifiers and customer secrets before HTTP", async () => {
+        const tenantId = "11111111-1111-4111-8111-111111111111";
+        const scope = {
+            provider: "azure",
+            kind: "azure_management_group",
+            tenantId,
+            managementGroupId: "example-child",
+        };
+        const bindings = [{ scope, featureIds: ["advisor"] }];
+        for (const identity of [
+            { kind: "aws_iam_role", roleArn: "arn:aws:iam::111111111111:role/example" },
+            { kind: "azure_service_principal", tenantId: "22222222-2222-4222-8222-222222222222" },
+            { kind: "azure_service_principal", tenantId, clientSecret: "forbidden-fixture" },
+        ]) {
+            expect(
+                (await handleCloudConnectRequest("register_cloud_connection", { identity, bindings }, "fixture-token"))
+                    .isError
+            ).toBe(true);
+        }
+        for (const invalid of [
+            { ...scope, accountId: "111111111111" },
+            { ...scope, managementGroupId: "bad/group" },
+            { ...scope, tenantId: "invalid" },
+        ]) {
+            expect(
+                (await handleCloudConnectRequest("get_cloud_connect_requirements", { scope: invalid }, "fixture-token"))
+                    .isError
+            ).toBe(true);
+        }
+        expect(requests).toHaveLength(0);
+    });
     it.each(["r-ab12", "ou-ab12-cdef3456"])("resolves organization artifact requirements for %s", async (targetId) => {
         const scope = { provider: "aws", kind: "aws_organization", managementAccountId: "111111111111", targetId };
         const artifact = {
