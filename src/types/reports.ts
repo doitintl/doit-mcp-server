@@ -52,7 +52,13 @@ export const DISPLAY_VALUES = [
     "absolute_and_percentage",
 ] as const;
 
-export const DATA_SOURCE_VALUES = ["billing", "bqlens", "billing-datahub", "kubernetes-utilization", "attribution"] as const;
+export const DATA_SOURCE_VALUES = [
+    "billing",
+    "bqlens",
+    "billing-datahub",
+    "kubernetes-utilization",
+    "attribution",
+] as const;
 
 export const LAYOUT_VALUES = [
     "column_chart",
