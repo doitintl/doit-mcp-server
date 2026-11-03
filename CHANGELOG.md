@@ -1,5 +1,22 @@
 # Changelog
 
+## v2.12.0 (2026-11-03)
+
+**Full diff:** [`v2.11.0...v2.12.0`](../../compare/v2.11.0...v2.12.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`f2555a0`)
+- feat(cloud-connect): implement azure management group support (`1543110`)
+
+### Bug Fixes
+
+- fix(refresh-spec): allow only the x-doit-doc-anchors components extension (`77d78e9`)
+- fix(refresh-spec): accept x- extension keys in components (`414672f`)
+
+### Other Changes
+
+- test(refresh-spec): drop the components extension test (`bbeb90d`)
 ## v2.11.0 (2026-11-02)
 
 **Full diff:** [`v2.10.0...v2.11.0`](../../compare/v2.10.0...v2.11.0)
