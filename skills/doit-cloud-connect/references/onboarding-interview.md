@@ -1,6 +1,6 @@
 # Onboarding interview
 
-Use this for a new setup or a feature expansion when the user has not already decided every choice below. DoiT defines these questions; do not invent others. A customer can start with only an account, project or Azure tenant ID, so investigate first and then ask only what remains open.
+Use this for a new setup or a feature expansion when the user has not already decided every choice below. DoiT defines these three decision topics; do not invent additional choices. Clarify required IDs and feature or identity inputs that read-only discovery cannot resolve. A customer can start with only an account, project or Azure tenant ID, so investigate first and then ask only what remains open.
 
 ## Investigate before asking
 
@@ -11,7 +11,7 @@ Read-only discovery comes first:
 - Existing DoiT deployments, roles and service accounts, using the provider walkthrough's ownership checks.
 - The customer's repository and tooling: Terraform, OpenTofu or Terragrunt source and state, CDK or other IaC, CI pipelines, and what you can run here: cloud CLIs, cloud provider tools connected to your client (such as an AWS, Google Cloud or Azure MCP server), or a browser the user lets you control.
 
-## Ask at most three questions
+## Ask at most three decision questions
 
 Ask only the questions below whose answer you could not determine. Skip a question when the prompt or user already answered it, or when discovery leaves one sensible choice; state what you found instead.
 
@@ -21,14 +21,14 @@ Present each question with options A–C and D:
 - **B** and **C** are the main alternatives.
 - **D** lets the user describe something else.
 
-Ask the questions together when the needed discovery is available. If scope selection is required before requirements discovery (for example, an Azure tenant without a selected group), ask the scope question first, then investigate and ask only the remaining questions together. Answer the user's questions about an option before continuing, and update the recommendation when their answer changes what you know.
+Ask the questions together when the needed discovery is available. If scope selection is required before requirements discovery (for example, an Azure tenant without a selected group), ask the scope question first, then investigate and ask only the remaining questions together. If the selected scope changes, repeat requirements discovery for that scope before presenting feature options. Answer the user's questions about an option before continuing, and update the recommendation when their answer changes what you know.
 
 ### 1. Scope
 
 Skip this question when the prompt or user already selected the scope: for example "connect only this account", a management account with a root or OU target, or an explicit Google Cloud or Azure scope. Use that scope; do not offer a broader one.
 
 - **AWS:** otherwise, ask when `provider.variant` is `management_account`. Recommend an organization root or OU rollout when the user wants the organization covered or other member accounts have no DoiT connection; otherwise recommend the single account. Organization rollouts follow [AWS organizations](aws-organizations.md). For any other variant, connect the single account without asking.
-- **Google Cloud:** ask when the target could be an organization, a project or a dataset. Use the scopes in the [GCP walkthrough](gcp.md). For an organization, include the service-account host project in the plan, following that walkthrough.
+- **Google Cloud:** settle the organization, project or dataset target and required inputs before feature choices. For an organization, resolve `organizationId` and the existing service-account host `identityInputs.projectId`; for a dataset, resolve `projectId`, `datasetId` and `identityInputs.serviceAccountId`. Ask about unresolved scope or required inputs using the [GCP walkthrough](gcp.md).
 - **Azure:** resolve `tenantId` and an existing `managementGroupId`, covering that group and its descendants. Ask when the group is not selected, including when only a tenant or subscription ID was supplied. Recommend an existing group matching the requested subscription coverage; offer the tenant root only for requested tenant-wide coverage, after verifying its actual group ID. Follow the [Azure walkthrough](azure.md); do not create a group, move subscriptions or broaden the scope to complete onboarding.
 
 ### 2. Features
