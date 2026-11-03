@@ -401,7 +401,7 @@ const ReportConfigPatchSchema = z
             .enum(DATA_SOURCE_VALUES)
             .optional()
             .describe(
-                `Data source; defaults to billing, or billing-datahub when the customer has DataHub metrics. Accepted values: ${formatEnumValues(DATA_SOURCE_VALUES)}.`
+                `Data source; defaults to billing, or billing-datahub when the customer has DataHub metrics. Accepted values: ${formatEnumValues(DATA_SOURCE_VALUES)}. Use attribution for the cost of one attribution: it requires an attribution_tier_1, attribution_tier_2 or attribution_tier_3 dimension in group, dimensions or filters, all from the same attribution (list_dimensions with filter type:attribution_tier_1 lists them). A null tier value is cost no rule attributed.`
             ),
         metrics: z
             .array(ExternalMetricSchema)

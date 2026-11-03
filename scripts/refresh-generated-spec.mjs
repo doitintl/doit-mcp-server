@@ -50,6 +50,7 @@ const COMPONENT_KEYS = new Set([
     "callbacks",
     "pathItems",
 ]);
+const COMPONENT_EXTENSION_KEYS = new Set(["x-doit-doc-anchors"]);
 
 function isPlainObject(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -127,6 +128,7 @@ function assertExpectedShape(document) {
             problems.push(`"components" must be an object`);
         } else {
             for (const [key, value] of Object.entries(document.components)) {
+                if (COMPONENT_EXTENSION_KEYS.has(key)) continue;
                 if (!COMPONENT_KEYS.has(key)) problems.push(`unexpected key ${JSON.stringify(`components.${key}`)}`);
                 else if (!isPlainObject(value)) problems.push(`"components.${key}" must be an object`);
             }

@@ -12,6 +12,9 @@ export const DIMENSION_TYPE_VALUES = [
     "allocation_rule",
     "gke",
     "gke_label",
+    "attribution_tier_1",
+    "attribution_tier_2",
+    "attribution_tier_3",
 ] as const;
 
 export const FILTER_MODE_VALUES = ["is", "starts_with", "ends_with", "contains", "regexp"] as const;
@@ -49,7 +52,13 @@ export const DISPLAY_VALUES = [
     "absolute_and_percentage",
 ] as const;
 
-export const DATA_SOURCE_VALUES = ["billing", "bqlens", "billing-datahub", "kubernetes-utilization"] as const;
+export const DATA_SOURCE_VALUES = [
+    "billing",
+    "bqlens",
+    "billing-datahub",
+    "kubernetes-utilization",
+    "attribution",
+] as const;
 
 export const LAYOUT_VALUES = [
     "column_chart",
