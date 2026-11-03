@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.12.1 (2026-11-03)
+
+**Full diff:** [`v2.12.0...v2.12.1`](../../compare/v2.12.0...v2.12.1)
+
+### Other Changes
+
+- docs(aws): add guide for removing unused feature permissions (`d60664d`)
 ## v2.12.0 (2026-11-03)
 
 **Full diff:** [`v2.11.0...v2.12.0`](../../compare/v2.11.0...v2.12.0)
