@@ -1,13 +1,13 @@
 # Onboarding interview
 
-Use this for a new setup or a feature expansion when the user has not already decided every choice below. DoiT defines these questions; do not invent others. A customer can start with only an account or project ID, so investigate first and then ask only what remains open.
+Use this for a new setup or a feature expansion when the user has not already decided every choice below. DoiT defines these questions; do not invent others. A customer can start with only an account, project or Azure tenant ID, so investigate first and then ask only what remains open.
 
 ## Investigate before asking
 
 Read-only discovery comes first:
 
-- Existing Cloud Connect records: `list_cloud_connections` and `get_cloud_connection`.
-- Requirements discovery: `get_cloud_connect_requirements` without `featureIds`. Each feature returns `status` `available`, `not_entitled` or `inputs_required`. AWS responses also return `provider.variant` (`management_account`, `organization_member` or `standalone`).
+- Existing Cloud Connect records: `list_cloud_connections` and `get_cloud_connection`. For Azure, pass `provider: "azure"` or the selected Azure scope; omitting both defaults to AWS. Inspect the tenant's existing registration even when the requested management group differs.
+- Requirements discovery: once the required scope identifiers are resolved, call `get_cloud_connect_requirements` without `featureIds`. Each feature returns `status` `available`, `not_entitled` or `inputs_required`. AWS responses also return `provider.variant` (`management_account`, `organization_member` or `standalone`).
 - Existing DoiT deployments, roles and service accounts, using the provider walkthrough's ownership checks.
 - The customer's repository and tooling: Terraform, OpenTofu or Terragrunt source and state, CDK or other IaC, CI pipelines, and which cloud CLIs or connected tools you can run here.
 
@@ -21,16 +21,17 @@ Present each question with options A–C and D:
 - **B** and **C** are the main alternatives.
 - **D** lets the user describe something else.
 
-Ask the questions together in one message. Answer the user's questions about an option before continuing, and update the recommendation when their answer changes what you know.
+Ask the questions together when the needed discovery is available. If scope selection is required before requirements discovery (for example, an Azure tenant without a selected group), ask the scope question first, then investigate and ask only the remaining questions together. Answer the user's questions about an option before continuing, and update the recommendation when their answer changes what you know.
 
 ### 1. Scope
 
 - **AWS:** ask when `provider.variant` is `management_account`. Recommend an organization root or OU rollout when the user wants the organization covered or other member accounts have no DoiT connection; otherwise recommend the single account. Organization rollouts follow [AWS organizations](aws-organizations.md). For any other variant, connect the single account without asking.
 - **Google Cloud:** ask when the target could be an organization, a project or a dataset. Use the scopes in the [GCP walkthrough](gcp.md). For an organization, include the service-account host project in the plan, following that walkthrough.
+- **Azure:** resolve `tenantId` and an existing `managementGroupId`, covering that group and its descendants. Ask when the group is not selected, including when only a tenant or subscription ID was supplied. Recommend an existing group matching the requested subscription coverage; offer the tenant root only for requested tenant-wide coverage, after verifying its actual group ID. Follow the [Azure walkthrough](azure.md); do not create a group, move subscriptions or broaden the scope to complete onboarding.
 
 ### 2. Features
 
-Recommend core plus every other feature whose discovery `status` is `available` or `inputs_required`. Offer core only as B, and a custom selection as D. Do not offer `not_entitled` features; mention them only when the user asks for one. If fresh requirements for the selection return `default_feature_required`, add the named feature.
+Recommend every returned feature whose discovery `status` is `available` or `inputs_required`. Offer core only as B when `core` exists in that catalog; otherwise offer a narrower selection of returned features. Offer a custom selection as D. Azure uses the selected management group's catalog: do not invent a `core` feature or include separate tenant billing grants. Do not offer `not_entitled` features; mention them only when the user asks for one. If fresh requirements for the selection return `default_feature_required`, add the named feature.
 
 Skip this question when the user named the features.
 
@@ -39,9 +40,11 @@ Skip this question when the user named the features.
 Skip it when an existing DoiT deployment is found: keep its owner, as the shared [deployment rules](deployment-tools.md) require. Otherwise recommend the first that fits:
 
 1. The Terraform, OpenTofu or Terragrunt setup the customer already uses for this cloud.
-2. Other IaC the customer already uses, such as CDK, Pulumi or a CI pipeline.
-3. The returned artifact through a cloud CLI or connected tool you can run here, such as CloudFormation for AWS or the setup script for Google Cloud.
+2. Other IaC the customer already uses, such as CDK, Pulumi or Azure Bicep/ARM, through its existing execution workflow.
+3. The returned artifact through a cloud CLI or connected tool you can run here, such as CloudFormation for AWS or the setup script for Google Cloud or Azure.
 4. Step-by-step instructions the user runs, when you cannot run any of these here.
+
+Azure requirements return a CLI plan/apply script. Using Terraform/OpenTofu or Bicep/ARM means adapting the requirements in that existing controller; do not present the returned script as a native module or template. Include the required directory and management-group grant permissions in the plan; subscription Owner alone is insufficient.
 
 ## Confirm the plan
 
