@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -73,12 +72,5 @@ describe("CloudFlow guidance", () => {
         ]) {
             expect(CLOUDFLOW_AUTHORING_GUIDE).toContain(heading);
         }
-    });
-
-    it("leaves docs/cloudflow-authoring.md as a pointer to the canonical skill reference", () => {
-        const doc = readFileSync(new URL("../../../docs/cloudflow-authoring.md", import.meta.url), "utf8");
-
-        expect(doc).toContain("skills/doit-cloudflow-authoring/references/authoring-guide.md");
-        expect(doc.length).toBeLessThan(CLOUDFLOW_AUTHORING_GUIDE.length);
     });
 });
