@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.13.0 (2026-11-04)
+
+**Full diff:** [`v2.12.1...v2.13.0`](../../compare/v2.12.1...v2.13.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`85ad27b`)
+
+### Bug Fixes
+
+- fix(cloud-connect): improve azure identifier validation error messages (`1f96c19`)
+
+### Other Changes
+
+- docs(cloud-connect): refine onboarding interview and discovery flow (`249707f`)
+- docs(cloud-connect): update onboarding interview for browser and tool support (`a20ef7c`)
+- docs(cloud-connect): update onboarding interview for azure management groups (`a6e1d64`)
+- docs(cloud-connect): add onboarding interview guidance (`9ee8933`)
+- docs(cloudflow): remove stale guidance files (`db1c10e`)
 ## v2.12.1 (2026-11-03)
 
 **Full diff:** [`v2.12.0...v2.12.1`](../../compare/v2.12.0...v2.12.1)
