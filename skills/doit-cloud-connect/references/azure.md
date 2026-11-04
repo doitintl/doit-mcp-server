@@ -1,5 +1,7 @@
 # Azure Cloud Connect
 
+For a new setup or feature expansion, settle open choices through the [onboarding interview](onboarding-interview.md).
+
 Use `provider: azure`, `kind: azure_management_group`, `tenantId` and
 `managementGroupId`. This covers a tenant root or child management group and its
 descendants. Discover the actual group ID and subscription hierarchy; the root

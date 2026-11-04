@@ -1,6 +1,6 @@
 # Google Cloud Cloud Connect
 
-Use `provider: gcp` and choose the scope:
+Use `provider: gcp` and choose the scope. For a new setup or feature expansion, settle open choices through the [onboarding interview](onboarding-interview.md).
 
 | Scope | Identifiers | Use |
 |---|---|---|

@@ -6,7 +6,7 @@ For a root/OU rollout or an existing organization controller, follow [AWS organi
 
 ## Discover and resolve
 
-1. Identify the account, the requested features and the authoritative deployment source (Terraform, CloudFormation stack/StackSet or other controller). Validate the 12-digit account ID (digits only; a letter `o` is not a zero) and any organization root/OU target (`r-…`, `ou-…`) before using them.
+1. Identify the account, the requested features and the authoritative deployment source (Terraform, CloudFormation stack/StackSet or other controller). For a new setup or feature expansion, settle open choices through the [onboarding interview](onboarding-interview.md). Validate the 12-digit account ID (digits only; a letter `o` is not a zero) and any organization root/OU target (`r-…`, `ou-…`) before using them.
 2. `list_cloud_connections` with the exact account filter, following `pageToken`, then read matches with `get_cloud_connection`. Use the current record and requested outcome to decide whether to verify, update or remove it; avoid a duplicate role or registration.
 3. `get_cloud_connect_requirements`. Omitting `featureIds` is discovery: it returns every available feature at this scope with no selection and no satisfied artifact. Call again with the explicitly chosen features to resolve them. The selected-feature response is the only authority for permissions, inputs and artifacts, and its `catalogVersion` is what mutations must carry.
 
