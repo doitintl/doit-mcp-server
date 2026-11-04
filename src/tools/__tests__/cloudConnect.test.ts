@@ -45,6 +45,37 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Cloud Connect transport contract", () => {
+    it("explains Azure identifier mistakes before making an API request", async () => {
+        const azureScope = {
+            provider: "azure",
+            kind: "azure_management_group",
+            tenantId: "11111111-1111-4111-8111-111111111111",
+            managementGroupId: "example-child",
+        };
+        for (const managementGroupId of [
+            "Example Group",
+            "/providers/Microsoft.Management/managementGroups/example-child",
+        ]) {
+            const result = await handleCloudConnectRequest(
+                "get_cloud_connect_requirements",
+                { scope: { ...azureScope, managementGroupId } },
+                "fixture-token"
+            );
+            expect(result.isError).toBe(true);
+            expect(text(result)).toContain("scope.managementGroupId");
+            expect(text(result)).toContain("bare Azure management group ID");
+            expect(text(result)).toContain("not a display name or full ARM resource path");
+        }
+        const result = await handleCloudConnectRequest(
+            "get_cloud_connect_requirements",
+            { scope: { ...azureScope, tenantId: "example-tenant" } },
+            "fixture-token"
+        );
+        expect(result.isError).toBe(true);
+        expect(text(result)).toContain("scope.tenantId");
+        expect(text(result)).toContain("Microsoft Entra tenant ID in UUID format");
+        expect(requests).toHaveLength(0);
+    });
     it("uses the complete Azure management-group scope and tenant identity across requirements, discovery and registration", async () => {
         const tenantId = "11111111-1111-4111-8111-111111111111";
         const scope = {
@@ -351,6 +382,19 @@ describe("Cloud Connect transport contract", () => {
     });
     it("preserves standards problems, correlates by Request-Id, returns the key and never retries", async () => {
         for (const [status, code, extra] of [
+            [
+                400,
+                "validation_failed",
+                {
+                    details: [
+                        {
+                            issue: "invalid_value",
+                            field: "scope.managementGroupId",
+                            message: "Use a bare management group ID.",
+                        },
+                    ],
+                },
+            ],
             [409, "onboarding.catalog_version_stale", {}],
             [409, "onboarding.connection_exists", { details: [{ issue: "exists", id: "amazon-web-services-1" }] }],
             [412, "precondition_failed", {}],
@@ -367,7 +411,7 @@ describe("Cloud Connect transport contract", () => {
                 ...extra,
             });
         }
-        expect(requests).toHaveLength(4);
+        expect(requests).toHaveLength(5);
     });
     it("redacts credentials from problem bodies", async () => {
         response = () =>
