@@ -30,14 +30,11 @@ Identify the authoring source, resource controller, execution workflow and regis
 | HCP Terraform, Atlantis, Spacelift, env0 or CI pipelines | Use the configured execution workflow, identity and state. A local apply under another identity or backend does not reproduce that workflow. |
 | Service Catalog, Control Tower or Kubernetes controllers | Locate the owning provisioner and its source before changing resources it manages. |
 
-Find the owning source before choosing a method. The working directory is often not the customer's repository; an empty, non-git, scratch or temporary directory is not evidence that no IaC exists.
+### Find the owning source
 
-- Search the current directory and its parents; sibling and common project locations such as `~/code`, `~/src`, `~/dev`, `~/projects`, `~/work` and `~/repos`; any repository or folder the user names; and remote repositories available through connected GitHub, GitLab or similar tools.
-- Look for `*.tf`, `*.tfvars`, `terragrunt.hcl`, `.terraform.lock.hcl`, `cdk.json`, `Pulumi.yaml`, CloudFormation or SAM templates, Atlantis, Spacelift, env0 or CI pipeline files, and references to the target account, project or tenant ID, a DoiT module or provider, or the role names `doitintl_cmp`, `doitintl_dci_cloudconnect` and `DoiT-Support-Gateway`.
-- Treat a plausible match as the owning source and extend it with its engine, backend, state, provider aliases and execution workflow. Ask the user when several candidates match or ownership is unclear.
-- Create a new standalone module only when the search finds nothing and you have told the user where you searched. An installed CLI such as `tofu`, `terraform` or `aws` is not existing IaC.
+Check the working directory and its parents, any repository or folder the user names, and remote repositories available through connected tools. Look for IaC or CI files that reference the target account, project or tenant ID, the DoiT module or provider, or DoiT role names such as `doitintl_cmp` and `doitintl_dci_cloudconnect`. Extend a matching source through its own engine, backend, state and workflow. If several candidates match, ask the user which one owns the target. If you find nothing, tell the user what you checked and ask where this target's infrastructure is managed before proposing a new module.
 
-Applying a fresh module with local state next to an existing controller creates split ownership: two controllers manage or collide on the same roles, policies and registration, and either one's next apply can overwrite or delete the other's resources. Role names such as `doitintl_cmp` or `doitintl_dci_cloudconnect` can also already exist and make the new deployment fail.
+A fresh local-state module next to an existing controller splits ownership: either controller's next apply can overwrite or delete the other's resources, and existing role names can make the new deployment fail.
 
 ## Shared IAM changes
 

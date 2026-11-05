@@ -9,7 +9,7 @@ Read-only discovery comes first:
 - Existing Cloud Connect records: `list_cloud_connections` and `get_cloud_connection`. For Azure, pass `provider: "azure"` or the selected Azure scope; omitting both defaults to AWS. Inspect the tenant's existing registration even when the requested management group differs.
 - Requirements discovery: once the required scope identifiers are resolved, call `get_cloud_connect_requirements` without `featureIds`. Each feature returns `status` `available`, `not_entitled` or `inputs_required`. AWS responses also return `provider.variant` (`management_account`, `organization_member` or `standalone`).
 - Existing DoiT deployments, roles and service accounts, using the provider walkthrough's ownership checks.
-- The customer's repository and tooling, located with the main skill's search for existing setup (the working directory is often not the customer's repository): Terraform, OpenTofu or Terragrunt source and state, CDK or other IaC, CI pipelines, and what you can run here: cloud CLIs, cloud provider tools connected to your client (such as an AWS, Google Cloud or Azure MCP server), or a browser the user lets you control.
+- The customer's repository and tooling: Terraform, OpenTofu or Terragrunt source and state, CDK or other IaC, CI pipelines, and what you can run here: cloud CLIs, cloud provider tools connected to your client (such as an AWS, Google Cloud or Azure MCP server), or a browser the user lets you control.
 
 ## Ask at most three decision questions
 
@@ -39,14 +39,13 @@ Skip this question when the user named the features.
 
 ### 3. Deployment method
 
-Skip it when an existing DoiT deployment is found: keep its owner, as the shared [deployment rules](deployment-tools.md) require. Otherwise recommend the first that fits, following the main skill's method order:
+Skip it when an existing DoiT deployment is found: keep its owner, as the shared [deployment rules](deployment-tools.md) require. Otherwise recommend the first that fits:
 
-1. IaC the customer already uses for this target, found by the search for existing setup: Terraform, OpenTofu or Terragrunt, or other IaC such as CDK, Pulumi or Azure Bicep/ARM, through its existing execution workflow. An installed CLI is not existing IaC.
-2. The returned artifact through a cloud CLI, or cloud provider tools connected to your client, that you can run here, such as CloudFormation for AWS or the setup script for Google Cloud or Azure.
-3. The cloud console in a browser the user lets you control, when no CLI or connected tool is available. The user signs in and keeps control of credentials; never ask for or enter passwords or keys. Confirm before each submitting action, such as creating a stack or granting a role.
-4. Step-by-step instructions the user runs, when you cannot use any of these here.
-
-When the search finds no existing source, say where you searched in the recommendation.
+1. The Terraform, OpenTofu or Terragrunt setup that already deploys this target, located as in [Find the owning source](deployment-tools.md#find-the-owning-source). An installed CLI alone is not existing IaC.
+2. Other IaC the customer already uses, such as CDK, Pulumi or Azure Bicep/ARM, through its existing execution workflow.
+3. The returned artifact through a cloud CLI, or cloud provider tools connected to your client, that you can run here, such as CloudFormation for AWS or the setup script for Google Cloud or Azure.
+4. The cloud console in a browser the user lets you control, when no CLI or connected tool is available. The user signs in and keeps control of credentials; never ask for or enter passwords or keys. Confirm before each submitting action, such as creating a stack or granting a role.
+5. Step-by-step instructions the user runs, when you cannot use any of these here.
 
 Azure requirements return a CLI plan/apply script. Using Terraform/OpenTofu or Bicep/ARM means adapting the requirements in that existing controller; do not present the returned script as a native module or template. Include the required directory and management-group grant permissions in the plan; subscription Owner alone is insufficient.
 
