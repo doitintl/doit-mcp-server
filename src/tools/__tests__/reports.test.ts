@@ -642,6 +642,43 @@ Cloud Storage,50`;
             expect(makeDoitRequest).not.toHaveBeenCalled();
             expect(formatZodError).toHaveBeenCalled();
         });
+
+        it("should forward config.displaySettings chart options in the request body", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreatedReport);
+            const displaySettings = {
+                showDataLabels: true,
+                logarithmicScale: true,
+                showTotalsPanel: true,
+                numberScale: "thousands",
+                decimalPrecision: 0,
+            };
+
+            await handleCreateReportRequest(
+                { ...validArgs, config: { ...validArgs.config, layout: "column_chart", displaySettings } },
+                mockToken
+            );
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports",
+                mockToken,
+                expect.objectContaining({
+                    body: expect.objectContaining({ config: expect.objectContaining({ displaySettings }) }),
+                })
+            );
+        });
+
+        it("should reject invalid config.displaySettings values", async () => {
+            await handleCreateReportRequest(
+                {
+                    ...validArgs,
+                    config: { ...validArgs.config, displaySettings: { showDataLabels: "yes", decimalPrecision: 9 } },
+                },
+                mockToken
+            );
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(formatZodError).toHaveBeenCalled();
+        });
     });
 
     describe("handleUpdateReportRequest", () => {
@@ -741,6 +778,19 @@ Cloud Storage,50`;
                 "https://api.doit.com/analytics/v1/reports/report-1",
                 mockToken,
                 expect.objectContaining({ method: "PATCH", body: { folderId: "root" } })
+            );
+        });
+
+        it("should send only the supplied displaySettings fields on update", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdatedReport);
+            const config = { dataSource: "billing", displaySettings: { showDataLabels: false } };
+
+            await handleUpdateReportRequest({ id: "report-1", config }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-1",
+                mockToken,
+                expect.objectContaining({ method: "PATCH", body: { config } })
             );
         });
     });

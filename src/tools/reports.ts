@@ -5,9 +5,11 @@ import {
     DIMENSION_TYPE_VALUES,
     DISPLAY_VALUES,
     FILTER_MODE_VALUES,
+    LABEL_FONT_SIZE_VALUES,
     LAYOUT_VALUES,
     METRIC_FILTER_OPERATOR_VALUES,
     METRIC_TYPE_VALUES,
+    NUMBER_SCALE_VALUES,
     ORIGIN_TYPE_VALUES,
     REPORT_CURRENCY_VALUES,
     SECONDARY_TIME_UNIT_VALUES,
@@ -395,6 +397,45 @@ const ExternalSplitSchema = z
         }
     });
 
+const DisplaySettingsSchema = z.object({
+    themeId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Theme ID from list_themes; 'default' clears a stored theme on update."),
+    dataLabelFontSize: z
+        .enum(LABEL_FONT_SIZE_VALUES)
+        .optional()
+        .describe(`Chart data label font size. Accepted values: ${formatEnumValues(LABEL_FONT_SIZE_VALUES)}.`),
+    axisLabelFontSize: z
+        .enum(LABEL_FONT_SIZE_VALUES)
+        .optional()
+        .describe(`Chart axis label font size. Accepted values: ${formatEnumValues(LABEL_FONT_SIZE_VALUES)}.`),
+    numberScale: z
+        .enum(NUMBER_SCALE_VALUES)
+        .optional()
+        .describe(`Scale for displayed numbers. Accepted values: ${formatEnumValues(NUMBER_SCALE_VALUES)}.`),
+    decimalPrecision: z.number().int().min(0).max(8).optional().describe("Decimal places shown (0-8)."),
+    showDataLabels: z
+        .boolean()
+        .optional()
+        .describe(
+            "Show value labels on chart columns, bars and points (console 'Show labels'). Stacked layouts never draw them."
+        ),
+    logarithmicScale: z
+        .boolean()
+        .optional()
+        .describe(
+            "Logarithmic value axis (console 'Logarithmic scale'). Applies to line_chart, spline_chart, bar_chart and column_chart only."
+        ),
+    showTotalsPanel: z
+        .boolean()
+        .optional()
+        .describe(
+            "Open the series totals panel beside the chart when the report loads in the console (console 'Show totals panel'). Line, area, bar and column layouts only."
+        ),
+});
+
 const ReportConfigPatchSchema = z
     .object({
         dataSource: z
@@ -464,6 +505,9 @@ const ReportConfigPatchSchema = z
             .describe(
                 `Currency code for monetary values. Accepted values: ${formatEnumValues(REPORT_CURRENCY_VALUES)}.`
             ),
+        displaySettings: DisplaySettingsSchema.optional().describe(
+            "Chart display options for saved reports in the console; no effect on query results. On update, omitted fields keep their stored values."
+        ),
         sortGroups: z
             .enum(SORT_VALUES)
             .optional()
