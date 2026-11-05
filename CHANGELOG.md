@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.15.0 (2026-11-05)
+
+**Full diff:** [`v2.14.0...v2.15.0`](../../compare/v2.14.0...v2.15.0)
+
+### Features
+
+- feat: support config.displaySettings on report tools (`0b85d42`)
+- feat: support folderId on create_report and update_report (`f59ccb0`)
+
+### Other Changes
+
+- test: name mismatched displaySettings in live report contract failures (`1227476`)
+- test: add --skip-data-checks to live report contracts for accounts without billing rows (`a45d494`)
+- test: pass DOIT_API_BASE through to the live report contract server (`45c1522`)
+- test: cover folderId and displaySettings in live report contracts (`41cdac5`)
 ## v2.14.0 (2026-11-05)
 
 **Full diff:** [`v2.13.0...v2.14.0`](../../compare/v2.13.0...v2.14.0)
