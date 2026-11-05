@@ -233,14 +233,16 @@ try {
             resource: "session-created report; id/name withheld",
         });
         if (folderId || displaySettingsChecks) {
-            const matches = (actual, expected) =>
-                Object.entries(expected).every(([key, value]) => actual?.[key] === value);
+            // Names only the mismatched settings; these enum/boolean values carry no account data.
+            const mismatches = (actual, expected) =>
+                Object.entries(expected)
+                    .filter(([key, value]) => actual?.[key] !== value)
+                    .map(([key, value]) => `${key}: expected ${value}, got ${actual?.[key]}`)
+                    .join("; ");
             if (folderId) check(saved.folderId === folderId, "Create did not place the report in the requested folder");
             if (displaySettingsChecks) {
-                check(
-                    matches(saved.config.displaySettings, createdDisplaySettings),
-                    "Create did not persist requested displaySettings"
-                );
+                const diff = mismatches(saved.config.displaySettings, createdDisplaySettings);
+                check(!diff, `Create did not persist requested displaySettings (${diff})`);
             }
             record("disposable create/read-back preserves folder and displaySettings", {
                 folder: Boolean(folderId),
@@ -256,10 +258,8 @@ try {
                 check(!moved.folderId || moved.folderId === "root", "folderId 'root' did not move the report to top level");
             }
             if (displaySettingsChecks) {
-                check(
-                    matches(moved.config.displaySettings, { ...createdDisplaySettings, showDataLabels: false }),
-                    "Partial displaySettings update did not change only showDataLabels"
-                );
+                const diff = mismatches(moved.config.displaySettings, { ...createdDisplaySettings, showDataLabels: false });
+                check(!diff, `Partial displaySettings update did not change only showDataLabels (${diff})`);
             }
             record("disposable update moves to root and partial displaySettings keeps omitted fields", {
                 folder: Boolean(folderId),
