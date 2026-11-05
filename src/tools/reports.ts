@@ -574,6 +574,13 @@ export const CreateReportArgumentsSchema = z.object({
         .array(z.string())
         .optional()
         .describe("Optional DoiT console label IDs to assign. System labels are rejected."),
+    folderId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+            "Folder to create the report in; 'root' or omission places it at the top level. Folder IDs come from list_folders."
+        ),
     config: ReportConfigSchema.describe(
         "Configuration for the report. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
@@ -593,7 +600,7 @@ export const createReportTool = {
     title: "Create report",
     coversEndpoint: "post:/analytics/v1/reports",
     description:
-        "Use this when the user wants to save a new Cloud Analytics report with a specific configuration. Creates a new custom report immediately without replacing existing reports. Omitted config fields take API defaults: basic cost, last 7 days including today, daily time rows, and billing (or billing-datahub when the customer has DataHub metrics). System labels are rejected. Do NOT use this for one-time queries without saving (use run_query).",
+        "Use this when the user wants to save a new Cloud Analytics report with a specific configuration. Creates a new custom report immediately without replacing existing reports, optionally inside a folder (folderId). Omitted config fields take API defaults: basic cost, last 7 days including today, daily time rows, and billing (or billing-datahub when the customer has DataHub metrics). System labels are rejected. Do NOT use this for one-time queries without saving (use run_query).",
     inputSchema: zodToMcpInputSchema(CreateReportArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -619,6 +626,13 @@ export const UpdateReportArgumentsSchema = z.object({
         .describe(
             "Replaces non-system DoiT console labels; [] clears them, omission preserves them. System labels are rejected."
         ),
+    folderId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+            "Moves the report to this folder; 'root' moves it to the top level, omission leaves it in place. Folder IDs come from list_folders."
+        ),
     config: ReportConfigPatchSchema.optional().describe(
         "Partial configuration. Supplied filters, group, dimensions, and splits arrays replace stored arrays ([] clears); non-empty metrics replaces metrics ([] leaves it unchanged). Any config without dataSource resets the source to billing or billing-datahub according to customer defaults. timeInterval with dimensions omitted resets time columns. Switching to custom mode requires explicit or valid stored custom dates. A date-only patch requires a stored custom mode. Valid dimension IDs come from list_dimensions or get_dimension."
     ),
@@ -629,7 +643,7 @@ export const updateReportTool = {
     title: "Update report",
     coversEndpoint: "patch:/analytics/v1/reports/{id}",
     description:
-        "Use this when the user wants to modify an existing saved Cloud Analytics report. Only custom reports the caller can edit are supported. Supports partial updates with array replacement and config reset semantics described on config. Omitted top-level fields are unchanged; labels replaces non-system labels. Changes apply immediately. Do NOT use this for running ad-hoc queries (use run_query).",
+        "Use this when the user wants to modify an existing saved Cloud Analytics report. Only custom reports the caller can edit are supported. Supports partial updates with array replacement and config reset semantics described on config. Omitted top-level fields are unchanged; labels replaces non-system labels; folderId moves the report to another folder. Changes apply immediately. Do NOT use this for running ad-hoc queries (use run_query).",
     inputSchema: zodToMcpInputSchema(UpdateReportArgumentsSchema),
     annotations: {
         readOnlyHint: false,

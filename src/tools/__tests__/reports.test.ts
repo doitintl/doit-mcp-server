@@ -623,6 +623,25 @@ Cloud Storage,50`;
                 expect.objectContaining({ body: expect.objectContaining({ labels: ["label-1", "label-2"] }) })
             );
         });
+
+        it("should include folderId in the request body when provided", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreatedReport);
+
+            await handleCreateReportRequest({ ...validArgs, folderId: "folder-1" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports",
+                mockToken,
+                expect.objectContaining({ body: expect.objectContaining({ folderId: "folder-1" }) })
+            );
+        });
+
+        it("should reject an empty folderId", async () => {
+            await handleCreateReportRequest({ ...validArgs, folderId: "" }, mockToken);
+
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+            expect(formatZodError).toHaveBeenCalled();
+        });
     });
 
     describe("handleUpdateReportRequest", () => {
@@ -710,6 +729,18 @@ Cloud Storage,50`;
                     method: "PATCH",
                     body: { name: "Only Name" },
                 })
+            );
+        });
+
+        it("should send folderId to move the report", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdatedReport);
+
+            await handleUpdateReportRequest({ id: "report-1", folderId: "root" }, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                "https://api.doit.com/analytics/v1/reports/report-1",
+                mockToken,
+                expect.objectContaining({ method: "PATCH", body: { folderId: "root" } })
             );
         });
     });
