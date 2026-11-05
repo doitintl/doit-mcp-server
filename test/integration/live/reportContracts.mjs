@@ -129,7 +129,10 @@ await client.connect(
         command: process.execPath,
         args: [serverEntry],
         cwd: tmpdir(),
-        env: { DOIT_API_KEY: process.env.DOIT_OWN_CUSTOMER_API_KEY },
+        env: {
+            DOIT_API_KEY: process.env.DOIT_OWN_CUSTOMER_API_KEY,
+            ...(process.env.DOIT_API_BASE && { DOIT_API_BASE: process.env.DOIT_API_BASE }),
+        },
         stderr: "ignore",
     })
 );
