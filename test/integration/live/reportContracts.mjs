@@ -14,6 +14,8 @@ const writes = process.argv.includes("--disposable-report");
 // Optional disposable-report extras: an existing folder to create into, and chart displaySettings round-trips.
 const folderId = process.env.DOIT_LIVE_REPORT_FOLDER_ID;
 const displaySettingsChecks = process.argv.includes("--display-settings");
+// For accounts without billing rows in the prior month (e.g. dev): skips assertions that need non-empty results.
+const skipDataChecks = process.argv.includes("--skip-data-checks");
 if ((folderId || displaySettingsChecks) && !writes) {
     throw new Error("DOIT_LIVE_REPORT_FOLDER_ID and --display-settings require --disposable-report.");
 }
@@ -144,53 +146,55 @@ try {
     check(provider, "No provider available for bounded validation");
     const filters = [{ id: "cloud_provider", type: "fixed", values: [provider] }];
     const config = { ...base, filters, timeInterval: "day", timeRange: { mode: "custom" }, customTimeRange: dates };
-    const custom = await call("run_query", { config });
-    const actualDays = verifyDaily(custom, isoDay(priorStart), isoDay(priorSecond));
-    check(actualDays.length === 2, "Expected both requested calendar days in this account");
-    check(
-        custom.rows.every((row) => row[custom.columns.findIndex((col) => col.name === "cloud_provider")] === provider),
-        "Omitted mode did not restrict provider"
-    );
-    record("custom dates and omitted filter mode: exact two requested days and provider only", {
-        input: { config },
-        rowCount: custom.rowCount,
-        returnedDays: actualDays,
-    });
-    const explicitMode = await call("run_query", { config: { ...config, filters: [{ ...filters[0], mode: "is" }] } });
-    check(equalResults(custom, explicitMode), "Omitted mode differs from explicit is");
-    record("omitted filter mode equals explicit is", { rowCount: explicitMode.rowCount });
+    if (!skipDataChecks) {
+        const custom = await call("run_query", { config });
+        const actualDays = verifyDaily(custom, isoDay(priorStart), isoDay(priorSecond));
+        check(actualDays.length === 2, "Expected both requested calendar days in this account");
+        check(
+            custom.rows.every((row) => row[custom.columns.findIndex((col) => col.name === "cloud_provider")] === provider),
+            "Omitted mode did not restrict provider"
+        );
+        record("custom dates and omitted filter mode: exact two requested days and provider only", {
+            input: { config },
+            rowCount: custom.rowCount,
+            returnedDays: actualDays,
+        });
+        const explicitMode = await call("run_query", { config: { ...config, filters: [{ ...filters[0], mode: "is" }] } });
+        check(equalResults(custom, explicitMode), "Omitted mode differs from explicit is");
+        record("omitted filter mode equals explicit is", { rowCount: explicitMode.rowCount });
 
-    const compare = await call("compare_spend", {
-        period1Months: 2,
-        period2: dates,
-        cloud: provider,
-        groupBy: "cloud",
-    });
-    const firstDates = { from: dates.from, to: `${isoDay(now)}T23:59:59Z` };
-    const monthly = { ...base, filters, timeInterval: "month", timeRange: { mode: "custom" } };
-    const first = await call("run_query", { config: { ...monthly, customTimeRange: firstDates } });
-    const second = await call("run_query", { config: { ...monthly, customTimeRange: dates } });
-    check(equalResults(compare.period1, first), "Period 1 differs from explicit previous-month-start through today");
-    check(equalResults(compare.period2, second), "Period 2 differs from the requested explicit dates");
-    const firstDaily = await call("run_query", { config: { ...config, customTimeRange: firstDates } });
-    const firstDays = verifyDaily(firstDaily, isoDay(priorStart), isoDay(now));
-    check(firstDays[0] === isoDay(priorStart), "Period 1 did not begin at the prior calendar month start");
-    check(
-        firstDays.some((day) => day >= isoDay(monthStart)),
-        "Period 1 is missing the current partial month"
-    );
-    record("compare_spend periods match explicit monthly queries; daily checks establish date bounds", {
-        input: { period1Months: 2, period2: dates, groupBy: "cloud", cloud: provider },
-        period1: {
-            from: firstDates.from,
-            through: firstDates.to,
-            rowCount: first.rowCount,
-            firstReturnedDay: firstDays[0],
-            lastReturnedDay: firstDays.at(-1),
-        },
-        period2: { rowCount: second.rowCount, returnedDays: actualDays },
-        computedDiff: false,
-    });
+        const compare = await call("compare_spend", {
+            period1Months: 2,
+            period2: dates,
+            cloud: provider,
+            groupBy: "cloud",
+        });
+        const firstDates = { from: dates.from, to: `${isoDay(now)}T23:59:59Z` };
+        const monthly = { ...base, filters, timeInterval: "month", timeRange: { mode: "custom" } };
+        const first = await call("run_query", { config: { ...monthly, customTimeRange: firstDates } });
+        const second = await call("run_query", { config: { ...monthly, customTimeRange: dates } });
+        check(equalResults(compare.period1, first), "Period 1 differs from explicit previous-month-start through today");
+        check(equalResults(compare.period2, second), "Period 2 differs from the requested explicit dates");
+        const firstDaily = await call("run_query", { config: { ...config, customTimeRange: firstDates } });
+        const firstDays = verifyDaily(firstDaily, isoDay(priorStart), isoDay(now));
+        check(firstDays[0] === isoDay(priorStart), "Period 1 did not begin at the prior calendar month start");
+        check(
+            firstDays.some((day) => day >= isoDay(monthStart)),
+            "Period 1 is missing the current partial month"
+        );
+        record("compare_spend periods match explicit monthly queries; daily checks establish date bounds", {
+            input: { period1Months: 2, period2: dates, groupBy: "cloud", cloud: provider },
+            period1: {
+                from: firstDates.from,
+                through: firstDates.to,
+                rowCount: first.rowCount,
+                firstReturnedDay: firstDays[0],
+                lastReturnedDay: firstDays.at(-1),
+            },
+            period2: { rowCount: second.rowCount, returnedDays: actualDays },
+            computedDiff: false,
+        });
+    }
 
     if (writes) {
         createdName = `MCP report contract validation ${runId}`;
@@ -304,17 +308,19 @@ try {
             "Date-only update failed to preserve saved custom mode"
         );
         record("date-only update preserves saved custom mode", { dates });
-        const savedResults = await call("get_report_results", { id: createdId });
-        check(savedResults.result, "Saved report returned no result");
-        const savedDays = verifyDaily(
-            { columns: savedResults.result.schema, rows: savedResults.result.rows },
-            isoDay(priorStart),
-            isoDay(priorSecond)
-        );
-        record(
-            "disposable update/read-back replaces arrays, resets columns/source and saved results use updated range",
-            { sourceBefore: saved.config.dataSource, sourceAfter: updated.config.dataSource, returnedDays: savedDays }
-        );
+        if (!skipDataChecks) {
+            const savedResults = await call("get_report_results", { id: createdId });
+            check(savedResults.result, "Saved report returned no result");
+            const savedDays = verifyDaily(
+                { columns: savedResults.result.schema, rows: savedResults.result.rows },
+                isoDay(priorStart),
+                isoDay(priorSecond)
+            );
+            record(
+                "disposable update/read-back replaces arrays, resets columns/source and saved results use updated range",
+                { sourceBefore: saved.config.dataSource, sourceAfter: updated.config.dataSource, returnedDays: savedDays }
+            );
+        }
     }
 } catch (error) {
     console.error(
