@@ -51,11 +51,11 @@ Azure requirements return a CLI plan/apply script. Using Terraform/OpenTofu or B
 
 ## Confirm the plan
 
-After the answers, get fresh requirements for the selection and present one plan:
+After the answers, get fresh requirements for the selection and write out one plan as text, even when no questions were asked:
 
 - Scope, features and the deployment method and owner.
 - Resources to create or change, including identity, trust and any input values you propose (such as a real-time data bucket).
 - How the account or scope is registered and which checks verify it.
 - Anything you could not check.
 
-Proceed after the user confirms. Confirmation covers the plan as presented. Stop and ask again when fresh requirements, a plan or preview, or a deployment result shows a different scope, features, identity or resources. The main skill's preview rule applies to each API write. Migration and removal follow their existing confirmation rules.
+Proceed after the user confirms. Picking a question's option is not confirmation. Confirmation covers the plan as presented. Stop and ask again when fresh requirements, a plan or preview, or a deployment result shows a different scope, features, identity or resources. The main skill's preview rule applies to each API write. Migration and removal follow their existing confirmation rules.
