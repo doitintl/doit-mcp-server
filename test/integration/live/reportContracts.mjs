@@ -11,6 +11,19 @@ if (process.env.DOIT_LIVE_REPORT_CONTRACTS !== "1" || !process.env.DOIT_OWN_CUST
     throw new Error("Requires DOIT_LIVE_REPORT_CONTRACTS=1 and DOIT_OWN_CUSTOMER_API_KEY in the environment.");
 }
 const writes = process.argv.includes("--disposable-report");
+// Optional disposable-report extras: an existing folder to create into, and chart displaySettings round-trips.
+const folderId = process.env.DOIT_LIVE_REPORT_FOLDER_ID;
+const displaySettingsChecks = process.argv.includes("--display-settings");
+if ((folderId || displaySettingsChecks) && !writes) {
+    throw new Error("DOIT_LIVE_REPORT_FOLDER_ID and --display-settings require --disposable-report.");
+}
+const createdDisplaySettings = {
+    showDataLabels: true,
+    logarithmicScale: true,
+    showTotalsPanel: true,
+    numberScale: "thousands",
+    decimalPrecision: 2,
+};
 const client = new Client({ name: "report-contract-validation", version: "1.0.0" });
 const serverEntry = fileURLToPath(new URL("../../../dist/index.js", import.meta.url));
 const runId = randomUUID();
@@ -181,7 +194,12 @@ try {
         persist("creation-attempted-once");
         const created = await call("create_report", {
             name: createdName,
-            config: { ...config, dimensions: [{ id: "cloud_provider", type: "fixed" }] },
+            ...(folderId && { folderId }),
+            config: {
+                ...config,
+                dimensions: [{ id: "cloud_provider", type: "fixed" }],
+                ...(displaySettingsChecks && { displaySettings: createdDisplaySettings }),
+            },
         });
         check(
             typeof created.id === "string" && created.id.length > 0,
@@ -207,6 +225,40 @@ try {
         record("disposable create/read-back preserves custom dates, mode and omitted-mode filter", {
             resource: "session-created report; id/name withheld",
         });
+        if (folderId || displaySettingsChecks) {
+            const matches = (actual, expected) =>
+                Object.entries(expected).every(([key, value]) => actual?.[key] === value);
+            if (folderId) check(saved.folderId === folderId, "Create did not place the report in the requested folder");
+            if (displaySettingsChecks) {
+                check(
+                    matches(saved.config.displaySettings, createdDisplaySettings),
+                    "Create did not persist requested displaySettings"
+                );
+            }
+            record("disposable create/read-back preserves folder and displaySettings", {
+                folder: Boolean(folderId),
+                displaySettings: displaySettingsChecks ? createdDisplaySettings : false,
+            });
+            await call("update_report", {
+                id: createdId,
+                ...(folderId && { folderId: "root" }),
+                ...(displaySettingsChecks && { config: { displaySettings: { showDataLabels: false } } }),
+            });
+            const moved = await call("get_report_config", { id: createdId });
+            if (folderId) {
+                check(!moved.folderId || moved.folderId === "root", "folderId 'root' did not move the report to top level");
+            }
+            if (displaySettingsChecks) {
+                check(
+                    matches(moved.config.displaySettings, { ...createdDisplaySettings, showDataLabels: false }),
+                    "Partial displaySettings update did not change only showDataLabels"
+                );
+            }
+            record("disposable update moves to root and partial displaySettings keeps omitted fields", {
+                folder: Boolean(folderId),
+                displaySettings: displaySettingsChecks,
+            });
+        }
         const updatedDates = { from: `${isoDay(priorSecond)}T00:00:00Z`, to: dates.to };
         await call("update_report", {
             id: createdId,
