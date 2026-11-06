@@ -30,6 +30,12 @@ Identify the authoring source, resource controller, execution workflow and regis
 | HCP Terraform, Atlantis, Spacelift, env0 or CI pipelines | Use the configured execution workflow, identity and state. A local apply under another identity or backend does not reproduce that workflow. |
 | Service Catalog, Control Tower or Kubernetes controllers | Locate the owning provisioner and its source before changing resources it manages. |
 
+### Find the owning source
+
+Check the working directory and its parents, any repository or folder the user names, and remote repositories available through connected tools. Look for IaC or CI files that reference the target account, project or tenant ID, the DoiT module or provider, or DoiT role names such as `doitintl_cmp` and `doitintl_dci_cloudconnect`. Extend a matching source through its own engine, backend, state and workflow. If several candidates match, ask the user which one owns the target. If you find nothing, tell the user what you checked and ask where this target's infrastructure is managed before proposing a new module.
+
+A fresh local-state module next to an existing controller splits ownership: either controller's next apply can overwrite or delete the other's resources, and existing role names can make the new deployment fail.
+
 ## Shared IAM changes
 
 When replacing an existing IAM policy, read its complete current contents and review the resulting diff. Preserve unrelated statements or bindings unless removing them is part of the requested change. Use targeted additions where supported.

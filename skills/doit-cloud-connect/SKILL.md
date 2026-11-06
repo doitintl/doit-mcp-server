@@ -3,7 +3,7 @@ name: doit-cloud-connect
 description: Route DoiT Cloud Connect setup, verification, repair or disconnect by cloud provider and deployment method. AWS, including organization root/OU rollouts, Google Cloud and Azure management groups are supported.
 license: MIT
 metadata:
-  doit/skill-version: "22"
+  doit/skill-version: "23"
   doit/api-contract: "onboarding/v2"
 ---
 
@@ -43,7 +43,7 @@ Read additional method references when adapting between formats or working acros
 
 After selecting a supported provider, use the stages relevant to the requested operation:
 
-1. **Discover current state and ownership.** Use `list_cloud_connections` and `get_cloud_connection` to inspect registration state, and inspect the owning source before proposing new resources or registration. Preserve the registered identity and resource controller unless the user confirms a migration plan under the shared deployment rules.
+1. **Discover current state and ownership.** Use `list_cloud_connections` and `get_cloud_connection` to inspect registration state, and inspect the owning source before proposing new resources or registration. The working directory is often not the customer's repository: an empty or scratch directory, or an installed `terraform`, `tofu` or `aws`, does not mean no IaC exists. Find the owning source as described in the [deployment rules](references/deployment-tools.md#find-the-owning-source) before choosing a method. Preserve the registered identity and resource controller unless the user confirms a migration plan under the shared deployment rules.
 2. **Agree the plan.** For a new setup or feature expansion, follow the [onboarding interview](references/onboarding-interview.md): investigate, ask only the open questions with a recommended option, and confirm the plan before changing anything.
 3. **Get fresh requirements.** Use `get_cloud_connect_requirements` for the selected features, per-feature permissions, identity trust, inputs and deployment prerequisites. These describe required access; they do not prove deployment or live access.
 4. **Inspect and adapt.** Use the customer's repository and IaC/CLI tools to inspect artifacts as reference implementations. Modify, compose or translate them while preserving authoritative requirements, provider constraints and unrelated grants.
