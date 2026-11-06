@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.16.0 (2026-11-06)
+
+**Full diff:** [`v2.15.0...v2.16.0`](../../compare/v2.15.0...v2.16.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`e54471d`)
 ## v2.15.0 (2026-11-05)
 
 **Full diff:** [`v2.14.0...v2.15.0`](../../compare/v2.14.0...v2.15.0)
