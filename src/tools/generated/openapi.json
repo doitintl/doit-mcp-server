@@ -16612,6 +16612,18 @@
                             "minimum": 0,
                             "maximum": 8,
                             "description": "Number of decimal places shown for numeric values."
+                          },
+                          "showDataLabels": {
+                            "type": "boolean",
+                            "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                          },
+                          "logarithmicScale": {
+                            "type": "boolean",
+                            "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                          },
+                          "showTotalsPanel": {
+                            "type": "boolean",
+                            "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                           }
                         }
                       },
@@ -17850,6 +17862,18 @@
                               "minimum": 0,
                               "maximum": 8,
                               "description": "Number of decimal places shown for numeric values."
+                            },
+                            "showDataLabels": {
+                              "type": "boolean",
+                              "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                            },
+                            "logarithmicScale": {
+                              "type": "boolean",
+                              "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                            },
+                            "showTotalsPanel": {
+                              "type": "boolean",
+                              "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                             }
                           }
                         },
@@ -19143,6 +19167,18 @@
                             "minimum": 0,
                             "maximum": 8,
                             "description": "Number of decimal places shown for numeric values."
+                          },
+                          "showDataLabels": {
+                            "type": "boolean",
+                            "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                          },
+                          "logarithmicScale": {
+                            "type": "boolean",
+                            "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                          },
+                          "showTotalsPanel": {
+                            "type": "boolean",
+                            "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                           }
                         }
                       },
@@ -21124,6 +21160,18 @@
                             "minimum": 0,
                             "maximum": 8,
                             "description": "Number of decimal places shown for numeric values."
+                          },
+                          "showDataLabels": {
+                            "type": "boolean",
+                            "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                          },
+                          "logarithmicScale": {
+                            "type": "boolean",
+                            "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                          },
+                          "showTotalsPanel": {
+                            "type": "boolean",
+                            "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                           }
                         }
                       },
@@ -22354,6 +22402,18 @@
                               "minimum": 0,
                               "maximum": 8,
                               "description": "Number of decimal places shown for numeric values."
+                            },
+                            "showDataLabels": {
+                              "type": "boolean",
+                              "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                            },
+                            "logarithmicScale": {
+                              "type": "boolean",
+                              "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                            },
+                            "showTotalsPanel": {
+                              "type": "boolean",
+                              "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                             }
                           }
                         },
@@ -23679,6 +23739,18 @@
                               "minimum": 0,
                               "maximum": 8,
                               "description": "Number of decimal places shown for numeric values."
+                            },
+                            "showDataLabels": {
+                              "type": "boolean",
+                              "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                            },
+                            "logarithmicScale": {
+                              "type": "boolean",
+                              "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                            },
+                            "showTotalsPanel": {
+                              "type": "boolean",
+                              "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                             }
                           }
                         },
@@ -24991,6 +25063,18 @@
                             "minimum": 0,
                             "maximum": 8,
                             "description": "Number of decimal places shown for numeric values."
+                          },
+                          "showDataLabels": {
+                            "type": "boolean",
+                            "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                          },
+                          "logarithmicScale": {
+                            "type": "boolean",
+                            "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                          },
+                          "showTotalsPanel": {
+                            "type": "boolean",
+                            "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                           }
                         }
                       },
@@ -191217,6 +191301,18 @@
                 "minimum": 0,
                 "maximum": 8,
                 "description": "Number of decimal places shown for numeric values."
+              },
+              "showDataLabels": {
+                "type": "boolean",
+                "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+              },
+              "logarithmicScale": {
+                "type": "boolean",
+                "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+              },
+              "showTotalsPanel": {
+                "type": "boolean",
+                "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
               }
             }
           },
@@ -192354,6 +192450,18 @@
                 "minimum": 0,
                 "maximum": 8,
                 "description": "Number of decimal places shown for numeric values."
+              },
+              "showDataLabels": {
+                "type": "boolean",
+                "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+              },
+              "logarithmicScale": {
+                "type": "boolean",
+                "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+              },
+              "showTotalsPanel": {
+                "type": "boolean",
+                "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
               }
             }
           },
@@ -192559,6 +192667,18 @@
             "minimum": 0,
             "maximum": 8,
             "description": "Number of decimal places shown for numeric values."
+          },
+          "showDataLabels": {
+            "type": "boolean",
+            "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+          },
+          "logarithmicScale": {
+            "type": "boolean",
+            "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+          },
+          "showTotalsPanel": {
+            "type": "boolean",
+            "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
           }
         }
       },
@@ -194096,6 +194216,18 @@
                     "minimum": 0,
                     "maximum": 8,
                     "description": "Number of decimal places shown for numeric values."
+                  },
+                  "showDataLabels": {
+                    "type": "boolean",
+                    "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                  },
+                  "logarithmicScale": {
+                    "type": "boolean",
+                    "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                  },
+                  "showTotalsPanel": {
+                    "type": "boolean",
+                    "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                   }
                 }
               },
@@ -195391,6 +195523,18 @@
                     "minimum": 0,
                     "maximum": 8,
                     "description": "Number of decimal places shown for numeric values."
+                  },
+                  "showDataLabels": {
+                    "type": "boolean",
+                    "description": "Show value labels on chart data points (the console's \"Show labels\"\nchart option). Stacked layouts never draw data labels. `false` is\nalso returned for reports that never set the option; the console\nthen picks labels based on the layout and series count. Omit on\nPATCH to leave the stored value unchanged. Has no effect on query\nresults."
+                  },
+                  "logarithmicScale": {
+                    "type": "boolean",
+                    "description": "Plot the value axis on a logarithmic scale (the console's\n\"Logarithmic scale\" chart option). Applies to `line_chart`,\n`spline_chart`, `bar_chart` and `column_chart`; other layouts\nignore it. Omit on PATCH to leave the stored value unchanged. Has\nno effect on query results."
+                  },
+                  "showTotalsPanel": {
+                    "type": "boolean",
+                    "description": "Open the series totals panel beside the chart when the report\nloads in the console (the \"Show totals panel\" chart option).\nApplies to line, area, bar and column layouts, stacked or not;\ndashboard widgets and exports never show it. Omit on PATCH to leave the stored value\nunchanged. Has no effect on query results."
                   }
                 }
               },
