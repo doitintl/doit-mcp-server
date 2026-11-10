@@ -68,16 +68,20 @@ describe("handleGeneratedOperationRequest", () => {
         );
     });
 
-    it("appends customerContext as a query param when provided", async () => {
+    it("never adds customerContext to the generated URL", async () => {
         (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
 
-        await handleGeneratedOperationRequest(buildTool(), { id: "abc", customerContext: "cust-1" }, mockToken);
+        await handleGeneratedOperationRequest(
+            buildTool(),
+            { id: "abc", pageToken: "p1", customerContext: "cust-1" },
+            mockToken
+        );
 
         const [url] = (makeDoitRequest as vi.Mock).mock.calls[0];
-        expect(url).toContain("customerContext=cust-1");
+        expect(url).toBe(`${DOIT_API_BASE}/widgets/abc?pageToken=p1`);
     });
 
-    it("passes customerContext to makeDoitRequest so it is also sent as the tenant header", async () => {
+    it("passes customerContext to makeDoitRequest, which sends it as the X-Tenant-Id header", async () => {
         (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
 
         await handleGeneratedOperationRequest(buildTool(), { id: "abc", customerContext: "cust-1" }, mockToken);
@@ -85,8 +89,62 @@ describe("handleGeneratedOperationRequest", () => {
         expect(makeDoitRequest).toHaveBeenCalledWith(
             expect.any(String),
             mockToken,
-            expect.objectContaining({ customerContext: "cust-1" })
+            expect.objectContaining({ customerContext: "cust-1", appendParams: false })
         );
+    });
+
+    it("keeps customerContext out of JSON and multipart request bodies", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+        const schema = z.object({ name: z.string(), customerContext: z.string().optional() });
+        const jsonTool = buildTool({
+            zodSchema: schema,
+            metadata: {
+                method: "post",
+                pathTemplate: "/widgets",
+                pathParams: [],
+                queryParams: [],
+                headerParams: [],
+                bodyEncoding: "json",
+                multipartFileFields: [],
+            },
+        });
+        const multipartTool = buildTool({
+            zodSchema: schema,
+            metadata: { ...jsonTool.metadata, bodyEncoding: "multipart" },
+        });
+
+        await handleGeneratedOperationRequest(jsonTool, { name: "w", customerContext: "cust-1" }, mockToken);
+        await handleGeneratedOperationRequest(multipartTool, { name: "w", customerContext: "cust-1" }, mockToken);
+
+        const [jsonCall, multipartCall] = (makeDoitRequest as vi.Mock).mock.calls;
+        expect(jsonCall[0]).toBe(`${DOIT_API_BASE}/widgets`);
+        expect(jsonCall[2]).toEqual(expect.objectContaining({ body: { name: "w" }, customerContext: "cust-1" }));
+        const form = multipartCall[2].body as FormData;
+        expect(form).toBeInstanceOf(FormData);
+        expect([...form.keys()]).toEqual(["name"]);
+        expect(multipartCall[2].customerContext).toBe("cust-1");
+    });
+
+    it("sends no body when customerContext is the only non-path field", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+        const tool = buildTool({
+            zodSchema: z.object({ id: z.string(), customerContext: z.string().optional() }),
+            metadata: {
+                method: "delete",
+                pathTemplate: "/widgets/{id}",
+                pathParams: ["id"],
+                queryParams: [],
+                headerParams: [],
+                bodyEncoding: "json",
+                multipartFileFields: [],
+            },
+        });
+
+        await handleGeneratedOperationRequest(tool, { id: "w-1", customerContext: "cust-1" }, mockToken);
+
+        const [, , options] = (makeDoitRequest as vi.Mock).mock.calls[0];
+        expect(options.body).toBeUndefined();
+        expect(options.headers).toBeUndefined();
     });
 
     it("passes the CUSTOMER_CONTEXT env fallback to makeDoitRequest", async () => {

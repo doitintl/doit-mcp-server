@@ -121,3 +121,5 @@ One-time setup (repository admin, on GitHub → repo **Settings**):
 ## Cloudflare Worker (mcp.doit.com)
 
 Publishing to npm does **not** update the hosted Worker — it consumes this package's `/core` export from its own (private) repo and must bump the dependency and redeploy there. Automating that half is tracked internally.
+
+Some releases also depend on an API deployment. Header-only customer selection needs the API change first (see [customer-scope.md](customer-scope.md#rollout)).

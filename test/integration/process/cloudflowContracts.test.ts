@@ -135,7 +135,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built CloudFlow/A
         inProgress = false;
         expect(textOf(await call(args))).toBe(textOf(first));
         expect(seen.every((r) => r.key === args.idempotencyKey && !("idempotencyKey" in r.body))).toBe(true);
-        expect(seen.every((r) => r.tenant === "fixture-customer" && r.context === "fixture-customer")).toBe(true);
+        expect(seen.every((r) => r.tenant === "fixture-customer" && r.context === null)).toBe(true);
         const before = seen.length;
         const { idempotencyKey: _key, ...missingKey } = args;
         expect((await call(missingKey)).isError).toBe(true);
@@ -171,7 +171,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built CloudFlow/A
         expect(updated.isError).not.toBe(true);
         expect(connection).toMatchObject({ etag: '"v2"', awsConfig: { roleName: "new-role" } });
         expect(connection?.collaborators).toEqual(args.collaborators);
-        expect(seen.at(-1)).toMatchObject({ ifMatch: '"v1"', tenant: "fixture-customer", context: "fixture-customer" });
+        expect(seen.at(-1)).toMatchObject({ ifMatch: '"v1"', tenant: "fixture-customer", context: null });
         expect(seen.at(-1)?.body).not.toHaveProperty("ifMatch");
         expect(seen.at(-1)?.body).not.toHaveProperty("connectionId");
         expect((await call(args)).isError).toBe(true);
@@ -217,7 +217,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built CloudFlow/A
                 customerContext: "other-fixture-customer",
             },
         });
-        expect(seen.at(-1)).toMatchObject({ tenant: "other-fixture-customer", context: "other-fixture-customer" });
+        expect(seen.at(-1)).toMatchObject({ tenant: "other-fixture-customer", context: null });
         await client.callTool({
             name: "update_cloudflow_connection",
             arguments: {
@@ -229,7 +229,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built CloudFlow/A
         });
         expect(seen.at(-1)).toMatchObject({
             tenant: "other-fixture-customer",
-            context: "other-fixture-customer",
+            context: null,
             ifMatch: '"v1"',
         });
     });
@@ -248,7 +248,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built CloudFlow/A
         expect(seen[0]).toMatchObject({
             body: { question: "fixture question", ephemeral: true },
             tenant: "fixture-customer",
-            context: "fixture-customer",
+            context: null,
         });
     });
 });

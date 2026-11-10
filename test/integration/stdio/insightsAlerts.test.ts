@@ -165,13 +165,13 @@ describe("customer context through shared tool dispatch", () => {
             "/core/v1/cloudincidents",
             { incidents: [], rowCount: 0 },
         ],
-    ] as const)("%s sends the injected tenant in the header and query", async (name, args, path, response) => {
+    ] as const)("%s sends the injected tenant only in the header", async (name, args, path, response) => {
         let called = false;
         mswServer.use(
             http.get(`${API}${path}`, ({ request }) => {
                 called = true;
                 expect(request.headers.get("X-Tenant-Id")).toBe("switched-fixture");
-                expect(new URL(request.url).searchParams.get("customerContext")).toBe("switched-fixture");
+                expect(new URL(request.url).searchParams.has("customerContext")).toBe(false);
                 return HttpResponse.json(response);
             })
         );

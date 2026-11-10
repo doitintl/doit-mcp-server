@@ -7,11 +7,13 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    resolveCustomerContext,
 } from "../../utils/util.js";
 import { buildRequestPath } from "./requestPath.js";
 import type { GeneratedTool } from "./types.js";
 
 const GENERATED_REQUEST_TIMEOUT_MS = 30000;
+const CUSTOMER_CONTEXT_ARG = "customerContext";
 
 function base64ToBytes(base64: string): Uint8Array {
     const binary = atob(base64);
@@ -47,7 +49,7 @@ function buildMultipartBody(bodyFields: Record<string, unknown>, fileFields: str
 export async function handleGeneratedOperationRequest(tool: GeneratedTool, args: any, token: string) {
     try {
         const parsed = tool.zodSchema.parse(args ?? {}) as Record<string, unknown>;
-        const customerContext = (args?.customerContext as string | undefined) || process.env.CUSTOMER_CONTEXT;
+        const customerContext = resolveCustomerContext(args?.customerContext as string | undefined);
         const { metadata } = tool;
 
         const requestPath = buildRequestPath(metadata, parsed);
@@ -57,9 +59,6 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
             if (parsed[paramName] !== undefined) {
                 queryParams.set(paramName, String(parsed[paramName]));
             }
-        }
-        if (customerContext) {
-            queryParams.set("customerContext", customerContext);
         }
         const queryString = queryParams.toString();
         const url = `${DOIT_API_BASE}${requestPath}${queryString ? `?${queryString}` : ""}`;
@@ -74,6 +73,9 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
         const bodyFields = Object.fromEntries(
             Object.entries(parsed).filter(
                 ([key]) =>
+                    // customerContext is MCP-level customer selection (sent as X-Tenant-Id), not
+                    // an operation field, so it must never reach the request body.
+                    key !== CUSTOMER_CONTEXT_ARG &&
                     !metadata.pathParams.includes(key) &&
                     !metadata.queryParams.includes(key) &&
                     !metadata.headerParams.includes(key)
@@ -103,8 +105,8 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
                 metadata.pathTemplate === "/clouddiagrams/v1/statussheet/{id}/get",
             body,
             appendParams: false,
-            // URL params are built above (appendParams: false), but makeDoitRequest still
-            // needs the context to send the X-Tenant-Id header.
+            // The selected customer is sent only as the X-Tenant-Id header, never as a URL
+            // parameter: strict endpoints reject query keys their contract does not declare.
             customerContext,
             parseAs: "text",
             timeoutMs: GENERATED_REQUEST_TIMEOUT_MS,

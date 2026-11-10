@@ -70,7 +70,7 @@ afterEach(() => {
 
 describe("support and account tools customer context", () => {
     it.each(cases)(
-        "$name keeps concurrent explicit tenant scopes in the query and header",
+        "$name keeps concurrent explicit tenant scopes in the header only",
         async ({ name, args, data, path }) => {
             const requests: Array<{ url: URL; headers: Headers }> = [];
             vi.stubGlobal(
@@ -93,7 +93,7 @@ describe("support and account tools customer context", () => {
             for (const [index, request] of requests.entries()) {
                 const customer = index === 0 ? "customer-a" : "customer-b";
                 expect(request.url.pathname).toBe(path);
-                expect(request.url.searchParams.get("customerContext")).toBe(customer);
+                expect(request.url.searchParams.has("customerContext")).toBe(false);
                 expect(request.headers.get("X-Tenant-Id")).toBe(customer);
             }
         }

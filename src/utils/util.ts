@@ -217,9 +217,10 @@ export function handleGeneralError(
 }
 
 /**
- * Header the DoiT API reads the customer (tenant) scope from. It is sent in addition to the
- * `customerContext` query parameter — the API accepts either, and newer endpoints only read
- * the header.
+ * Header that carries the selected customer (tenant) scope on every DoiT API request. The
+ * `customerContext` tool argument and CUSTOMER_CONTEXT env var select the customer; this
+ * header is the only place the selection is sent. It is never added as a query parameter,
+ * because endpoints with strict query validation reject unknown query keys.
  */
 export const TENANT_ID_HEADER = "X-Tenant-Id";
 
@@ -251,28 +252,15 @@ export function applyTenantIdHeader(
 }
 
 /**
- * Helper function to append customer context to URL if available
+ * Appends the default `maxResults` page size to a URL that does not already set one.
+ * The customer scope is not a URL parameter; makeDoitRequest sends it as X-Tenant-Id.
  * @param baseUrl The base URL to append parameters to
- * @returns URL with maxResults and optional customerContext parameters
+ * @returns URL with a maxResults parameter
  */
-export function appendUrlParameters(baseUrl: string, customerContextId?: string): string {
-    // Check if the URL already has query parameters
+export function appendUrlParameters(baseUrl: string): string {
+    if (baseUrl.includes("maxResults=")) return baseUrl;
     const separator = baseUrl.includes("?") ? "&" : "?";
-    let url = baseUrl;
-
-    // Only add maxResults if it's not already in the URL
-    if (!baseUrl.includes("maxResults=")) {
-        url += `${separator}maxResults=40`;
-    }
-
-    const customerContext = resolveCustomerContext(customerContextId);
-
-    if (customerContext) {
-        // Use & as separator since we know the URL now has parameters
-        url += `&customerContext=${encodeURIComponent(customerContext)}`;
-    }
-
-    return url;
+    return `${baseUrl}${separator}maxResults=40`;
 }
 
 /**
@@ -287,7 +275,8 @@ export function appendUrlParameters(baseUrl: string, customerContextId?: string)
  * @param options Additional request options
  * @param options.method HTTP method (GET, POST, etc.)
  * @param options.body Request body for POST/PUT requests
- * @param options.appendParams Whether to append URL parameters (maxResults and customerContext)
+ * @param options.appendParams Whether to append the default maxResults URL parameter
+ * @param options.customerContext Customer to scope the request to (falls back to CUSTOMER_CONTEXT); sent as X-Tenant-Id
  * @param options.timeoutMs If set, aborts the request after this many milliseconds and throws TimeoutError
  * @returns The parsed response, or null for an empty/JSON-null success
  */
@@ -351,11 +340,10 @@ export async function makeDoitRequest<T>(
         ...extraHeaders,
     };
 
-    // The customer scope goes out as both the customerContext query param (below) and the
-    // X-Tenant-Id header, since the API reads the scope from the header on newer endpoints.
+    // The customer scope travels only in the X-Tenant-Id header, never as a query parameter.
     applyTenantIdHeader(headers, customerContext);
 
-    let requestUrl = appendParams ? appendUrlParameters(resolvedUrl, customerContext) : resolvedUrl;
+    let requestUrl = appendParams ? appendUrlParameters(resolvedUrl) : resolvedUrl;
     let responseStatus: number | undefined;
 
     try {
@@ -497,7 +485,7 @@ function resolveConsoleBase(): { baseUrl: string; doFetch: typeof fetch } {
  * Calls a DoiT *console* endpoint (console.doit.com /api/...) rather than the public
  * api.doit.com that makeDoitRequest targets. In the worker it routes through the
  * CONSOLE_PROXY service binding (set via runWithConsoleEnv); elsewhere it uses the
- * DOIT_CONSOLE_BASE / AUTH_SERVER_URL env vars. It does NOT append a customerContext
+ * DOIT_CONSOLE_BASE / AUTH_SERVER_URL env vars. It does NOT send a customer scope
  * (these endpoints are cross-customer). It throws on HTTP and network errors so callers
  * can surface the upstream message (e.g. 403 for non-doers).
  */

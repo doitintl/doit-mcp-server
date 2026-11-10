@@ -22,7 +22,7 @@ describe.each([
         mswServer.use(
             http.post(`${DOIT_API_BASE}/clouddiagrams/v1/scheme/get`, async ({ request }) => {
                 expect(request.headers.get("X-Tenant-Id")).toBe("authenticated-customer");
-                expect(new URL(request.url).searchParams.get("customerContext")).toBe("authenticated-customer");
+                expect(new URL(request.url).searchParams.has("customerContext")).toBe(false);
                 const body = await request.json();
                 bodies.push(body);
                 // A vulnerable targeted read would return foreign data. Discovery is scoped.
@@ -59,7 +59,7 @@ describe.each([
             http.post(`${DOIT_API_BASE}/clouddiagrams/v1/scheme/get`, async ({ request }) => {
                 expect(request.headers.get("X-Tenant-Id")).toBe("authenticated-customer");
                 const url = new URL(request.url);
-                expect(url.searchParams.get("customerContext")).toBe("authenticated-customer");
+                expect(url.searchParams.has("customerContext")).toBe(false);
                 const body = await request.json();
                 calls.push({ body, components: url.searchParams.get("components") });
                 return HttpResponse.json(

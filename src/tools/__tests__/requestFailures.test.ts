@@ -46,7 +46,7 @@ it("keeps concurrent hosted customer contexts and tracking separate through succ
                 tool: params.get("mcpTool"),
             });
             await Promise.resolve();
-            return params.get("customerContext") === "customer-a"
+            return headers.get("X-Tenant-Id") === "customer-a"
                 ? Response.json({ error: "Filter is invalid" }, { status: 400 })
                 : Response.json({ organizations: [] });
         })
@@ -58,8 +58,8 @@ it("keeps concurrent hosted customer contexts and tracking separate through succ
     expect(failed.isError).toBe(true);
     expect(succeeded.isError).not.toBe(true);
     expect(seen).toEqual([
-        { context: "customer-a", tenant: "customer-a", tool: "list_organizations" },
-        { context: "customer-b", tenant: "customer-b", tool: "list_organizations" },
+        { context: null, tenant: "customer-a", tool: "list_organizations" },
+        { context: null, tenant: "customer-b", tool: "list_organizations" },
     ]);
 });
 

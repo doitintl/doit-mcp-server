@@ -239,15 +239,6 @@ async function consumeCloudflowBuilderStream(
     accumulator.answer = answerText;
 }
 
-/** makeDoitSSERequest preserves existing query params, so append customerContext here so
- *  the builder endpoints can be scoped to a customer (required for DoiT-employee tokens). */
-function buildCustomerContextUrl(baseUrl: string, customerContext?: string): string {
-    if (!customerContext) return baseUrl;
-    const url = new URL(baseUrl);
-    url.searchParams.set("customerContext", customerContext);
-    return url.href;
-}
-
 export async function handleBuildCloudflowRequest(
     args: any,
     token: string,
@@ -255,9 +246,10 @@ export async function handleBuildCloudflowRequest(
 ) {
     try {
         const { question, conversationId } = BuildCloudflowArgumentsSchema.parse(args);
-        const customerContext = (args?.customerContext as string | undefined) || process.env.CUSTOMER_CONTEXT;
+        // makeDoitSSERequest scopes the stream with X-Tenant-Id (falling back to CUSTOMER_CONTEXT).
+        const customerContext = args?.customerContext as string | undefined;
 
-        const url = buildCustomerContextUrl(`${CLOUDFLOW_FLOWS_BASE_URL}/actions/build`, customerContext);
+        const url = `${CLOUDFLOW_FLOWS_BASE_URL}/actions/build`;
         const body: Record<string, unknown> = { question };
         if (conversationId) body.conversationId = conversationId;
 
@@ -300,12 +292,10 @@ export async function handleRefineCloudflowRequest(
 ) {
     try {
         const { flowId, question, conversationId } = RefineCloudflowArgumentsSchema.parse(args);
-        const customerContext = (args?.customerContext as string | undefined) || process.env.CUSTOMER_CONTEXT;
+        // makeDoitSSERequest scopes the stream with X-Tenant-Id (falling back to CUSTOMER_CONTEXT).
+        const customerContext = args?.customerContext as string | undefined;
 
-        const url = buildCustomerContextUrl(
-            `${CLOUDFLOW_BASE_URL}/flows/${encodeURIComponent(flowId)}/actions/refine`,
-            customerContext
-        );
+        const url = `${CLOUDFLOW_BASE_URL}/flows/${encodeURIComponent(flowId)}/actions/refine`;
         const body: Record<string, unknown> = { question };
         if (conversationId) body.conversationId = conversationId;
 

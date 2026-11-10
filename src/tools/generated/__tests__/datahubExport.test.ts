@@ -50,8 +50,11 @@ describe("generated DataHub export response headers", () => {
             const [url, init] = fetchMock.mock.calls[1];
             const params = new URL(url).searchParams;
             expect(params.get("pageToken")).toBe("cursor+/=&");
-            expect(params.get("customerContext")).toBe("selected-customer");
+            expect(params.has("customerContext")).toBe(false);
             expect(init.headers["X-Tenant-Id"]).toBe("selected-customer");
+            expect(fetchMock.mock.calls[0][1].headers["X-Tenant-Id"]).toBe("selected-customer");
+            expect(new URL(fetchMock.mock.calls[0][0]).searchParams.has("customerContext")).toBe(false);
+            expect(params.get("mcp")).toBe("true");
             expect(params.get("maxResults")).toBe("1");
         }
     );
@@ -75,7 +78,7 @@ describe("generated DataHub export response headers", () => {
         vi.stubGlobal("fetch", fetchMock);
         await handleGeneratedOperationRequest(exportTool, args, "test-key");
         const [url, init] = fetchMock.mock.calls[0];
-        expect(new URL(url).searchParams.get("customerContext")).toBe("environment-customer");
+        expect(new URL(url).searchParams.has("customerContext")).toBe(false);
         expect(init.headers["X-Tenant-Id"]).toBe("environment-customer");
     });
 

@@ -158,26 +158,15 @@ describe("appendUrlParameters", () => {
         else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
     });
 
-    it("appends maxResults and an encoded customerContext", () => {
-        delete process.env.CUSTOMER_CONTEXT;
-        expect(appendUrlParameters("https://api.doit.com/x", "cust-1")).toBe(
-            "https://api.doit.com/x?maxResults=40&customerContext=cust-1"
-        );
+    it("appends the default maxResults without any customer scope", () => {
+        process.env.CUSTOMER_CONTEXT = "env-cust";
+        expect(appendUrlParameters("https://api.doit.com/x")).toBe("https://api.doit.com/x?maxResults=40");
+        expect(appendUrlParameters("https://api.doit.com/x?a=1")).toBe("https://api.doit.com/x?a=1&maxResults=40");
     });
 
-    it("encodes reserved characters so customerContext cannot inject extra query parameters", () => {
-        delete process.env.CUSTOMER_CONTEXT;
-        const url = appendUrlParameters("https://api.doit.com/x", "abc&maxResults=1000&other=1");
-        expect(url).toBe("https://api.doit.com/x?maxResults=40&customerContext=abc%26maxResults%3D1000%26other%3D1");
-        expect(new URL(url).searchParams.get("customerContext")).toBe("abc&maxResults=1000&other=1");
-        expect(new URL(url).searchParams.get("other")).toBeNull();
-    });
-
-    it("encodes the CUSTOMER_CONTEXT env fallback the same way", () => {
-        process.env.CUSTOMER_CONTEXT = "a/b?c=d";
-        expect(appendUrlParameters("https://api.doit.com/x?maxResults=5")).toBe(
-            "https://api.doit.com/x?maxResults=5&customerContext=a%2Fb%3Fc%3Dd"
-        );
+    it("keeps a caller-supplied maxResults unchanged", () => {
+        process.env.CUSTOMER_CONTEXT = "env-cust";
+        expect(appendUrlParameters("https://api.doit.com/x?maxResults=5")).toBe("https://api.doit.com/x?maxResults=5");
     });
 });
 
@@ -273,14 +262,21 @@ describe("makeDoitRequest customer context header", () => {
         else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
     });
 
-    it("sends the customer context as the X-Tenant-Id header in addition to the query param", async () => {
+    it("sends the customer context only as the X-Tenant-Id header, never as a query parameter", async () => {
         delete process.env.CUSTOMER_CONTEXT;
         const fetchMock = stubFetchOk();
 
-        await makeDoitRequest("https://api.doit.com/test", "test-token", { customerContext: "cust-1" });
+        await makeDoitRequest("https://api.doit.com/test?pageToken=p2", "test-token", {
+            customerContext: "abc&maxResults=1000",
+        });
 
-        expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("cust-1");
-        expect(fetchMock.mock.calls[0][0]).toContain("customerContext=cust-1");
+        expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("abc&maxResults=1000");
+        const url = new URL(fetchMock.mock.calls[0][0]);
+        expect(url.searchParams.has("customerContext")).toBe(false);
+        expect(url.searchParams.getAll("maxResults")).toEqual(["40"]);
+        expect(url.searchParams.get("pageToken")).toBe("p2");
+        expect(url.searchParams.get("mcp")).toBe("true");
+        expect(url.searchParams.get("sse")).toBe("true");
     });
 
     it("sends the X-Tenant-Id header from the CUSTOMER_CONTEXT env var", async () => {
@@ -290,6 +286,18 @@ describe("makeDoitRequest customer context header", () => {
         await makeDoitRequest("https://api.doit.com/test", "test-token");
 
         expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("env-cust");
+        const url = new URL(fetchMock.mock.calls[0][0]);
+        expect(url.searchParams.has("customerContext")).toBe(false);
+        expect(url.searchParams.has("sse")).toBe(false);
+    });
+
+    it("prefers the explicit customer context over the CUSTOMER_CONTEXT env var", async () => {
+        process.env.CUSTOMER_CONTEXT = "env-cust";
+        const fetchMock = stubFetchOk();
+
+        await makeDoitRequest("https://api.doit.com/test", "test-token", { customerContext: "cust-1" });
+
+        expect(headersOf(fetchMock)["X-Tenant-Id"]).toBe("cust-1");
     });
 
     it("sends the X-Tenant-Id header even when URL params are not appended", async () => {
@@ -369,6 +377,20 @@ describe("makeDoitSSERequest customer context header", () => {
         await drain(makeDoitSSERequest("https://api.doit.com/stream", { question: "q" }, "test-token", "cust-1"));
 
         expect(fetchMock.mock.calls[0][1].headers["X-Tenant-Id"]).toBe("cust-1");
+        const url = new URL(fetchMock.mock.calls[0][0]);
+        expect(url.searchParams.has("customerContext")).toBe(false);
+        expect(url.searchParams.get("mcp")).toBe("true");
+    });
+
+    it("falls back to the CUSTOMER_CONTEXT env var for the stream's tenant header", async () => {
+        process.env.CUSTOMER_CONTEXT = "env-cust";
+        process.env.TENANT_ID = "env-tenant";
+        const fetchMock = stubSSEFetch();
+
+        await drain(makeDoitSSERequest("https://api.doit.com/stream", { question: "q" }, "test-token"));
+
+        expect(fetchMock.mock.calls[0][1].headers["X-Tenant-Id"]).toBe("env-cust");
+        expect(new URL(fetchMock.mock.calls[0][0]).searchParams.has("customerContext")).toBe(false);
     });
 
     it("prefers the customer context over the TENANT_ID env var and sends a single tenant header", async () => {
