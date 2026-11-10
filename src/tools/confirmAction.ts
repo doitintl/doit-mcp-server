@@ -4,9 +4,9 @@ import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import { createErrorResponse, formatZodError, handleGeneralError } from "../utils/util.js";
 
 export const ConfirmActionArgumentsSchema = z.object({
-    token: z
+    approvalToken: z
         .string()
-        .min(1, "token is required and cannot be empty.")
+        .min(1, "approvalToken is required and cannot be empty.")
         .describe(
             "The one-time, user-bound approval token returned by a staged generated DELETE call. Expires after five minutes. Exactly as received, no quoting changes."
         ),
@@ -46,7 +46,7 @@ export const confirmActionTool = {
 };
 
 /**
- * Runs a previously-staged write-gated tool, identified by `token`. The caller supplies
+ * Runs a previously-staged write-gated tool, identified by `approvalToken`. The caller supplies
  * `runOriginal` so this module does not have to depend on the full dispatch switch in
  * `toolsHandler.ts` — this keeps the wiring direction one-way and avoids a cycle.
  */
@@ -58,8 +58,8 @@ export async function handleConfirmActionRequest(
     runOriginal: (toolName: string, args: any, apiToken: string) => Promise<any>
 ): Promise<any> {
     try {
-        const { token } = ConfirmActionArgumentsSchema.parse(args);
-        const pending = await store.consume(token, userKey);
+        const { approvalToken } = ConfirmActionArgumentsSchema.parse(args);
+        const pending = await store.consume(approvalToken, userKey);
         if (!pending) {
             return createErrorResponse(
                 "Approval token unknown or expired. Re-issue the original tool call to get a fresh token."

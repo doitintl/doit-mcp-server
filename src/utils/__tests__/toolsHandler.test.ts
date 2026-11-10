@@ -113,7 +113,7 @@ describe("executeToolHandler approval gate", () => {
         });
         const { approvalToken } = JSON.parse(first.content[0].text);
 
-        await executeToolHandler("confirm_action", { token: approvalToken }, apiToken, {
+        await executeToolHandler("confirm_action", { approvalToken: approvalToken }, apiToken, {
             userKey,
             approvalStore,
             generatedTools,
@@ -190,7 +190,7 @@ describe("executeToolHandler approval gate", () => {
     });
 
     it("confirm_action fails closed without an approval store", async () => {
-        const response = await executeToolHandler("confirm_action", { token: "t" }, apiToken, {
+        const response = await executeToolHandler("confirm_action", { approvalToken: "t" }, apiToken, {
             userKey,
             generatedTools,
         });
@@ -214,7 +214,7 @@ describe("executeToolHandler approval gate", () => {
         // Arguments sent with confirm_action (another target, another customer) are ignored.
         const confirmed = await executeToolHandler(
             "confirm_action",
-            { token: JSON.parse(first.content[0].text).approvalToken, id: "w-2", customerContext: "cust-b" },
+            { approvalToken: JSON.parse(first.content[0].text).approvalToken, id: "w-2", customerContext: "cust-b" },
             apiToken,
             { userKey, approvalStore, generatedTools, convertResponse }
         );
@@ -245,20 +245,20 @@ describe("executeToolHandler approval gate", () => {
 
             const expired = await stage();
             vi.advanceTimersByTime(5 * 60 * 1000 + 1);
-            const late = await executeToolHandler("confirm_action", { token: expired }, apiToken, {
+            const late = await executeToolHandler("confirm_action", { approvalToken: expired }, apiToken, {
                 userKey,
                 approvalStore,
                 generatedTools,
             });
 
             const foreign = await stage();
-            const otherUser = await executeToolHandler("confirm_action", { token: foreign }, apiToken, {
+            const otherUser = await executeToolHandler("confirm_action", { approvalToken: foreign }, apiToken, {
                 userKey: "someone-else",
                 approvalStore,
                 generatedTools,
             });
             // The mismatched attempt consumed the token, so the owner cannot replay it either.
-            const owner = await executeToolHandler("confirm_action", { token: foreign }, apiToken, {
+            const owner = await executeToolHandler("confirm_action", { approvalToken: foreign }, apiToken, {
                 userKey,
                 approvalStore,
                 generatedTools,
@@ -277,7 +277,7 @@ describe("executeToolHandler approval gate", () => {
         const approvalStore = new MemoryApprovalStore();
         const response = await executeToolHandler(
             "confirm_action",
-            { token: "00000000-0000-0000-0000-000000000000" },
+            { approvalToken: "00000000-0000-0000-0000-000000000000" },
             apiToken,
             { userKey, approvalStore }
         );

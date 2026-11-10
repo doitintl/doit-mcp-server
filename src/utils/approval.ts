@@ -110,7 +110,7 @@ export function buildApprovalResponse(token: string, summary: string) {
                 status: "approval_required",
                 approvalToken: token,
                 summary,
-                next: `This action has not run. confirm_action with { token: "${token}" } runs it once the user approves the summary; an unconfirmed token expires on its own.`,
+                next: `This action has not run. confirm_action with { approvalToken: "${token}" } runs it once the user approves the summary; an unconfirmed token expires on its own.`,
             },
             null,
             2

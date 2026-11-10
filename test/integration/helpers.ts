@@ -49,7 +49,7 @@ export async function createTestClient() {
         }
         return (await originalCallTool({
             name: "confirm_action",
-            arguments: { token: parsed.approvalToken },
+            arguments: { approvalToken: parsed.approvalToken },
         })) as ToolResult;
     };
 

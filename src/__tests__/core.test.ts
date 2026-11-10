@@ -40,8 +40,10 @@ describe("core package API", () => {
 
     it("lets another transport register the confirmation tool with the shared validation contract", async () => {
         const { ConfirmActionArgumentsSchema, confirmActionTool } = await import("../core.js");
-        expect(ConfirmActionArgumentsSchema.parse({ token: "pending-action" })).toEqual({ token: "pending-action" });
-        expect(ConfirmActionArgumentsSchema.safeParse({ token: "" }).success).toBe(false);
+        expect(ConfirmActionArgumentsSchema.parse({ approvalToken: "pending-action" })).toEqual({
+            approvalToken: "pending-action",
+        });
+        expect(ConfirmActionArgumentsSchema.safeParse({ approvalToken: "" }).success).toBe(false);
         expect(confirmActionTool.annotations).toMatchObject({ destructiveHint: true, readOnlyHint: false });
     });
 
