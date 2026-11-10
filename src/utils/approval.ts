@@ -38,6 +38,20 @@ export interface ApprovalStore {
 export const APPROVAL_TTL_MS = 5 * 60 * 1000;
 
 /**
+ * Appended to the description of every write-gated tool, so the advertised contract matches the
+ * two-step behaviour enforced by `executeToolHandler`. Kept next to the TTL it states.
+ */
+export const APPROVAL_GATED_DESCRIPTION =
+    "Two-step: a call with valid arguments deletes nothing. It returns " +
+    '`status: "approval_required"` with a summary of the exact request and a one-time ' +
+    "`approvalToken`. The saved request runs only when `confirm_action` is called with that " +
+    `token after the user approves the summary. The token is bound to the caller and expires after ${APPROVAL_TTL_MS / 60_000} minutes.`;
+
+/** Returned instead of running a write-gated tool when no approval store or identity is wired. */
+export const APPROVAL_UNAVAILABLE_MESSAGE =
+    "This action requires user approval, but approval is unavailable for this connection, so nothing was staged or run.";
+
+/**
  * In-memory `ApprovalStore` used by the stdio transport. Safe for single-process use.
  * Not safe to share across isolates — the Worker uses `DurableObjectApprovalStore` instead.
  */

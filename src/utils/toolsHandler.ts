@@ -125,7 +125,13 @@ import {
 } from "../tools/tickets.js";
 import { handleInviteUserRequest, handleListUsersRequest, handleUpdateUserRequest } from "../tools/users.js";
 import { handleValidateUserRequest } from "../tools/validateUser.js";
-import { APPROVAL_TTL_MS, type ApprovalStore, buildApprovalResponse, mintApprovalToken } from "./approval.js";
+import {
+    APPROVAL_TTL_MS,
+    APPROVAL_UNAVAILABLE_MESSAGE,
+    type ApprovalStore,
+    buildApprovalResponse,
+    mintApprovalToken,
+} from "./approval.js";
 import { finalizeToolResponse, type ToolResponseMetrics } from "./responseLimit.js";
 import {
     createErrorResponse,
@@ -153,7 +159,7 @@ import {
  * clients already prompt on `destructiveHint`. `create_ticket` was gated during the POC
  * and deliberately un-gated to avoid a double confirmation on every ticket.
  */
-const WRITE_GATED_SUMMARIES: Record<string, (args: any) => string> = {
+const WRITE_GATED_SUMMARIES: Partial<Record<string, (args: any) => string>> = {
     // [createTicketTool.name]: createTicketTool.summary,
 };
 
@@ -162,21 +168,24 @@ export interface ToolHandlerOptions {
     onResponseMetrics?: (metrics: ToolResponseMetrics) => void;
     /** Connection-level MCP client metadata (mcpClient, mcpClientVersion, etc.) */
     trackingContext?: TrackingContext;
-    /** Optional function to convert the raw response format */
-    convertResponse?: (response: any) => any;
+    /**
+     * Optional function to convert the raw response format. `toolName` is the tool that actually
+     * ran: after `confirm_action` it is the staged tool, not `confirm_action`.
+     */
+    convertResponse?: (response: any, toolName: string) => any;
     /**
      * Stable identity the approval flow is bound to. On stdio use a constant such as
-     * `"stdio-local"`; on the HTTP/SSE Worker use the OAuth-derived `props.apiKey`.
+     * `"stdio-local"`; the HTTP/SSE Worker uses a hash of the authenticated principal, which
+     * survives access-token refresh.
      *
-     * If either this or {@link ToolHandlerOptions.approvalStore} is omitted the approval
-     * gate is **not enforced** — write-gated tools run immediately. Callers that want to
-     * enforce approval (both transports, per the plan) must supply both.
+     * If either this or {@link ToolHandlerOptions.approvalStore} is omitted, write-gated tools
+     * and `confirm_action` fail closed with an error: nothing is staged and nothing runs.
      */
     userKey?: string;
     /**
      * Persistence for staged write-gated actions. See `src/utils/approval.ts` for the
-     * `MemoryApprovalStore` (stdio) and the remote Worker's `DurableObjectApprovalStore`
-     * (HTTP/SSE) implementations. Omit only in tests that call non-gated tools.
+     * `MemoryApprovalStore` (stdio) and the remote Worker's Durable Object-backed
+     * implementations. Omit only in tests that call non-gated tools.
      */
     approvalStore?: ApprovalStore;
     /** Called for each SSE progress event from streaming tools (e.g. refine_cloudflow). */
@@ -223,17 +232,19 @@ export async function executeToolHandler(
                 executedToolName = innerToolName;
                 // Success adapters (e.g. hosted widgets) must not erase MCP error flags or OAuth metadata.
                 return convertResponse && !result?.isError && !CLOUD_CONNECT_HANDLERS[innerToolName]
-                    ? convertResponse(result)
+                    ? convertResponse(result, innerToolName)
                     : result;
             };
 
-            // Two-phase commit for write-gated tools.
-            //
-            // Enforcement is opt-in: if either `userKey` or `approvalStore` is missing we
-            // bypass the gate and run the tool immediately. Both transports (stdio +
-            // HTTP/SSE) wire them through, so in production the gate is always on. Unit
-            // tests that exercise non-gated tools can continue to omit both.
-            if (approvalStore && userKey) {
+            // Two-phase commit for write-gated tools. Without both an approval store and a
+            // user key the gate fails closed: a write-gated tool is neither staged nor run,
+            // and confirm_action has nothing it could consume.
+            const summaryFn = WRITE_GATED_SUMMARIES[toolName] ?? generatedTools?.get(toolName)?.summary;
+            if (!approvalStore || !userKey) {
+                if (summaryFn || toolName === "confirm_action") {
+                    return createErrorResponse(APPROVAL_UNAVAILABLE_MESSAGE);
+                }
+            } else {
                 if (toolName === "confirm_action") {
                     const confirmed = await handleConfirmActionRequest(
                         args,
@@ -245,7 +256,6 @@ export async function executeToolHandler(
                     return confirmed;
                 }
 
-                const summaryFn = WRITE_GATED_SUMMARIES[toolName] ?? generatedTools?.get(toolName)?.summary;
                 if (summaryFn) {
                     // Built before stashing: a summary that rejects the args (e.g. a path
                     // param that would resolve to a different endpoint) must not leave a

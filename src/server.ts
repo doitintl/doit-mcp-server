@@ -175,8 +175,8 @@ function resolveTrackingContext(server: Server, ctx: ServerContext): TrackingCon
 
 export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry?: SkillRegistry } = {}) {
     // stdio is single-process and single-user, so a stable string is sufficient as the
-    // identity the approval flow is bound to. The Worker transport binds to the
-    // OAuth-derived api key instead — see the remote Worker in the separate private repo.
+    // identity the approval flow is bound to. The remote Worker (a separate private repo)
+    // binds to a hash of the authenticated principal instead.
     const approvalStore = new MemoryApprovalStore();
     const userKey = "stdio-local";
     const server = new Server(

@@ -165,25 +165,115 @@ describe("executeToolHandler approval gate", () => {
         expect(approvalStore.size()).toBe(0);
     });
 
-    it("without userKey/approvalStore the gate is bypassed (opt-in enforcement)", async () => {
-        const { makeDoitRequest } = await import("../util.js");
-        (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
-        (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ticket-new-1" });
+    it("without userKey/approvalStore non-gated tools still run", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ id: "ticket-new-1" });
 
         await executeToolHandler("create_ticket", validTicketArgs, apiToken, {});
 
         expect(makeDoitRequest).toHaveBeenCalledTimes(1);
     });
 
-    it("confirm_action with an unknown token returns a clean error (no throw)", async () => {
-        // `confirm_action` is no longer advertised in the tool list (see src/server.ts
-        // and the remote Worker in the separate private repo), but a misbehaving client with cached
-        // metadata could still send the call. Verify it returns the canonical
-        // "Approval token unknown or expired" error instead of throwing, and never
-        // reaches the DoiT API.
-        const { makeDoitRequest } = await import("../util.js");
-        (makeDoitRequest as unknown as ReturnType<typeof vi.fn>).mockClear();
+    it.each([
+        ["no approval store", { userKey }],
+        ["no user key", { approvalStore: new MemoryApprovalStore() }],
+        ["an empty user key", { userKey: "", approvalStore: new MemoryApprovalStore() }],
+    ])("a gated DELETE fails closed with %s: nothing is staged or sent", async (_label, gate) => {
+        const response = await executeToolHandler("delete_widget", { id: "w-1" }, apiToken, {
+            ...gate,
+            generatedTools,
+        });
 
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("approval is unavailable");
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+        if (gate.approvalStore) expect(gate.approvalStore.size()).toBe(0);
+    });
+
+    it("confirm_action fails closed without an approval store", async () => {
+        const response = await executeToolHandler("confirm_action", { token: "t" }, apiToken, {
+            userKey,
+            generatedTools,
+        });
+
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toContain("approval is unavailable");
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+    });
+
+    it("confirm_action runs the exact saved args and adapts the result under the staged tool's name", async () => {
+        const approvalStore = new MemoryApprovalStore();
+        const convertResponse = vi.fn((response: any, toolName: string) => ({ ...response, adaptedAs: toolName }));
+        const first = await executeToolHandler("delete_widget", { id: "w-1", customerContext: "cust-a" }, apiToken, {
+            userKey,
+            approvalStore,
+            generatedTools,
+            convertResponse,
+        });
+        expect(convertResponse).not.toHaveBeenCalled();
+
+        // Arguments sent with confirm_action (another target, another customer) are ignored.
+        const confirmed = await executeToolHandler(
+            "confirm_action",
+            { token: JSON.parse(first.content[0].text).approvalToken, id: "w-2", customerContext: "cust-b" },
+            apiToken,
+            { userKey, approvalStore, generatedTools, convertResponse }
+        );
+
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+        const [url, , init] = vi.mocked(makeDoitRequest).mock.calls[0];
+        expect(url).toContain("/widgets/w-1");
+        expect(url).toContain("customerContext=cust-a");
+        expect(init).toMatchObject({ method: "DELETE", customerContext: "cust-a" });
+        expect(convertResponse).toHaveBeenCalledWith(expect.anything(), "delete_widget");
+        expect(confirmed.adaptedAs).toBe("delete_widget");
+    });
+
+    it("a staged action is rejected after its TTL and for another user key", async () => {
+        vi.useFakeTimers();
+        try {
+            const approvalStore = new MemoryApprovalStore();
+            const stage = async () =>
+                JSON.parse(
+                    (
+                        await executeToolHandler("delete_widget", { id: "w-1" }, apiToken, {
+                            userKey,
+                            approvalStore,
+                            generatedTools,
+                        })
+                    ).content[0].text
+                ).approvalToken;
+
+            const expired = await stage();
+            vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+            const late = await executeToolHandler("confirm_action", { token: expired }, apiToken, {
+                userKey,
+                approvalStore,
+                generatedTools,
+            });
+
+            const foreign = await stage();
+            const otherUser = await executeToolHandler("confirm_action", { token: foreign }, apiToken, {
+                userKey: "someone-else",
+                approvalStore,
+                generatedTools,
+            });
+            // The mismatched attempt consumed the token, so the owner cannot replay it either.
+            const owner = await executeToolHandler("confirm_action", { token: foreign }, apiToken, {
+                userKey,
+                approvalStore,
+                generatedTools,
+            });
+
+            for (const result of [late, otherUser, owner]) {
+                expect(result.content[0].text).toContain("Approval token unknown or expired");
+            }
+            expect(makeDoitRequest).not.toHaveBeenCalled();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("confirm_action with an unknown token returns a clean error (no throw)", async () => {
         const approvalStore = new MemoryApprovalStore();
         const response = await executeToolHandler(
             "confirm_action",

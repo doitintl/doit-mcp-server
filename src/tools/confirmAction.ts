@@ -28,9 +28,10 @@ export const confirmActionTool = {
     description:
         "Runs a generated DELETE operation that another " +
         'tool staged and returned as `status: "approval_required"` with a summary and a ' +
-        "one-time approval token. Intended for use after the user approves that summary. A token " +
-        "that is never confirmed expires after 5 minutes, and the staged action does not run. " +
-        "The token is bound to the authenticated caller and must match exactly. An attempted confirmation consumes it even if the caller differs or execution fails. Creates and updates are not staged by the current tool registry.",
+        "one-time approval token. Intended for use after the user approves that summary. It runs " +
+        "exactly the saved request, including its customer scope, and returns that operation's own " +
+        "result or error. A token that is never confirmed expires after 5 minutes, and the staged action does not run. " +
+        "The token is bound to the authenticated caller and must match exactly; a different caller cannot run the action. A token runs at most once, even if execution fails. Creates and updates are not staged by the current tool registry.",
     inputSchema: zodToMcpInputSchema(ConfirmActionArgumentsSchema),
     annotations: {
         readOnlyHint: false,
