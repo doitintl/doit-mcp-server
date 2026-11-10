@@ -24,8 +24,11 @@ tools, and `makeDoitSSERequest` for the CloudFlow build/refine streams.
 - A header already set by the caller, such as an operation's declared `X-Tenant-Id` parameter, is
   kept as is, and only one tenant header is sent.
 - Each call resolves its own customer. Concurrent calls for different customers do not share scope.
-- Pagination parameters and MCP tracking parameters (`mcp`, `mcpVersion`, `mcpTool`, ...) are
-  unchanged.
+- Pagination parameters and MCP tracking parameters (`mcp`, `mcpVersion`, `mcpTool`, `mcpClient`,
+  `mcpClientVersion`, `mcpProtocolVersion`, and `sse` when no `CUSTOMER_CONTEXT` is set) are
+  unchanged. An endpoint that rejects undeclared query keys must also accept these tracking keys.
+  Removing `customerContext` alone does not make such an endpoint succeed: `list_service_quotas`
+  currently rejects the tracking keys too.
 - For the CloudFlow streams only, the standalone `TENANT_ID` environment variable remains a
   last fallback when no customer is selected.
 
@@ -33,9 +36,11 @@ tools, and `makeDoitSSERequest` for the CloudFlow build/refine streams.
 
 The DoiT API must accept header-only customer selection for every key type before this package is
 released. That includes legacy employee API keys, which previously relied on the query parameter.
-Releasing first would leave those keys unscoped.
+Released first, this package would make those keys' customer-scoped calls fail authentication.
 
 1. Deploy the API change that reads the customer from `X-Tenant-Id` for legacy employee keys.
+   Strictly validated endpoints such as service quotas must also accept the MCP tracking keys
+   above; otherwise they keep returning HTTP 400.
 2. Release this package.
 3. Bump the hosted Worker's `@doitintl/doit-mcp-server` dependency and redeploy it. Publishing to npm
    does not update the hosted connector (see [release.md](release.md#cloudflare-worker-mcpdoitcom)).
