@@ -238,12 +238,28 @@ describe("fitResultPage on converted (hosted) results", () => {
         expect(keys.length).toBeLessThan(60);
         expect(keys).toEqual(Object.keys(scheme).slice(0, keys.length));
         const token = (fitted.structuredContent as any).nextPageToken;
-        expect(tokenPayload(token).position).toEqual({ afterKey: keys[keys.length - 1] });
+        expect(tokenPayload(token).position).toEqual({ afterKey: keys[keys.length - 1], afterIndex: keys.length - 1 });
         const rest = await fitResultPage(
             result,
             options({ toolName: "get_cloud_diagram_components", position: tokenPayload(token).position })
         );
         expect(Object.keys((rest.structuredContent as any).scheme)[0]).toBe(`diagram-${keys.length + 1}`);
+
+        // The anchor diagram was deleted between parts: the map resumes by index instead of restarting.
+        const { [keys[keys.length - 1]]: _gone, ...remaining } = scheme;
+        const afterDeletion = await fitResultPage(
+            structuredResult({ scheme: remaining }),
+            options({ toolName: "get_cloud_diagram_components", position: tokenPayload(token).position })
+        );
+        expect(Object.keys((afterDeletion.structuredContent as any).scheme)[0]).toBe(`diagram-${keys.length + 1}`);
+    });
+
+    it("does not mark a continued list complete while it still carries an upstream cursor", async () => {
+        const result = structuredResult({ things: tickets(5, 10), pageToken: "upstream-next" });
+        const fitted = await fitResultPage(result, options({ position: { afterId: "3", afterIndex: 2 } }));
+        expect(fitted.structuredContent).toMatchObject({ pageToken: "upstream-next" });
+        expect(fitted.structuredContent).not.toHaveProperty("hasMore");
+        expect((fitted.structuredContent as any).things.map((t: { id: number }) => t.id)).toEqual([4, 5]);
     });
 });
 
@@ -253,12 +269,20 @@ describe("positions", () => {
     if (!found) throw new Error("expected a collection");
     const collection = found;
 
+    it("resumes at the index, never past it, when the anchor record was deleted", () => {
+        const stale = { afterId: "b", afterIndex: 1 };
+        const withoutB = { key: "items", kind: "array" as const, records: [{ id: "a" }, { id: "c" }, { id: "d" }] };
+        const resumed = applyPosition(withoutB, stale);
+        expect(resumed.kind === "array" && resumed.records.map((r: any) => r.id)).toEqual(["c", "d"]);
+    });
+
     it("resumes after a record by id, and by index when the id is gone", () => {
         expect(applyPosition(collection, { afterId: "b", afterIndex: 1 })).toMatchObject({
             records: [{ id: "c" }, { noId: true }],
         });
+        // A missing anchor resumes at its index (it was probably deleted), not past it.
         expect(applyPosition(collection, { afterId: "missing", afterIndex: 2 })).toMatchObject({
-            records: [{ noId: true }],
+            records: [{ id: "c" }, { noId: true }],
         });
         expect(applyPosition(collection, { afterIndex: 3 })).toMatchObject({ records: [] });
     });

@@ -54,13 +54,8 @@ export const toolOverrides: Record<string, ToolOverride> = {
             "The current generated MCP schema exposes no arbitrary trigger payload field; the API uses an empty payload when omitted. trigger_cloud_flow accepts a webhook payload for published webhook flows.",
     },
     // List operations whose endpoints return every record at once: oversized results are split
-    // into continuation pages (src/utils/resultPaging.ts).
-    list_attribute_attribution_set_versions: { resultPaged: true },
-    list_attribute_attribution_sets: { resultPaged: true },
-    list_attribute_workloads_filter_values: { resultPaged: true },
-    list_attribute_workloads_resource_tag_keys: { resultPaged: true },
-    list_attribute_workloads_resource_tag_values: { resultPaged: true },
-    list_aws_recommendations: { resultPaged: true },
+    // into continuation pages (src/utils/resultPaging.ts). Operations that page upstream through
+    // `after`/`nextCursor` (Attribute) and responses without a record array stay out.
     list_billing_transfer_end_customers: { resultPaged: true },
     list_billing_transfer_end_customers_by_reseller: { resultPaged: true },
     list_billing_transfer_reseller_accounts: { resultPaged: true },

@@ -153,7 +153,9 @@ returned in parts instead of failing: the server keeps the records that fit, add
 `pageSplit: { returnedRecords, remainingInResult }`, and sets `pageToken` to a signed
 continuation token. Passing that token back to the same tool returns the next part;
 the API's own cursor appears only once the whole API page has been delivered, so no
-record is skipped or repeated. Paging is opt-in: a read-only list tool whose endpoint has
+record is skipped or repeated. If the record a part stopped at is deleted before the
+next call, the continuation resumes at its index, so a record is repeated rather than
+skipped. Paging is opt-in: a read-only list tool whose endpoint has
 no paging of its own declares `resultPaged: true` (hand-written tools on the tool object,
 generated ones in `src/tools/generated/overrides.ts`) and gains an optional `pageToken`
 argument. Single-resource tools have nothing to split, and reads that must not be re-run

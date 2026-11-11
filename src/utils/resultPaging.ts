@@ -191,19 +191,18 @@ function slice(collection: Collection, start: number, end?: number): Collection 
 }
 
 export function applyPosition(collection: Collection, position: ContinuationPosition): Collection {
-    if (collection.kind === "map") {
-        if (position.afterKey === undefined) return collection;
-        const index = collection.entries.findIndex(([key]) => key === position.afterKey);
-        return index >= 0 ? slice(collection, index + 1) : collection;
-    }
-    if (position.afterId !== undefined) {
-        const index = collection.records.findIndex((record) => recordId(record) === position.afterId);
+    const anchor = collection.kind === "map" ? position.afterKey : position.afterId;
+    if (anchor !== undefined) {
+        const index =
+            collection.kind === "map"
+                ? collection.entries.findIndex(([key]) => key === anchor)
+                : collection.records.findIndex((record) => recordId(record) === anchor);
         if (index >= 0) return slice(collection, index + 1);
     }
-    if (position.afterIndex !== undefined && position.afterIndex >= 0) {
-        return slice(collection, position.afterIndex + 1);
-    }
-    return collection;
+    if (position.afterIndex === undefined || position.afterIndex < 0) return collection;
+    // Records without ids resume after the index. A named anchor that is gone was most likely
+    // deleted, so resume at its index: that repeats at most one record and never skips one.
+    return slice(collection, anchor === undefined ? position.afterIndex + 1 : position.afterIndex);
 }
 
 /**
@@ -211,10 +210,9 @@ export function applyPosition(collection: Collection, position: ContinuationPosi
  * upstream page precede `collection`, so afterIndex stays absolute across continuations.
  */
 export function positionAfter(collection: Collection, count: number, skipped = 0): ContinuationPosition {
-    if (collection.kind === "map") return { afterKey: collection.entries[count - 1]?.[0] };
-    const last = collection.records[count - 1];
-    const id = recordId(last);
     const afterIndex = skipped + count - 1;
+    if (collection.kind === "map") return { afterKey: collection.entries[count - 1]?.[0], afterIndex };
+    const id = recordId(collection.records[count - 1]);
     return id === undefined ? { afterIndex } : { afterId: id, afterIndex };
 }
 
@@ -262,9 +260,12 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
         const full = length(collection);
         collection = applyPosition(collection, options.position);
         skipped = full - length(collection);
-        // A continued page that reaches its end is complete; a further split overrides this.
+        // A continued page that reaches its end is complete, unless the data still carries an
+        // upstream cursor to the next API page. A further split overrides this.
+        const record = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+        const upstreamCursor = CURSOR_FIELDS.some((field) => typeof record[field] === "string" && record[field] !== "");
         const completion =
-            options.cursorField === "nextPageToken" && !(data && typeof data === "object" && "hasMore" in data)
+            options.cursorField === "nextPageToken" && !("hasMore" in record) && !upstreamCursor
                 ? { hasMore: false }
                 : {};
         data = withCollection(data, collection, completion);

@@ -247,13 +247,10 @@ export async function executeToolHandler(
     let dispatchArgs = args;
     let paged: ResolvedPagedCall | undefined;
     let preflightError: any;
-    if (resultPaging && args && typeof args === "object" && !Array.isArray(args)) {
-        const resolved = await resolvePagedCall(
-            toolName,
-            args,
-            pageTokenSupport(toolName, generatedTools).upstreamCursor,
-            resultPaging
-        );
+    const pageTokens = resultPaging ? pageTokenSupport(toolName, generatedTools) : undefined;
+    // Tools without a pageToken argument keep ignoring a stray one, as their schema parse always did.
+    if (resultPaging && pageTokens?.accepts && args && typeof args === "object" && !Array.isArray(args)) {
+        const resolved = await resolvePagedCall(toolName, args, pageTokens.upstreamCursor, resultPaging);
         if ("error" in resolved) preflightError = resolved.error;
         else {
             dispatchArgs = resolved.args;

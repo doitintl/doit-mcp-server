@@ -130,6 +130,13 @@ describe("result paging through actual tool dispatch", () => {
         expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 
+    it("ignores a stray pageToken on a tool that has no such argument", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue(JSON.stringify({ id: "w-1" }));
+        const response = await executeToolHandler(write.name, { pageToken: "stray" }, "key", options);
+        expect(response.isError).not.toBe(true);
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+    });
+
     it("keeps the size error and receipt behaviour for results that cannot be paged", async () => {
         // An oversized write still becomes a completion receipt, never a split.
         vi.mocked(makeDoitRequest).mockResolvedValue(

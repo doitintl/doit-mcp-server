@@ -11,6 +11,11 @@ const handWritten = (name: string) => {
     return tool;
 };
 
+/** Query parameters through which an endpoint pages itself. */
+const UPSTREAM_CURSOR_PARAMS = ["pageToken", "after", "cursor"];
+/** list_* reads whose response has no record array the splitter could page. */
+const NO_COLLECTION = new Set(["list_aws_recommendations"]);
+
 describe("result-paged tools", () => {
     it("adds the continuation pageToken only to tools that opted in", () => {
         for (const tool of HAND_WRITTEN_TOOLS) {
@@ -46,6 +51,12 @@ describe("result-paged tools", () => {
         }
         expect(properties(handWritten("get_ticket"))).not.toHaveProperty("pageToken");
         expect(properties(handWritten("create_ticket"))).not.toHaveProperty("pageToken");
+        // Pages upstream through `after`/`nextCursor`, and has no record array to split, respectively.
+        for (const name of ["list_attribute_attribution_sets", "list_aws_recommendations"]) {
+            const tool = generatedTools.find((candidate) => candidate.name === name);
+            expect(tool?.metadata.resultPaged, name).toBeUndefined();
+            expect(tool?.zodSchema.shape, name).not.toHaveProperty("pageToken");
+        }
     });
 
     it("only read-only tools without a pageToken of their own are opted in", () => {
@@ -72,7 +83,8 @@ describe("result-paged tools", () => {
         }
         for (const tool of generatedTools) {
             if (!tool.name.startsWith("list_") || !tool.annotations.readOnlyHint) continue;
-            if (!tool.metadata.queryParams.includes("pageToken") && !tool.metadata.resultPaged) missing.push(tool.name);
+            const pagesUpstream = UPSTREAM_CURSOR_PARAMS.some((param) => tool.metadata.queryParams.includes(param));
+            if (!pagesUpstream && !tool.metadata.resultPaged && !NO_COLLECTION.has(tool.name)) missing.push(tool.name);
         }
         expect(missing).toEqual([]);
     });
