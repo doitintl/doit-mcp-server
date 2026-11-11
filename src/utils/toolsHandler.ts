@@ -71,7 +71,7 @@ import {
 } from "../tools/folders.js";
 import { handleGeneratedOperationRequest } from "../tools/generated/callOperation.js";
 import type { GeneratedTool } from "../tools/generated/types.js";
-import { HAND_WRITTEN_TOOLS } from "../tools/handWrittenTools.js";
+import { HAND_WRITTEN_TOOLS, RESULT_PAGED_TOOLS } from "../tools/handWrittenTools.js";
 import {
     handleGetInsightRequest,
     handleGetInsightResourcesRequest,
@@ -134,6 +134,13 @@ import {
 } from "./approval.js";
 import { finalizeToolResponse, type ToolResponseMetrics } from "./responseLimit.js";
 import {
+    continuationSigner,
+    fitResultPage,
+    type ResolvedPagedCall,
+    type ResultPagingOptions,
+    resolvePagedCall,
+} from "./resultPaging.js";
+import {
     createErrorResponse,
     formatZodError,
     handleGeneralError,
@@ -191,6 +198,12 @@ export interface ToolHandlerOptions {
     /** Called for each SSE progress event from streaming tools (e.g. refine_cloudflow). */
     onProgress?: (message: string) => Promise<void>;
     /**
+     * Enables server-side paging of results that exceed the size limit (src/utils/resultPaging.ts).
+     * stdio passes a random per-process secret; a hosted consumer passes its own and names the
+     * cursor field its converted results use. Without this option oversized results fail as before.
+     */
+    resultPaging?: ResultPagingOptions;
+    /**
      * Registry of auto-generated tools (see src/tools/generated/), keyed by tool name.
      * Injected by the caller rather than imported here because each transport loads the
      * bundled OpenAPI spec differently — stdio reads it off disk, while a consumer without a
@@ -208,88 +221,146 @@ export interface ToolHandlerOptions {
  * @param options - Optional tracking context and response converter
  * @returns The tool execution result
  */
+/**
+ * Whether a tool can take a pageToken back (so an oversized result may be split), and whether
+ * that pageToken is the upstream API's own cursor rather than only a server continuation token.
+ */
+function pageTokenSupport(
+    toolName: string,
+    generatedTools: ToolHandlerOptions["generatedTools"]
+): { accepts: boolean; upstreamCursor: boolean } {
+    const generated = generatedTools?.get(toolName);
+    if (generated) {
+        const accepts = "pageToken" in (generated.zodSchema.shape ?? {});
+        return { accepts, upstreamCursor: accepts && generated.metadata.queryParams.includes("pageToken") };
+    }
+    const handWritten = HAND_WRITTEN_TOOLS.find((tool) => tool.name === toolName);
+    const properties = (handWritten?.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties;
+    const accepts = Boolean(properties && "pageToken" in properties);
+    return { accepts, upstreamCursor: accepts && !RESULT_PAGED_TOOLS.has(toolName) };
+}
+
 export async function executeToolHandler(
     toolName: string,
     args: any,
     token: string,
     options: ToolHandlerOptions = {}
 ): Promise<any> {
-    const { trackingContext, convertResponse, userKey, approvalStore, onProgress, generatedTools } = options;
+    const { trackingContext, convertResponse, userKey, approvalStore, onProgress, generatedTools, resultPaging } =
+        options;
     const startedAt = Date.now();
     let sourceResponse: any;
     let executedToolName: string | undefined;
-    const response = await runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
-        try {
-            // Dispatches an already-confirmed (or non-gated) tool call. The approval
-            // gate below never calls this directly for a write-gated tool without first
-            // going through `confirm_action` + `ApprovalStore.consume`.
-            const runOriginal = async (innerToolName: string, innerArgs: any, innerToken: string): Promise<any> => {
-                const result = await runOriginalDispatch(innerToolName, innerArgs, innerToken, {
-                    onProgress,
-                    generatedTools,
-                });
-                sourceResponse = result;
-                executedToolName = innerToolName;
-                // Success adapters (e.g. a consumer's widgets) must not erase MCP error flags or OAuth metadata.
-                return convertResponse && !result?.isError && !CLOUD_CONNECT_HANDLERS[innerToolName]
-                    ? convertResponse(result, innerToolName)
-                    : result;
-            };
-
-            // Two-phase commit for write-gated tools. Without both an approval store and a
-            // user key the gate fails closed: a write-gated tool is neither staged nor run,
-            // and confirm_action has nothing it could consume.
-            const summaryFn = WRITE_GATED_SUMMARIES[toolName] ?? generatedTools?.get(toolName)?.summary;
-            if (!approvalStore || !userKey) {
-                if (summaryFn || toolName === "confirm_action") {
-                    return createErrorResponse(APPROVAL_UNAVAILABLE_MESSAGE);
-                }
-            } else {
-                if (toolName === "confirm_action") {
-                    const confirmed = await handleConfirmActionRequest(
-                        args,
-                        token,
-                        userKey,
-                        approvalStore,
-                        runOriginal
-                    );
-                    return confirmed;
-                }
-
-                if (summaryFn) {
-                    // Built before stashing: a summary that rejects the args (e.g. a path
-                    // param that would resolve to a different endpoint) must not leave a
-                    // staged approval behind.
-                    const summary = summaryFn(args);
-                    const approvalToken = mintApprovalToken();
-                    await approvalStore.stash(approvalToken, {
-                        toolName,
-                        args,
-                        userKey,
-                        expiresAt: Date.now() + APPROVAL_TTL_MS,
+    // Result paging: a continuation pageToken is unpacked into the call it continues before
+    // dispatch, so the tool sees the same arguments and upstream cursor as the first part.
+    let dispatchArgs = args;
+    let paged: ResolvedPagedCall | undefined;
+    let preflightError: any;
+    if (resultPaging && args && typeof args === "object" && !Array.isArray(args)) {
+        const resolved = await resolvePagedCall(
+            toolName,
+            args,
+            pageTokenSupport(toolName, generatedTools).upstreamCursor,
+            resultPaging
+        );
+        if ("error" in resolved) preflightError = resolved.error;
+        else {
+            dispatchArgs = resolved.args;
+            paged = resolved;
+        }
+    }
+    const response =
+        preflightError ??
+        (await runWithTracking({ ...trackingContext, mcpTool: toolName }, async () => {
+            try {
+                // Dispatches an already-confirmed (or non-gated) tool call. The approval
+                // gate below never calls this directly for a write-gated tool without first
+                // going through `confirm_action` + `ApprovalStore.consume`.
+                const runOriginal = async (innerToolName: string, innerArgs: any, innerToken: string): Promise<any> => {
+                    const result = await runOriginalDispatch(innerToolName, innerArgs, innerToken, {
+                        onProgress,
+                        generatedTools,
                     });
-                    // Return the approval envelope without running it through `convertResponse`.
-                    // The envelope is a control message for the LLM, not tool output: a consumer's
-                    // converter could attach presentation metadata or instructions that conflict
-                    // with the `next` field, or render the approval JSON as if it were results.
-                    // The real tool output (after `confirm_action` → `runOriginal`) still
-                    // flows through `convertResponse` normally.
-                    return buildApprovalResponse(approvalToken, summary);
-                }
-            }
+                    sourceResponse = result;
+                    executedToolName = innerToolName;
+                    // Success adapters (e.g. a consumer's widgets) must not erase MCP error flags or OAuth metadata.
+                    const converted =
+                        convertResponse && !result?.isError && !CLOUD_CONNECT_HANDLERS[innerToolName]
+                            ? await convertResponse(result, innerToolName)
+                            : result;
+                    if (!resultPaging || result?.isError || CLOUD_CONNECT_HANDLERS[innerToolName]) return converted;
+                    // Oversized list results are split here, before the size guard sees them.
+                    const { pageToken: _pageToken, ...argsWithoutCursor } = (innerArgs ?? {}) as Record<
+                        string,
+                        unknown
+                    >;
+                    return fitResultPage(converted, {
+                        toolName: innerToolName,
+                        originalArgs: paged?.originalArgs ?? argsWithoutCursor,
+                        upstreamPageToken:
+                            paged?.upstreamPageToken ??
+                            (typeof innerArgs?.pageToken === "string" ? innerArgs.pageToken : undefined),
+                        position: paged?.position,
+                        canContinue: pageTokenSupport(innerToolName, generatedTools).accepts,
+                        cursorField: resultPaging.cursorField ?? "pageToken",
+                        sign: continuationSigner(resultPaging),
+                    });
+                };
 
-            return await runOriginal(toolName, args, token);
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                const errorResult = createErrorResponse(formatZodError(error));
+                // Two-phase commit for write-gated tools. Without both an approval store and a
+                // user key the gate fails closed: a write-gated tool is neither staged nor run,
+                // and confirm_action has nothing it could consume.
+                const summaryFn = WRITE_GATED_SUMMARIES[toolName] ?? generatedTools?.get(toolName)?.summary;
+                if (!approvalStore || !userKey) {
+                    if (summaryFn || toolName === "confirm_action") {
+                        return createErrorResponse(APPROVAL_UNAVAILABLE_MESSAGE);
+                    }
+                } else {
+                    if (toolName === "confirm_action") {
+                        const confirmed = await handleConfirmActionRequest(
+                            dispatchArgs,
+                            token,
+                            userKey,
+                            approvalStore,
+                            runOriginal
+                        );
+                        return confirmed;
+                    }
+
+                    if (summaryFn) {
+                        // Built before stashing: a summary that rejects the args (e.g. a path
+                        // param that would resolve to a different endpoint) must not leave a
+                        // staged approval behind.
+                        const summary = summaryFn(dispatchArgs);
+                        const approvalToken = mintApprovalToken();
+                        await approvalStore.stash(approvalToken, {
+                            toolName,
+                            args: dispatchArgs,
+                            userKey,
+                            expiresAt: Date.now() + APPROVAL_TTL_MS,
+                        });
+                        // Return the approval envelope without running it through `convertResponse`.
+                        // The envelope is a control message for the LLM, not tool output: a consumer's
+                        // converter could attach presentation metadata or instructions that conflict
+                        // with the `next` field, or render the approval JSON as if it were results.
+                        // The real tool output (after `confirm_action` → `runOriginal`) still
+                        // flows through `convertResponse` normally.
+                        return buildApprovalResponse(approvalToken, summary);
+                    }
+                }
+
+                return await runOriginal(toolName, dispatchArgs, token);
+            } catch (error) {
+                if (error instanceof z.ZodError) {
+                    const errorResult = createErrorResponse(formatZodError(error));
+                    sourceResponse = errorResult;
+                    return errorResult;
+                }
+                const errorResult = handleGeneralError(error, "handling tool request");
                 sourceResponse = errorResult;
                 return errorResult;
             }
-            const errorResult = handleGeneralError(error, "handling tool request");
-            sourceResponse = errorResult;
-            return errorResult;
-        }
-    }); // end runWithTracking
+        })); // end runWithTracking
     const effectiveToolName = executedToolName ?? toolName;
     const definition =
         HAND_WRITTEN_TOOLS.find((tool) => tool.name === effectiveToolName) ?? generatedTools?.get(effectiveToolName);

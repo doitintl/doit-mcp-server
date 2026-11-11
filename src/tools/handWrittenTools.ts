@@ -1,3 +1,4 @@
+import { needsResultPageToken, withResultPageTokenInputSchema } from "../utils/resultPaging.js";
 import { listAccountTeamTool } from "./accountTeam.js";
 import { createAlertTool, getAlertTool, listAlertsTool, updateAlertTool } from "./alerts.js";
 import { createAllocationTool, getAllocationTool, listAllocationsTool, updateAllocationTool } from "./allocations.js";
@@ -90,6 +91,7 @@ type HandWrittenTool = {
     name: string;
     coversEndpoint: string | null;
     annotations?: { readOnlyHint?: boolean };
+    inputSchema?: Record<string, unknown>;
 };
 
 /**
@@ -99,7 +101,7 @@ type HandWrittenTool = {
  * see COVERED_ENDPOINTS below. No separate list to keep in sync. Tools with no OpenAPI
  * equivalent must still declare `coversEndpoint: null` so this is never accidentally omitted.
  */
-export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
+const RAW_HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     ...CLOUD_CONNECT_TOOLS,
     cloudOverviewTool,
     cloudIncidentsTool,
@@ -204,6 +206,17 @@ export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     askAvaSyncTool,
     confirmActionTool,
 ];
+
+/**
+ * Read-only tools whose endpoints return every record in one response. Their JSON input schema
+ * gains the server's continuation pageToken (src/utils/resultPaging.ts); consumers that register
+ * from the exported zod schemas apply `withResultPageToken` to the same tools.
+ */
+export const RESULT_PAGED_TOOLS: ReadonlySet<string> = new Set(
+    RAW_HAND_WRITTEN_TOOLS.filter(needsResultPageToken).map((tool) => tool.name)
+);
+
+export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = RAW_HAND_WRITTEN_TOOLS.map(withResultPageTokenInputSchema);
 
 export const COVERED_ENDPOINTS: Set<string> = new Set(
     HAND_WRITTEN_TOOLS.flatMap((tool) => (tool.coversEndpoint ? [tool.coversEndpoint.toLowerCase()] : []))

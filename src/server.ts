@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
     CLIENT_CAPABILITIES_META_KEY,
     CLIENT_INFO_META_KEY,
@@ -179,6 +180,9 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
     // its own stable per-user key instead.
     const approvalStore = new MemoryApprovalStore();
     const userKey = "stdio-local";
+    // Continuation tokens only need to be valid within this process: oversized results are
+    // paged by the server (src/utils/resultPaging.ts) and resumed on the next call.
+    const resultPaging = { secret: `${randomUUID()}${randomUUID()}` };
     const server = new Server(
         {
             name: SERVER_NAME,
@@ -333,6 +337,7 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
             approvalStore,
             onProgress,
             generatedTools: generatedToolsByName,
+            resultPaging,
         });
     });
 
