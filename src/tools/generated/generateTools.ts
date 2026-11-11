@@ -207,8 +207,8 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             }`;
 
             const isReadOnly = override?.readOnly ?? method === "get";
-            // Unpaginated reads take the server's continuation token instead.
-            if (isReadOnly && !("pageToken" in shape)) {
+            // Opted-in list reads without upstream paging take the server's continuation token.
+            if (override?.resultPaged && isReadOnly && !("pageToken" in shape)) {
                 shape.pageToken = RESULT_PAGE_TOKEN_SCHEMA;
                 metadata.resultPaged = true;
             }

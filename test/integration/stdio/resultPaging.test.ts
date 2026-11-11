@@ -160,13 +160,15 @@ describe("result paging over stdio", () => {
         expect(getTextContent(foreign)).toContain("must be a continuation token");
     });
 
-    it("advertises pageToken on read-only tools whose endpoints cannot page", async () => {
+    it("advertises the continuation pageToken only on opted-in list tools", async () => {
         const { tools } = await client.listTools();
         const property = (name: string) =>
             (tools.find((tool) => tool.name === name)?.inputSchema as any)?.properties?.pageToken;
         expect(property("list_users")?.description).toContain("Continuation token");
         expect(property("get_cloud_diagrams_stats")?.description).toContain("Continuation token");
         expect(property("list_tickets")?.description).not.toContain("Continuation token");
+        expect(property("get_ticket")).toBeUndefined();
+        expect(property("ask_ava_sync")).toBeUndefined();
         expect(property("create_ticket")).toBeUndefined();
     });
 });

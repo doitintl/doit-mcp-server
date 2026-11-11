@@ -92,6 +92,8 @@ type HandWrittenTool = {
     coversEndpoint: string | null;
     annotations?: { readOnlyHint?: boolean };
     inputSchema?: Record<string, unknown>;
+    /** Opts a read-only list tool whose endpoint has no paging into server-side result paging. */
+    resultPaged?: boolean;
 };
 
 /**
@@ -101,7 +103,7 @@ type HandWrittenTool = {
  * see COVERED_ENDPOINTS below. No separate list to keep in sync. Tools with no OpenAPI
  * equivalent must still declare `coversEndpoint: null` so this is never accidentally omitted.
  */
-const RAW_HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
+export const RAW_HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     ...CLOUD_CONNECT_TOOLS,
     cloudOverviewTool,
     cloudIncidentsTool,
@@ -207,7 +209,7 @@ const RAW_HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     confirmActionTool,
 ];
 
-/** Unpaginated read-only tools; consumers registering zod schemas apply `withResultPageToken` to these. */
+/** Tools opted into result paging; consumers registering zod schemas apply `withResultPageToken` to these. */
 export const RESULT_PAGED_TOOLS: ReadonlySet<string> = new Set(
     RAW_HAND_WRITTEN_TOOLS.filter(needsResultPageToken).map((tool) => tool.name)
 );

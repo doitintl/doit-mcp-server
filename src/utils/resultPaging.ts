@@ -13,7 +13,7 @@ import { MAX_TOOL_RESULT_CHARS, measureToolResponse } from "./responseLimit.js";
 import { createErrorResponse } from "./util.js";
 
 export const RESULT_PAGE_TOKEN_DESCRIPTION =
-    "Continuation token from a previous result of this tool whose pageToken (or nextPageToken) was set because the complete result was larger than one MCP tool result can carry. The server returned the records that fit; this token continues after the last of them. Omit it to start from the first record.";
+    "Continuation token from a previous result of this tool that was split for size. Omit to start from the first record.";
 
 export const RESULT_PAGE_TOKEN_SCHEMA = z.string().optional().describe(RESULT_PAGE_TOKEN_DESCRIPTION);
 
@@ -29,6 +29,7 @@ type ToolLike = {
     name: string;
     annotations?: { readOnlyHint?: boolean };
     inputSchema?: Record<string, unknown>;
+    resultPaged?: boolean;
 };
 
 function inputProperties(tool: ToolLike): Record<string, unknown> | undefined {
@@ -36,9 +37,13 @@ function inputProperties(tool: ToolLike): Record<string, unknown> | undefined {
     return properties && typeof properties === "object" ? (properties as Record<string, unknown>) : undefined;
 }
 
-/** Read-only tools with no pageToken of their own. Non-object input schemas are left alone. */
+/**
+ * Tools that opted in with `resultPaged: true`. Paging is opt-in because only read-only list
+ * tools can use it: a single-resource result has nothing to split, and a non-idempotent read
+ * (ask_ava_sync) must not be re-run. The flag is ignored on tools that already page upstream.
+ */
 export function needsResultPageToken(tool: ToolLike): boolean {
-    if (tool.annotations?.readOnlyHint !== true) return false;
+    if (tool.resultPaged !== true || tool.annotations?.readOnlyHint !== true) return false;
     const properties = inputProperties(tool);
     return properties !== undefined && !("pageToken" in properties);
 }

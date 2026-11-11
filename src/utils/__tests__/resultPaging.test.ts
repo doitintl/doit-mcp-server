@@ -293,12 +293,14 @@ describe("resolvePagedCall", () => {
 describe("schema augmentation", () => {
     const readOnly = {
         name: "list_things",
+        resultPaged: true,
         annotations: { readOnlyHint: true },
         inputSchema: { type: "object", properties: { filter: { type: "string" } } },
     };
 
-    it("adds pageToken only to read-only tools that have none", () => {
+    it("adds pageToken only to opted-in read-only tools that have none", () => {
         expect(needsResultPageToken(readOnly)).toBe(true);
+        expect(needsResultPageToken({ ...readOnly, resultPaged: false })).toBe(false);
         expect(needsResultPageToken({ ...readOnly, annotations: { readOnlyHint: false } })).toBe(false);
         expect(
             needsResultPageToken({ ...readOnly, inputSchema: { type: "object", properties: { pageToken: {} } } })

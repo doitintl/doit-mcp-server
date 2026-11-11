@@ -23,6 +23,7 @@ export const ListProductsArgumentsSchema = z.object({
 
 export const listProductsTool = {
     name: "list_products",
+    resultPaged: true,
     title: "List products",
     coversEndpoint: "get:/support/v1/metadata/products",
     description:

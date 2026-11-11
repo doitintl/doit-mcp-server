@@ -19,6 +19,7 @@ export const ListThemesArgumentsSchema = z.object({});
 
 export const listThemesTool = {
     name: "list_themes",
+    resultPaged: true,
     title: "List themes",
     coversEndpoint: "get:/analytics/v1/settings/themes",
     description:
