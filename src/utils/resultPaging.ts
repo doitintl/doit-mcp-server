@@ -206,11 +206,16 @@ export function applyPosition(collection: Collection, position: ContinuationPosi
     return collection;
 }
 
-export function positionAfter(collection: Collection, count: number): ContinuationPosition {
+/**
+ * The position of the last of `count` records. `skipped` is how many records of the full
+ * upstream page precede `collection`, so afterIndex stays absolute across continuations.
+ */
+export function positionAfter(collection: Collection, count: number, skipped = 0): ContinuationPosition {
     if (collection.kind === "map") return { afterKey: collection.entries[count - 1]?.[0] };
     const last = collection.records[count - 1];
     const id = recordId(last);
-    return id === undefined ? { afterIndex: count - 1 } : { afterId: id, afterIndex: count - 1 };
+    const afterIndex = skipped + count - 1;
+    return id === undefined ? { afterIndex } : { afterId: id, afterIndex };
 }
 
 /** A root array becomes `{ items, rowCount }` so the cursor and split marker have somewhere to live. */
@@ -252,8 +257,11 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
     const { mode } = located;
     let data = located.data;
     let current: ToolResult = result;
+    let skipped = 0;
     if (options.position) {
+        const full = length(collection);
         collection = applyPosition(collection, options.position);
+        skipped = full - length(collection);
         // A continued page that reaches its end is complete; a further split overrides this.
         const completion =
             options.cursorField === "nextPageToken" && !(data && typeof data === "object" && "hasMore" in data)
@@ -264,9 +272,11 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
         current = rebuild(result, mode, data);
     }
 
+    // Results that fit the cap are never split; parts leave headroom for the transport envelope.
+    const limit = options.budgetChars ?? MAX_TOOL_RESULT_CHARS;
     const budget = options.budgetChars ?? RESULT_PAGE_BUDGET_CHARS;
     const size = measureToolResponse(current)?.serializedChars ?? Number.POSITIVE_INFINITY;
-    if (size <= budget || !options.canContinue) return current as T;
+    if (size <= limit || !options.canContinue) return current as T;
 
     const total = length(collection);
     const candidate = async (count: number): Promise<ToolResult> => {
@@ -275,7 +285,7 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
             tool: options.toolName,
             args: options.originalArgs,
             upstream: options.upstreamPageToken ?? null,
-            position: positionAfter(collection, count),
+            position: positionAfter(collection, count, skipped),
         });
         const split = withCollection(data, slice(collection, 0, count), {
             [options.cursorField]: token,

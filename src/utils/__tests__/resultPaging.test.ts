@@ -11,6 +11,7 @@ import {
     INVALID_CONTINUATION_MESSAGE,
     needsResultPageToken,
     positionAfter,
+    RESULT_PAGE_BUDGET_CHARS,
     resolvePagedCall,
     withResultPageToken,
     withResultPageTokenInputSchema,
@@ -138,6 +139,35 @@ describe("fitResultPage on stdio results", () => {
 
         const error = { isError: true, content: [{ type: "text", text: "x".repeat(MAX_TOOL_RESULT_CHARS) }] };
         await expect(fitResultPage(error, textOptions())).resolves.toBe(error);
+    });
+
+    it("walks id-less records through three or more parts without repeating a window", async () => {
+        const values = Array.from({ length: 200 }, (_, i) => ({ value: `v-${i + 1}`, cloud: "gcp" }));
+        const full = () => textResult({ id: "label", type: "label", values });
+        const seen: string[] = [];
+        let position: ContinuationPosition | undefined;
+        let parts = 0;
+        for (; parts < 20; parts += 1) {
+            const page = parsed(
+                await fitResultPage(full(), textOptions({ toolName: "list_values", position, budgetChars: 2_500 }))
+            );
+            seen.push(...page.values.map((record: { value: string }) => record.value));
+            if (!isFakeToken(page.pageToken)) break;
+            position = tokenPayload(page.pageToken).position;
+        }
+        expect(parts).toBeGreaterThanOrEqual(3);
+        expect(seen).toEqual(values.map((record) => record.value));
+    });
+
+    it("never splits a result that fits the cap, even inside the headroom band", async () => {
+        const diagrams = Array.from({ length: 30 }, (_, i) => ({ _id: `d-${i + 1}`, blob: "x".repeat(4_600) }));
+        const result = textResult(diagrams);
+        const size = measureToolResponse(result)?.serializedChars ?? 0;
+        expect(size).toBeGreaterThan(RESULT_PAGE_BUDGET_CHARS);
+        expect(size).toBeLessThanOrEqual(MAX_TOOL_RESULT_CHARS);
+        await expect(fitResultPage(result, textOptions({ toolName: "get_cloud_diagrams_stats" }))).resolves.toBe(
+            result
+        );
     });
 
     it("leaves an oversized result to the size guard when the tool cannot take a token back", async () => {

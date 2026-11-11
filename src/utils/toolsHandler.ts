@@ -274,7 +274,7 @@ export async function executeToolHandler(
                     });
                     sourceResponse = result;
                     executedToolName = innerToolName;
-                    // Success adapters (e.g. a consumer's widgets) must not erase MCP error flags or OAuth metadata.
+                    // Success adapters must not erase MCP error flags or authentication metadata.
                     const converted =
                         convertResponse && !result?.isError && !CLOUD_CONNECT_HANDLERS[innerToolName]
                             ? await convertResponse(result, innerToolName)

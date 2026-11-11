@@ -158,7 +158,10 @@ no paging of its own declares `resultPaged: true` (hand-written tools on the too
 generated ones in `src/tools/generated/overrides.ts`) and gains an optional `pageToken`
 argument. Single-resource tools have nothing to split, and reads that must not be re-run
 (`ask_ava_sync`) stay out. Analytics results (`rows`) are never split and keep the size
-error with a narrowing hint.
+error with a narrowing hint. Fields other than the record collection (counts, sibling
+maps such as a components `statussheet`) describe the whole result and repeat on every
+part. Consumers that register the generated registry's schemas advertise the argument on
+opted-in generated tools and should pass `resultPaging` so it takes effect.
 
 The stdio server signs tokens with a random per-process secret. A consumer that
 provides its own transport passes `resultPaging: { secret, cursorField }` to
