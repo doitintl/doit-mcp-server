@@ -63,7 +63,7 @@ This was how `src/index.ts` worked up to 2.1.1. `mainWithServer(customServer)` s
   request id as the token, and the first request after discovery has id 0.
 - **No server→client requests.** The 2026-07-28 wire has no elicitation, sampling or ping in
   that direction. This server uses none of them: the write-approval flow (`approval_required` →
-  `confirm_action`) is carried entirely in tool results.
+  `confirm_action` with `{ approvalToken }`) is carried entirely in tool results.
 - **Unchanged:** the tool, prompt and resource surface is identical in both eras. That includes
   non-spec tool fields such as `securitySchemes`, which v2 clients drop when they parse a tool.
 
