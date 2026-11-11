@@ -197,11 +197,7 @@ export interface ToolHandlerOptions {
     approvalStore?: ApprovalStore;
     /** Called for each SSE progress event from streaming tools (e.g. refine_cloudflow). */
     onProgress?: (message: string) => Promise<void>;
-    /**
-     * Enables server-side paging of results that exceed the size limit (src/utils/resultPaging.ts).
-     * stdio passes a random per-process secret; a hosted consumer passes its own and names the
-     * cursor field its converted results use. Without this option oversized results fail as before.
-     */
+    /** Enables splitting oversized results; without it they fail with RESPONSE_TOO_LARGE as before. */
     resultPaging?: ResultPagingOptions;
     /**
      * Registry of auto-generated tools (see src/tools/generated/), keyed by tool name.
@@ -221,10 +217,7 @@ export interface ToolHandlerOptions {
  * @param options - Optional tracking context and response converter
  * @returns The tool execution result
  */
-/**
- * Whether a tool can take a pageToken back (so an oversized result may be split), and whether
- * that pageToken is the upstream API's own cursor rather than only a server continuation token.
- */
+/** Whether a tool takes a pageToken at all, and whether it is the upstream API's own cursor. */
 function pageTokenSupport(
     toolName: string,
     generatedTools: ToolHandlerOptions["generatedTools"]
@@ -251,8 +244,6 @@ export async function executeToolHandler(
     const startedAt = Date.now();
     let sourceResponse: any;
     let executedToolName: string | undefined;
-    // Result paging: a continuation pageToken is unpacked into the call it continues before
-    // dispatch, so the tool sees the same arguments and upstream cursor as the first part.
     let dispatchArgs = args;
     let paged: ResolvedPagedCall | undefined;
     let preflightError: any;

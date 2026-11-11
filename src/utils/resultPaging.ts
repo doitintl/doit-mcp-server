@@ -1,17 +1,6 @@
-// Server-side paging for results that exceed the MCP result size limit.
-//
-// Upstream pages are kept whole when they fit. When one does not, a size error loses the page
-// and cutting it silently loses records. Instead the server returns the records that fit, marks
-// the split, and issues a signed continuation token (continuation.ts). The next call fetches the
-// same upstream page again, resumes after the last returned record, and only exposes the
-// upstream's own next cursor once the page is done, so no record is skipped or repeated.
-// Analytics results (`rows`) are never split: a partial chart is not a usable result, so they
-// keep the size error and its narrowing hint.
-//
-// Both transports share this code through executeToolHandler (toolsHandler.ts): stdio results
-// carry their data in `content[0].text`; a consumer that converts results for a widget carries it
-// in `structuredContent` with `content[0].text` as a mirror. Each tool call has its own size
-// limit, so paging across calls is sound; callers decide how many pages they need.
+// Splits results that exceed the MCP result size limit across tool calls. The next call refetches
+// the same upstream page, resumes after the last returned record, and only exposes the upstream
+// cursor once the page is done, so no record is skipped or repeated.
 import { z } from "zod";
 import {
     type ContinuationPayload,
@@ -26,10 +15,8 @@ import { createErrorResponse } from "./util.js";
 export const RESULT_PAGE_TOKEN_DESCRIPTION =
     "Continuation token from a previous result of this tool whose pageToken (or nextPageToken) was set because the complete result was larger than one MCP tool result can carry. The server returned the records that fit; this token continues after the last of them. Omit it to start from the first record.";
 
-/** The argument added to read-only tools whose endpoints return everything in one response. */
 export const RESULT_PAGE_TOKEN_SCHEMA = z.string().optional().describe(RESULT_PAGE_TOKEN_DESCRIPTION);
 
-/** Space left under the size guard for the transport envelope. */
 export const RESULT_PAGE_HEADROOM_CHARS = 2_000;
 export const RESULT_PAGE_BUDGET_CHARS = MAX_TOOL_RESULT_CHARS - RESULT_PAGE_HEADROOM_CHARS;
 
@@ -49,25 +36,19 @@ function inputProperties(tool: ToolLike): Record<string, unknown> | undefined {
     return properties && typeof properties === "object" ? (properties as Record<string, unknown>) : undefined;
 }
 
-/**
- * Read-only tools whose own arguments have no pageToken: their endpoint returns every record
- * at once, so server-side paging is the only way through a large result. Tools whose input is
- * not a plain object schema (discriminated unions) are left alone.
- */
+/** Read-only tools with no pageToken of their own. Non-object input schemas are left alone. */
 export function needsResultPageToken(tool: ToolLike): boolean {
     if (tool.annotations?.readOnlyHint !== true) return false;
     const properties = inputProperties(tool);
     return properties !== undefined && !("pageToken" in properties);
 }
 
-/** Adds the continuation argument to a zod object schema that lacks pageToken. */
 export function withResultPageToken<T>(schema: T): T {
     const object = schema as { shape?: Record<string, unknown>; extend?: (shape: Record<string, unknown>) => T };
     if (!object?.shape || typeof object.extend !== "function" || "pageToken" in object.shape) return schema;
     return object.extend({ pageToken: RESULT_PAGE_TOKEN_SCHEMA });
 }
 
-/** The tool definition with the continuation argument in its JSON input schema, when it needs one. */
 export function withResultPageTokenInputSchema<T extends ToolLike>(tool: T): T {
     if (!needsResultPageToken(tool)) return tool;
     const inputSchema = tool.inputSchema as Record<string, unknown>;
@@ -83,31 +64,22 @@ export function withResultPageTokenInputSchema<T extends ToolLike>(tool: T): T {
     };
 }
 
-/** Transport-supplied settings for result paging. */
 export type ResultPagingOptions = {
-    /** Signs continuation tokens. stdio uses a random per-process secret; a hosted consumer its own. */
     secret: string;
-    /**
-     * The field that carries the cursor in this transport's results: `pageToken` for raw tool
-     * output, `nextPageToken` (with `hasMore`) for a consumer that normalises list results.
-     */
+    /** `nextPageToken` (with `hasMore`) for a consumer that normalises list results. */
     cursorField?: "pageToken" | "nextPageToken";
 };
 
 export type ResolvedPagedCall = {
-    /** Arguments dispatched to the tool; a continuation token is replaced by the upstream cursor it wraps. */
     args: Record<string, unknown>;
-    /** The caller's arguments without any pageToken, carried in the next continuation token. */
     originalArgs: Record<string, unknown>;
     upstreamPageToken?: string;
     position?: ContinuationPosition;
 };
 
 /**
- * A pageToken is either the upstream API's cursor, passed through, or a continuation token,
- * which is verified and unpacked into the call it continues. The token's stored arguments
- * replace the caller's, so the continued page is fetched with the same filters and cursor that
- * produced its first part.
+ * Passes an upstream cursor through, or unpacks a continuation token into the call it continues.
+ * The token's stored arguments replace the caller's, so the page is refetched with the same filters.
  */
 export async function resolvePagedCall(
     toolName: string,
@@ -132,8 +104,6 @@ export async function resolvePagedCall(
         position: payload.position,
     };
 }
-
-// ── Locating the record collection ─────────────────────────────────────────────────────────
 
 type ToolResult = {
     content?: Array<{ type: string; text?: string }>;
@@ -165,9 +135,9 @@ function rebuild(result: ToolResult, mode: Located["mode"], data: unknown): Tool
         : { ...result, content: [{ type: "text", text }] };
 }
 
-/** Analytics and tabular shapes: a partial chart is not a result. */
+/** Analytics results are never split: a partial chart is not a usable result. */
 const EXCLUDED_ARRAY_KEYS = new Set(["rows", "columns", "schema"]);
-/** Record maps keyed by id (cloud-diagram discovery returns `scheme`). */
+/** Record maps keyed by id (cloud-diagram stats return `scheme`). */
 const MAP_COLLECTION_KEYS = new Set(["scheme"]);
 /** A top-level array is only treated as the record list when it is most of the result. */
 const MIN_COLLECTION_SHARE = 0.5;
@@ -213,7 +183,6 @@ function slice(collection: Collection, start: number, end?: number): Collection 
         : { ...collection, entries: collection.entries.slice(start, end) };
 }
 
-/** Drops every record up to and including the one the previous result stopped at. */
 export function applyPosition(collection: Collection, position: ContinuationPosition): Collection {
     if (collection.kind === "map") {
         if (position.afterKey === undefined) return collection;
@@ -230,7 +199,6 @@ export function applyPosition(collection: Collection, position: ContinuationPosi
     return collection;
 }
 
-/** The position of the last of `count` returned records, for the next token. */
 export function positionAfter(collection: Collection, count: number): ContinuationPosition {
     if (collection.kind === "map") return { afterKey: collection.entries[count - 1]?.[0] };
     const last = collection.records[count - 1];
@@ -238,10 +206,7 @@ export function positionAfter(collection: Collection, count: number): Continuati
     return id === undefined ? { afterIndex: count - 1 } : { afterId: id, afterIndex: count - 1 };
 }
 
-/**
- * The data with the collection replaced. A root array becomes `{ items, rowCount }` so the
- * cursor and split marker have somewhere to live; everything else keeps its shape.
- */
+/** A root array becomes `{ items, rowCount }` so the cursor and split marker have somewhere to live. */
 function withCollection(
     data: unknown,
     collection: Collection,
@@ -261,7 +226,6 @@ export type FitOptions = {
     originalArgs: Record<string, unknown>;
     upstreamPageToken?: string;
     position?: ContinuationPosition;
-    /** Whether the tool can receive a continuation token back; otherwise the result is left alone. */
     canContinue: boolean;
     cursorField: NonNullable<ResultPagingOptions["cursorField"]>;
     sign: (payload: ContinuationPayload) => Promise<string>;
@@ -269,9 +233,8 @@ export type FitOptions = {
 };
 
 /**
- * Applies a continuation position and splits the result when it exceeds the budget. Results
- * without a record collection, error results, and results that fit are returned as they are
- * (after position slicing), so the size guard still decides every other case.
+ * Applies a continuation position, then splits the result if it exceeds the budget. Anything
+ * without a record collection is returned as is, so the size guard still decides it.
  */
 export async function fitResultPage<T extends ToolResult>(result: T, options: FitOptions): Promise<T> {
     const located = locateData(result);
@@ -284,14 +247,12 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
     let current: ToolResult = result;
     if (options.position) {
         collection = applyPosition(collection, options.position);
-        // A continued page that reaches its end is complete; results with no hasMore of their
-        // own say so explicitly when this transport uses it. A further split overrides this.
+        // A continued page that reaches its end is complete; a further split overrides this.
         const completion =
             options.cursorField === "nextPageToken" && !(data && typeof data === "object" && "hasMore" in data)
                 ? { hasMore: false }
                 : {};
         data = withCollection(data, collection, completion);
-        // A root array has become { items, rowCount }; further slicing addresses it by key.
         if (collection.key === null) collection = { ...collection, key: "items" };
         current = rebuild(result, mode, data);
     }
@@ -312,13 +273,12 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
         const split = withCollection(data, slice(collection, 0, count), {
             [options.cursorField]: token,
             ...(options.cursorField === "nextPageToken" ? { hasMore: true } : {}),
-            // Stated as data, not as a response rule: the complete result was larger than one tool result.
             pageSplit: { returnedRecords: count, remainingInResult: total - count },
         });
         return rebuild(current, mode, split);
     };
 
-    // Largest prefix that fits. Sizes grow with the prefix length, so binary search.
+    // Size grows with the prefix length, so binary-search the largest prefix that fits.
     let low = 1;
     let high = total - 1;
     let best: ToolResult | undefined;

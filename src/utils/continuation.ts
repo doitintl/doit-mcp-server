@@ -1,31 +1,19 @@
-// Continuation tokens for results split across tool calls (see resultPaging.ts).
-//
-// The server keeps no state between tool calls, so a token carries everything the next call
-// needs: the tool, the caller's original arguments, the upstream cursor that produced the page,
-// and the position reached within it. It is HMAC-signed so a caller cannot alter the arguments
-// or position, and so the server can tell its own tokens from upstream cursors.
-//
-// WebCrypto only: this runs under Node (stdio) and in filesystem-less consumers of the core export.
+// Stateless, HMAC-signed continuation tokens for results split across tool calls (resultPaging.ts).
+// WebCrypto only: this also runs in filesystem-less consumers of the core export.
 
 export const CONTINUATION_TOKEN_PREFIX = "dci1.";
 
-/** Where the previous result stopped within the upstream page. */
 export type ContinuationPosition = {
-    /** `id` / `_id` of the last returned record, when records carry one. */
     afterId?: string;
-    /** Zero-based index of the last returned record; the fallback when ids are missing or moved. */
+    /** Fallback when records have no id or the id has moved. */
     afterIndex?: number;
-    /** Key of the last returned entry, for record maps keyed by id. */
     afterKey?: string;
 };
 
 export type ContinuationPayload = {
     v: 1;
-    /** The tool the token belongs to; a token is never valid for another tool. */
     tool: string;
-    /** The caller's arguments for the page, without any pageToken. */
     args: Record<string, unknown>;
-    /** The upstream cursor that produced the page being continued; null for the first page. */
     upstream: string | null;
     position: ContinuationPosition;
 };
@@ -65,10 +53,6 @@ export async function signContinuation(payload: ContinuationPayload, secret: str
     return `${CONTINUATION_TOKEN_PREFIX}${body}.${toBase64Url(new Uint8Array(signature))}`;
 }
 
-/**
- * Returns the payload of a token this server signed, or undefined for anything else: a foreign
- * string, a tampered body, a signature made with another secret, or a malformed payload.
- */
 export async function verifyContinuation(token: string, secret: string): Promise<ContinuationPayload | undefined> {
     if (!isContinuationToken(token)) return undefined;
     const [body, signature, ...rest] = token.slice(CONTINUATION_TOKEN_PREFIX.length).split(".");

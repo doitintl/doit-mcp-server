@@ -207,8 +207,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             }`;
 
             const isReadOnly = override?.readOnly ?? method === "get";
-            // Read-only operations without paging of their own take the server's continuation
-            // token, so an oversized result can be returned in parts (src/utils/resultPaging.ts).
+            // Unpaginated reads take the server's continuation token instead.
             if (isReadOnly && !("pageToken" in shape)) {
                 shape.pageToken = RESULT_PAGE_TOKEN_SCHEMA;
                 metadata.resultPaged = true;

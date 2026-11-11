@@ -124,8 +124,7 @@ const toolSchemas = [
 describe("hand-written tool schema parity", () => {
     it("covers every registered and core-exported tool", () => {
         const covered = new Set(toolSchemas.map(([tool]) => tool));
-        // HAND_WRITTEN_TOOLS carries copies with the continuation pageToken added to the JSON
-        // schema (src/utils/resultPaging.ts), so registered tools are matched by name.
+        // HAND_WRITTEN_TOOLS holds copies with pageToken added, so match by name.
         const coveredNames = new Set(toolSchemas.map(([tool]) => tool.name));
         for (const tool of HAND_WRITTEN_TOOLS) {
             expect(coveredNames.has(tool.name), tool.name).toBe(true);

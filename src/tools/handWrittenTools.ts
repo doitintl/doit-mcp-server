@@ -207,11 +207,7 @@ const RAW_HAND_WRITTEN_TOOLS: HandWrittenTool[] = [
     confirmActionTool,
 ];
 
-/**
- * Read-only tools whose endpoints return every record in one response. Their JSON input schema
- * gains the server's continuation pageToken (src/utils/resultPaging.ts); consumers that register
- * from the exported zod schemas apply `withResultPageToken` to the same tools.
- */
+/** Unpaginated read-only tools; consumers registering zod schemas apply `withResultPageToken` to these. */
 export const RESULT_PAGED_TOOLS: ReadonlySet<string> = new Set(
     RAW_HAND_WRITTEN_TOOLS.filter(needsResultPageToken).map((tool) => tool.name)
 );
