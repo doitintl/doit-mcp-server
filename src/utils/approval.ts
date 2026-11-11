@@ -11,8 +11,8 @@ export interface PendingAction {
     args: any;
     /**
      * Identity the approval is bound to. On stdio this is a constant (single-user process);
-     * on the HTTP/SSE Worker it is the OAuth-derived `props.apiKey`. Never a session id
-     * and never client-supplied — see the security notes in approval plan §3.
+     * a multi-user consumer derives it from the authenticated user. Never a session id and
+     * never client-supplied.
      */
     userKey: string;
     /** Unix millis when this pending action stops being valid. */
@@ -20,9 +20,9 @@ export interface PendingAction {
 }
 
 /**
- * Storage interface for pending write-gated actions. Two impls: an in-memory store for
- * the stdio transport, and a Durable-Object-backed store for the Cloudflare Worker (so
- * tokens survive isolate eviction between the stage and confirm round-trips).
+ * Storage interface for pending write-gated actions. stdio uses the in-memory store below; a
+ * consumer that may stage and confirm in different processes supplies durable storage, so
+ * tokens survive between the stage and confirm round-trips.
  */
 export interface ApprovalStore {
     stash(token: string, pending: PendingAction): Promise<void>;
@@ -52,8 +52,8 @@ export const APPROVAL_UNAVAILABLE_MESSAGE =
     "This action requires user approval, but approval is unavailable for this connection, so nothing was staged or run.";
 
 /**
- * In-memory `ApprovalStore` used by the stdio transport. Safe for single-process use.
- * Not safe to share across isolates — the Worker uses `DurableObjectApprovalStore` instead.
+ * In-memory `ApprovalStore` used by the stdio transport. Safe for single-process use only;
+ * it is not shared across processes.
  */
 export class MemoryApprovalStore implements ApprovalStore {
     private readonly map = new Map<string, PendingAction>();
@@ -91,8 +91,7 @@ export class MemoryApprovalStore implements ApprovalStore {
  * Generates an unguessable one-time approval token.
  *
  * Imported from `node:crypto` so it works on Node 18 (where the Web Crypto global
- * is not yet exposed by default) and on the Cloudflare Worker, which already enables
- * `nodejs_compat` in `wrangler.jsonc`.
+ * is not yet exposed by default) and in runtimes that provide Node compatibility.
  */
 export function mintApprovalToken(): string {
     return randomUUID();
@@ -101,7 +100,7 @@ export function mintApprovalToken(): string {
 /**
  * Builds the structured response returned to the LLM when a write-gated tool has been
  * staged but not yet executed. The `summary` is what the user approves; `confirm_action`
- * with `token` then runs the staged call.
+ * with `approvalToken` then runs the staged call.
  */
 export function buildApprovalResponse(token: string, summary: string) {
     return createSuccessResponse(

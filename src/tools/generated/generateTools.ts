@@ -199,8 +199,8 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                     ? " This endpoint is paginated: a response with a non-empty `pageToken` has more results, returned when that value is passed as the `pageToken` parameter. A missing, null, or empty `pageToken` marks the last page."
                     : "";
             // Guidance the spec cannot carry — see overrides.ts. Tool descriptions ride in every
-            // tools/list response, which makes them the only guidance channel that reaches the
-            // remote Worker transport from this repo alone.
+            // tools/list response, which makes them the only guidance channel that reaches every
+            // consumer of the core export from this repo alone.
             const description = `${tagDescription ? `${tagDescription} ` : ""}${baseDescription}${paginationNote}${
                 override?.descriptionSuffix ? ` ${override.descriptionSuffix}` : ""
             }`;

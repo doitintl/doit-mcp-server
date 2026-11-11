@@ -175,17 +175,17 @@ export interface ToolHandlerOptions {
     convertResponse?: (response: any, toolName: string) => any;
     /**
      * Stable identity the approval flow is bound to. On stdio use a constant such as
-     * `"stdio-local"`; the HTTP/SSE Worker uses a hash of the authenticated principal, which
-     * survives access-token refresh.
+     * `"stdio-local"`; a multi-user consumer passes a key derived from the authenticated user
+     * that stays the same when the access token is refreshed.
      *
      * If either this or {@link ToolHandlerOptions.approvalStore} is omitted, write-gated tools
      * and `confirm_action` fail closed with an error: nothing is staged and nothing runs.
      */
     userKey?: string;
     /**
-     * Persistence for staged write-gated actions. See `src/utils/approval.ts` for the
-     * `MemoryApprovalStore` (stdio) and the remote Worker's Durable Object-backed
-     * implementations. Omit only in tests that call non-gated tools.
+     * Persistence for staged write-gated actions. stdio uses `MemoryApprovalStore`
+     * (`src/utils/approval.ts`); a consumer that runs across processes supplies its own
+     * `ApprovalStore`. Omit only in tests that call non-gated tools.
      */
     approvalStore?: ApprovalStore;
     /** Called for each SSE progress event from streaming tools (e.g. refine_cloudflow). */
@@ -193,8 +193,8 @@ export interface ToolHandlerOptions {
     /**
      * Registry of auto-generated tools (see src/tools/generated/), keyed by tool name.
      * Injected by the caller rather than imported here because each transport loads the
-     * bundled OpenAPI spec differently — stdio reads it off disk, the Worker has no
-     * filesystem and statically imports it instead. Tool names not in the static switch
+     * bundled OpenAPI spec differently — stdio reads it off disk, while a consumer without a
+     * filesystem imports it statically. Tool names not in the static switch
      * below fall back to this registry before erroring as unknown.
      */
     generatedTools?: Map<string, GeneratedTool>;
@@ -230,7 +230,7 @@ export async function executeToolHandler(
                 });
                 sourceResponse = result;
                 executedToolName = innerToolName;
-                // Success adapters (e.g. hosted widgets) must not erase MCP error flags or OAuth metadata.
+                // Success adapters (e.g. a consumer's widgets) must not erase MCP error flags or OAuth metadata.
                 return convertResponse && !result?.isError && !CLOUD_CONNECT_HANDLERS[innerToolName]
                     ? convertResponse(result, innerToolName)
                     : result;
@@ -268,14 +268,10 @@ export async function executeToolHandler(
                         userKey,
                         expiresAt: Date.now() + APPROVAL_TTL_MS,
                     });
-                    // Return the approval envelope without running it through `convertResponse`
-                    // (i.e. `adaptToolResponse` on the Worker). The envelope is a control
-                    // message for the LLM, not tool output — wrapping it would:
-                    //   (a) attach widget `_meta` / `_llmInstruction` that tells the model to
-                    //       "respond with one short sentence", conflicting with the `next`
-                    //       field that tells it to call `confirm_action`;
-                    //   (b) cause the ChatGPT Cloud Intelligence widget to try to render the
-                    //       approval JSON as if it were tool results.
+                    // Return the approval envelope without running it through `convertResponse`.
+                    // The envelope is a control message for the LLM, not tool output: a consumer's
+                    // converter could attach presentation metadata or instructions that conflict
+                    // with the `next` field, or render the approval JSON as if it were results.
                     // The real tool output (after `confirm_action` → `runOriginal`) still
                     // flows through `convertResponse` normally.
                     return buildApprovalResponse(approvalToken, summary);

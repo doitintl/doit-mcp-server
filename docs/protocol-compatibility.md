@@ -5,8 +5,8 @@ The stdio server (`npx @doitintl/doit-mcp-server`, entry `src/index.ts`) serves 
 2026-07-28 clients that open with `server/discover`. Neither kind of client needs any
 configuration.
 
-This document covers the stdio server only. The remote Worker in a separate private repo builds
-its own `Server` and transport from the `/core` export, and is not affected by anything here.
+This document covers the stdio server only. A consumer of the `/core` export builds its own
+`Server` and transport, and is not affected by anything here.
 
 ## Supported protocol versions
 
