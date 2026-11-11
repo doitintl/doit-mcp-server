@@ -175,8 +175,8 @@ function resolveTrackingContext(server: Server, ctx: ServerContext): TrackingCon
 
 export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry?: SkillRegistry } = {}) {
     // stdio is single-process and single-user, so a stable string is sufficient as the
-    // identity the approval flow is bound to. The Worker transport binds to the
-    // OAuth-derived api key instead — see the remote Worker in the separate private repo.
+    // identity the approval flow is bound to. A multi-user consumer of the core export passes
+    // its own stable per-user key instead.
     const approvalStore = new MemoryApprovalStore();
     const userKey = "stdio-local";
     const server = new Server(
@@ -192,7 +192,7 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
                 extensions: SKILL_EXTENSION_CAPABILITY,
             },
             // Returned in the initialize result. Only the stdio server is constructed here —
-            // the remote Worker builds its own Server and has to pass this itself. Domain
+            // a consumer that builds its own Server has to pass this itself. Domain
             // workflows are not repeated here; tools/list names their guides when needed.
             instructions: SERVER_INSTRUCTIONS,
         }

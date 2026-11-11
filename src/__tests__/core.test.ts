@@ -40,13 +40,15 @@ describe("core package API", () => {
 
     it("lets another transport register the confirmation tool with the shared validation contract", async () => {
         const { ConfirmActionArgumentsSchema, confirmActionTool } = await import("../core.js");
-        expect(ConfirmActionArgumentsSchema.parse({ token: "pending-action" })).toEqual({ token: "pending-action" });
-        expect(ConfirmActionArgumentsSchema.safeParse({ token: "" }).success).toBe(false);
+        expect(ConfirmActionArgumentsSchema.parse({ approvalToken: "pending-action" })).toEqual({
+            approvalToken: "pending-action",
+        });
+        expect(ConfirmActionArgumentsSchema.safeParse({ approvalToken: "" }).success).toBe(false);
         expect(confirmActionTool.annotations).toMatchObject({ destructiveHint: true, readOnlyHint: false });
     });
 
-    // The remote Worker registers tools with these Zod schemas, so their `.describe()` text is what
-    // hosted clients see. The stdio inputSchema is derived from the same schema.
+    // Consumers of the core export register tools with these Zod schemas, so their `.describe()`
+    // text is what their clients see. The stdio inputSchema is derived from the same schema.
     it("exported argument schemas carry no model-behavior instructions", async () => {
         const core: Record<string, unknown> = await import("../core.js");
         const schemas = Object.entries(core).filter(

@@ -43,8 +43,14 @@ describe("Write-gated tool approval flow (2026-07-28 client)", () => {
             getTextContent(first as { content: Array<{ type: string; text?: string }> })
         );
 
-        const second = await ctx.rawClient.callTool({ name: "confirm_action", arguments: { token: approvalToken } });
-        const replay = await ctx.rawClient.callTool({ name: "confirm_action", arguments: { token: approvalToken } });
+        const second = await ctx.rawClient.callTool({
+            name: "confirm_action",
+            arguments: { approvalToken: approvalToken },
+        });
+        const replay = await ctx.rawClient.callTool({
+            name: "confirm_action",
+            arguments: { approvalToken: approvalToken },
+        });
 
         expect(second.isError).not.toBe(true);
         expect(getTextContent(replay as { content: Array<{ type: string; text?: string }> })).toContain(

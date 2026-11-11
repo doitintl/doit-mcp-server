@@ -161,14 +161,14 @@ describe("size guard through actual tool dispatch", () => {
         expect(makeDoitRequest).not.toHaveBeenCalled();
         const { approvalToken } = JSON.parse(pending.content[0].text);
         vi.mocked(makeDoitRequest).mockResolvedValue("x".repeat(MAX_TOOL_RESULT_CHARS));
-        const response = await executeToolHandler("confirm_action", { token: approvalToken }, "key", gated);
+        const response = await executeToolHandler("confirm_action", { approvalToken }, "key", gated);
         expect(response.isError).toBe(false);
         expect(JSON.parse(response.content[0].text).status).toBe("completed");
         expect(makeDoitRequest).toHaveBeenCalledOnce();
         expect(onResponseMetrics).toHaveBeenLastCalledWith(
             expect.objectContaining({ toolName: remove.name, disposition: "success_receipt" })
         );
-        const retry = await executeToolHandler("confirm_action", { token: approvalToken }, "key", gated);
+        const retry = await executeToolHandler("confirm_action", { approvalToken }, "key", gated);
         expect(retry.isError).toBe(true);
         expect(makeDoitRequest).toHaveBeenCalledOnce();
     });

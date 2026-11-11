@@ -1,5 +1,9 @@
 import { HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { generateTools } from "../../../src/tools/generated/generateTools.js";
+import { loadGeneratedToolsSpec } from "../../../src/tools/generated/loadSpec.js";
+import { COVERED_ENDPOINTS } from "../../../src/tools/handWrittenTools.js";
+import { APPROVAL_GATED_DESCRIPTION } from "../../../src/utils/approval.js";
 import { createTestClient, getTextContent } from "../helpers.js";
 import { mswServer } from "../setup.js";
 
@@ -29,6 +33,58 @@ describe("Write-gated tool approval flow (stdio)", () => {
         vi.restoreAllMocks();
     });
 
+    it("lists confirm_action and describes the two-step flow on gated DELETE tools", async () => {
+        const { client, cleanup: cleanupListed } = await createTestClient();
+        try {
+            const { tools } = await client.listTools();
+            const confirm = tools.find((tool) => tool.name === "confirm_action");
+            expect(confirm?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
+            const gated = new Set(
+                generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS)
+                    .filter((tool) => tool.summary)
+                    .map((tool) => tool.name)
+            );
+            expect(gated).toContain("delete_alert");
+            for (const tool of tools) {
+                expect(tool.description?.includes(APPROVAL_GATED_DESCRIPTION), tool.name).toBe(gated.has(tool.name));
+            }
+            expect(tools.filter((tool) => gated.has(tool.name))).toHaveLength(gated.size);
+        } finally {
+            await cleanupListed();
+        }
+    });
+
+    it("confirms the saved target, not arguments sent with confirm_action", async () => {
+        const staged = await rawClient.callTool({ name: "delete_alert", arguments: { id: "alert-1" } });
+        const { approvalToken } = JSON.parse(getTextContent(staged));
+
+        const confirmed = await rawClient.callTool({
+            name: "confirm_action",
+            arguments: { approvalToken: approvalToken, id: "alert-other" } as Record<string, unknown>,
+        });
+
+        expect(deleteCalls).toEqual(["alert-1"]);
+        expect(confirmed.isError).not.toBe(true);
+    });
+
+    it("returns the original DELETE error after confirmation", async () => {
+        mswServer.use(
+            http.delete("https://api.doit.com/analytics/v1/alerts/missing", () =>
+                HttpResponse.json({ error: "alert not found" }, { status: 404 })
+            )
+        );
+        const staged = await rawClient.callTool({ name: "delete_alert", arguments: { id: "missing" } });
+        const { approvalToken } = JSON.parse(getTextContent(staged));
+
+        const confirmed = await rawClient.callTool({
+            name: "confirm_action",
+            arguments: { approvalToken: approvalToken },
+        });
+
+        expect(confirmed.isError).toBe(true);
+        expect(getTextContent(confirmed)).toContain("404");
+    });
+
     it("emits an approval_required envelope on the first call and does not hit the API", async () => {
         const result = await rawClient.callTool({ name: "delete_alert", arguments: { id: "alert-1" } });
         const body = JSON.parse(getTextContent(result));
@@ -48,7 +104,7 @@ describe("Write-gated tool approval flow (stdio)", () => {
 
         const second = await rawClient.callTool({
             name: "confirm_action",
-            arguments: { token: approvalToken },
+            arguments: { approvalToken: approvalToken },
         });
 
         expect(second.isError).not.toBe(true);
@@ -59,10 +115,10 @@ describe("Write-gated tool approval flow (stdio)", () => {
         const first = await rawClient.callTool({ name: "delete_alert", arguments: { id: "alert-1" } });
         const { approvalToken } = JSON.parse(getTextContent(first));
 
-        await rawClient.callTool({ name: "confirm_action", arguments: { token: approvalToken } });
+        await rawClient.callTool({ name: "confirm_action", arguments: { approvalToken: approvalToken } });
         const replay = await rawClient.callTool({
             name: "confirm_action",
-            arguments: { token: approvalToken },
+            arguments: { approvalToken: approvalToken },
         });
 
         expect(getTextContent(replay)).toContain("Approval token unknown or expired");
@@ -72,7 +128,7 @@ describe("Write-gated tool approval flow (stdio)", () => {
     it("confirm_action with an unknown token returns the canonical error", async () => {
         const result = await rawClient.callTool({
             name: "confirm_action",
-            arguments: { token: "00000000-0000-0000-0000-000000000000" },
+            arguments: { approvalToken: "00000000-0000-0000-0000-000000000000" },
         });
         expect(getTextContent(result)).toContain("Approval token unknown or expired");
     });
