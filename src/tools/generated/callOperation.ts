@@ -78,7 +78,9 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
                 ([key]) =>
                     !metadata.pathParams.includes(key) &&
                     !metadata.queryParams.includes(key) &&
-                    !metadata.headerParams.includes(key)
+                    !metadata.headerParams.includes(key) &&
+                    // The server's continuation token is consumed before dispatch; never send it upstream.
+                    !(metadata.resultPaged && key === "pageToken")
             )
         );
         const hasBody = Object.keys(bodyFields).length > 0;

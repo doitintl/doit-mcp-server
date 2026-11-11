@@ -155,7 +155,7 @@ export {
 } from "./tools/folders.js";
 export { generateTools } from "./tools/generated/generateTools.js";
 export type { GeneratedTool } from "./tools/generated/types.js";
-export { COVERED_ENDPOINTS, HAND_WRITTEN_TOOLS } from "./tools/handWrittenTools.js";
+export { COVERED_ENDPOINTS, HAND_WRITTEN_TOOLS, RESULT_PAGED_TOOLS } from "./tools/handWrittenTools.js";
 export {
     GetInsightArgumentsSchema,
     GetInsightResourcesArgumentsSchema,
@@ -262,6 +262,14 @@ export {
 } from "./tools/validateUser.js";
 export * from "./utils/approval.js";
 export { SERVER_NAME, SERVER_NAME_WEB, SERVER_VERSION } from "./utils/consts.js";
+export {
+    CONTINUATION_TOKEN_PREFIX,
+    type ContinuationPayload,
+    type ContinuationPosition,
+    isContinuationToken,
+    signContinuation,
+    verifyContinuation,
+} from "./utils/continuation.js";
 export { DEMO_TOKEN } from "./utils/demoData.js";
 export {
     finalizeToolResponse,
@@ -270,6 +278,17 @@ export {
     type ResponseLimitContext,
     type ToolResponseMetrics,
 } from "./utils/responseLimit.js";
+export {
+    FOREIGN_PAGE_TOKEN_MESSAGE,
+    INVALID_CONTINUATION_MESSAGE,
+    needsResultPageToken,
+    RESULT_PAGE_BUDGET_CHARS,
+    RESULT_PAGE_TOKEN_DESCRIPTION,
+    RESULT_PAGE_TOKEN_SCHEMA,
+    type ResultPagingOptions,
+    withResultPageToken,
+    withResultPageTokenInputSchema,
+} from "./utils/resultPaging.js";
 export { executeToolHandler, type ToolHandlerOptions } from "./utils/toolsHandler.js";
 export {
     type ConsoleRequestEnv,

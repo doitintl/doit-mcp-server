@@ -294,6 +294,7 @@ export const GetLabelAssignmentsArgumentsSchema = z.object({
 
 export const getLabelAssignmentsTool = {
     name: "get_label_assignments",
+    resultPaged: true,
     title: "Get label assignments",
     coversEndpoint: "get:/analytics/v1/labels/{id}/assignments",
     description:

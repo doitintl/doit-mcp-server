@@ -14,6 +14,8 @@ export type OperationMetadata = {
     responsePageTokenHeader?: string;
     /** Query parameters sent when the caller omits them (see overrides.ts). */
     queryDefaults?: Record<string, string | number | boolean>;
+    /** The operation has no paging of its own; its pageToken is the server's continuation token. */
+    resultPaged?: boolean;
     multipartFileFields: string[];
 };
 

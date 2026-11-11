@@ -16,6 +16,7 @@ export const ListRolesArgumentsSchema = z.object({});
 
 export const listRolesTool = {
     name: "list_roles",
+    resultPaged: true,
     title: "List roles",
     coversEndpoint: "get:/iam/v1/roles",
     description:
