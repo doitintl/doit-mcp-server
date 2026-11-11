@@ -364,8 +364,11 @@ describe("MCP Tools Integration", () => {
     });
 
     describe("list_products", () => {
-        it("returns products from mock API", async () => {
-            const result = await client.callTool({ name: "list_products", arguments: {} });
+        it("returns the selected platform's products from mock API", async () => {
+            const result = await client.callTool({
+                name: "list_products",
+                arguments: { platform: "google_cloud_platform" },
+            });
             const text = getTextContent(result);
             expect(text).toContain("Compute Engine");
             expect(text).toContain("Cloud Storage");
@@ -373,13 +376,10 @@ describe("MCP Tools Integration", () => {
             expect(text).toContain("cloud-storage");
         });
 
-        it("accepts platform filter parameter", async () => {
-            const result = await client.callTool({
-                name: "list_products",
-                arguments: { platform: "google_cloud_platform" },
-            });
-            const text = getTextContent(result);
-            expect(text).toContain("Compute Engine");
+        it("rejects a call without a platform with an actionable message", async () => {
+            const result = await client.callTool({ name: "list_products", arguments: {} });
+            expect(result.isError).toBe(true);
+            expect(getTextContent(result)).toContain("platform is required");
         });
     });
 

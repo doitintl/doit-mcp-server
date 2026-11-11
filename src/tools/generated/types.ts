@@ -12,6 +12,8 @@ export type OperationMetadata = {
     contentType?: string;
     /** Only operations opted in by an override wrap their text body with a pageToken. */
     responsePageTokenHeader?: string;
+    /** Query parameters sent when the caller omits them (see overrides.ts). */
+    queryDefaults?: Record<string, string | number | boolean>;
     multipartFileFields: string[];
 };
 

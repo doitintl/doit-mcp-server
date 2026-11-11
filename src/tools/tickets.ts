@@ -44,8 +44,10 @@ export const ListTicketsArgumentsSchema = z.object({
         .int()
         .min(1)
         .max(100)
-        .default(40)
-        .describe("Number of tickets per API page, from 1 to 100. Defaults to 40; sent as maxResults."),
+        .default(20)
+        .describe(
+            "Number of tickets per API page, from 1 to 100. Defaults to 20; sent as maxResults. Tickets carry a description and custom fields, so a page of 100 can exceed the MCP result size limit."
+        ),
     subject: z
         .string()
         .optional()
@@ -60,7 +62,7 @@ export const listTicketsTool = {
     title: "List support tickets",
     coversEndpoint: "get:/support/v1/tickets",
     description:
-        "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, severity, and platform. Customers see their own tickets; organization tickets are visible when ticket sharing is enabled. Subject filtering is case-insensitive and applies only to the returned page. The API cursor and unfiltered rowCount are preserved, including on pages with no matches. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
+        "Use this when the user wants to view their support tickets, check ticket status, or review open issues. Returns tickets with status, severity, and platform. Customers see their own tickets; organization tickets are visible when ticket sharing is enabled. Subject filtering is case-insensitive and applies only to the returned page. The API cursor and unfiltered rowCount are preserved, including on pages with no matches. Each ticket's fields array lists only custom fields that have a value; unset fields are omitted. Do NOT use this for cloud incidents (use get_cloud_incidents) or cost alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(ListTicketsArgumentsSchema),
     annotations: {
         readOnlyHint: true,
@@ -73,6 +75,24 @@ export const listTicketsTool = {
     },
     securitySchemes: [{ type: "oauth2", scopes: ["read_data"] }],
 };
+
+/**
+ * The support API returns every custom field definition on every ticket, most as
+ * `{ id, value: null }`. Those entries are over half of a ticket's size and carry no
+ * information, so only fields with a value are kept. Tickets without a fields array
+ * are returned unchanged.
+ */
+export function omitUnsetTicketFields<T extends object>(ticket: T): T {
+    const fields = (ticket as { fields?: unknown }).fields;
+    if (!Array.isArray(fields)) return ticket;
+    return {
+        ...ticket,
+        fields: fields.filter((field) => {
+            const value = (field as { value?: unknown } | null)?.value;
+            return value !== null && value !== undefined;
+        }),
+    };
+}
 
 // Handler for the tool
 export async function handleListTicketsRequest(args: any, token: string) {
@@ -90,6 +110,7 @@ export async function handleListTicketsRequest(args: any, token: string) {
         if (!data) {
             return createErrorResponse("Failed to fetch tickets: No data returned");
         }
+        data.tickets = (data.tickets ?? []).map(omitUnsetTicketFields);
         if (subject) {
             const q = subject.toLowerCase();
             data.tickets = (data.tickets ?? []).filter(

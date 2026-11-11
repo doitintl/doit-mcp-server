@@ -83,3 +83,23 @@ describe("generated tool overrides", () => {
         expect(generateTools(document, new Set())[0].description).toBe("Lists things.");
     });
 });
+
+describe("query defaults", () => {
+    const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+    const byName = new Map(tools.map((tool) => [tool.name, tool]));
+
+    it("requests 20 composer recipes per page unless maxResults is given, and says so", () => {
+        const tool = byName.get("list_composer_recipes");
+        expect(tool?.metadata.queryDefaults).toEqual({ maxResults: 20 });
+        expect(tool?.metadata.queryParams).toContain("maxResults");
+        expect(tool?.description).toContain("requests 20 recipes per page unless maxResults is set");
+    });
+
+    it("every query default names a real query parameter of its tool", () => {
+        for (const [name, override] of Object.entries(toolOverrides)) {
+            for (const param of Object.keys(override.queryDefaults ?? {})) {
+                expect(byName.get(name)?.metadata.queryParams, `${name}.${param}`).toContain(param);
+            }
+        }
+    });
+});

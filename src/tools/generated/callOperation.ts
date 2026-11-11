@@ -54,8 +54,10 @@ export async function handleGeneratedOperationRequest(tool: GeneratedTool, args:
 
         const queryParams = new URLSearchParams();
         for (const paramName of metadata.queryParams) {
-            if (parsed[paramName] !== undefined) {
-                queryParams.set(paramName, String(parsed[paramName]));
+            // An explicit argument wins; otherwise an override default replaces the API's own.
+            const value = parsed[paramName] ?? metadata.queryDefaults?.[paramName];
+            if (value !== undefined) {
+                queryParams.set(paramName, String(value));
             }
         }
         if (customerContext) {
