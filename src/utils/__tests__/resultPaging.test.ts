@@ -88,6 +88,26 @@ describe("fitResultPage on stdio results", () => {
         expect(last).not.toHaveProperty("pageSplit");
     });
 
+    it("drops an upstream nextPageToken from split parts and exposes it only on the last", async () => {
+        // search_customers-shaped: takes pageToken, returns its cursor as nextPageToken.
+        const full = () => textResult({ nextPageToken: "upstream-2", hasMore: true, customers: tickets(300, 1_500) });
+        const seen: number[] = [];
+        let position: ContinuationPosition | undefined;
+        let last: Record<string, any> | undefined;
+        for (let calls = 0; calls < 10; calls += 1) {
+            last = parsed(await fitResultPage(full(), textOptions({ toolName: "search_customers", position })));
+            seen.push(...last.customers.map((customer: { id: number }) => customer.id));
+            if (!isFakeToken(last.pageToken)) break;
+            expect(last).not.toHaveProperty("nextPageToken");
+            expect(last.hasMore).toBe(true);
+            position = tokenPayload(last.pageToken).position;
+        }
+        expect(seen).toEqual(Array.from({ length: 300 }, (_, i) => i + 1));
+        expect(last).toMatchObject({ nextPageToken: "upstream-2" });
+        expect(last).not.toHaveProperty("pageToken");
+        expect(last).not.toHaveProperty("pageSplit");
+    });
+
     it("turns a split root array into an items object so the cursor has a place", async () => {
         const diagrams = Array.from({ length: 60 }, (_, i) => ({ _id: `d-${i + 1}`, blob: "x".repeat(4_000) }));
         const fitted = await fitResultPage(textResult(diagrams), textOptions({ toolName: "get_cloud_diagrams_stats" }));
@@ -156,6 +176,18 @@ describe("fitResultPage on converted (hosted) results", () => {
             pageSplit: { returnedRecords: page.items.length, remainingInResult: 40 - page.items.length },
         });
         expect(JSON.parse(fitted.content[0].text)).toEqual(page);
+    });
+
+    it("drops an upstream pageToken a converter left in place", async () => {
+        const result = structuredResult({
+            items: tickets(40, 5_000),
+            hasMore: true,
+            nextPageToken: "upstream-next",
+            pageToken: "upstream-next",
+        });
+        const page = (await fitResultPage(result, options())).structuredContent as Record<string, any>;
+        expect(page.nextPageToken).toMatch(/^dci1\./);
+        expect(page).not.toHaveProperty("pageToken");
     });
 
     it("marks a completed continuation of a cursorless list with hasMore: false", async () => {

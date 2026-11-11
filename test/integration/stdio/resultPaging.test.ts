@@ -19,6 +19,7 @@ const ticket = (id: number, descriptionChars: number) => ({
     platform: "google_cloud_platform",
 });
 
+const CUSTOMERS = 300;
 const DIAGRAMS = 120;
 const diagram = (n: number) => ({
     _id: `diagram-${n}`,
@@ -57,6 +58,15 @@ describe("result paging over stdio", () => {
                           }
                 );
             }),
+            http.post("https://console.doit.com/api/customers/v1/customers/search", () =>
+                HttpResponse.json({
+                    nextPageToken: "customers-page-2",
+                    customers: Array.from({ length: CUSTOMERS }, (_, i) => ({
+                        id: `customer-${i + 1}`,
+                        name: "x".repeat(1_500),
+                    })),
+                })
+            ),
             http.get("https://api.doit.com/clouddiagrams/v1/scheme/stats", () =>
                 HttpResponse.json(Array.from({ length: DIAGRAMS }, (_, i) => diagram(i + 1)))
             )
@@ -64,6 +74,7 @@ describe("result paging over stdio", () => {
     });
 
     afterEach(async () => {
+        process.env.DOIT_API_KEY = "test-api-key";
         await cleanup();
         vi.restoreAllMocks();
     });
@@ -105,6 +116,20 @@ describe("result paging over stdio", () => {
             Array.from({ length: SECOND_PAGE }, (_, i) => TICKETS + i + 1)
         );
         expect(second.pageToken).toBe("");
+    });
+
+    it("keeps the API's nextPageToken out of split parts so no customer is skipped", async () => {
+        // search_customers is employee-only; the gate reads the key on every call.
+        const employeeClaims = Buffer.from(JSON.stringify({ sub: "employee@doit.com" })).toString("base64url");
+        process.env.DOIT_API_KEY = `e30.${employeeClaims}.sig`;
+        const { pages, records } = await walk("search_customers", {}, (page) => page.customers);
+        expect(pages.length).toBeGreaterThan(1);
+        for (const page of pages.slice(0, -1)) expect(page).not.toHaveProperty("nextPageToken");
+        expect(records.map((c: { id: string }) => c.id)).toEqual(
+            Array.from({ length: CUSTOMERS }, (_, i) => `customer-${i + 1}`)
+        );
+        expect(pages[pages.length - 1]).toMatchObject({ nextPageToken: "customers-page-2" });
+        expect(pages[pages.length - 1]).not.toHaveProperty("pageToken");
     });
 
     it("pages an unpaginated endpoint through the server's own pageToken", async () => {

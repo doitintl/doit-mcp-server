@@ -139,6 +139,8 @@ function rebuild(result: ToolResult, mode: Located["mode"], data: unknown): Tool
 const EXCLUDED_ARRAY_KEYS = new Set(["rows", "columns", "schema"]);
 /** Record maps keyed by id (cloud-diagram stats return `scheme`). */
 const MAP_COLLECTION_KEYS = new Set(["scheme"]);
+/** Upstream cursor fields a split part must not carry alongside the continuation token. */
+const CURSOR_FIELDS = ["pageToken", "nextPageToken"] as const;
 /** A top-level array is only treated as the record list when it is most of the result. */
 const MIN_COLLECTION_SHARE = 0.5;
 
@@ -272,9 +274,11 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
         });
         const split = withCollection(data, slice(collection, 0, count), {
             [options.cursorField]: token,
-            ...(options.cursorField === "nextPageToken" ? { hasMore: true } : {}),
             pageSplit: { returnedRecords: count, remainingInResult: total - count },
         });
+        // The token must be the only cursor: following an upstream one would skip the rest of this page.
+        for (const field of CURSOR_FIELDS) if (field !== options.cursorField) delete split[field];
+        if (options.cursorField === "nextPageToken" || "hasMore" in split) split.hasMore = true;
         return rebuild(current, mode, split);
     };
 
