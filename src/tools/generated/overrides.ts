@@ -7,6 +7,11 @@ export type ToolOverride = {
     responsePageTokenHeader?: string;
     /** Explicit operation semantics when the HTTP method does not indicate whether it writes. */
     readOnly?: boolean;
+    /**
+     * Opts a read-only list operation with no upstream paging into server-side result paging
+     * (src/utils/resultPaging.ts). Only for operations that return a record list.
+     */
+    resultPaged?: true;
 };
 
 /**
@@ -48,4 +53,30 @@ export const toolOverrides: Record<string, ToolOverride> = {
         descriptionSuffix:
             "The current generated MCP schema exposes no arbitrary trigger payload field; the API uses an empty payload when omitted. trigger_cloud_flow accepts a webhook payload for published webhook flows.",
     },
+    // List operations whose endpoints return every record at once: oversized results are split
+    // into continuation pages (src/utils/resultPaging.ts). Operations that page upstream through
+    // `after`/`nextCursor` (Attribute) and responses without a record array stay out.
+    list_billing_transfer_end_customers: { resultPaged: true },
+    list_billing_transfer_end_customers_by_reseller: { resultPaged: true },
+    list_billing_transfer_reseller_accounts: { resultPaged: true },
+    list_billing_transfer_reseller_accounts_with_tenants: { resultPaged: true },
+    list_budget_suggestions: { resultPaged: true },
+    list_cloud_diagram_layer_snapshots: { resultPaged: true },
+    list_contract_templates: { resultPaged: true },
+    list_contracts: { resultPaged: true },
+    list_customer_group_user_groups: { resultPaged: true },
+    list_customer_group_users: { resultPaged: true },
+    list_customer_groups: { resultPaged: true },
+    list_customer_notifications: { resultPaged: true },
+    list_gcp_recommendations: { resultPaged: true },
+    list_geographic_access_countries: { resultPaged: true },
+    list_geographic_access_custom_regions: { resultPaged: true },
+    list_service_account_tokens: { resultPaged: true },
+    list_service_accounts: { resultPaged: true },
+    list_shared_payer_account_mappings: { resultPaged: true },
+    list_shared_payer_management_accounts: { resultPaged: true },
+    list_shared_payers: { resultPaged: true },
+    list_ticket_tags: { resultPaged: true },
+    list_user_notifications: { resultPaged: true },
+    list_widgets: { resultPaged: true },
 };

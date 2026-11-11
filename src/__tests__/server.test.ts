@@ -15,6 +15,7 @@ import { prompts } from "../prompts/index.js";
 import { SKILL_RESOURCES } from "../skills/index.js";
 import { CLOUD_CONNECT_TOOLS } from "../tools/cloudConnect.js";
 import { SERVER_VERSION } from "../utils/consts.js";
+import { withResultPageTokenInputSchema } from "../utils/resultPaging.js";
 import { BEHAVIORAL_TEXT, schemaDescriptions } from "./behavioralText.js";
 
 // Only the Server class is mocked, for two reasons:
@@ -593,7 +594,7 @@ describe("tools/list handler", () => {
                 askAvaSyncTool,
                 confirmActionTool,
                 ...generatedToolDefinitions,
-            ],
+            ].map(withResultPageTokenInputSchema),
         });
     });
 

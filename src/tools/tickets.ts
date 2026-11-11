@@ -239,6 +239,7 @@ export const ListTicketCommentsArgumentsSchema = z.object({
 // Tool definition for listing ticket comments
 export const listTicketCommentsTool = {
     name: "list_ticket_comments",
+    resultPaged: true,
     title: "List ticket comments",
     coversEndpoint: "get:/support/v1/tickets/{ticketId}/comments",
     description:

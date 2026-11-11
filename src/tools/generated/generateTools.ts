@@ -2,6 +2,7 @@ import type { OpenAPIV3 } from "openapi-types";
 import { z } from "zod";
 
 import { APPROVAL_GATED_DESCRIPTION } from "../../utils/approval.js";
+import { RESULT_PAGE_TOKEN_SCHEMA } from "../../utils/resultPaging.js";
 import { isExcludedOperation } from "./excludedOperations.js";
 import { toolOverrides } from "./overrides.js";
 import { buildRequestPath } from "./requestPath.js";
@@ -206,6 +207,11 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             }`;
 
             const isReadOnly = override?.readOnly ?? method === "get";
+            // Opted-in list reads without upstream paging take the server's continuation token.
+            if (override?.resultPaged && isReadOnly && !("pageToken" in shape)) {
+                shape.pageToken = RESULT_PAGE_TOKEN_SCHEMA;
+                metadata.resultPaged = true;
+            }
             const zodSchema = z.object(shape);
             const isApprovalGated = method === "delete";
 

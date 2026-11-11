@@ -12,6 +12,8 @@ export type OperationMetadata = {
     contentType?: string;
     /** Only operations opted in by an override wrap their text body with a pageToken. */
     responsePageTokenHeader?: string;
+    /** The operation has no paging of its own; its pageToken is the server's continuation token. */
+    resultPaged?: boolean;
     multipartFileFields: string[];
 };
 
