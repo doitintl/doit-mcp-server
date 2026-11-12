@@ -1,12 +1,12 @@
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { serveDoitChannelStdio } from "../channel/serve.js";
+import { serveDoitChannelOnlyStdio, serveDoitChannelStdio } from "../channel/serve.js";
 import { exitOnFatalError, main, mainWithServer } from "../index.js";
 import { serveDoitStdio } from "../stdio.js";
 
 vi.mock("@modelcontextprotocol/server/stdio");
 vi.mock("../stdio.js", () => ({ serveDoitStdio: vi.fn() }));
-vi.mock("../channel/serve.js", () => ({ serveDoitChannelStdio: vi.fn() }));
+vi.mock("../channel/serve.js", () => ({ serveDoitChannelStdio: vi.fn(), serveDoitChannelOnlyStdio: vi.fn() }));
 vi.mock("dotenv", () => ({ config: vi.fn() }));
 
 beforeEach(() => {
@@ -51,6 +51,27 @@ describe("mainWithServer", () => {
         await mainWithServer();
 
         expect(serveDoitChannelStdio).toHaveBeenCalledWith({ events: ["anomalies"], pollIntervalMs: 120_000 });
+        expect(serveDoitStdio).not.toHaveBeenCalled();
+    });
+
+    it("serves events only when DOIT_CHANNEL_ONLY is set", async () => {
+        vi.stubEnv("DOIT_CHANNEL_ONLY", "true");
+        vi.stubEnv("DOIT_CHANNEL_EVENTS", "incidents");
+
+        await mainWithServer();
+
+        expect(serveDoitChannelOnlyStdio).toHaveBeenCalledWith({ events: ["incidents"], pollIntervalMs: 300_000 });
+        expect(serveDoitChannelStdio).not.toHaveBeenCalled();
+        expect(serveDoitStdio).not.toHaveBeenCalled();
+    });
+
+    it("never falls back to the full server in channel-only mode, even with no event kinds", async () => {
+        vi.stubEnv("DOIT_CHANNEL_ONLY", "1");
+        vi.stubEnv("DOIT_CHANNEL_EVENTS", "");
+
+        await mainWithServer();
+
+        expect(serveDoitChannelOnlyStdio).toHaveBeenCalledWith(undefined);
         expect(serveDoitStdio).not.toHaveBeenCalled();
     });
 

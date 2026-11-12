@@ -215,3 +215,4 @@ Used by the local stdio server. Remote `/mcp` connections authenticate with OAut
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
 - `DOIT_CHANNEL_EVENTS`: Opt in to [Claude Code channel mode](docs/channels.md) (research preview) by listing event kinds to push into an open session: `anomalies`, `incidents` (optional, off by default)
 - `DOIT_CHANNEL_POLL_SECONDS`: Channel poll interval in seconds, minimum 60 (optional, default 300)
+- `DOIT_CHANNEL_ONLY`: Set to `true` to serve channel events and no tools, for a session that has the DoiT tools from another connection (optional)

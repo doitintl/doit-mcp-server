@@ -75,6 +75,7 @@ Set `DOIT_CHANNEL_EVENTS` in the server's environment:
 |---|---|---|
 | `DOIT_CHANNEL_EVENTS` | Comma-separated event kinds: `anomalies`, `incidents` | unset (channel mode off) |
 | `DOIT_CHANNEL_POLL_SECONDS` | Poll interval in seconds, minimum 60 | `300` |
+| `DOIT_CHANNEL_ONLY` | `true` serves events and no tools, prompts or resources (see [Events only](#events-only)) | unset |
 
 ```json
 {
@@ -96,6 +97,33 @@ A server configured this way can only be registered with the development flag:
 ```sh
 claude --dangerously-load-development-channels server:doit
 ```
+
+### Events only
+
+Set `DOIT_CHANNEL_ONLY=true` when the session already has the DoiT tools from another connection,
+for example the hosted server at `https://mcp.doit.com/mcp`, and this process should only deliver
+events. The server then declares the channel capability and nothing else, so Claude does not see
+every tool twice. Claude looks up an event's details with the tools of the other connection.
+
+```json
+{
+  "mcpServers": {
+    "doit": { "type": "http", "url": "https://mcp.doit.com/mcp" },
+    "doit-channel": {
+      "command": "npx",
+      "args": ["-y", "@doitintl/doit-mcp-server@latest"],
+      "env": {
+        "DOIT_API_KEY": "your_doit_api_key",
+        "DOIT_CHANNEL_ONLY": "true",
+        "DOIT_CHANNEL_EVENTS": "anomalies,incidents"
+      }
+    }
+  }
+}
+```
+
+A channel-only process never serves tools. If `DOIT_CHANNEL_EVENTS` is empty or names no known
+event kind, it stays connected and sends nothing.
 
 ### Requirements that apply either way
 
