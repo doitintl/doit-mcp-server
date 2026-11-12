@@ -67,6 +67,28 @@ This was how `src/index.ts` worked up to 2.1.1. `mainWithServer(customServer)` s
 - **Unchanged:** the tool, prompt and resource surface is identical in both eras. That includes
   non-spec tool fields such as `securitySchemes`, which v2 clients drop when they parse a tool.
 
+## Channel mode
+
+With `DOIT_CHANNEL_EVENTS` set (see [channels.md](channels.md)), the server speaks the **2025 era
+only**. `main()` calls `serveDoitChannelStdio()` (`src/channel/serve.ts`), which hand-wires one
+`Server` to the stdio transport instead of going through `serveDoitStdio`.
+
+This is required, not incidental: Claude Code does not register a channel on a connection that
+negotiated `2026-07-28`. Observed behavior:
+
+- Claude Code 2.1.306 opened with `server/discover`, was answered by `serveDoitStdio`, pinned the
+  modern era and reported that channel messages were unavailable for that protocol version.
+- Claude Code 2.1.322, against the hand-wired server, received `-32601 Method not found` for its
+  `server/discover` probe, fell back to `initialize` (`2025-11-25`), registered the channel and
+  displayed the event.
+
+The fallback from a failed probe to `initialize` is client behavior this server relies on but does
+not control. A client pinned to `2026-07-28` cannot connect in channel mode. A single hand-wired
+instance also means the poller binds to the one live server, which the per-attempt factory in
+`serveDoitStdio` could not guarantee.
+
+Without `DOIT_CHANNEL_EVENTS`, nothing in this section applies and both eras are served as above.
+
 ## Evidence
 
 All of the following are executable. Run them from `test/integration` after a root
@@ -96,6 +118,8 @@ yarn test stdio/modern/                     # the 2026-07-28 suite
 yarn test process/                          # the built-binary smoke test
 git diff v2.1.1 -- stdio/ ":!stdio/modern" # only removes the unused `_server` variable; no assertion changed
 ```
+| Channel mode refuses the `server/discover` probe, serves `initialize` with the `claude/channel` capability, and exits on stdin EOF | `process/channelBinary.test.ts` |
+| Channel mode baselines, then pushes one event per new item; default mode declares no channel capability and does not poll | `stdio/channel.test.ts` |
 
 ## Checking it by hand
 
