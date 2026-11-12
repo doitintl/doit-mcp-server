@@ -120,6 +120,7 @@ git diff v2.1.1 -- stdio/ ":!stdio/modern" # only removes the unused `_server` v
 ```
 | Channel mode refuses the `server/discover` probe, serves `initialize` with the `claude/channel` capability, and exits on stdin EOF | `process/channelBinary.test.ts` |
 | Channel mode baselines, then pushes one event per new item; default mode declares no channel capability and does not poll | `stdio/channel.test.ts` |
+| Channel-only mode declares only the `claude/channel` capability, answers `tools/list` with `-32601`, and still pushes events | `stdio/channel.test.ts`, `process/channelBinary.test.ts` |
 
 ## Checking it by hand
 

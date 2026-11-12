@@ -7,8 +7,8 @@ import * as dotenv from "dotenv";
 // quiet: dotenv >=17 prints a banner to stdout, which corrupts the MCP JSON-RPC stream
 dotenv.config({ quiet: true });
 
-import { parseChannelConfig } from "./channel/config.js";
-import { serveDoitChannelStdio } from "./channel/serve.js";
+import { isChannelOnly, parseChannelConfig } from "./channel/config.js";
+import { serveDoitChannelOnlyStdio, serveDoitChannelStdio } from "./channel/serve.js";
 import { serveDoitStdio } from "./stdio.js";
 
 /**
@@ -18,6 +18,8 @@ import { serveDoitStdio } from "./stdio.js";
  *   `initialize` and 2026-07-28 clients via `server/discover` — see {@link serveDoitStdio}.
  * - No argument with `DOIT_CHANNEL_EVENTS` set: serves as a Claude Code channel — 2025-era
  *   protocol only, with event polling — see {@link serveDoitChannelStdio}.
+ * - No argument with `DOIT_CHANNEL_ONLY` set: serves channel events and no tools, prompts or
+ *   resources — see {@link serveDoitChannelOnlyStdio}.
  * - A `Server` instance: hand-wires it with `customServer.connect(new StdioServerTransport())`,
  *   as before. That path only speaks the 2025-era protocol; a single instance cannot back
  *   era selection, because a modern `server/discover` probe followed by an `initialize`
@@ -27,6 +29,10 @@ export async function mainWithServer(customServer?: Server) {
     const channelConfig = customServer ? undefined : parseChannelConfig();
     if (customServer) {
         await customServer.connect(new StdioServerTransport());
+    } else if (isChannelOnly()) {
+        // Events only, for a client that has the DoiT tools from another connection. Checked
+        // before the events list so that an empty list never falls through to the full server.
+        await serveDoitChannelOnlyStdio(channelConfig);
     } else if (channelConfig) {
         // Opt-in Claude Code channel mode (DOIT_CHANNEL_EVENTS): one hand-wired, 2025-era-only
         // server plus an event poller. See src/channel/serve.ts.

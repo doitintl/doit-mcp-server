@@ -2,7 +2,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { HttpResponse, http } from "msw";
 import { afterEach, describe, expect, it } from "vitest";
-import { type ChannelServerHandle, serveDoitChannelStdio } from "../../../src/channel/serve.js";
+import {
+    type ChannelServerHandle,
+    serveDoitChannelOnlyStdio,
+    serveDoitChannelStdio,
+} from "../../../src/channel/serve.js";
 import { SERVER_INSTRUCTIONS } from "../../../src/docs/serverInstructions.js";
 import { createTestClient } from "../helpers.js";
 import { mswServer } from "../setup.js";
@@ -188,5 +192,79 @@ describe("default stdio mode", () => {
         } finally {
             await cleanup();
         }
+    });
+});
+
+describe("channel-only mode (DOIT_CHANNEL_ONLY)", () => {
+    let open: { client: Client; handle: ChannelServerHandle } | undefined;
+
+    afterEach(async () => {
+        await open?.client.close();
+        await open?.handle.close();
+        open = undefined;
+    });
+
+    async function connectChannelOnly(config: Parameters<typeof serveDoitChannelOnlyStdio>[0]) {
+        const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+        const logs: string[] = [];
+        const handle = await serveDoitChannelOnlyStdio(config, {
+            transport: serverTransport,
+            log: (message) => logs.push(message),
+        });
+        const received: ChannelNotification[] = [];
+        const client = new Client({ name: "channel-only-test-client", version: "1.0.0" });
+        client.fallbackNotificationHandler = async (notification) => {
+            received.push(notification as ChannelNotification);
+        };
+        await client.connect(clientTransport);
+        return { client, handle, received, logs };
+    }
+
+    it("declares only the channel capability and serves no tools, prompts or resources", async () => {
+        mswServer.use(http.get(`${API_BASE}/anomalies/v1`, () => HttpResponse.json({ anomalies: [] })));
+        open = await connectChannelOnly({ events: ["anomalies"], pollIntervalMs: 20 });
+        const { client } = open;
+
+        expect(client.getServerCapabilities()).toEqual({ experimental: { "claude/channel": {} } });
+        expect(client.getInstructions()).not.toContain(SERVER_INSTRUCTIONS);
+        expect(client.getInstructions()).toContain("has no tools");
+
+        for (const method of ["tools/list", "prompts/list", "resources/list"]) {
+            await expect(
+                client.request({ method }, { parse: (value: unknown) => value } as never)
+            ).rejects.toMatchObject({ code: -32601 });
+        }
+    });
+
+    it("pushes events for new items", async () => {
+        let polls = 0;
+        mswServer.use(
+            http.get(`${API_BASE}/anomalies/v1`, () => {
+                polls += 1;
+                return HttpResponse.json({ anomalies: polls === 1 ? [] : [anomaly("anom-new")] });
+            })
+        );
+        open = await connectChannelOnly({ events: ["anomalies"], pollIntervalMs: 20 });
+
+        await waitFor(() => open?.received.length === 1);
+        expect((open.received[0] as ChannelNotification).params?.meta?.anomaly_id).toBe("anom-new");
+    });
+
+    it("stays connected and silent, without polling, when no event kind is configured", async () => {
+        let polls = 0;
+        mswServer.use(
+            http.get(`${API_BASE}/anomalies/v1`, () => {
+                polls += 1;
+                return HttpResponse.json({ anomalies: [] });
+            })
+        );
+        const connected = await connectChannelOnly(undefined);
+        open = connected;
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(polls).toBe(0);
+        expect(connected.received).toHaveLength(0);
+        expect(connected.client.getServerCapabilities()?.tools).toBeUndefined();
+        expect(connected.logs.join("\n")).toContain("no event kinds configured");
     });
 });

@@ -188,6 +188,7 @@ The project uses:
 - `src/channel/` is the opt-in Claude Code channel (`DOIT_CHANNEL_EVENTS`): stdio only, 2025-era protocol only, one-way, polling anomalies and cloud incidents. It is not exported from `/core`. See [docs/channels.md](docs/channels.md).
 - Event text reaches the model's context directly. Keep content a fixed sentence and pass API values only through `sanitizeMetaValue`; never forward titles, descriptions or other free text.
 - `.claude-plugin/marketplace.json` (marketplace `doitintl`) and `plugins/doit/.claude-plugin/plugin.json` (plugin `doit`) package the channel for Claude Code. The plugin runs the published npm package pinned to an exact version (the plugin directory refuses `@latest`), so it only gains a server change after a release; `prepare-release.sh` raises the plugin version and re-pins the package in the manifest and in `plugins/doit/README.md`. The plugin folder carries its own README and icon because the directory checks only that folder. Run `claude plugin validate .` and `claude plugin validate ./plugins/doit` after editing either manifest.
+- `DOIT_CHANNEL_ONLY` serves events from a server with no tools, prompts or resources (`createChannelOnlyServer`), for clients that get the tools from another connection. It must never fall back to the full server, including when no event kind is configured.
 - Nothing thrown by a source or by sending an event may escape a poll: `src/index.ts` treats unhandled rejections as fatal.
 
 ## Skills extension

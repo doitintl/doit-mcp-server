@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { parseChannelConfig } from "../config.js";
+import { isChannelOnly, parseChannelConfig } from "../config.js";
 
 describe("parseChannelConfig", () => {
     it("is off when DOIT_CHANNEL_EVENTS is unset or blank", () => {
@@ -43,5 +43,14 @@ describe("parseChannelConfig", () => {
                 ?.pollIntervalMs
         ).toBe(300_000);
         expect(warn).toHaveBeenCalledWith(expect.stringContaining("soon"));
+    });
+
+    it("reads DOIT_CHANNEL_ONLY as a boolean flag", () => {
+        for (const value of ["1", "true", "TRUE", " yes ", "on"]) {
+            expect(isChannelOnly({ DOIT_CHANNEL_ONLY: value })).toBe(true);
+        }
+        for (const value of [undefined, "", "0", "false", "no"]) {
+            expect(isChannelOnly({ DOIT_CHANNEL_ONLY: value })).toBe(false);
+        }
     });
 });

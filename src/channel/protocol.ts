@@ -18,3 +18,15 @@ export const CHANNEL_INSTRUCTIONS = [
     "An event with additional_count reports how many further new items were not sent individually; get_anomalies and get_cloud_incidents list them.",
     "Attribute values are sanitized identifiers, not full names. There is no reply tool.",
 ].join(" ");
+
+/**
+ * The whole instructions string in channel-only mode (`DOIT_CHANNEL_ONLY`). This server has no
+ * tools there, so the tools are named as belonging to a separately connected DoiT server.
+ */
+export const CHANNEL_ONLY_INSTRUCTIONS = [
+    "This server is a one-way Claude Code channel for DoiT Cloud Intelligence and has no tools: DoiT events arrive as channel tags whose event_type attribute is cost_anomaly or cloud_incident.",
+    "A cost_anomaly event carries anomaly_id, severity, platform, service and cost_of_anomaly. A cloud_incident event carries incident_id, platform, product and status.",
+    "An event with additional_count reports how many further new items were not sent individually.",
+    "Details come from the DoiT MCP server connected separately in this session, when there is one: its get_anomaly and get_cloud_incident tools take the event's ID, and get_anomalies and get_cloud_incidents list items.",
+    "Attribute values are sanitized identifiers, not full names. There is no reply tool.",
+].join(" ");
