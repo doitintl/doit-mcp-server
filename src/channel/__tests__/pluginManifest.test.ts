@@ -46,6 +46,9 @@ describe("doit plugin manifest", () => {
         const setting = (key: string) => `\${user_config.${key}}`;
         expect(server.env).toEqual({
             DOIT_API_KEY: setting("api_key"),
+            // Events only: the tools come from the listed DoiT plugin or the remote connector, so
+            // this server must not serve them a second time.
+            DOIT_CHANNEL_ONLY: "true",
             DOIT_CHANNEL_EVENTS: setting("events"),
             DOIT_CHANNEL_POLL_SECONDS: setting("poll_seconds"),
         });

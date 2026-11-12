@@ -2,7 +2,7 @@
 
 The stdio server can act as a [Claude Code channel](https://code.claude.com/docs/en/channels): while
 a Claude Code session is open, it pushes DoiT events into that session so Claude can react to them
-with the server's existing tools.
+with the DoiT tools.
 
 Channels are a Claude Code **research preview**. The flag syntax and protocol contract may change,
 and this mode may change with them. It is off unless you opt in, and it applies to the local stdio
@@ -15,8 +15,15 @@ Channel mode needs a server release that includes it; earlier releases ignore th
 ### As a plugin (recommended)
 
 This repository is a Claude Code plugin marketplace (`doitintl`) with one plugin, `doit`. The
-plugin runs the published server with `npx` (pinned to the plugin's own version), turns channel mode on, and stores your API key in the
-operating system's credential store.
+plugin runs the published server with `npx` (pinned to the plugin's own version) in
+[events-only](#events-only) mode and stores your API key in the operating system's credential
+store.
+
+The plugin sends events and adds no tools. Claude looks up an event with the DoiT tools from
+another connection, so install one as well: the DoiT Cloud Intelligence plugin from the Claude
+plugin directory, or the connector at `https://mcp.doit.com/mcp`. The channel is a separate plugin
+because the plugin directory accepts local MCP servers only from Verified organizations, and a
+channel has to be a local server.
 
 ```sh
 claude plugin marketplace add doitintl/doit-mcp-server
@@ -57,15 +64,11 @@ where an organization has allowed it. To do that, an administrator sets this in 
 `allowedChannelPlugins` replaces Anthropic's default list, so include any other channel plugins the
 organization uses.
 
-While the plugin is enabled, its server runs in channel mode in every Claude Code session it is
-loaded into, whether or not the session was started with a channel flag. A user-scope install loads
-it into every session on the machine; install with `--scope project` to limit it to one project. In
-each of those sessions it polls the DoiT API, and it speaks the 2025-era protocol
-only, so native Skills loading is unavailable (tool descriptions point to the guides instead). Each
-open session runs its own poller. Disable the plugin when you do not want that.
-
-If the same DoiT server is also configured separately (for example in `.mcp.json` or as the remote
-connector), Claude sees its tools twice. Disable one of them.
+While the plugin is enabled, its server runs in every Claude Code session it is loaded into,
+whether or not the session was started with a channel flag. A user-scope install loads it into
+every session on the machine; install with `--scope project` to limit it to one project. In each of
+those sessions it polls the DoiT API. Each open session runs its own poller. Disable the plugin
+when you do not want that.
 
 ### As a plain MCP server
 
