@@ -199,7 +199,7 @@ These examples demonstrate basic usage patterns. You can combine and modify thes
 
 ## Claude Code plugin and channel (research preview)
 
-The local server is also available as a Claude Code plugin that can push new cost anomalies and cloud incidents into an open session:
+A Claude Code plugin in this repository pushes new cost anomalies and cloud incidents into an open session. It sends events only; the tools come from the DoiT Cloud Intelligence plugin or the remote connector.
 
 ```
 /plugin install doit --marketplace doitintl/doit-mcp-server
