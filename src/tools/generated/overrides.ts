@@ -8,6 +8,11 @@ export type ToolOverride = {
     /** Explicit operation semantics when the HTTP method does not indicate whether it writes. */
     readOnly?: boolean;
     /**
+     * Query parameters sent when the caller omits them, replacing the API's own default.
+     * Used where the API default page is too large for one MCP result.
+     */
+    queryDefaults?: Record<string, string | number | boolean>;
+    /**
      * Opts a read-only list operation with no upstream paging into server-side result paging
      * (src/utils/resultPaging.ts). Only for operations that return a record list.
      */
@@ -32,6 +37,12 @@ export const toolOverrides: Record<string, ToolOverride> = {
     },
     // Fetches selected layer components by ID; POST carries the component ID lists.
     get_statussheet_components: { readOnly: true },
+    // Each recipe carries its manual remediation text; the API's default page of 50 is ~100 KB.
+    list_composer_recipes: {
+        queryDefaults: { maxResults: 20 },
+        descriptionSuffix:
+            "Each recipe includes its remediation text, so this tool requests 20 recipes per page unless maxResults is set (the API's own default is 50; pages of 50 or more can exceed the MCP result size limit).",
+    },
     import_cloudflow_flow: {
         descriptionSuffix:
             "Idempotency-Key is required even with dryRun. Same key/request replays within 24 hours; different request fails with 422, an in-progress match with 409. Dry-runs validate existing fingerprints without storing a replay. " +

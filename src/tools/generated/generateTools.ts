@@ -190,6 +190,9 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             if (override?.responsePageTokenHeader) {
                 metadata.responsePageTokenHeader = override.responsePageTokenHeader;
             }
+            if (override?.queryDefaults) {
+                metadata.queryDefaults = override.queryDefaults;
+            }
 
             const baseDescription =
                 operation.description ?? operation.summary ?? `${method.toUpperCase()} ${pathTemplate}`;

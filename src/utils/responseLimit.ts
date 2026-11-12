@@ -91,11 +91,23 @@ function recoveryHint(toolName: string): string {
         case "run_query":
             return "Use a shorter time range or fewer groups in the query configuration.";
         case "list_assets":
+        case "list_annotations":
+        case "list_composer_recipes":
             return "Use a smaller maxResults value or a narrower filter.";
+        case "list_tickets":
+            return "Use a smaller pageSize value (1-100) or a subject filter.";
+        case "list_products":
+            return "Request one platform at a time with the platform parameter.";
         case "get_report_results":
             return "Use run_query with a narrower configuration, or retrieve the complete report in DoiT Console.";
+        case "get_cloud_overview":
+            return "The overview has no parameters; use run_query with a narrower configuration for the sections needed.";
         case "get_statussheet_components":
             return "Request fewer component IDs or fewer projection fields using the p parameter.";
+        case "get_cloud_diagram_components":
+            return "Select diagrams with scheme_ids or layer_ids; the unfiltered discovery returns every accessible diagram.";
+        case "get_cloud_diagrams_stats":
+            return "The stats endpoint returns every diagram in one response and cannot be paged; retrieve the data in DoiT Console.";
         default:
             return "Use narrower filters or a smaller page where the tool supports them; otherwise retrieve the data in DoiT Console.";
     }
