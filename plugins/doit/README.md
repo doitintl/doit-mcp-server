@@ -77,6 +77,7 @@ tool.
 
 ## Support and privacy
 
-- Issues and questions: <https://github.com/doitintl/doit-mcp-server/issues>
+- Support: <https://support.doit.com>
+- Bug reports for this plugin: <https://github.com/doitintl/doit-mcp-server/issues>
 - Privacy policy: <https://www.doit.com/privacy>
 - License: MIT
