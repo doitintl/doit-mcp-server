@@ -55,3 +55,13 @@ export function parseChannelConfig(
 
     return { events, pollIntervalMs: seconds * 1000 };
 }
+
+/**
+ * `DOIT_CHANNEL_ONLY`: serve events and nothing else — no tools, prompts or resources. For a
+ * client that already has the DoiT tools from another connection (for example the hosted
+ * server) and wants this process for channel events alone. Takes effect whether or not
+ * `DOIT_CHANNEL_EVENTS` names an event kind: a channel-only process never serves tools.
+ */
+export function isChannelOnly(env: Record<string, string | undefined> = process.env): boolean {
+    return ["1", "true", "yes", "on"].includes((env.DOIT_CHANNEL_ONLY ?? "").trim().toLowerCase());
+}

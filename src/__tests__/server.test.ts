@@ -901,7 +901,8 @@ describe("prompts/get handler", () => {
         expect(response.messages[0].role).toBe("user");
         const text: string = response.messages[0].content.text;
         expect(text).toContain("list_tickets");
-        expect(text).toContain("pageToken and the same pageSize=100 on every subsequent call");
+        expect(text).toContain("with a pageSize=20");
+        expect(text).toContain("pageToken and the same pageSize=20 on every subsequent call");
         expect(text).toContain("Do not retrieve more than 5 pages");
     });
 

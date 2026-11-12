@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { makeDoitRequest } from "../../utils/util.js";
 import { handleCloudOverviewRequest } from "../overview.js";
 
@@ -33,4 +33,22 @@ it("returns successful sections, caps lists at five, and represents partial fail
     for (const [, , options] of vi.mocked(makeDoitRequest).mock.calls.slice(1, 3)) {
         expect(options?.body).toMatchObject({ config: { group: [{ id: "cloud_provider" }, { limit: { value: 5 } }] } });
     }
+});
+
+describe("overview query shape", () => {
+    it("requests yearly totals instead of daily rows for every cost section", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({ result: { schema: [], rows: [] } });
+        await handleCloudOverviewRequest({}, "token");
+        const queryCalls = vi.mocked(makeDoitRequest).mock.calls.slice(0, 3);
+        expect(queryCalls).toHaveLength(3);
+        for (const [, , options] of queryCalls) {
+            expect(options?.body).toMatchObject({
+                config: {
+                    timeInterval: "year",
+                    timeRange: { mode: "last", amount: 30, unit: "day", includeCurrent: true },
+                    metrics: [{ type: "basic", value: "cost" }],
+                },
+            });
+        }
+    });
 });

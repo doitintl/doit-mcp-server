@@ -7,6 +7,7 @@ import {
     handleGetTicketRequest,
     handleListTicketCommentsRequest,
     handleListTicketsRequest,
+    omitUnsetTicketFields,
     TICKETS_BASE_URL,
 } from "../tickets.js";
 
@@ -115,7 +116,7 @@ describe("handleListTicketsRequest", () => {
 
         const response = await handleListTicketsRequest({}, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?maxResults=40`, mockToken, {
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${TICKETS_BASE_URL}?maxResults=20`, mockToken, {
             method: "GET",
             customerContext: undefined,
         });
@@ -514,6 +515,63 @@ describe("handleCreateTicketCommentRequest", () => {
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("numeric") }],
             isError: true,
+        });
+    });
+});
+
+describe("ticket custom fields", () => {
+    it("keeps only custom fields that carry a value", () => {
+        const ticket = {
+            id: 1,
+            fields: [
+                { id: 10, value: null },
+                { id: 11, value: "set" },
+                { id: 12, value: 0 },
+                { id: 13, value: false },
+                { id: 14 },
+            ],
+        };
+        expect(omitUnsetTicketFields(ticket).fields).toEqual([
+            { id: 11, value: "set" },
+            { id: 12, value: 0 },
+            { id: 13, value: false },
+        ]);
+        // The input is not mutated.
+        expect(ticket.fields).toHaveLength(5);
+    });
+
+    it("returns tickets without a fields array unchanged", () => {
+        const ticket = { id: 2, subject: "no fields" };
+        expect(omitUnsetTicketFields(ticket)).toBe(ticket);
+        const odd = { id: 3, fields: "not-an-array" };
+        expect(omitUnsetTicketFields(odd)).toBe(odd);
+    });
+
+    it("drops unset custom fields from every listed ticket while keeping pagination values", async () => {
+        vi.mocked(makeDoitRequest).mockResolvedValue({
+            rowCount: 2,
+            pageToken: "next",
+            tickets: [
+                {
+                    id: 1,
+                    subject: "a",
+                    fields: [
+                        { id: 10, value: null },
+                        { id: 11, value: "x" },
+                    ],
+                },
+                { id: 2, subject: "b" },
+            ],
+        });
+        const response = await handleListTicketsRequest({}, "fake-token");
+        const data = JSON.parse(response.content[0].text);
+        expect(data).toEqual({
+            rowCount: 2,
+            pageToken: "next",
+            tickets: [
+                { id: 1, subject: "a", fields: [{ id: 11, value: "x" }] },
+                { id: 2, subject: "b" },
+            ],
         });
     });
 });

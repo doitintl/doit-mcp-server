@@ -28,7 +28,7 @@ const INITIALIZE = {
     params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "probe", version: "1.0.0" } },
 };
 
-function startChannelProcess() {
+function startChannelProcess(extraEnv: Record<string, string> = {}) {
     const child = spawn(process.execPath, [SERVER_ENTRY], {
         cwd: tmpdir(),
         // Only what the child needs: no NODE_ENV/VITEST_* (they stop index.ts calling main()).
@@ -38,6 +38,7 @@ function startChannelProcess() {
             DOIT_API_KEY: "test-api-key",
             // Nothing listens here, so polls fail fast; the server must keep running regardless.
             DOIT_API_BASE: "http://127.0.0.1:9",
+            ...extraEnv,
         },
         stdio: ["pipe", "pipe", "pipe"],
     });
@@ -101,4 +102,31 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built stdio binar
             server.child.kill();
         }
     }, 20_000);
+
+    it("serves no tools in channel-only mode, with or without event kinds", async () => {
+        for (const extraEnv of [
+            { DOIT_CHANNEL_ONLY: "true" },
+            { DOIT_CHANNEL_ONLY: "true", DOIT_CHANNEL_EVENTS: "" },
+        ]) {
+            const server = startChannelProcess(extraEnv);
+            try {
+                server.send(INITIALIZE);
+                const { result } = await server.response(INITIALIZE.id);
+                expect(result.capabilities).toEqual({ experimental: { "claude/channel": {} } });
+
+                server.send({ jsonrpc: "2.0", method: "notifications/initialized" });
+                server.send({ jsonrpc: "2.0", id: 2, method: "tools/list" });
+                expect((await server.response(2)).error?.code).toBe(-32601);
+
+                server.child.stdin.end();
+                const code = await Promise.race([
+                    server.exited,
+                    new Promise<string>((resolve) => setTimeout(() => resolve("still running"), 8000)),
+                ]);
+                expect(code).toBe(0);
+            } finally {
+                server.child.kill();
+            }
+        }
+    }, 30_000);
 });
