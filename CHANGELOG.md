@@ -1,5 +1,26 @@
 # Changelog
 
+## v4.0.0 (2026-11-12)
+
+**Full diff:** [`v3.1.0...v4.0.0`](../../compare/v3.1.0...v4.0.0)
+
+### Features
+
+- feat(plugin): make the doit plugin events-only (`4c295b3`)
+
+### Bug Fixes
+
+- fix(support)!: align inquiry workflows with bounded catalogs (`61c971a`)
+- fix(prompts): resolve platform before looking up inquiry products (`2ee3982`)
+
+### Chores
+
+- chore(plugin): point the plugin's support link at support.doit.com (`f9730d7`)
+
+### Other Changes
+
+- test(prompts): align server assertions with bounded search pages (`a87efbd`)
+- refactor(tools): right-size list defaults to prevent mcp response limits (`d7b25ae`)
 ## v3.1.0 (2026-11-12)
 
 **Full diff:** [`v3.0.0...v3.1.0`](../../compare/v3.0.0...v3.1.0)

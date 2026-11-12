@@ -1,7 +1,7 @@
 {
   "name": "doit",
   "displayName": "DoiT Cloud Intelligence Channel",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "A Claude Code channel for DoiT Cloud Intelligence: tells an open session about new cost anomalies and cloud incidents. Events only; the DoiT tools come from the DoiT Cloud Intelligence plugin or connector.",
   "author": {
     "name": "DoiT",
@@ -48,7 +48,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@doitintl/doit-mcp-server@3.1.0"
+        "@doitintl/doit-mcp-server@4.0.0"
       ],
       "env": {
         "DOIT_API_KEY": "${user_config.api_key}",
