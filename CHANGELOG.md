@@ -1,5 +1,29 @@
 # Changelog
 
+## v3.0.0 (2026-11-12)
+
+**Full diff:** [`v2.16.0...v3.0.0`](../../compare/v2.16.0...v3.0.0)
+
+### Features
+
+- feat: package the channel as a Claude Code plugin and marketplace (`01fd50e`)
+- feat: add opt-in Claude Code channel mode to the stdio server (`4c89cbd`)
+- feat(paging): implement server-side result splitting for large tool outputs (`4a8bf52`)
+- feat(approval): enforce strict two-step confirmation for delete tools (`5c0200b`)
+
+### Bug Fixes
+
+- fix(paging): address review findings on cursors, anchors and stray tokens (`3d05fb9`)
+- fix(paging): keep continuation positions absolute and never split results that fit (`6601e51`)
+- fix(paging): keep upstream cursors out of split result parts (`c8125ca`)
+
+### Other Changes
+
+- refactor(paging): make result paging an explicit per-tool opt-in (`359746e`)
+- docs(paging): trim comments to the non-obvious ones (`82e6b7a`)
+- docs(approval): describe core consumers generically in comments (`0822d73`)
+- docs(approval)!: note the approvalToken argument of confirm_action (`56860f2`)
+- refactor(approval): rename token to approvalToken in confirm_action (`6651373`)
 ## v2.16.0 (2026-11-11)
 
 **Full diff:** [`v2.15.0...v2.16.0`](../../compare/v2.15.0...v2.16.0)

@@ -45,7 +45,7 @@ ask Claude to look into it.
 
 ## What this plugin runs, sends and fetches
 
-- **Runs:** `npx -y @doitintl/doit-mcp-server@2.16.0`, the open-source DoiT MCP server from
+- **Runs:** `npx -y @doitintl/doit-mcp-server@3.0.0`, the open-source DoiT MCP server from
   [this repository](https://github.com/doitintl/doit-mcp-server), pinned to an exact version. `npx`
   downloads that package and its dependencies from the npm registry the first time it runs.
 - **Sends:** requests to the DoiT API at `https://api.doit.com`, authenticated with your API key.
