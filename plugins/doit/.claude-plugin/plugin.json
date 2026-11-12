@@ -1,0 +1,66 @@
+{
+  "name": "doit",
+  "displayName": "DoiT Cloud Intelligence",
+  "version": "2.16.0",
+  "description": "DoiT Cloud Intelligence tools, plus a Claude Code channel that pushes new cost anomalies and cloud incidents into an open session.",
+  "author": {
+    "name": "DoiT",
+    "url": "https://www.doit.com"
+  },
+  "homepage": "https://github.com/doitintl/doit-mcp-server",
+  "repository": "https://github.com/doitintl/doit-mcp-server",
+  "documentationUrl": "https://github.com/doitintl/doit-mcp-server/blob/main/docs/channels.md",
+  "supportUrl": "https://github.com/doitintl/doit-mcp-server/issues",
+  "privacyPolicyUrl": "https://www.doit.com/privacy",
+  "license": "MIT",
+  "keywords": [
+    "doit",
+    "finops",
+    "cloud-cost",
+    "anomalies",
+    "incidents",
+    "channel"
+  ],
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "DoiT API key",
+      "description": "Personal API token from the DoiT console (Profile > API tokens).",
+      "required": true,
+      "sensitive": true
+    },
+    "events": {
+      "type": "string",
+      "title": "Events",
+      "description": "Comma-separated event kinds to push into the session: anomalies, incidents.",
+      "default": "anomalies,incidents"
+    },
+    "poll_seconds": {
+      "type": "number",
+      "title": "Poll interval (seconds)",
+      "description": "How often to check the DoiT API for new events. Minimum 60.",
+      "default": 300,
+      "min": 60
+    }
+  },
+  "mcpServers": {
+    "doit": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@doitintl/doit-mcp-server@2.16.0"
+      ],
+      "env": {
+        "DOIT_API_KEY": "${user_config.api_key}",
+        "DOIT_CHANNEL_EVENTS": "${user_config.events}",
+        "DOIT_CHANNEL_POLL_SECONDS": "${user_config.poll_seconds}"
+      }
+    }
+  },
+  "channels": [
+    {
+      "server": "doit",
+      "displayName": "DoiT Cloud Intelligence"
+    }
+  ]
+}
