@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.1.0 (2026-11-12)
+
+**Full diff:** [`v3.0.0...v3.1.0`](../../compare/v3.0.0...v3.1.0)
+
+### Features
+
+- feat(channel): add channel-only mode that serves events and no tools (`74ace40`)
 ## v3.0.0 (2026-11-12)
 
 **Full diff:** [`v2.16.0...v3.0.0`](../../compare/v2.16.0...v3.0.0)
