@@ -49,6 +49,7 @@ src/
 ├── index.ts              # Entry point (stdio transport)
 ├── stdio.ts              # serveDoitStdio: serves 2025-era and 2026-07-28 clients (see docs/protocol-compatibility.md)
 ├── server.ts             # MCP server setup and request handlers (createServer is the per-connection factory)
+├── channel/              # Opt-in Claude Code channel mode (see docs/channels.md)
 ├── tools/                # MCP tool implementations
 │   └── __tests__/        # Tool tests
 ├── types/                # Tools and general type definitions
@@ -181,6 +182,13 @@ The project uses:
 - `skills/doit-cloud-connect/` is the canonical installable workflow. Edit its sources and run `yarn generate:skills`; never hand-edit the generated bundle. There is no offline catalog; a fresh requirements response is the only authority.
 - GCP supports organization, project and BigQuery dataset scopes with keyless service-account descriptors. Azure supports management-group setup and fresh role-assignment verification; legacy tenant billing records are read-only. Diagnostics and event reporting remain outside this API version.
 - Tests cover the transport contract, a real stdio lifecycle against a fake API, skill bytes/digests and hosted-safe core dispatch. A separately deployed Worker needs its own companion change and dependency release; publishing this package alone does not deploy hosted tools or qualify live cloud behavior.
+
+## Channel mode
+
+- `src/channel/` is the opt-in Claude Code channel (`DOIT_CHANNEL_EVENTS`): stdio only, 2025-era protocol only, one-way, polling anomalies and cloud incidents. It is not exported from `/core`. See [docs/channels.md](docs/channels.md).
+- Event text reaches the model's context directly. Keep content a fixed sentence and pass API values only through `sanitizeMetaValue`; never forward titles, descriptions or other free text.
+- `.claude-plugin/marketplace.json` (marketplace `doitintl`) and `plugins/doit/.claude-plugin/plugin.json` (plugin `doit`) package the channel for Claude Code. The plugin runs the published npm package pinned to an exact version (the plugin directory refuses `@latest`), so it only gains a server change after a release; `prepare-release.sh` raises the plugin version and re-pins the package in the manifest and in `plugins/doit/README.md`. The plugin folder carries its own README and icon because the directory checks only that folder. Run `claude plugin validate .` and `claude plugin validate ./plugins/doit` after editing either manifest.
+- Nothing thrown by a source or by sending an event may escape a poll: `src/index.ts` treats unhandled rejections as fatal.
 
 ## Skills extension
 

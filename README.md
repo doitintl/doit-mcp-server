@@ -197,9 +197,21 @@ Here are some common queries you can ask using the DoiT MCP server:
 
 These examples demonstrate basic usage patterns. You can combine and modify these queries based on your needs. The MCP server will interpret your natural language queries and use the appropriate tools to fetch the requested information.
 
+## Claude Code plugin and channel (research preview)
+
+The local server is also available as a Claude Code plugin that can push new cost anomalies and cloud incidents into an open session:
+
+```
+/plugin install doit --marketplace doitintl/doit-mcp-server
+```
+
+See [docs/channels.md](docs/channels.md) for how to start Claude Code with the channel and what an organization needs to allow.
+
 ## Environment Variables
 
 Used by the local stdio server. Remote `/mcp` connections authenticate with OAuth.
 
 - `DOIT_API_KEY`: Your DoiT [personal API token](https://help.doit.com/docs/general/profile/api-tokens) (required for stdio)
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
+- `DOIT_CHANNEL_EVENTS`: Opt in to [Claude Code channel mode](docs/channels.md) (research preview) by listing event kinds to push into an open session: `anomalies`, `incidents` (optional, off by default)
+- `DOIT_CHANNEL_POLL_SECONDS`: Channel poll interval in seconds, minimum 60 (optional, default 300)

@@ -31,6 +31,8 @@ coverage/
 .idea*
 .vscode*
 .claude*
+# Claude Code plugin and marketplace manifests are published from this repo
+!.claude-plugin/
 *.code-workspace
 *.swp
 *.swo
