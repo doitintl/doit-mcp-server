@@ -4,6 +4,7 @@ import { type ContinuationDraft, type ContinuationPosition, hashScope, signConti
 import { MAX_TOOL_RESULT_CHARS, measureToolResponse } from "../responseLimit.js";
 import {
     applyPosition,
+    assertResultPagingScope,
     CONTINUATION_SCOPE_MESSAGE,
     continuationSigner,
     EXPIRED_CONTINUATION_MESSAGE,
@@ -11,6 +12,7 @@ import {
     findCollection,
     fitResultPage,
     INVALID_CONTINUATION_MESSAGE,
+    MISSING_SCOPE_MESSAGE,
     needsResultPageToken,
     positionAfter,
     RESULT_PAGE_BUDGET_CHARS,
@@ -304,7 +306,7 @@ describe("positions", () => {
 });
 
 describe("resolvePagedCall", () => {
-    const paging = { secret: "s" };
+    const paging = { secret: "s", scope: null };
     const inAnHour = Math.floor(Date.now() / 1000) + 3600;
     const stored: ContinuationDraft = {
         tool: "list_tickets",
@@ -380,6 +382,19 @@ describe("resolvePagedCall", () => {
         expect(errorText(await resolvePagedCall("list_tickets", { pageToken: unscoped }, true, issued))).toBe(
             CONTINUATION_SCOPE_MESSAGE
         );
+    });
+
+    it("treats an undefined or empty scope as a configuration error, not as unscoped", async () => {
+        const token = await continuationSigner(paging)(stored);
+        for (const broken of [{ secret: "s" }, { secret: "s", scope: undefined }, { secret: "s", scope: "" }]) {
+            const options = broken as unknown as typeof paging;
+            expect(() => assertResultPagingScope(options), JSON.stringify(broken)).toThrow(MISSING_SCOPE_MESSAGE);
+            await expect(continuationSigner(options)(stored)).rejects.toThrow(MISSING_SCOPE_MESSAGE);
+            await expect(resolvePagedCall("list_tickets", { pageToken: token }, true, options)).rejects.toThrow(
+                MISSING_SCOPE_MESSAGE
+            );
+        }
+        expect(() => assertResultPagingScope(paging)).not.toThrow();
     });
 
     it("signs the digest of the scope and the configured lifetime, never the scope itself", async () => {

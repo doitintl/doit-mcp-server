@@ -84,10 +84,11 @@ export type ResultPagingOptions = {
     /**
      * Who the token is for: the authenticated principal and the context the call runs in (for a
      * multi-tenant consumer, the tenant). Tokens are refused under any other scope, so a token cannot
-     * be replayed by another user or continue a list after a tenant switch. Omit only for a
-     * single-user consumer such as the stdio server.
+     * be replayed by another user or continue a list after a tenant switch. `null` is the explicit
+     * opt-out for a single-user consumer such as the stdio server. An undefined or empty scope is a
+     * configuration error, so a value missing on some request fails instead of disabling the binding.
      */
-    scope?: string;
+    scope: string | null;
     ttlSeconds?: number;
 };
 
@@ -131,8 +132,20 @@ export async function resolvePagedCall(
 }
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
-const scopeDigest = (options: ResultPagingOptions) =>
-    options.scope === undefined ? Promise.resolve(null) : hashScope(options.scope);
+export const MISSING_SCOPE_MESSAGE =
+    "resultPaging.scope must be a non-empty string, or null for a single-user consumer";
+
+/** Throws when paging is configured without a usable scope; see `ResultPagingOptions.scope`. */
+export function assertResultPagingScope(options: ResultPagingOptions): void {
+    const { scope } = options as { scope?: unknown };
+    if (scope === null) return;
+    if (typeof scope !== "string" || scope.length === 0) throw new Error(MISSING_SCOPE_MESSAGE);
+}
+
+const scopeDigest = (options: ResultPagingOptions) => {
+    assertResultPagingScope(options);
+    return options.scope === null ? Promise.resolve(null) : hashScope(options.scope);
+};
 
 type ToolResult = {
     content?: Array<{ type: string; text?: string }>;

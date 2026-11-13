@@ -281,11 +281,13 @@ export {
     type ToolResponseMetrics,
 } from "./utils/responseLimit.js";
 export {
+    assertResultPagingScope,
     CONTINUATION_SCOPE_MESSAGE,
     DEFAULT_CONTINUATION_TTL_SECONDS,
     EXPIRED_CONTINUATION_MESSAGE,
     FOREIGN_PAGE_TOKEN_MESSAGE,
     INVALID_CONTINUATION_MESSAGE,
+    MISSING_SCOPE_MESSAGE,
     needsResultPageToken,
     RESULT_PAGE_BUDGET_CHARS,
     RESULT_PAGE_TOKEN_DESCRIPTION,
