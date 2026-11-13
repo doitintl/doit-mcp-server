@@ -28390,7 +28390,7 @@
           "Contracts"
         ],
         "summary": "List contracts",
-        "description": "Lists the contracts held by the specified customer. Callable by a T1/T2 PartnerOps principal for its own tenant or any descendant tenant. Read access requires contractsReadOnly or contractsViewer, plus the billing:contracts or channelops entitlement. User API tokens must include the matching permission in their scope.",
+        "description": "Lists the contracts held by the specified customer. Callable by a T1/T2 PartnerOps principal for its own tenant or any descendant tenant. Read access requires the contractsViewer or contractsManager permission, plus the billing:contracts or channelops entitlement. User API tokens must include one of the permissions in their scope.",
         "operationId": "listContracts",
         "parameters": [
           {
@@ -28530,7 +28530,7 @@
           "Contracts"
         ],
         "summary": "Create contract",
-        "description": "Creates a draft contract for the specified customer. Requires the caller to be the direct parent (T1 for a T2-level contract, T2 for a T3-level contract). Write access requires contractsViewer without contractsReadOnly, plus the billing:contracts or channelops entitlement; user API tokens must include the matching permission in their scope.",
+        "description": "Creates a draft contract for the specified customer. Requires the caller to be the direct parent (T1 for a T2-level contract, T2 for a T3-level contract). Write access requires the contractsManager permission, plus the billing:contracts or channelops entitlement; user API tokens must include it in their scope.",
         "operationId": "createContract",
         "parameters": [
           {
@@ -28736,7 +28736,7 @@
           "Contracts"
         ],
         "summary": "Retrieve a contract",
-        "description": "Returns the specified contract.",
+        "description": "Returns the specified contract. Requires the contractsViewer or contractsManager permission. User API tokens must include one of them in their scope.",
         "operationId": "getContract",
         "parameters": [
           {
@@ -28994,7 +28994,7 @@
           "Contracts"
         ],
         "summary": "Update contract",
-        "description": "Creates a new version of the contract. The contract type is immutable and cannot be changed by an update.",
+        "description": "Creates a new version of the contract. The contract type is immutable and cannot be changed by an update. Requires the contractsManager permission. User API tokens must include it in their scope.",
         "operationId": "updateContract",
         "parameters": [
           {
@@ -29214,7 +29214,7 @@
           "Contracts"
         ],
         "summary": "Activate contract",
-        "description": "Transitions a draft contract to active or scheduled (when the start date is in the future). Produces the same system state as activating via the Console.",
+        "description": "Transitions a draft contract to active or scheduled (when the start date is in the future). Produces the same system state as activating via the Console. Requires the contractsManager permission. User API tokens must include it in their scope.",
         "operationId": "activateContract",
         "parameters": [
           {
@@ -29353,7 +29353,7 @@
           "Contracts"
         ],
         "summary": "Cancel contract",
-        "description": "Cancels (deactivates) a contract. Active contracts cannot be deleted; cancel is the terminal operation.",
+        "description": "Cancels (deactivates) a contract. Active contracts cannot be deleted; cancel is the terminal operation. Requires the contractsManager permission. User API tokens must include it in their scope.",
         "operationId": "cancelContract",
         "parameters": [
           {
