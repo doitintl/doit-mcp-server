@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.0 (2026-11-13)
+
+**Full diff:** [`v4.0.0...v4.1.0`](../../compare/v4.0.0...v4.1.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`72ec38c`)
+
+### Chores
+
+- chore(deps): bump hono from 4.13.12 to 4.13.18 in /test/integration (`a959146`)
+- chore(deps): bump @hono/node-server in /test/integration (`f41db25`)
 ## v4.0.0 (2026-11-12)
 
 **Full diff:** [`v3.1.0...v4.0.0`](../../compare/v3.1.0...v4.0.0)
