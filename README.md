@@ -165,11 +165,19 @@ maps such as a components `statussheet`) describe the whole result and repeat on
 part. Consumers that register the generated registry's schemas advertise the argument on
 opted-in generated tools and should pass `resultPaging` so it takes effect.
 
-The stdio server signs tokens with a random per-process secret. A consumer that
-provides its own transport passes `resultPaging: { secret, cursorField }` to
-`executeToolHandler`, and applies `withResultPageToken` to the zod schema of every
-tool in `RESULT_PAGED_TOOLS` when it registers tools from the exported schemas, so
-both transports advertise the same arguments.
+A continuation token carries the call it continues, so it is bound to who may continue
+it: the consumer passes `resultPaging: { secret, cursorField, scope, ttlSeconds }` to
+`executeToolHandler`, where `scope` names the authenticated principal and the context
+the call runs in (for a multi-tenant consumer, the tenant). A token presented under
+another scope, or after its lifetime (one hour by default), is refused with an error
+that tells the model to call the tool again without `pageToken`. `scope` is required:
+`null` is the explicit opt-out for a single-user consumer, and an undefined or empty
+scope makes `executeToolHandler` throw, so a value missing on some request fails instead
+of silently issuing tokens anyone can continue. The stdio server is single-user and signs
+tokens with a random per-process secret and `scope: null`. A consumer
+that registers tools from the exported schemas applies `withResultPageToken` to the zod
+schema of every tool in `RESULT_PAGED_TOOLS`, so both transports advertise the same
+arguments.
 
 ## Usage Examples
 
