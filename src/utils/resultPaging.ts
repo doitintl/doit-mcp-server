@@ -3,8 +3,9 @@
 // cursor once the page is done, so no record is skipped or repeated.
 import { z } from "zod";
 import {
-    type ContinuationPayload,
+    type ContinuationDraft,
     type ContinuationPosition,
+    hashScope,
     isContinuationToken,
     signContinuation,
     verifyContinuation,
@@ -22,6 +23,10 @@ export const RESULT_PAGE_BUDGET_CHARS = MAX_TOOL_RESULT_CHARS - RESULT_PAGE_HEAD
 
 export const INVALID_CONTINUATION_MESSAGE =
     "Invalid continuation pageToken: it was not issued by this server for this tool, or it was altered. Call the tool again without pageToken to start from the first record.";
+export const EXPIRED_CONTINUATION_MESSAGE =
+    "Expired continuation pageToken. Call the tool again without pageToken to start from the first record.";
+export const CONTINUATION_SCOPE_MESSAGE =
+    "This continuation pageToken was issued for a different user or customer context. Call the tool again without pageToken to start from the first record.";
 export const FOREIGN_PAGE_TOKEN_MESSAGE =
     "This tool's endpoint has no paging of its own: pageToken must be a continuation token from a previous result of this tool. Call it without pageToken to start from the first record.";
 
@@ -69,10 +74,21 @@ export function withResultPageTokenInputSchema<T extends ToolLike>(tool: T): T {
     };
 }
 
+/** Continuation tokens outlive a chat turn but not a session: an hour unless the consumer says otherwise. */
+export const DEFAULT_CONTINUATION_TTL_SECONDS = 60 * 60;
+
 export type ResultPagingOptions = {
     secret: string;
     /** `nextPageToken` (with `hasMore`) for a consumer that normalises list results. */
     cursorField?: "pageToken" | "nextPageToken";
+    /**
+     * Who the token is for: the authenticated principal and the context the call runs in (for the
+     * hosted server, the customer). Tokens are refused under any other scope, so a token cannot
+     * be replayed by another user or continue a list after a customer switch. Omit only for a
+     * single-user consumer such as the stdio server.
+     */
+    scope?: string;
+    ttlSeconds?: number;
 };
 
 export type ResolvedPagedCall = {
@@ -84,7 +100,8 @@ export type ResolvedPagedCall = {
 
 /**
  * Passes an upstream cursor through, or unpacks a continuation token into the call it continues.
- * The token's stored arguments replace the caller's, so the page is refetched with the same filters.
+ * The token's stored arguments replace the caller's, so the page is refetched with the same filters;
+ * that is why a token is only honoured within the scope and lifetime it was issued for.
  */
 export async function resolvePagedCall(
     toolName: string,
@@ -102,6 +119,9 @@ export async function resolvePagedCall(
     }
     const payload = await verifyContinuation(pageToken, options.secret);
     if (!payload || payload.tool !== toolName) return { error: createErrorResponse(INVALID_CONTINUATION_MESSAGE) };
+    if (payload.exp <= nowSeconds()) return { error: createErrorResponse(EXPIRED_CONTINUATION_MESSAGE) };
+    if (payload.scope !== (await scopeDigest(options)))
+        return { error: createErrorResponse(CONTINUATION_SCOPE_MESSAGE) };
     return {
         args: payload.upstream ? { ...payload.args, pageToken: payload.upstream } : payload.args,
         originalArgs: payload.args,
@@ -109,6 +129,10 @@ export async function resolvePagedCall(
         position: payload.position,
     };
 }
+
+const nowSeconds = () => Math.floor(Date.now() / 1000);
+const scopeDigest = (options: ResultPagingOptions) =>
+    options.scope === undefined ? Promise.resolve(null) : hashScope(options.scope);
 
 type ToolResult = {
     content?: Array<{ type: string; text?: string }>;
@@ -238,7 +262,7 @@ export type FitOptions = {
     position?: ContinuationPosition;
     canContinue: boolean;
     cursorField: NonNullable<ResultPagingOptions["cursorField"]>;
-    sign: (payload: ContinuationPayload) => Promise<string>;
+    sign: (draft: ContinuationDraft) => Promise<string>;
     budgetChars?: number;
 };
 
@@ -282,7 +306,6 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
     const total = length(collection);
     const candidate = async (count: number): Promise<ToolResult> => {
         const token = await options.sign({
-            v: 1,
             tool: options.toolName,
             args: options.originalArgs,
             upstream: options.upstreamPageToken ?? null,
@@ -317,5 +340,10 @@ export async function fitResultPage<T extends ToolResult>(result: T, options: Fi
 }
 
 export function continuationSigner(options: ResultPagingOptions): FitOptions["sign"] {
-    return (payload) => signContinuation(payload, options.secret);
+    const ttl = options.ttlSeconds ?? DEFAULT_CONTINUATION_TTL_SECONDS;
+    return async (draft) =>
+        signContinuation(
+            { v: 2, ...draft, exp: nowSeconds() + ttl, scope: await scopeDigest(options) },
+            options.secret
+        );
 }

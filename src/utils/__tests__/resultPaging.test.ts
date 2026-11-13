@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import type { ContinuationPayload, ContinuationPosition } from "../continuation.js";
-import { signContinuation } from "../continuation.js";
+import { type ContinuationDraft, type ContinuationPosition, hashScope, signContinuation } from "../continuation.js";
 import { MAX_TOOL_RESULT_CHARS, measureToolResponse } from "../responseLimit.js";
 import {
     applyPosition,
+    CONTINUATION_SCOPE_MESSAGE,
+    continuationSigner,
+    EXPIRED_CONTINUATION_MESSAGE,
     FOREIGN_PAGE_TOKEN_MESSAGE,
     findCollection,
     fitResultPage,
@@ -20,8 +22,8 @@ import { createSuccessResponse } from "../util.js";
 
 // The fake signer embeds the payload so tests can read back the position a token carries.
 const FAKE_PREFIX = "dci1.";
-const sign = vi.fn(async (payload: ContinuationPayload) => `${FAKE_PREFIX}${JSON.stringify(payload)}`);
-const tokenPayload = (token: unknown) => JSON.parse(String(token).slice(FAKE_PREFIX.length)) as ContinuationPayload;
+const sign = vi.fn(async (draft: ContinuationDraft) => `${FAKE_PREFIX}${JSON.stringify(draft)}`);
+const tokenPayload = (token: unknown) => JSON.parse(String(token).slice(FAKE_PREFIX.length)) as ContinuationDraft;
 const isFakeToken = (token: unknown) => typeof token === "string" && token.startsWith(FAKE_PREFIX);
 
 const tickets = (count: number, bytes: number) =>
@@ -303,6 +305,14 @@ describe("positions", () => {
 
 describe("resolvePagedCall", () => {
     const paging = { secret: "s" };
+    const inAnHour = Math.floor(Date.now() / 1000) + 3600;
+    const stored: ContinuationDraft = {
+        tool: "list_tickets",
+        args: { pageSize: 5 },
+        upstream: "page-2",
+        position: { afterIndex: 3 },
+    };
+    const errorText = (resolved: unknown) => (resolved as any).error.content[0].text;
 
     it("passes an upstream cursor through for tools whose endpoint pages", async () => {
         await expect(
@@ -325,10 +335,7 @@ describe("resolvePagedCall", () => {
     });
 
     it("unpacks a continuation token into the stored call and rejects tokens for other tools", async () => {
-        const token = await signContinuation(
-            { v: 1, tool: "list_tickets", args: { pageSize: 5 }, upstream: "page-2", position: { afterIndex: 3 } },
-            paging.secret
-        );
+        const token = await signContinuation({ v: 2, ...stored, exp: inAnHour, scope: null }, paging.secret);
         await expect(
             resolvePagedCall("list_tickets", { pageToken: token, pageSize: 99 }, true, paging)
         ).resolves.toEqual({
@@ -341,6 +348,47 @@ describe("resolvePagedCall", () => {
         expect((crossed as any).error.content[0].text).toBe(INVALID_CONTINUATION_MESSAGE);
         const tampered = await resolvePagedCall("list_tickets", { pageToken: `${token}x` }, true, paging);
         expect((tampered as any).error.content[0].text).toBe(INVALID_CONTINUATION_MESSAGE);
+    });
+
+    it("refuses an expired token", async () => {
+        const token = await signContinuation(
+            { v: 2, ...stored, exp: Math.floor(Date.now() / 1000) - 1, scope: null },
+            paging.secret
+        );
+        expect(errorText(await resolvePagedCall("list_tickets", { pageToken: token }, true, paging))).toBe(
+            EXPIRED_CONTINUATION_MESSAGE
+        );
+    });
+
+    it("honours a token only under the scope it was issued for", async () => {
+        const issued = { ...paging, scope: "user-1\ncustomer-a" };
+        const token = await continuationSigner(issued)(stored);
+        await expect(resolvePagedCall("list_tickets", { pageToken: token }, true, issued)).resolves.toMatchObject({
+            position: { afterIndex: 3 },
+        });
+        for (const other of [
+            { ...paging, scope: "user-1\ncustomer-b" },
+            { ...paging, scope: "user-2\ncustomer-a" },
+            paging,
+        ]) {
+            expect(errorText(await resolvePagedCall("list_tickets", { pageToken: token }, true, other))).toBe(
+                CONTINUATION_SCOPE_MESSAGE
+            );
+        }
+        // An unscoped token is not accepted by a scoped consumer either.
+        const unscoped = await continuationSigner(paging)(stored);
+        expect(errorText(await resolvePagedCall("list_tickets", { pageToken: unscoped }, true, issued))).toBe(
+            CONTINUATION_SCOPE_MESSAGE
+        );
+    });
+
+    it("signs the digest of the scope and the configured lifetime, never the scope itself", async () => {
+        const token = await continuationSigner({ ...paging, scope: "user-1\ncustomer-a", ttlSeconds: 120 })(stored);
+        const body = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+        expect(body).toMatchObject({ v: 2, tool: "list_tickets", scope: await hashScope("user-1\ncustomer-a") });
+        expect(token).not.toContain("customer-a");
+        expect(body.exp - Math.floor(Date.now() / 1000)).toBeGreaterThan(110);
+        expect(body.exp - Math.floor(Date.now() / 1000)).toBeLessThanOrEqual(120);
     });
 });
 
