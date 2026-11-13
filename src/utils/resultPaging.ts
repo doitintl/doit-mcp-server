@@ -82,9 +82,9 @@ export type ResultPagingOptions = {
     /** `nextPageToken` (with `hasMore`) for a consumer that normalises list results. */
     cursorField?: "pageToken" | "nextPageToken";
     /**
-     * Who the token is for: the authenticated principal and the context the call runs in (for the
-     * hosted server, the customer). Tokens are refused under any other scope, so a token cannot
-     * be replayed by another user or continue a list after a customer switch. Omit only for a
+     * Who the token is for: the authenticated principal and the context the call runs in (for a
+     * multi-tenant consumer, the tenant). Tokens are refused under any other scope, so a token cannot
+     * be replayed by another user or continue a list after a tenant switch. Omit only for a
      * single-user consumer such as the stdio server.
      */
     scope?: string;

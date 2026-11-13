@@ -168,7 +168,7 @@ opted-in generated tools and should pass `resultPaging` so it takes effect.
 A continuation token carries the call it continues, so it is bound to who may continue
 it: the consumer passes `resultPaging: { secret, cursorField, scope, ttlSeconds }` to
 `executeToolHandler`, where `scope` names the authenticated principal and the context
-the call runs in (for a multi-tenant server, the customer). A token presented under
+the call runs in (for a multi-tenant consumer, the tenant). A token presented under
 another scope, or after its lifetime (one hour by default), is refused with an error
 that tells the model to call the tool again without `pageToken`. The stdio server is
 single-user and signs tokens with a random per-process secret and no scope. A consumer
