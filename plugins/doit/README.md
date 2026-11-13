@@ -47,7 +47,7 @@ example:
 
 ## What this plugin runs, sends and fetches
 
-- **Runs:** `npx -y @doitintl/doit-mcp-server@4.0.0`, the open-source DoiT MCP server from
+- **Runs:** `npx -y @doitintl/doit-mcp-server@4.1.0`, the open-source DoiT MCP server from
   [this repository](https://github.com/doitintl/doit-mcp-server), pinned to an exact version and
   started in events-only mode. `npx` downloads that package and its dependencies from the npm
   registry the first time it runs.
