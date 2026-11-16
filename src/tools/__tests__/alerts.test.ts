@@ -3,11 +3,13 @@ import { createErrorResponse, createSuccessResponse, handleGeneralError, makeDoi
 import {
     ALERTS_BASE_URL,
     CreateAlertArgumentsSchema,
+    createAlertTool,
     handleCreateAlertRequest,
     handleGetAlertRequest,
     handleListAlertsRequest,
     handleUpdateAlertRequest,
     UpdateAlertArgumentsSchema,
+    updateAlertTool,
 } from "../alerts.js";
 
 vi.mock("../../utils/util.js", async (importOriginal) => {
@@ -272,6 +274,93 @@ describe("create_alert", () => {
                 customerContext: undefined,
             });
             expect(createSuccessResponse).toHaveBeenCalled();
+        });
+
+        it("should send Slack channels for a Slack-only alert", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreateAlertResponse);
+            const args = {
+                ...minimalCreateAlertArgs,
+                recipientsSlackChannels: [{ id: "C07N2KUPEUX", workspace: "acme" }],
+            };
+
+            await handleCreateAlertRequest(args, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(ALERTS_BASE_URL, mockToken, {
+                method: "POST",
+                body: args,
+                customerContext: undefined,
+            });
+            expect(createErrorResponse).not.toHaveBeenCalled();
+        });
+
+        it("should send Slack channels alongside email recipients", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreateAlertResponse);
+            const args = {
+                ...validCreateAlertArgs,
+                recipientsSlackChannels: [
+                    { id: "C07N2KUPEUX", workspace: "acme" },
+                    { id: "C0SHARED01", shared: true, customerId: "cust-1" },
+                ],
+            };
+
+            await handleCreateAlertRequest(args, mockToken);
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(ALERTS_BASE_URL, mockToken, {
+                method: "POST",
+                body: args,
+                customerContext: undefined,
+            });
+        });
+
+        it("should drop discovery-only name and type from Slack channels", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreateAlertResponse);
+
+            await handleCreateAlertRequest(
+                {
+                    ...minimalCreateAlertArgs,
+                    recipientsSlackChannels: [
+                        { id: "C07N2KUPEUX", workspace: "acme", name: "team-platform-alerts", type: "public" },
+                    ],
+                },
+                mockToken
+            );
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(ALERTS_BASE_URL, mockToken, {
+                method: "POST",
+                body: {
+                    ...minimalCreateAlertArgs,
+                    recipientsSlackChannels: [{ id: "C07N2KUPEUX", workspace: "acme" }],
+                },
+                customerContext: undefined,
+            });
+        });
+
+        it("should accept a shared channel copied from discovery with an empty workspace", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreateAlertResponse);
+            // Shape returned verbatim by list_alert_slack_channels for a shared channel.
+            const discovered = {
+                name: "shared-fixture",
+                id: "C0SHARED01",
+                shared: true,
+                type: "public",
+                customerId: "cust-1",
+                workspace: "",
+            };
+
+            await handleCreateAlertRequest(
+                { ...minimalCreateAlertArgs, recipientsSlackChannels: [discovered] },
+                mockToken
+            );
+
+            expect(createErrorResponse).not.toHaveBeenCalled();
+            expect(makeDoitRequest).toHaveBeenCalledWith(ALERTS_BASE_URL, mockToken, {
+                method: "POST",
+                body: {
+                    ...minimalCreateAlertArgs,
+                    recipientsSlackChannels: [{ id: "C0SHARED01", shared: true, customerId: "cust-1" }],
+                },
+                customerContext: undefined,
+            });
         });
     });
 
@@ -587,6 +676,9 @@ describe("update_alert", () => {
             { config: { value: 0 } },
             { config: { scopes: [] } },
             { config: { timeInterval: "day" } },
+            { recipientsSlackChannels: [{ id: "C07N2KUPEUX", workspace: "acme" }] },
+            { recipientsSlackChannels: [] },
+            { recipients: [], recipientsSlackChannels: [{ id: "C0SHARED01", shared: true }] },
         ])("should send only supplied patch fields: %j", async (patch) => {
             (makeDoitRequest as vi.Mock).mockResolvedValue(mockUpdateAlertResponse);
             await handleUpdateAlertRequest({ id: alertId, ...patch }, mockToken);
@@ -740,6 +832,72 @@ describe("alert API contracts", () => {
     );
     it("rejects create alert names longer than 64 characters", () => {
         expect(CreateAlertArgumentsSchema.safeParse({ name: "x".repeat(65), config }).success).toBe(false);
+    });
+    it.each([
+        ["create_alert", createAlertTool],
+        ["update_alert", updateAlertTool],
+    ])("%s advertises recipientsSlackChannels in its input schema", (_name, tool) => {
+        const property = (tool.inputSchema as any).properties.recipientsSlackChannels;
+        expect(property).toMatchObject({ type: "array", maxItems: 50 });
+        expect(property.items.required).toEqual(["id"]);
+        expect(Object.keys(property.items.properties).sort()).toEqual(["customerId", "id", "shared", "workspace"]);
+    });
+    it.each([
+        { id: "C1", workspace: "acme" },
+        { id: "C1", workspace: "acme", shared: false },
+        { id: "C1", shared: true },
+        { id: "C1", shared: true, customerId: "cust-1" },
+        { id: "C1", shared: true, workspace: "" },
+    ])("accepts Slack channel shape %j on create and update", (channel) => {
+        expect(
+            CreateAlertArgumentsSchema.safeParse({ name: "test", config, recipientsSlackChannels: [channel] }).success
+        ).toBe(true);
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", recipientsSlackChannels: [channel] }).success).toBe(
+            true
+        );
+    });
+    it.each([
+        { id: "", workspace: "acme" },
+        { workspace: "acme" },
+        { id: "C1" },
+        { id: "C1", shared: false },
+        { id: "C1", workspace: "" },
+        { id: "C1", shared: false, workspace: "" },
+        { id: "C1", shared: true, workspace: "acme" },
+        { id: "C1", workspace: "acme", customerId: "" },
+    ])("rejects Slack channel shape %j on create and update", (channel) => {
+        expect(
+            CreateAlertArgumentsSchema.safeParse({ name: "test", config, recipientsSlackChannels: [channel] }).success
+        ).toBe(false);
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", recipientsSlackChannels: [channel] }).success).toBe(
+            false
+        );
+    });
+    it("rejects more than 50 Slack channels and a null channel list", () => {
+        const channels = Array.from({ length: 51 }, (_, i) => ({ id: `C${i}`, workspace: "acme" }));
+        expect(
+            CreateAlertArgumentsSchema.safeParse({ name: "test", config, recipientsSlackChannels: channels }).success
+        ).toBe(false);
+        expect(UpdateAlertArgumentsSchema.safeParse({ id: "test", recipientsSlackChannels: null }).success).toBe(false);
+    });
+    it("preserves saved Slack channels when an update omits them", async () => {
+        let saved = {
+            id: "fixture",
+            name: "Before",
+            recipients: [] as string[],
+            recipientsSlackChannels: [{ id: "C07N2KUPEUX", workspace: "acme" }],
+            config,
+        };
+        vi.mocked(makeDoitRequest).mockImplementation(async (_url, _token, options) => {
+            if (options?.method === "PATCH") saved = { ...saved, ...(options.body as any) };
+            return structuredClone(saved);
+        });
+        await handleUpdateAlertRequest({ id: "fixture", name: "After" }, "token");
+        expect(vi.mocked(makeDoitRequest).mock.calls[0][2]?.body).toEqual({ name: "After" });
+        const response = await handleGetAlertRequest({ id: "fixture" }, "token");
+        expect(JSON.parse(response.content[0].text).recipientsSlackChannels).toEqual([
+            { id: "C07N2KUPEUX", workspace: "acme" },
+        ]);
     });
     it("preserves unrelated configuration and recipients across sequential partial updates and readback", async () => {
         let saved = {

@@ -240,6 +240,34 @@ const AlertConfigSchema = z.object({
         .describe("Data source; defaults to billing on create. Omitted on update means unchanged."),
 });
 
+const AlertSlackChannelSchema = z
+    .object({
+        id: z.string().min(1).describe("Slack channel ID, as returned by list_alert_slack_channels."),
+        workspace: z
+            .string()
+            .optional()
+            .describe(
+                "Connected workspace name returned by discovery. Required unless shared is true; omit it (or pass the empty string discovery returns) when shared is true."
+            ),
+        shared: z
+            .boolean()
+            .optional()
+            .describe("True for a shared channel (omit workspace). Defaults to false at the API."),
+        customerId: z
+            .string()
+            .min(1)
+            .optional()
+            .describe("Defaults to the authenticated customer; a mismatch is rejected."),
+    })
+    // Discovery returns workspace: "" for shared channels, so an empty string counts as omitted.
+    .refine((channel) => (channel.shared === true ? !channel.workspace : Boolean(channel.workspace)), {
+        message: "Provide workspace for a workspace channel, or shared: true without workspace for a shared channel.",
+    })
+    // Never send the empty workspace: the API defines the shared shape as workspace omitted.
+    .transform(({ workspace, ...channel }) => (workspace ? { ...channel, workspace } : channel));
+
+const AlertSlackChannelsSchema = z.array(AlertSlackChannelSchema).max(50);
+
 export const CreateAlertArgumentsSchema = z.object({
     name: z.string().min(1).max(64).describe("Alert name (required, 1–64 characters)."),
     config: AlertConfigSchema.describe("Parameters that define when and how the alert is evaluated (required)."),
@@ -247,8 +275,11 @@ export const CreateAlertArgumentsSchema = z.object({
         .array(z.string().email())
         .optional()
         .describe(
-            "Email addresses to notify when triggered. On create, defaults to the caller's email; omitted on update preserves recipients. The API requires at least one email or existing Slack destination."
+            "Email addresses to notify when triggered. When omitted, defaults to the caller's email only if no Slack channels are supplied. An explicit [] means no email and requires a Slack channel."
         ),
+    recipientsSlackChannels: AlertSlackChannelsSchema.optional().describe(
+        "Slack channels to notify when triggered (max 50). Discover eligible channels with list_alert_slack_channels. Omitted means none. Name and type from discovery are not needed."
+    ),
 });
 
 export const createAlertTool = {
@@ -256,7 +287,7 @@ export const createAlertTool = {
     title: "Create alert",
     coversEndpoint: "post:/analytics/v1/alerts",
     description:
-        "Use this when the user wants to set up a new cost alert with thresholds and notification settings. Changes apply immediately. Do NOT use this for creating budgets (use create_budget) or viewing existing alerts (use list_alerts).",
+        "Use this when the user wants to set up a new cost alert with thresholds and notification settings. Notifies email recipients and/or Slack channels (recipientsSlackChannels). Changes apply immediately. Do NOT use this for creating budgets (use create_budget) or viewing existing alerts (use list_alerts).",
     inputSchema: zodToMcpInputSchema(CreateAlertArgumentsSchema),
     annotations: {
         readOnlyHint: false,
@@ -307,16 +338,21 @@ export const UpdateAlertArgumentsSchema = z
             .array(z.string().email())
             .optional()
             .describe(
-                "Email addresses to notify when triggered. On create, defaults to the caller's email; omitted on update preserves recipients. The API requires at least one email or existing Slack destination."
+                "Email addresses to notify when triggered. Omitted preserves saved emails; an array replaces them; [] clears them. At least one email or Slack channel must remain."
             ),
+        recipientsSlackChannels: AlertSlackChannelsSchema.optional().describe(
+            "Slack channels to notify when triggered (max 50). Omitted preserves saved channels; an array replaces them; [] clears them. At least one email or Slack channel must remain. Discover eligible channels with list_alert_slack_channels."
+        ),
     })
     .refine(
         (data) =>
             data.name !== undefined ||
             data.recipients !== undefined ||
+            data.recipientsSlackChannels !== undefined ||
             (data.config !== undefined && Object.keys(data.config).length > 0),
         {
-            message: "Provide at least one field to update: name, recipients, or a config field.",
+            message:
+                "Provide at least one field to update: name, recipients, recipientsSlackChannels, or a config field.",
         }
     );
 
@@ -325,7 +361,7 @@ export const updateAlertTool = {
     title: "Update alert",
     coversEndpoint: "patch:/analytics/v1/alerts/{id}",
     description:
-        "Use this when the user wants to modify an existing cost alert. Supports partial updates, including name-only, recipients-only, or individual config fields. Omitted fields are preserved; scopes: [] clears scopes. Changes apply immediately. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
+        "Use this when the user wants to modify an existing cost alert. Supports partial updates, including name-only, email or Slack recipients only, or individual config fields. Omitted fields are preserved; scopes: [] and recipientsSlackChannels: [] clear those lists. Changes apply immediately. Do NOT use this for creating new alerts (use create_alert) or budgets (use create_budget).",
     inputSchema: zodToMcpInputSchema(UpdateAlertArgumentsSchema),
     annotations: {
         readOnlyHint: false,
