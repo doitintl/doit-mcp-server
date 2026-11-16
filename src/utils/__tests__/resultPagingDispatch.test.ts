@@ -3,7 +3,12 @@ import { z } from "zod";
 import type { GeneratedTool } from "../../tools/generated/types.js";
 import { CONTINUATION_TOKEN_PREFIX } from "../continuation.js";
 import { MAX_TOOL_RESULT_CHARS, measureToolResponse } from "../responseLimit.js";
-import { FOREIGN_PAGE_TOKEN_MESSAGE, INVALID_CONTINUATION_MESSAGE, RESULT_PAGE_TOKEN_SCHEMA } from "../resultPaging.js";
+import {
+    FOREIGN_PAGE_TOKEN_MESSAGE,
+    INVALID_CONTINUATION_MESSAGE,
+    MISSING_SCOPE_MESSAGE,
+    RESULT_PAGE_TOKEN_SCHEMA,
+} from "../resultPaging.js";
 import { executeToolHandler } from "../toolsHandler.js";
 import { makeDoitRequest } from "../util.js";
 
@@ -51,7 +56,11 @@ const write: GeneratedTool = {
     annotations: { ...unpaged.annotations, readOnlyHint: false },
 };
 const generatedTools = new Map([unpaged, paged, write].map((tool) => [tool.name, tool]));
-const options = { generatedTools, onResponseMetrics: vi.fn(), resultPaging: { secret: "dispatch-secret" } };
+const options = {
+    generatedTools,
+    onResponseMetrics: vi.fn(),
+    resultPaging: { secret: "dispatch-secret", scope: null },
+};
 
 const records = (count: number, bytes = 1_500) =>
     Array.from({ length: count }, (_, i) => ({ id: `r-${i + 1}`, blob: "x".repeat(bytes) }));
@@ -165,7 +174,7 @@ describe("result paging through actual tool dispatch", () => {
         const response = await executeToolHandler(unpaged.name, {}, "key", {
             ...options,
             convertResponse,
-            resultPaging: { secret: "dispatch-secret", cursorField: "nextPageToken" },
+            resultPaging: { secret: "dispatch-secret", cursorField: "nextPageToken", scope: null },
         });
         expect(response.structuredContent).toMatchObject({
             itemCount: response.structuredContent.items.length,
@@ -184,5 +193,15 @@ describe("result paging through actual tool dispatch", () => {
         });
         expect(response.isError).toBe(true);
         expect(response.content[0].text).toContain("RESPONSE_TOO_LARGE");
+    });
+
+    it("refuses to run when paging is configured without a scope, before calling the API", async () => {
+        for (const scope of [undefined, ""]) {
+            const resultPaging = { secret: "dispatch-secret", scope } as unknown as typeof options.resultPaging;
+            await expect(executeToolHandler(unpaged.name, {}, "key", { ...options, resultPaging })).rejects.toThrow(
+                MISSING_SCOPE_MESSAGE
+            );
+        }
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });

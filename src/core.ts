@@ -264,8 +264,10 @@ export * from "./utils/approval.js";
 export { SERVER_NAME, SERVER_NAME_WEB, SERVER_VERSION } from "./utils/consts.js";
 export {
     CONTINUATION_TOKEN_PREFIX,
+    type ContinuationDraft,
     type ContinuationPayload,
     type ContinuationPosition,
+    hashScope,
     isContinuationToken,
     signContinuation,
     verifyContinuation,
@@ -279,8 +281,13 @@ export {
     type ToolResponseMetrics,
 } from "./utils/responseLimit.js";
 export {
+    assertResultPagingScope,
+    CONTINUATION_SCOPE_MESSAGE,
+    DEFAULT_CONTINUATION_TTL_SECONDS,
+    EXPIRED_CONTINUATION_MESSAGE,
     FOREIGN_PAGE_TOKEN_MESSAGE,
     INVALID_CONTINUATION_MESSAGE,
+    MISSING_SCOPE_MESSAGE,
     needsResultPageToken,
     RESULT_PAGE_BUDGET_CHARS,
     RESULT_PAGE_TOKEN_DESCRIPTION,

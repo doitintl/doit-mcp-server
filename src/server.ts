@@ -193,7 +193,8 @@ export function createServer({
     const approvalStore = new MemoryApprovalStore();
     const userKey = "stdio-local";
     // Continuation tokens only need to be valid within this process.
-    const resultPaging = { secret: `${randomUUID()}${randomUUID()}` };
+    // Single-user process: tokens are deliberately unscoped.
+    const resultPaging = { secret: `${randomUUID()}${randomUUID()}`, scope: null };
     const server = new Server(
         {
             name: SERVER_NAME,

@@ -11,12 +11,19 @@ export type ContinuationPosition = {
 };
 
 export type ContinuationPayload = {
-    v: 1;
+    v: 2;
     tool: string;
     args: Record<string, unknown>;
     upstream: string | null;
     position: ContinuationPosition;
+    /** Unix seconds after which the token is refused. */
+    exp: number;
+    /** `hashScope` of the consumer's scope (the principal and context the token was issued for), or null. */
+    scope: string | null;
 };
+
+/** What the splitter knows about a continuation; the signer adds the version, expiry and scope. */
+export type ContinuationDraft = Pick<ContinuationPayload, "tool" | "args" | "upstream" | "position">;
 
 export function isContinuationToken(value: unknown): value is string {
     return typeof value === "string" && value.startsWith(CONTINUATION_TOKEN_PREFIX);
@@ -41,6 +48,11 @@ function fromBase64Url(text: string): Uint8Array | undefined {
     } catch {
         return undefined;
     }
+}
+
+/** Opaque digest of a consumer scope, so the token reveals nothing about the principal. */
+export async function hashScope(scope: string): Promise<string> {
+    return toBase64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(scope))));
 }
 
 async function hmacKey(secret: string, usage: "sign" | "verify"): Promise<CryptoKey> {
@@ -71,8 +83,10 @@ export async function verifyContinuation(token: string, secret: string): Promise
     try {
         const payload = JSON.parse(new TextDecoder().decode(bodyBytes)) as ContinuationPayload;
         if (
-            payload?.v !== 1 ||
+            payload?.v !== 2 ||
             typeof payload.tool !== "string" ||
+            typeof payload.exp !== "number" ||
+            (payload.scope !== null && typeof payload.scope !== "string") ||
             !payload.args ||
             typeof payload.args !== "object" ||
             Array.isArray(payload.args) ||

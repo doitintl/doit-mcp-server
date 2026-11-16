@@ -134,6 +134,7 @@ import {
 } from "./approval.js";
 import { finalizeToolResponse, type ToolResponseMetrics } from "./responseLimit.js";
 import {
+    assertResultPagingScope,
     continuationSigner,
     fitResultPage,
     type ResolvedPagedCall,
@@ -247,6 +248,8 @@ export async function executeToolHandler(
     let dispatchArgs = args;
     let paged: ResolvedPagedCall | undefined;
     let preflightError: any;
+    // Before any dispatch: a missing scope must fail loudly, not issue tokens anyone can continue.
+    if (resultPaging) assertResultPagingScope(resultPaging);
     const pageTokens = resultPaging ? pageTokenSupport(toolName, generatedTools) : undefined;
     // Tools without a pageToken argument keep ignoring a stray one, as their schema parse always did.
     if (resultPaging && pageTokens?.accepts && args && typeof args === "object" && !Array.isArray(args)) {
