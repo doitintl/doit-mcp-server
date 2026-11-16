@@ -247,7 +247,7 @@ const AlertSlackChannelSchema = z
             .string()
             .optional()
             .describe(
-                "Connected workspace name returned by discovery. Required unless shared is true; omit it when shared is true."
+                "Connected workspace name returned by discovery. Required unless shared is true; omit it (or pass the empty string discovery returns) when shared is true."
             ),
         shared: z
             .boolean()
@@ -259,9 +259,12 @@ const AlertSlackChannelSchema = z
             .optional()
             .describe("Defaults to the authenticated customer; a mismatch is rejected."),
     })
-    .refine((channel) => (channel.shared === true ? channel.workspace === undefined : Boolean(channel.workspace)), {
+    // Discovery returns workspace: "" for shared channels, so an empty string counts as omitted.
+    .refine((channel) => (channel.shared === true ? !channel.workspace : Boolean(channel.workspace)), {
         message: "Provide workspace for a workspace channel, or shared: true without workspace for a shared channel.",
-    });
+    })
+    // Never send the empty workspace: the API defines the shared shape as workspace omitted.
+    .transform(({ workspace, ...channel }) => (workspace ? { ...channel, workspace } : channel));
 
 const AlertSlackChannelsSchema = z.array(AlertSlackChannelSchema).max(50);
 

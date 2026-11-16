@@ -334,6 +334,34 @@ describe("create_alert", () => {
                 customerContext: undefined,
             });
         });
+
+        it("should accept a shared channel copied from discovery with an empty workspace", async () => {
+            (makeDoitRequest as vi.Mock).mockResolvedValue(mockCreateAlertResponse);
+            // Shape returned verbatim by list_alert_slack_channels for a shared channel.
+            const discovered = {
+                name: "shared-fixture",
+                id: "C0SHARED01",
+                shared: true,
+                type: "public",
+                customerId: "cust-1",
+                workspace: "",
+            };
+
+            await handleCreateAlertRequest(
+                { ...minimalCreateAlertArgs, recipientsSlackChannels: [discovered] },
+                mockToken
+            );
+
+            expect(createErrorResponse).not.toHaveBeenCalled();
+            expect(makeDoitRequest).toHaveBeenCalledWith(ALERTS_BASE_URL, mockToken, {
+                method: "POST",
+                body: {
+                    ...minimalCreateAlertArgs,
+                    recipientsSlackChannels: [{ id: "C0SHARED01", shared: true, customerId: "cust-1" }],
+                },
+                customerContext: undefined,
+            });
+        });
     });
 
     describe("customerContext and error handling", () => {
@@ -819,6 +847,7 @@ describe("alert API contracts", () => {
         { id: "C1", workspace: "acme", shared: false },
         { id: "C1", shared: true },
         { id: "C1", shared: true, customerId: "cust-1" },
+        { id: "C1", shared: true, workspace: "" },
     ])("accepts Slack channel shape %j on create and update", (channel) => {
         expect(
             CreateAlertArgumentsSchema.safeParse({ name: "test", config, recipientsSlackChannels: [channel] }).success
@@ -832,6 +861,8 @@ describe("alert API contracts", () => {
         { workspace: "acme" },
         { id: "C1" },
         { id: "C1", shared: false },
+        { id: "C1", workspace: "" },
+        { id: "C1", shared: false, workspace: "" },
         { id: "C1", shared: true, workspace: "acme" },
         { id: "C1", workspace: "acme", customerId: "" },
     ])("rejects Slack channel shape %j on create and update", (channel) => {
