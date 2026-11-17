@@ -1,5 +1,13 @@
 # Changelog
 
+## v5.0.1 (2026-11-16)
+
+**Full diff:** [`v5.0.0...v5.0.1`](../../compare/v5.0.0...v5.0.1)
+
+### Bug Fixes
+
+- fix(alerts): accept the empty workspace discovery returns for shared channels (`085ed79`)
+- fix(alerts): accept Slack channel recipients on create and update (`eba7af6`)
 ## v5.0.0 (2026-11-16)
 
 **Full diff:** [`v4.0.0...v5.0.0`](../../compare/v4.0.0...v5.0.0)
