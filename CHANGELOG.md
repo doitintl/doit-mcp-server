@@ -1,5 +1,21 @@
 # Changelog
 
+## v5.1.0 (2026-11-18)
+
+**Full diff:** [`v5.0.1...v5.1.0`](../../compare/v5.0.1...v5.1.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`21b618f`)
+
+### Other Changes
+
+- docs(cloud-connect): do not restrict where the agent may look for IaC (`963621e`)
+- docs(cloud-connect): phrase plan confirmation positively (`fde2b6a`)
+- docs(cloud-connect): limit IaC search to the working directory and user-named locations (`9077cab`)
+- docs(cloud-connect): clarify discovery of existing IaC and ownership (`108e2f6`)
+- docs(cloud-connect): require text-based plan confirmation (`389de32`)
+- docs(cloud-connect): formalize search for existing IaC and deployment ownership (`d875e1d`)
 ## v5.0.1 (2026-11-16)
 
 **Full diff:** [`v5.0.0...v5.0.1`](../../compare/v5.0.0...v5.0.1)
