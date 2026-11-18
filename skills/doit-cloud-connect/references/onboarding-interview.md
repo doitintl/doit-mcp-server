@@ -41,7 +41,7 @@ Skip this question when the user named the features.
 
 Skip it when an existing DoiT deployment is found: keep its owner, as the shared [deployment rules](deployment-tools.md) require. Otherwise recommend the first that fits:
 
-1. The Terraform, OpenTofu or Terragrunt setup the customer already uses for this cloud.
+1. The Terraform, OpenTofu or Terragrunt setup that already deploys this target, located as in [Find the owning source](deployment-tools.md#find-the-owning-source). An installed CLI alone is not existing IaC.
 2. Other IaC the customer already uses, such as CDK, Pulumi or Azure Bicep/ARM, through its existing execution workflow.
 3. The returned artifact through a cloud CLI, or cloud provider tools connected to your client, that you can run here, such as CloudFormation for AWS or the setup script for Google Cloud or Azure.
 4. The cloud console in a browser the user lets you control, when no CLI or connected tool is available. The user signs in and keeps control of credentials; never ask for or enter passwords or keys. Confirm before each submitting action, such as creating a stack or granting a role.
