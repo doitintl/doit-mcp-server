@@ -3,7 +3,7 @@ name: doit-cloud-connect
 description: Route DoiT Cloud Connect setup, verification, repair or disconnect by cloud provider and deployment method. AWS, including organization root/OU rollouts, Google Cloud and Azure management groups are supported.
 license: MIT
 metadata:
-  doit/skill-version: "22"
+  doit/skill-version: "23"
   doit/api-contract: "onboarding/v2"
 ---
 
