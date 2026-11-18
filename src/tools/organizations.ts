@@ -16,6 +16,7 @@ export const ListOrganizationsArgumentsSchema = z.object({}); // for consistency
 
 export const listOrganizationsTool = {
     name: "list_organizations",
+    resultPaged: true,
     title: "List organizations",
     coversEndpoint: "get:/iam/v1/organizations",
     description:

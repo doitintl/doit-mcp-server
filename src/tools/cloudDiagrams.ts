@@ -91,6 +91,7 @@ export const GetCloudDiagramsStatsArgumentsSchema = z.object({
 
 export const getCloudDiagramsStatsTool = {
     name: "get_cloud_diagrams_stats",
+    resultPaged: true,
     title: "Get cloud diagram statistics",
     coversEndpoint: "get:/clouddiagrams/v1/scheme/stats",
     description:
@@ -354,6 +355,7 @@ export const ListCloudDiagramActivityGroupsArgumentsSchema = z.object({
 
 export const listCloudDiagramActivityGroupsTool = {
     name: "list_cloud_diagram_activity_groups",
+    resultPaged: true,
     title: "List cloud diagram activity groups",
     coversEndpoint: "get:/clouddiagrams/v1/activity",
     description:
@@ -411,6 +413,7 @@ export const ListCloudDiagramNodeActivitiesArgumentsSchema = z.object({
 
 export const listCloudDiagramNodeActivitiesTool = {
     name: "list_cloud_diagram_node_activities",
+    resultPaged: true,
     title: "List cloud diagram node activities",
     coversEndpoint: "get:/clouddiagrams/v1/activity/node-activities",
     description:
@@ -488,6 +491,7 @@ export const GetCloudDiagramComponentsArgumentsSchema = z.object({
 
 export const getCloudDiagramComponentsTool = {
     name: "get_cloud_diagram_components",
+    resultPaged: true,
     title: "Get cloud diagram components",
     coversEndpoint: "post:/clouddiagrams/v1/scheme/get",
     description:

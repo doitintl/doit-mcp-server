@@ -1,6 +1,8 @@
 import type { OpenAPIV3 } from "openapi-types";
 import { z } from "zod";
 
+import { APPROVAL_GATED_DESCRIPTION } from "../../utils/approval.js";
+import { RESULT_PAGE_TOKEN_SCHEMA } from "../../utils/resultPaging.js";
 import { isExcludedOperation } from "./excludedOperations.js";
 import { toolOverrides } from "./overrides.js";
 import { buildRequestPath } from "./requestPath.js";
@@ -188,6 +190,9 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             if (override?.responsePageTokenHeader) {
                 metadata.responsePageTokenHeader = override.responsePageTokenHeader;
             }
+            if (override?.queryDefaults) {
+                metadata.queryDefaults = override.queryDefaults;
+            }
 
             const baseDescription =
                 operation.description ?? operation.summary ?? `${method.toUpperCase()} ${pathTemplate}`;
@@ -198,21 +203,27 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                     ? " This endpoint is paginated: a response with a non-empty `pageToken` has more results, returned when that value is passed as the `pageToken` parameter. A missing, null, or empty `pageToken` marks the last page."
                     : "";
             // Guidance the spec cannot carry — see overrides.ts. Tool descriptions ride in every
-            // tools/list response, which makes them the only guidance channel that reaches the
-            // remote Worker transport from this repo alone.
+            // tools/list response, which makes them the only guidance channel that reaches every
+            // consumer of the core export from this repo alone.
             const description = `${tagDescription ? `${tagDescription} ` : ""}${baseDescription}${paginationNote}${
                 override?.descriptionSuffix ? ` ${override.descriptionSuffix}` : ""
             }`;
 
             const isReadOnly = override?.readOnly ?? method === "get";
+            // Opted-in list reads without upstream paging take the server's continuation token.
+            if (override?.resultPaged && isReadOnly && !("pageToken" in shape)) {
+                shape.pageToken = RESULT_PAGE_TOKEN_SCHEMA;
+                metadata.resultPaged = true;
+            }
             const zodSchema = z.object(shape);
+            const isApprovalGated = method === "delete";
 
             tools.push({
                 name,
                 // Every operation in the bundled spec has a summary (asserted in the tests); the
                 // fallback only keeps a future summary-less operation from shipping untitled.
                 title: operation.summary?.trim() || `${method.toUpperCase()} ${pathTemplate}`,
-                description,
+                description: isApprovalGated ? `${description} ${APPROVAL_GATED_DESCRIPTION}` : description,
                 zodSchema,
                 metadata,
                 annotations: {
@@ -226,7 +237,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                         scopes: isReadOnly ? ["read_data"] : ["read_data", "write_data"],
                     },
                 ],
-                ...(method === "delete"
+                ...(isApprovalGated
                     ? { summary: buildDeleteSummary(operation.summary, pathTemplate, metadata.pathParams, zodSchema) }
                     : {}),
             });

@@ -140,6 +140,48 @@ describe("insights and alert contracts over MCP", () => {
             await cleanup();
         }
     });
+
+    it("advertises and sends Slack channel recipients on alert create and update", async () => {
+        const channel = { id: "C07N2KUPEUX", workspace: "fixture-workspace" };
+        const bodies: unknown[] = [];
+        mswServer.use(
+            http.post(`${API}/analytics/v1/alerts`, async ({ request }) => {
+                const body = await request.json();
+                bodies.push(body);
+                return HttpResponse.json({ id: "slack-fixture", ...(body as object) });
+            }),
+            http.patch(`${API}/analytics/v1/alerts/slack-fixture`, async ({ request }) => {
+                const body = await request.json();
+                bodies.push(body);
+                return HttpResponse.json({ id: "slack-fixture", ...(body as object) });
+            })
+        );
+        const { client, rawClient, cleanup } = await createTestClient();
+        try {
+            const { tools } = await client.listTools();
+            for (const name of ["create_alert", "update_alert"]) {
+                const tool = tools.find((candidate) => candidate.name === name);
+                expect(tool?.inputSchema.properties).toHaveProperty("recipientsSlackChannels");
+            }
+            const config = { metric: { type: "basic", value: "cost" }, timeInterval: "day", operator: "gt", value: 1 };
+            const created = await rawClient.callTool({
+                name: "create_alert",
+                arguments: { name: "Slack only", config, recipientsSlackChannels: [channel] },
+            });
+            expect(created.isError).not.toBe(true);
+            const updated = await rawClient.callTool({
+                name: "update_alert",
+                arguments: { id: "slack-fixture", recipientsSlackChannels: [] },
+            });
+            expect(updated.isError).not.toBe(true);
+            expect(bodies).toEqual([
+                { name: "Slack only", config, recipientsSlackChannels: [channel] },
+                { recipientsSlackChannels: [] },
+            ]);
+        } finally {
+            await cleanup();
+        }
+    });
 });
 
 describe("customer context through shared tool dispatch", () => {

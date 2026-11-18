@@ -554,3 +554,9 @@ describe("update_annotation", () => {
         expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });
+
+describe("list_annotations default page", () => {
+    it("requests 100 per page by default, below the API maximum of 500, to stay under the MCP result limit", () => {
+        expect(DEFAULT_MAX_RESULTS_ANNOTATIONS).toBe("100");
+    });
+});

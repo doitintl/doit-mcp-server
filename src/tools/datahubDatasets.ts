@@ -39,6 +39,7 @@ export const ListDatahubDatasetsArgumentsSchema = z.object({});
 
 export const listDatahubDatasetsTool = {
     name: "list_datahub_datasets",
+    resultPaged: true,
     title: "List DataHub datasets",
     coversEndpoint: "get:/datahub/v1/datasets",
     description:

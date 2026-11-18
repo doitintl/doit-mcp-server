@@ -1,10 +1,12 @@
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { serveDoitChannelOnlyStdio, serveDoitChannelStdio } from "../channel/serve.js";
 import { exitOnFatalError, main, mainWithServer } from "../index.js";
 import { serveDoitStdio } from "../stdio.js";
 
 vi.mock("@modelcontextprotocol/server/stdio");
 vi.mock("../stdio.js", () => ({ serveDoitStdio: vi.fn() }));
+vi.mock("../channel/serve.js", () => ({ serveDoitChannelStdio: vi.fn(), serveDoitChannelOnlyStdio: vi.fn() }));
 vi.mock("dotenv", () => ({ config: vi.fn() }));
 
 beforeEach(() => {
@@ -14,6 +16,7 @@ beforeEach(() => {
 afterEach(() => {
     vi.resetAllMocks();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
 });
 
 describe("mainWithServer", () => {
@@ -33,6 +36,53 @@ describe("mainWithServer", () => {
         expect(serveDoitStdio).toHaveBeenCalledOnce();
         expect(StdioServerTransport).not.toHaveBeenCalled();
         expect(console.error).toHaveBeenCalledWith("DoiT MCP Server running on stdio");
+    });
+
+    it("does not enter channel mode unless DOIT_CHANNEL_EVENTS is set", async () => {
+        await mainWithServer();
+
+        expect(serveDoitChannelStdio).not.toHaveBeenCalled();
+    });
+
+    it("serves as a channel, not through serveDoitStdio, when DOIT_CHANNEL_EVENTS is set", async () => {
+        vi.stubEnv("DOIT_CHANNEL_EVENTS", "anomalies");
+        vi.stubEnv("DOIT_CHANNEL_POLL_SECONDS", "120");
+
+        await mainWithServer();
+
+        expect(serveDoitChannelStdio).toHaveBeenCalledWith({ events: ["anomalies"], pollIntervalMs: 120_000 });
+        expect(serveDoitStdio).not.toHaveBeenCalled();
+    });
+
+    it("serves events only when DOIT_CHANNEL_ONLY is set", async () => {
+        vi.stubEnv("DOIT_CHANNEL_ONLY", "true");
+        vi.stubEnv("DOIT_CHANNEL_EVENTS", "incidents");
+
+        await mainWithServer();
+
+        expect(serveDoitChannelOnlyStdio).toHaveBeenCalledWith({ events: ["incidents"], pollIntervalMs: 300_000 });
+        expect(serveDoitChannelStdio).not.toHaveBeenCalled();
+        expect(serveDoitStdio).not.toHaveBeenCalled();
+    });
+
+    it("never falls back to the full server in channel-only mode, even with no event kinds", async () => {
+        vi.stubEnv("DOIT_CHANNEL_ONLY", "1");
+        vi.stubEnv("DOIT_CHANNEL_EVENTS", "");
+
+        await mainWithServer();
+
+        expect(serveDoitChannelOnlyStdio).toHaveBeenCalledWith(undefined);
+        expect(serveDoitStdio).not.toHaveBeenCalled();
+    });
+
+    it("ignores DOIT_CHANNEL_EVENTS when a custom server is passed", async () => {
+        vi.stubEnv("DOIT_CHANNEL_EVENTS", "anomalies");
+        const mockServer = { connect: vi.fn() };
+
+        await mainWithServer(mockServer as any);
+
+        expect(mockServer.connect).toHaveBeenCalledOnce();
+        expect(serveDoitChannelStdio).not.toHaveBeenCalled();
     });
 
     it("rejects, without reporting it is running, when the server fails to start", async () => {

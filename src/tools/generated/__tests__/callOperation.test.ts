@@ -262,3 +262,41 @@ describe("handleGeneratedOperationRequest", () => {
         expect(response.isError).toBe(true);
     });
 });
+
+describe("query defaults from overrides", () => {
+    const mockToken = "token";
+    const withDefault = () =>
+        buildTool({
+            zodSchema: z.object({ id: z.string(), maxResults: z.number().int().optional() }),
+            metadata: {
+                method: "get",
+                pathTemplate: "/widgets/{id}",
+                pathParams: ["id"],
+                queryParams: ["maxResults"],
+                headerParams: [],
+                bodyEncoding: "json",
+                multipartFileFields: [],
+                queryDefaults: { maxResults: 20 },
+            },
+        });
+
+    it("sends the override default when the caller omits the parameter", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+        await handleGeneratedOperationRequest(withDefault(), { id: "abc" }, mockToken);
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${DOIT_API_BASE}/widgets/abc?maxResults=20`,
+            mockToken,
+            expect.any(Object)
+        );
+    });
+
+    it("lets an explicit argument replace the override default", async () => {
+        (makeDoitRequest as vi.Mock).mockResolvedValue("{}");
+        await handleGeneratedOperationRequest(withDefault(), { id: "abc", maxResults: 50 }, mockToken);
+        expect(makeDoitRequest).toHaveBeenCalledWith(
+            `${DOIT_API_BASE}/widgets/abc?maxResults=50`,
+            mockToken,
+            expect.any(Object)
+        );
+    });
+});

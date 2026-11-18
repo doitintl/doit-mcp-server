@@ -16,6 +16,7 @@ export const ListPlatformsArgumentsSchema = z.object({});
 
 export const listPlatformsTool = {
     name: "list_platforms",
+    resultPaged: true,
     title: "List platforms",
     coversEndpoint: "get:/support/v1/metadata/platforms",
     description:

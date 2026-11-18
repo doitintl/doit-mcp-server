@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
     CLIENT_CAPABILITIES_META_KEY,
     CLIENT_INFO_META_KEY,
@@ -9,6 +10,7 @@ import {
     type ServerContext,
     type Tool,
 } from "@modelcontextprotocol/server";
+import { CHANNEL_CAPABILITY, CHANNEL_INSTRUCTIONS } from "./channel/protocol.js";
 import { CLOUDFLOW_AUTHORING_GUIDE } from "./docs/cloudflowGuidance.js";
 import { SERVER_INSTRUCTIONS } from "./docs/serverInstructions.js";
 import { CLOUDFLOW_GUIDE_URI, withSkillGuidePointers } from "./docs/skillGuidePointers.js";
@@ -173,12 +175,26 @@ function resolveTrackingContext(server: Server, ctx: ServerContext): TrackingCon
     };
 }
 
-export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry?: SkillRegistry } = {}) {
+export function createServer({
+    skillRegistry = SKILL_REGISTRY,
+    channel = false,
+}: {
+    skillRegistry?: SkillRegistry;
+    /**
+     * Declares the Claude Code Channels capability and describes channel events in the
+     * instructions. Only the channel entry (`src/channel/serve.ts`) sets this; the default
+     * stdio path and `/core` consumers never do.
+     */
+    channel?: boolean;
+} = {}) {
     // stdio is single-process and single-user, so a stable string is sufficient as the
-    // identity the approval flow is bound to. The Worker transport binds to the
-    // OAuth-derived api key instead — see the remote Worker in the separate private repo.
+    // identity the approval flow is bound to. A multi-user consumer of the core export passes
+    // its own stable per-user key instead.
     const approvalStore = new MemoryApprovalStore();
     const userKey = "stdio-local";
+    // Continuation tokens only need to be valid within this process.
+    // Single-user process: tokens are deliberately unscoped.
+    const resultPaging = { secret: `${randomUUID()}${randomUUID()}`, scope: null };
     const server = new Server(
         {
             name: SERVER_NAME,
@@ -190,11 +206,12 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
                 prompts: {},
                 resources: {},
                 extensions: SKILL_EXTENSION_CAPABILITY,
+                ...(channel ? { experimental: CHANNEL_CAPABILITY } : {}),
             },
             // Returned in the initialize result. Only the stdio server is constructed here —
-            // the remote Worker builds its own Server and has to pass this itself. Domain
+            // a consumer that builds its own Server has to pass this itself. Domain
             // workflows are not repeated here; tools/list names their guides when needed.
-            instructions: SERVER_INSTRUCTIONS,
+            instructions: channel ? `${SERVER_INSTRUCTIONS} ${CHANNEL_INSTRUCTIONS}` : SERVER_INSTRUCTIONS,
         }
     );
 
@@ -333,6 +350,7 @@ export function createServer({ skillRegistry = SKILL_REGISTRY }: { skillRegistry
             approvalStore,
             onProgress,
             generatedTools: generatedToolsByName,
+            resultPaging,
         });
     });
 

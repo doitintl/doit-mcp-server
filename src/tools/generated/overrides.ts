@@ -7,6 +7,16 @@ export type ToolOverride = {
     responsePageTokenHeader?: string;
     /** Explicit operation semantics when the HTTP method does not indicate whether it writes. */
     readOnly?: boolean;
+    /**
+     * Query parameters sent when the caller omits them, replacing the API's own default.
+     * Used where the API default page is too large for one MCP result.
+     */
+    queryDefaults?: Record<string, string | number | boolean>;
+    /**
+     * Opts a read-only list operation with no upstream paging into server-side result paging
+     * (src/utils/resultPaging.ts). Only for operations that return a record list.
+     */
+    resultPaged?: true;
 };
 
 /**
@@ -27,6 +37,12 @@ export const toolOverrides: Record<string, ToolOverride> = {
     },
     // Fetches selected layer components by ID; POST carries the component ID lists.
     get_statussheet_components: { readOnly: true },
+    // Each recipe carries its manual remediation text; the API's default page of 50 is ~100 KB.
+    list_composer_recipes: {
+        queryDefaults: { maxResults: 20 },
+        descriptionSuffix:
+            "Each recipe includes its remediation text, so this tool requests 20 recipes per page unless maxResults is set (the API's own default is 50; pages of 50 or more can exceed the MCP result size limit).",
+    },
     import_cloudflow_flow: {
         descriptionSuffix:
             "Idempotency-Key is required even with dryRun. Same key/request replays within 24 hours; different request fails with 422, an in-progress match with 409. Dry-runs validate existing fingerprints without storing a replay. " +
@@ -48,4 +64,30 @@ export const toolOverrides: Record<string, ToolOverride> = {
         descriptionSuffix:
             "The current generated MCP schema exposes no arbitrary trigger payload field; the API uses an empty payload when omitted. trigger_cloud_flow accepts a webhook payload for published webhook flows.",
     },
+    // List operations whose endpoints return every record at once: oversized results are split
+    // into continuation pages (src/utils/resultPaging.ts). Operations that page upstream through
+    // `after`/`nextCursor` (Attribute) and responses without a record array stay out.
+    list_billing_transfer_end_customers: { resultPaged: true },
+    list_billing_transfer_end_customers_by_reseller: { resultPaged: true },
+    list_billing_transfer_reseller_accounts: { resultPaged: true },
+    list_billing_transfer_reseller_accounts_with_tenants: { resultPaged: true },
+    list_budget_suggestions: { resultPaged: true },
+    list_cloud_diagram_layer_snapshots: { resultPaged: true },
+    list_contract_templates: { resultPaged: true },
+    list_contracts: { resultPaged: true },
+    list_customer_group_user_groups: { resultPaged: true },
+    list_customer_group_users: { resultPaged: true },
+    list_customer_groups: { resultPaged: true },
+    list_customer_notifications: { resultPaged: true },
+    list_gcp_recommendations: { resultPaged: true },
+    list_geographic_access_countries: { resultPaged: true },
+    list_geographic_access_custom_regions: { resultPaged: true },
+    list_service_account_tokens: { resultPaged: true },
+    list_service_accounts: { resultPaged: true },
+    list_shared_payer_account_mappings: { resultPaged: true },
+    list_shared_payer_management_accounts: { resultPaged: true },
+    list_shared_payers: { resultPaged: true },
+    list_ticket_tags: { resultPaged: true },
+    list_user_notifications: { resultPaged: true },
+    list_widgets: { resultPaged: true },
 };

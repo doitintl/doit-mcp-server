@@ -155,6 +155,32 @@ update_consts_version() {
   info "updated ${file} -> ${version}"
 }
 
+update_plugin_manifest_version() {
+  local file="$1"
+  local version="$2"
+  # The Claude Code plugin runs the published npm package. The plugin directory refuses an
+  # unpinned launcher, so the manifest pins the exact package version and carries the same
+  # version itself.
+  node -e "
+    const fs = require('fs');
+    const manifest = JSON.parse(fs.readFileSync('${file}', 'utf8'));
+    manifest.version = '${version}';
+    for (const server of Object.values(manifest.mcpServers ?? {})) {
+      server.args = (server.args ?? []).map((arg) =>
+        arg.startsWith('@doitintl/doit-mcp-server@') ? '@doitintl/doit-mcp-server@${version}' : arg
+      );
+    }
+    fs.writeFileSync('${file}', JSON.stringify(manifest, null, 2) + '\n');
+    // The plugin README states the exact command the plugin runs.
+    const readme = '${REPO_ROOT}/plugins/doit/README.md';
+    fs.writeFileSync(
+      readme,
+      fs.readFileSync(readme, 'utf8').replace(/@doitintl\/doit-mcp-server@\d+\.\d+\.\d+/g, '@doitintl/doit-mcp-server@${version}')
+    );
+  "
+  info "updated ${file} and plugins/doit/README.md -> ${version}"
+}
+
 # --- main ---
 
 main() {
@@ -202,6 +228,9 @@ main() {
     echo "  src/utils/consts.ts:"
     grep "SERVER_VERSION" "${REPO_ROOT}/src/utils/consts.ts" | sed 's/^/    /'
     echo ""
+    echo "  plugins/doit/.claude-plugin/plugin.json:"
+    grep -E '"version"|doit-mcp-server@' "${REPO_ROOT}/plugins/doit/.claude-plugin/plugin.json" | sed 's/^ */    /'
+    echo ""
     section "[dry-run] Changelog preview for ${tag}"
     bash "${SCRIPT_DIR}/write-changelog.sh" --tag "$tag" --dry-run
     echo ""
@@ -214,10 +243,12 @@ main() {
   if $has_node; then
     update_package_json_version "${REPO_ROOT}/package.json" "$version"
     update_package_json_version "${REPO_ROOT}/test/integration/package.json" "$version"
+    update_plugin_manifest_version "${REPO_ROOT}/plugins/doit/.claude-plugin/plugin.json" "$version"
   else
     warn "skipping package.json updates — update these manually to \"${version}\":"
     warn "  package.json"
     warn "  test/integration/package.json"
+    warn "  plugins/doit/.claude-plugin/plugin.json (version and the pinned npm package version)"
   fi
   update_consts_version "${REPO_ROOT}/src/utils/consts.ts" "$version"
 
@@ -239,6 +270,7 @@ main() {
     echo "  *** ACTION REQUIRED: manually set \"version\": \"${version}\" in:"
     echo "        package.json"
     echo "        test/integration/package.json"
+    echo "        plugins/doit/.claude-plugin/plugin.json (and its pinned npm package version)"
     echo ""
   fi
   echo "Next steps:"
@@ -246,7 +278,7 @@ main() {
   echo "  1. Review and edit the changelog entry in CHANGELOG.md if needed."
   echo ""
   echo "  2. Commit the release preparation:"
-  echo "       git add package.json test/integration/package.json src/utils/consts.ts CHANGELOG.md"
+  echo "       git add package.json test/integration/package.json plugins/doit src/utils/consts.ts CHANGELOG.md"
   echo "       git commit -m \"chore: prepare release ${tag}\""
   echo ""
   echo "  3. Tag the release:"

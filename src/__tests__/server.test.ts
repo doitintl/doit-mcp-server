@@ -15,6 +15,7 @@ import { prompts } from "../prompts/index.js";
 import { SKILL_RESOURCES } from "../skills/index.js";
 import { CLOUD_CONNECT_TOOLS } from "../tools/cloudConnect.js";
 import { SERVER_VERSION } from "../utils/consts.js";
+import { withResultPageTokenInputSchema } from "../utils/resultPaging.js";
 import { BEHAVIORAL_TEXT, schemaDescriptions } from "./behavioralText.js";
 
 // Only the Server class is mocked, for two reasons:
@@ -593,7 +594,7 @@ describe("tools/list handler", () => {
                 askAvaSyncTool,
                 confirmActionTool,
                 ...generatedToolDefinitions,
-            ],
+            ].map(withResultPageTokenInputSchema),
         });
     });
 
@@ -900,7 +901,8 @@ describe("prompts/get handler", () => {
         expect(response.messages[0].role).toBe("user");
         const text: string = response.messages[0].content.text;
         expect(text).toContain("list_tickets");
-        expect(text).toContain("pageToken and the same pageSize=100 on every subsequent call");
+        expect(text).toContain("with a pageSize=20");
+        expect(text).toContain("pageToken and the same pageSize=20 on every subsequent call");
         expect(text).toContain("Do not retrieve more than 5 pages");
     });
 

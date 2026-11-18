@@ -130,13 +130,13 @@ try {
         }
         record("list_platforms", {}, platforms, "platforms", ["catalog IDs accepted by create_ticket schema without created"]);
     }
-    for (const platform of [undefined, "google_cloud_platform", "finance___billing", "credits___request"]) {
-        const args = platform ? { platform } : {};
+    for (const platform of ["google_cloud_platform", "finance___billing", "credits___request"]) {
+        const args = { platform };
         const products = await call("list_products", args);
         if (products) {
             check(products.products?.every((product) => product.visibility !== "private"), "list_products: private products excluded");
-            if (platform) check(products.products?.every((product) => product.platform === platform), "list_products: platform filter matches");
-            record("list_products", args, products, "products", ["private products excluded", ...(platform ? ["platform filter matches"] : [])]);
+            check(products.products?.every((product) => product.platform === platform), "list_products: platform filter matches");
+            record("list_products", args, products, "products", ["private products excluded", "platform filter matches"]);
         }
     }
     const roles = await call("list_roles", {});

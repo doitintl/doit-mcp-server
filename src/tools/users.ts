@@ -19,6 +19,7 @@ export const ListUsersArgumentsSchema = z.object({});
 
 export const listUsersTool = {
     name: "list_users",
+    resultPaged: true,
     title: "List users",
     coversEndpoint: "get:/iam/v1/users",
     description:

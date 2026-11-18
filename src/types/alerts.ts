@@ -62,6 +62,15 @@ export type AlertConfig = {
     value: number;
 };
 
+export type AlertSlackChannel = {
+    id: string;
+    workspace?: string;
+    shared?: boolean;
+    customerId?: string;
+    name?: string;
+    type?: string;
+};
+
 export type Alert = {
     id: string;
     name: string;
@@ -69,6 +78,7 @@ export type Alert = {
     updateTime: number;
     lastAlerted: number | null;
     recipients: string[];
+    recipientsSlackChannels?: AlertSlackChannel[];
     config: AlertConfig;
 };
 

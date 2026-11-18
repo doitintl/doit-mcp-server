@@ -1,6 +1,7 @@
 import type { OpenAPIV3 } from "openapi-types";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { APPROVAL_GATED_DESCRIPTION } from "../../../utils/approval.js";
 import { COVERED_ENDPOINTS } from "../../handWrittenTools.js";
 import { generateTools } from "../generateTools.js";
 import { loadGeneratedToolsSpec } from "../loadSpec.js";
@@ -198,6 +199,15 @@ describe("generateTools", () => {
         for (const tool of tools.filter((tool) => tool.metadata.method !== "delete")) {
             expect(tool.summary, tool.name).toBeUndefined();
         }
+    });
+
+    it("describes the two-step approval on exactly the write-gated tools", () => {
+        const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+        for (const tool of tools) {
+            expect(tool.description.endsWith(APPROVAL_GATED_DESCRIPTION), tool.name).toBe(tool.summary !== undefined);
+        }
+        expect(APPROVAL_GATED_DESCRIPTION).toContain("`confirm_action`");
+        expect(APPROVAL_GATED_DESCRIPTION).toContain("5 minutes");
     });
 
     it("detects multipart binary fields", () => {

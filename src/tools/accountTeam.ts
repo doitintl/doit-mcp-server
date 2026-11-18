@@ -16,6 +16,7 @@ export const ListAccountTeamArgumentsSchema = z.object({});
 
 export const listAccountTeamTool = {
     name: "list_account_team",
+    resultPaged: true,
     title: "List account team",
     coversEndpoint: "get:/customers/v1/accountTeam",
     description:

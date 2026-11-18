@@ -25,13 +25,13 @@ describe("products", () => {
         platform: "google_cloud_platform",
     };
 
-    it("should call makeDoitRequest with base URL and return products in response", async () => {
+    it("requests one platform and returns its products", async () => {
         const mockApiResponse = { products: [mockProduct] };
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(mockApiResponse);
 
-        const response = await handleListProductsRequest({}, mockToken);
+        const response = await handleListProductsRequest({ platform: "google_cloud_platform" }, mockToken);
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(PRODUCTS_BASE_URL, mockToken, {
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${PRODUCTS_BASE_URL}?platform=google_cloud_platform`, mockToken, {
             method: "GET",
             customerContext: undefined,
         });
@@ -65,9 +65,12 @@ describe("products", () => {
             products: [mockProduct],
         });
 
-        await handleListProductsRequest({ customerContext: "customer-123" }, mockToken);
+        await handleListProductsRequest(
+            { platform: "google_cloud_platform", customerContext: "customer-123" },
+            mockToken
+        );
 
-        expect(makeDoitRequest).toHaveBeenCalledWith(PRODUCTS_BASE_URL, mockToken, {
+        expect(makeDoitRequest).toHaveBeenCalledWith(`${PRODUCTS_BASE_URL}?platform=google_cloud_platform`, mockToken, {
             method: "GET",
             customerContext: "customer-123",
         });
@@ -76,7 +79,7 @@ describe("products", () => {
     it("should return success response when no products found", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue({ products: [] });
 
-        const response = await handleListProductsRequest({}, mockToken);
+        const response = await handleListProductsRequest({ platform: "google_cloud_platform" }, mockToken);
 
         expect(response.content[0].text).toBe("No products found.");
     });
@@ -84,7 +87,7 @@ describe("products", () => {
     it("should return error response when API returns null", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-        const response = await handleListProductsRequest({}, mockToken);
+        const response = await handleListProductsRequest({ platform: "google_cloud_platform" }, mockToken);
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("products") }],
@@ -95,11 +98,18 @@ describe("products", () => {
     it("should return error response when makeDoitRequest throws", async () => {
         (makeDoitRequest as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
 
-        const response = await handleListProductsRequest({}, mockToken);
+        const response = await handleListProductsRequest({ platform: "google_cloud_platform" }, mockToken);
 
         expect(response).toEqual({
             content: [{ type: "text", text: expect.stringContaining("Network error") }],
             isError: true,
         });
+    });
+
+    it.each([{}, { platform: "" }])("rejects a missing platform %j before any API call", async (args) => {
+        const response = await handleListProductsRequest(args, mockToken);
+        expect(response.isError).toBe(true);
+        expect(response.content[0].text).toMatch(/platform is required/);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
     });
 });

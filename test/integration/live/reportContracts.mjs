@@ -11,6 +11,21 @@ if (process.env.DOIT_LIVE_REPORT_CONTRACTS !== "1" || !process.env.DOIT_OWN_CUST
     throw new Error("Requires DOIT_LIVE_REPORT_CONTRACTS=1 and DOIT_OWN_CUSTOMER_API_KEY in the environment.");
 }
 const writes = process.argv.includes("--disposable-report");
+// Optional disposable-report extras: an existing folder to create into, and chart displaySettings round-trips.
+const folderId = process.env.DOIT_LIVE_REPORT_FOLDER_ID;
+const displaySettingsChecks = process.argv.includes("--display-settings");
+// For accounts without billing rows in the prior month (e.g. dev): skips assertions that need non-empty results.
+const skipDataChecks = process.argv.includes("--skip-data-checks");
+if ((folderId || displaySettingsChecks) && !writes) {
+    throw new Error("DOIT_LIVE_REPORT_FOLDER_ID and --display-settings require --disposable-report.");
+}
+const createdDisplaySettings = {
+    showDataLabels: true,
+    logarithmicScale: true,
+    showTotalsPanel: true,
+    numberScale: "thousands",
+    decimalPrecision: 2,
+};
 const client = new Client({ name: "report-contract-validation", version: "1.0.0" });
 const serverEntry = fileURLToPath(new URL("../../../dist/index.js", import.meta.url));
 const runId = randomUUID();
@@ -116,7 +131,10 @@ await client.connect(
         command: process.execPath,
         args: [serverEntry],
         cwd: tmpdir(),
-        env: { DOIT_API_KEY: process.env.DOIT_OWN_CUSTOMER_API_KEY },
+        env: {
+            DOIT_API_KEY: process.env.DOIT_OWN_CUSTOMER_API_KEY,
+            ...(process.env.DOIT_API_BASE && { DOIT_API_BASE: process.env.DOIT_API_BASE }),
+        },
         stderr: "ignore",
     })
 );
@@ -128,60 +146,67 @@ try {
     check(provider, "No provider available for bounded validation");
     const filters = [{ id: "cloud_provider", type: "fixed", values: [provider] }];
     const config = { ...base, filters, timeInterval: "day", timeRange: { mode: "custom" }, customTimeRange: dates };
-    const custom = await call("run_query", { config });
-    const actualDays = verifyDaily(custom, isoDay(priorStart), isoDay(priorSecond));
-    check(actualDays.length === 2, "Expected both requested calendar days in this account");
-    check(
-        custom.rows.every((row) => row[custom.columns.findIndex((col) => col.name === "cloud_provider")] === provider),
-        "Omitted mode did not restrict provider"
-    );
-    record("custom dates and omitted filter mode: exact two requested days and provider only", {
-        input: { config },
-        rowCount: custom.rowCount,
-        returnedDays: actualDays,
-    });
-    const explicitMode = await call("run_query", { config: { ...config, filters: [{ ...filters[0], mode: "is" }] } });
-    check(equalResults(custom, explicitMode), "Omitted mode differs from explicit is");
-    record("omitted filter mode equals explicit is", { rowCount: explicitMode.rowCount });
+    if (!skipDataChecks) {
+        const custom = await call("run_query", { config });
+        const actualDays = verifyDaily(custom, isoDay(priorStart), isoDay(priorSecond));
+        check(actualDays.length === 2, "Expected both requested calendar days in this account");
+        check(
+            custom.rows.every((row) => row[custom.columns.findIndex((col) => col.name === "cloud_provider")] === provider),
+            "Omitted mode did not restrict provider"
+        );
+        record("custom dates and omitted filter mode: exact two requested days and provider only", {
+            input: { config },
+            rowCount: custom.rowCount,
+            returnedDays: actualDays,
+        });
+        const explicitMode = await call("run_query", { config: { ...config, filters: [{ ...filters[0], mode: "is" }] } });
+        check(equalResults(custom, explicitMode), "Omitted mode differs from explicit is");
+        record("omitted filter mode equals explicit is", { rowCount: explicitMode.rowCount });
 
-    const compare = await call("compare_spend", {
-        period1Months: 2,
-        period2: dates,
-        cloud: provider,
-        groupBy: "cloud",
-    });
-    const firstDates = { from: dates.from, to: `${isoDay(now)}T23:59:59Z` };
-    const monthly = { ...base, filters, timeInterval: "month", timeRange: { mode: "custom" } };
-    const first = await call("run_query", { config: { ...monthly, customTimeRange: firstDates } });
-    const second = await call("run_query", { config: { ...monthly, customTimeRange: dates } });
-    check(equalResults(compare.period1, first), "Period 1 differs from explicit previous-month-start through today");
-    check(equalResults(compare.period2, second), "Period 2 differs from the requested explicit dates");
-    const firstDaily = await call("run_query", { config: { ...config, customTimeRange: firstDates } });
-    const firstDays = verifyDaily(firstDaily, isoDay(priorStart), isoDay(now));
-    check(firstDays[0] === isoDay(priorStart), "Period 1 did not begin at the prior calendar month start");
-    check(
-        firstDays.some((day) => day >= isoDay(monthStart)),
-        "Period 1 is missing the current partial month"
-    );
-    record("compare_spend periods match explicit monthly queries; daily checks establish date bounds", {
-        input: { period1Months: 2, period2: dates, groupBy: "cloud", cloud: provider },
-        period1: {
-            from: firstDates.from,
-            through: firstDates.to,
-            rowCount: first.rowCount,
-            firstReturnedDay: firstDays[0],
-            lastReturnedDay: firstDays.at(-1),
-        },
-        period2: { rowCount: second.rowCount, returnedDays: actualDays },
-        computedDiff: false,
-    });
+        const compare = await call("compare_spend", {
+            period1Months: 2,
+            period2: dates,
+            cloud: provider,
+            groupBy: "cloud",
+        });
+        const firstDates = { from: dates.from, to: `${isoDay(now)}T23:59:59Z` };
+        const monthly = { ...base, filters, timeInterval: "month", timeRange: { mode: "custom" } };
+        const first = await call("run_query", { config: { ...monthly, customTimeRange: firstDates } });
+        const second = await call("run_query", { config: { ...monthly, customTimeRange: dates } });
+        check(equalResults(compare.period1, first), "Period 1 differs from explicit previous-month-start through today");
+        check(equalResults(compare.period2, second), "Period 2 differs from the requested explicit dates");
+        const firstDaily = await call("run_query", { config: { ...config, customTimeRange: firstDates } });
+        const firstDays = verifyDaily(firstDaily, isoDay(priorStart), isoDay(now));
+        check(firstDays[0] === isoDay(priorStart), "Period 1 did not begin at the prior calendar month start");
+        check(
+            firstDays.some((day) => day >= isoDay(monthStart)),
+            "Period 1 is missing the current partial month"
+        );
+        record("compare_spend periods match explicit monthly queries; daily checks establish date bounds", {
+            input: { period1Months: 2, period2: dates, groupBy: "cloud", cloud: provider },
+            period1: {
+                from: firstDates.from,
+                through: firstDates.to,
+                rowCount: first.rowCount,
+                firstReturnedDay: firstDays[0],
+                lastReturnedDay: firstDays.at(-1),
+            },
+            period2: { rowCount: second.rowCount, returnedDays: actualDays },
+            computedDiff: false,
+        });
+    }
 
     if (writes) {
         createdName = `MCP report contract validation ${runId}`;
         persist("creation-attempted-once");
         const created = await call("create_report", {
             name: createdName,
-            config: { ...config, dimensions: [{ id: "cloud_provider", type: "fixed" }] },
+            ...(folderId && { folderId }),
+            config: {
+                ...config,
+                dimensions: [{ id: "cloud_provider", type: "fixed" }],
+                ...(displaySettingsChecks && { displaySettings: createdDisplaySettings }),
+            },
         });
         check(
             typeof created.id === "string" && created.id.length > 0,
@@ -207,6 +232,40 @@ try {
         record("disposable create/read-back preserves custom dates, mode and omitted-mode filter", {
             resource: "session-created report; id/name withheld",
         });
+        if (folderId || displaySettingsChecks) {
+            // Names only the mismatched settings; these enum/boolean values carry no account data.
+            const mismatches = (actual, expected) =>
+                Object.entries(expected)
+                    .filter(([key, value]) => actual?.[key] !== value)
+                    .map(([key, value]) => `${key}: expected ${value}, got ${actual?.[key]}`)
+                    .join("; ");
+            if (folderId) check(saved.folderId === folderId, "Create did not place the report in the requested folder");
+            if (displaySettingsChecks) {
+                const diff = mismatches(saved.config.displaySettings, createdDisplaySettings);
+                check(!diff, `Create did not persist requested displaySettings (${diff})`);
+            }
+            record("disposable create/read-back preserves folder and displaySettings", {
+                folder: Boolean(folderId),
+                displaySettings: displaySettingsChecks ? createdDisplaySettings : false,
+            });
+            await call("update_report", {
+                id: createdId,
+                ...(folderId && { folderId: "root" }),
+                ...(displaySettingsChecks && { config: { displaySettings: { showDataLabels: false } } }),
+            });
+            const moved = await call("get_report_config", { id: createdId });
+            if (folderId) {
+                check(!moved.folderId || moved.folderId === "root", "folderId 'root' did not move the report to top level");
+            }
+            if (displaySettingsChecks) {
+                const diff = mismatches(moved.config.displaySettings, { ...createdDisplaySettings, showDataLabels: false });
+                check(!diff, `Partial displaySettings update did not change only showDataLabels (${diff})`);
+            }
+            record("disposable update moves to root and partial displaySettings keeps omitted fields", {
+                folder: Boolean(folderId),
+                displaySettings: displaySettingsChecks,
+            });
+        }
         const updatedDates = { from: `${isoDay(priorSecond)}T00:00:00Z`, to: dates.to };
         await call("update_report", {
             id: createdId,
@@ -249,17 +308,19 @@ try {
             "Date-only update failed to preserve saved custom mode"
         );
         record("date-only update preserves saved custom mode", { dates });
-        const savedResults = await call("get_report_results", { id: createdId });
-        check(savedResults.result, "Saved report returned no result");
-        const savedDays = verifyDaily(
-            { columns: savedResults.result.schema, rows: savedResults.result.rows },
-            isoDay(priorStart),
-            isoDay(priorSecond)
-        );
-        record(
-            "disposable update/read-back replaces arrays, resets columns/source and saved results use updated range",
-            { sourceBefore: saved.config.dataSource, sourceAfter: updated.config.dataSource, returnedDays: savedDays }
-        );
+        if (!skipDataChecks) {
+            const savedResults = await call("get_report_results", { id: createdId });
+            check(savedResults.result, "Saved report returned no result");
+            const savedDays = verifyDaily(
+                { columns: savedResults.result.schema, rows: savedResults.result.rows },
+                isoDay(priorStart),
+                isoDay(priorSecond)
+            );
+            record(
+                "disposable update/read-back replaces arrays, resets columns/source and saved results use updated range",
+                { sourceBefore: saved.config.dataSource, sourceAfter: updated.config.dataSource, returnedDays: savedDays }
+            );
+        }
     }
 } catch (error) {
     console.error(

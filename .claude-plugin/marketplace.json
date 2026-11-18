@@ -1,0 +1,16 @@
+{
+  "name": "doitintl",
+  "description": "Claude Code plugins from DoiT",
+  "owner": {
+    "name": "DoiT",
+    "url": "https://www.doit.com"
+  },
+  "plugins": [
+    {
+      "name": "doit",
+      "source": "./plugins/doit",
+      "description": "A Claude Code channel for DoiT Cloud Intelligence: tells an open session about new cost anomalies and cloud incidents. Events only; the DoiT tools come from the DoiT Cloud Intelligence plugin or connector.",
+      "category": "monitoring"
+    }
+  ]
+}

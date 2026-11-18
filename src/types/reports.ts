@@ -106,6 +106,10 @@ export const REPORT_CURRENCY_VALUES = [
     "COP",
 ] as const;
 
+export const LABEL_FONT_SIZE_VALUES = ["auto", "small", "medium", "large"] as const;
+
+export const NUMBER_SCALE_VALUES = ["auto", "thousands", "millions", "billions", "raw"] as const;
+
 export const SPLIT_MODE_VALUES = ["even", "custom", "proportional"] as const;
 
 export const ORIGIN_TYPE_VALUES = [

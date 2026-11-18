@@ -59,6 +59,8 @@ find . -name "package.json" -not -path "*/node_modules/*" -exec grep '"version"'
 git grep "SERVER_VERSION" src/
 ```
 
+The Claude Code plugin manifest (`plugins/doit/.claude-plugin/plugin.json`) carries the same version and pins the npm package to it (`@doitintl/doit-mcp-server@X.Y.Z`). `prepare-release.sh` updates both; `src/channel/__tests__/pluginManifest.test.ts` fails if they drift from `package.json`.
+
 5. **Only if the merge run did not tag** (e.g. it failed before tagging), create and push a version tag from the latest `main` branch (use the same version passed as new tag to the changelog script). Only principals allowed by the `v*` tag ruleset can do this (see [npm publishing](#npm-publishing-trusted-publishing--oidc)).
 
 ```bash

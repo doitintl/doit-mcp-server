@@ -170,3 +170,20 @@ describe("final MCP response size guard", () => {
         }
     });
 });
+
+describe("size-error recovery hints", () => {
+    it.each([
+        ["list_tickets", "smaller pageSize value (1-100) or a subject filter"],
+        ["list_annotations", "smaller maxResults value"],
+        ["list_composer_recipes", "smaller maxResults value"],
+        ["list_products", "one platform at a time with the platform parameter"],
+        ["get_cloud_overview", "use run_query with a narrower configuration"],
+        ["get_cloud_diagram_components", "scheme_ids or layer_ids"],
+        ["get_cloud_diagrams_stats", "cannot be paged"],
+    ])("names the argument that reduces a %s result", (toolName, hint) => {
+        const result = finalizeToolResponse(oversized(), { ...base, toolName });
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toContain("RESPONSE_TOO_LARGE");
+        expect(result.content[0].text).toContain(hint);
+    });
+});

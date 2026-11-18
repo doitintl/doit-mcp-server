@@ -145,6 +145,40 @@ utilities, request handling, and shared configuration APIs. It does not initiali
 the stdio transport or include the Cloudflare Worker, OAuth, Durable Objects, or
 widget implementation.
 
+### Large results
+
+Claude accepts about 150,000 characters per tool result, so `executeToolHandler`
+caps every result at 140,000 characters. A list result that would exceed the cap is
+returned in parts instead of failing: the server keeps the records that fit, adds
+`pageSplit: { returnedRecords, remainingInResult }`, and sets `pageToken` to a signed
+continuation token. Passing that token back to the same tool returns the next part;
+the API's own cursor appears only once the whole API page has been delivered, so no
+record is skipped or repeated. If the record a part stopped at is deleted before the
+next call, the continuation resumes at its index, so a record is repeated rather than
+skipped. Paging is opt-in: a read-only list tool whose endpoint has
+no paging of its own declares `resultPaged: true` (hand-written tools on the tool object,
+generated ones in `src/tools/generated/overrides.ts`) and gains an optional `pageToken`
+argument. Single-resource tools have nothing to split, and reads that must not be re-run
+(`ask_ava_sync`) stay out. Analytics results (`rows`) are never split and keep the size
+error with a narrowing hint. Fields other than the record collection (counts, sibling
+maps such as a components `statussheet`) describe the whole result and repeat on every
+part. Consumers that register the generated registry's schemas advertise the argument on
+opted-in generated tools and should pass `resultPaging` so it takes effect.
+
+A continuation token carries the call it continues, so it is bound to who may continue
+it: the consumer passes `resultPaging: { secret, cursorField, scope, ttlSeconds }` to
+`executeToolHandler`, where `scope` names the authenticated principal and the context
+the call runs in (for a multi-tenant consumer, the tenant). A token presented under
+another scope, or after its lifetime (one hour by default), is refused with an error
+that tells the model to call the tool again without `pageToken`. `scope` is required:
+`null` is the explicit opt-out for a single-user consumer, and an undefined or empty
+scope makes `executeToolHandler` throw, so a value missing on some request fails instead
+of silently issuing tokens anyone can continue. The stdio server is single-user and signs
+tokens with a random per-process secret and `scope: null`. A consumer
+that registers tools from the exported schemas applies `withResultPageToken` to the zod
+schema of every tool in `RESULT_PAGED_TOOLS`, so both transports advertise the same
+arguments.
+
 ## Usage Examples
 
 Here are some common queries you can ask using the DoiT MCP server:
@@ -171,9 +205,22 @@ Here are some common queries you can ask using the DoiT MCP server:
 
 These examples demonstrate basic usage patterns. You can combine and modify these queries based on your needs. The MCP server will interpret your natural language queries and use the appropriate tools to fetch the requested information.
 
+## Claude Code plugin and channel (research preview)
+
+A Claude Code plugin in this repository pushes new cost anomalies and cloud incidents into an open session. It sends events only; the tools come from the DoiT Cloud Intelligence plugin or the remote connector.
+
+```
+/plugin install doit --marketplace doitintl/doit-mcp-server
+```
+
+See [docs/channels.md](docs/channels.md) for how to start Claude Code with the channel and what an organization needs to allow.
+
 ## Environment Variables
 
 Used by the local stdio server. Remote `/mcp` connections authenticate with OAuth.
 
 - `DOIT_API_KEY`: Your DoiT [personal API token](https://help.doit.com/docs/general/profile/api-tokens) (required for stdio)
 - `CUSTOMER_CONTEXT`: Your customer context identifier (optional)
+- `DOIT_CHANNEL_EVENTS`: Opt in to [Claude Code channel mode](docs/channels.md) (research preview) by listing event kinds to push into an open session: `anomalies`, `incidents` (optional, off by default)
+- `DOIT_CHANNEL_POLL_SECONDS`: Channel poll interval in seconds, minimum 60 (optional, default 300)
+- `DOIT_CHANNEL_ONLY`: Set to `true` to serve channel events and no tools, for a session that has the DoiT tools from another connection (optional)

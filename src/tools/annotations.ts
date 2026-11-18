@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Annotation, AnnotationsResponse } from "../types/annotations.js";
 import { ANNOTATION_SORT_BY_VALUES, ANNOTATION_SORT_ORDER_VALUES } from "../types/annotations.js";
-import { DEFAULT_MAX_RESULTS } from "../utils/consts.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
@@ -16,14 +15,15 @@ import {
 
 export const ANNOTATIONS_BASE_URL = `${DOIT_API_BASE}/analytics/v1/annotations`;
 
-export const DEFAULT_MAX_RESULTS_ANNOTATIONS = DEFAULT_MAX_RESULTS;
+// The API allows up to 500 per page, but 500 annotations exceed the MCP result size limit.
+export const DEFAULT_MAX_RESULTS_ANNOTATIONS = "100";
 
 export const ListAnnotationsArgumentsSchema = z.object({
     maxResults: z
         .string()
         .optional()
         .describe(
-            `The maximum number of results per page, as an integer string (1-500). Out-of-range integers fall back to 50; non-integers are rejected. This tool defaults to ${DEFAULT_MAX_RESULTS}.`
+            `The maximum number of results per page, as an integer string (1-500). Out-of-range integers fall back to 50; non-integers are rejected. This tool defaults to ${DEFAULT_MAX_RESULTS_ANNOTATIONS}; larger pages can exceed the MCP result size limit.`
         ),
     pageToken: z
         .string()

@@ -64,7 +64,7 @@ export async function createModernTestClient({
         }
         return (await originalCallTool({
             name: "confirm_action",
-            arguments: { token: parsed.approvalToken },
+            arguments: { approvalToken: parsed.approvalToken },
         })) as ToolResult;
     };
     (client as unknown as { callTool: typeof wrappedCallTool }).callTool = wrappedCallTool;

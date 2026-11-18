@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { APPROVAL_TTL_MS, MemoryApprovalStore } from "../../utils/approval.js";
-import { handleConfirmActionRequest } from "../confirmAction.js";
+import { APPROVAL_TTL_MS, buildApprovalResponse, MemoryApprovalStore } from "../../utils/approval.js";
+import { confirmActionTool, handleConfirmActionRequest } from "../confirmAction.js";
 
 beforeEach(() => {
     vi.useFakeTimers();
@@ -11,6 +11,15 @@ afterEach(() => {
     vi.useRealTimers();
     vi.resetAllMocks();
     vi.restoreAllMocks();
+});
+
+describe("confirmActionTool", () => {
+    it("takes the envelope's approvalToken field, not a generic `token` that MCP consumers reserve for auth", () => {
+        expect(Object.keys(confirmActionTool.inputSchema.properties ?? {})).toEqual(["approvalToken"]);
+        expect(JSON.parse(buildApprovalResponse("t-1", "s").content[0].text).next).toContain(
+            'confirm_action with { approvalToken: "t-1" }'
+        );
+    });
 });
 
 describe("handleConfirmActionRequest", () => {
@@ -31,7 +40,13 @@ describe("handleConfirmActionRequest", () => {
         await stash(store, "tok-happy");
         const runOriginal = vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] });
 
-        const result = await handleConfirmActionRequest({ token: "tok-happy" }, apiToken, userKey, store, runOriginal);
+        const result = await handleConfirmActionRequest(
+            { approvalToken: "tok-happy" },
+            apiToken,
+            userKey,
+            store,
+            runOriginal
+        );
 
         expect(runOriginal).toHaveBeenCalledWith(
             "create_ticket",
@@ -46,7 +61,7 @@ describe("handleConfirmActionRequest", () => {
         const runOriginal = vi.fn();
 
         const result = await handleConfirmActionRequest(
-            { token: "does-not-exist" },
+            { approvalToken: "does-not-exist" },
             apiToken,
             userKey,
             store,
@@ -65,7 +80,13 @@ describe("handleConfirmActionRequest", () => {
 
         vi.advanceTimersByTime(APPROVAL_TTL_MS + 1);
 
-        const result = await handleConfirmActionRequest({ token: "tok-stale" }, apiToken, userKey, store, runOriginal);
+        const result = await handleConfirmActionRequest(
+            { approvalToken: "tok-stale" },
+            apiToken,
+            userKey,
+            store,
+            runOriginal
+        );
 
         expect(runOriginal).not.toHaveBeenCalled();
         expect(result.isError).toBe(true);
@@ -77,7 +98,7 @@ describe("handleConfirmActionRequest", () => {
         const runOriginal = vi.fn();
 
         const result = await handleConfirmActionRequest(
-            { token: "tok-mismatch" },
+            { approvalToken: "tok-mismatch" },
             apiToken,
             "different-user",
             store,
@@ -87,7 +108,7 @@ describe("handleConfirmActionRequest", () => {
         expect(runOriginal).not.toHaveBeenCalled();
         expect(result.isError).toBe(true);
         const retry = await handleConfirmActionRequest(
-            { token: "tok-mismatch" },
+            { approvalToken: "tok-mismatch" },
             apiToken,
             userKey,
             store,
@@ -102,10 +123,12 @@ describe("handleConfirmActionRequest", () => {
         await stash(store, "tok-failed");
         const runOriginal = vi.fn().mockResolvedValue({ isError: true, content: [{ type: "text", text: "Failed" }] });
         expect(
-            (await handleConfirmActionRequest({ token: "tok-failed" }, apiToken, userKey, store, runOriginal)).isError
+            (await handleConfirmActionRequest({ approvalToken: "tok-failed" }, apiToken, userKey, store, runOriginal))
+                .isError
         ).toBe(true);
         expect(
-            (await handleConfirmActionRequest({ token: "tok-failed" }, apiToken, userKey, store, runOriginal)).isError
+            (await handleConfirmActionRequest({ approvalToken: "tok-failed" }, apiToken, userKey, store, runOriginal))
+                .isError
         ).toBe(true);
         expect(runOriginal).toHaveBeenCalledTimes(1);
     });
@@ -115,8 +138,14 @@ describe("handleConfirmActionRequest", () => {
         await stash(store, "tok-reused");
         const runOriginal = vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] });
 
-        await handleConfirmActionRequest({ token: "tok-reused" }, apiToken, userKey, store, runOriginal);
-        const retry = await handleConfirmActionRequest({ token: "tok-reused" }, apiToken, userKey, store, runOriginal);
+        await handleConfirmActionRequest({ approvalToken: "tok-reused" }, apiToken, userKey, store, runOriginal);
+        const retry = await handleConfirmActionRequest(
+            { approvalToken: "tok-reused" },
+            apiToken,
+            userKey,
+            store,
+            runOriginal
+        );
 
         expect(runOriginal).toHaveBeenCalledTimes(1);
         expect(retry.isError).toBe(true);

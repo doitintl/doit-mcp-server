@@ -1,5 +1,114 @@
 # Changelog
 
+## v5.0.1 (2026-11-16)
+
+**Full diff:** [`v5.0.0...v5.0.1`](../../compare/v5.0.0...v5.0.1)
+
+### Bug Fixes
+
+- fix(alerts): accept the empty workspace discovery returns for shared channels (`085ed79`)
+- fix(alerts): accept Slack channel recipients on create and update (`eba7af6`)
+## v5.0.0 (2026-11-16)
+
+**Full diff:** [`v4.0.0...v5.0.0`](../../compare/v4.0.0...v5.0.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`72ec38c`)
+
+### Bug Fixes
+
+- fix(paging)!: require an explicit continuation scope (`37c41f8`)
+- fix(paging)!: refuse continuation tokens of the previous format (`6634910`)
+- fix(paging): bind continuation tokens to a scope and an expiry (`09799ff`)
+
+### Chores
+
+- chore(deps): bump hono from 4.13.12 to 4.13.18 in /test/integration (`a959146`)
+- chore(deps): bump @hono/node-server in /test/integration (`f41db25`)
+## v4.0.0 (2026-11-12)
+
+**Full diff:** [`v3.1.0...v4.0.0`](../../compare/v3.1.0...v4.0.0)
+
+### Features
+
+- feat(plugin): make the doit plugin events-only (`4c295b3`)
+
+### Bug Fixes
+
+- fix(support)!: align inquiry workflows with bounded catalogs (`61c971a`)
+- fix(prompts): resolve platform before looking up inquiry products (`2ee3982`)
+
+### Chores
+
+- chore(plugin): point the plugin's support link at support.doit.com (`f9730d7`)
+
+### Other Changes
+
+- test(prompts): align server assertions with bounded search pages (`a87efbd`)
+- refactor(tools): right-size list defaults to prevent mcp response limits (`d7b25ae`)
+## v3.1.0 (2026-11-12)
+
+**Full diff:** [`v3.0.0...v3.1.0`](../../compare/v3.0.0...v3.1.0)
+
+### Features
+
+- feat(channel): add channel-only mode that serves events and no tools (`74ace40`)
+## v3.0.0 (2026-11-12)
+
+**Full diff:** [`v2.16.0...v3.0.0`](../../compare/v2.16.0...v3.0.0)
+
+### Features
+
+- feat: package the channel as a Claude Code plugin and marketplace (`01fd50e`)
+- feat: add opt-in Claude Code channel mode to the stdio server (`4c89cbd`)
+- feat(paging): implement server-side result splitting for large tool outputs (`4a8bf52`)
+- feat(approval): enforce strict two-step confirmation for delete tools (`5c0200b`)
+
+### Bug Fixes
+
+- fix(paging): address review findings on cursors, anchors and stray tokens (`3d05fb9`)
+- fix(paging): keep continuation positions absolute and never split results that fit (`6601e51`)
+- fix(paging): keep upstream cursors out of split result parts (`c8125ca`)
+
+### Other Changes
+
+- refactor(paging): make result paging an explicit per-tool opt-in (`359746e`)
+- docs(paging): trim comments to the non-obvious ones (`82e6b7a`)
+- docs(approval): describe core consumers generically in comments (`0822d73`)
+- docs(approval)!: note the approvalToken argument of confirm_action (`56860f2`)
+- refactor(approval): rename token to approvalToken in confirm_action (`6651373`)
+## v2.16.0 (2026-11-11)
+
+**Full diff:** [`v2.15.0...v2.16.0`](../../compare/v2.15.0...v2.16.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`fbc0912`)
+- feat: refresh generated OpenAPI spec snapshot (`6d37de9`)
+- feat: refresh generated OpenAPI spec snapshot (`e54471d`)
+## v2.15.0 (2026-11-05)
+
+**Full diff:** [`v2.14.0...v2.15.0`](../../compare/v2.14.0...v2.15.0)
+
+### Features
+
+- feat: support config.displaySettings on report tools (`0b85d42`)
+- feat: support folderId on create_report and update_report (`f59ccb0`)
+
+### Other Changes
+
+- test: name mismatched displaySettings in live report contract failures (`1227476`)
+- test: add --skip-data-checks to live report contracts for accounts without billing rows (`a45d494`)
+- test: pass DOIT_API_BASE through to the live report contract server (`45c1522`)
+- test: cover folderId and displaySettings in live report contracts (`41cdac5`)
+## v2.14.0 (2026-11-05)
+
+**Full diff:** [`v2.13.0...v2.14.0`](../../compare/v2.13.0...v2.14.0)
+
+### Features
+
+- feat: refresh generated OpenAPI spec snapshot (`c30dba7`)
 ## v2.13.0 (2026-11-04)
 
 **Full diff:** [`v2.12.1...v2.13.0`](../../compare/v2.12.1...v2.13.0)
