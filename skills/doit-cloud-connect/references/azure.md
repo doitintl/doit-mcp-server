@@ -32,9 +32,13 @@ tenant records remain readable; this path does not deploy or verify those grants
    Creating the enterprise application requires directory permission; assigning
    roles requires `Microsoft.Authorization/roleAssignments/write` at the selected
    group. The script does not elevate the operator. If authorized administration
-   requires a Global Administrator's temporary root elevation, record the exact
-   added grant and restore it afterward; do not assume an additional Owner grant
-   is needed. See [Microsoft's elevation and removal procedure](https://learn.microsoft.com/en-us/azure/role-based-access-control/elevate-access-global-admin).
+   requires a Global Administrator's temporary root elevation (`elevateAccess`),
+   include it and its removal in the confirmed plan. Elevation gives the operator
+   User Access Administrator at root scope `/`; record that assignment, and remove
+   it as soon as role assignment finishes or fails, including when you stop early:
+   `az role assignment delete --assignee <operator object ID> --role "User Access Administrator" --scope "/"`.
+   Remove only the grant the elevation added; leave pre-existing root grants alone.
+   Do not assume an additional Owner grant is needed. See [Microsoft's elevation and removal procedure](https://learn.microsoft.com/en-us/azure/role-based-access-control/elevate-access-global-admin).
    Preserve other users' grants and tenant policies. Stop at a human
    verification or MFA challenge that needs the user.
 4. Apply only the selected roles at the intended group. Shared Reader grants can
@@ -58,6 +62,10 @@ tenant records remain readable; this path does not deploy or verify those grants
    and unconditional role assignments for the DoiT principal at that exact scope.
    It does not evaluate every effective permission, deny assignment, feature
    prerequisite or data arrival. Failed, partial and not_checked are not passes.
+   It does not check the operator's own access. If the operator elevated during
+   setup, run `az role assignment list --assignee <operator object ID> --role "User Access Administrator" --scope "/"`
+   before reporting and confirm the elevation's grant is gone. If you cannot
+   remove it, tell the user it remains and give them the removal command.
 7. Update selected features with the current strong ETag and the full desired
    feature list. Apply added IAM requirements before the update. A stale ETag or
    uncertain write requires a fresh read and reconciliation. Legacy multi-scope

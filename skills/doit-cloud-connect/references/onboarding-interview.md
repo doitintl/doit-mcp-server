@@ -56,6 +56,7 @@ After the answers, get fresh requirements for the selection and write out one pl
 - Scope, features and the deployment method and owner.
 - Resources to create or change, including identity, trust and any input values you propose (such as a real-time data bucket).
 - How the account or scope is registered and which checks verify it.
+- Any temporary access the operator needs only for setup, such as Azure root elevation, and when it is removed.
 - Anything you could not check.
 
 Ask the user to confirm the written plan, and proceed once they do. Confirmation covers the plan as presented. Stop and ask again when fresh requirements, a plan or preview, or a deployment result shows a different scope, features, identity or resources. The main skill's preview rule applies to each API write. Migration and removal follow their existing confirmation rules.
