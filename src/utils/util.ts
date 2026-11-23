@@ -223,12 +223,17 @@ export function handleGeneralError(
  */
 export const TENANT_ID_HEADER = "X-Tenant-Id";
 
-const MAX_DECODE_PASSES = 2;
+const MAX_DECODE_PASSES = 10;
+
+function decodeAsciiPercentEscapes(value: string): string {
+    return value.replace(/%[0-7][0-9a-fA-F]/g, (match) => String.fromCharCode(Number.parseInt(match.slice(1), 16)));
+}
 
 /**
  * Returns true if `value` contains a dot path segment (`.` or `..`), either directly,
- * separated by `/` or `\`, or after up to two percent-decoding passes (e.g. `%2e%2e`,
- * `%252e%252e`, `a%2f..%2fb`). Used to block path traversal before URL normalization.
+ * separated by `/` or `\`, or after repeated ASCII percent-decoding passes (e.g. `%2e%2e`,
+ * `%252e%252e`, `%25252e%25252e`, `a%2f..%2fb`). Decodes valid ASCII escapes per token so
+ * malformed `%` sequences cannot abort decoding.
  */
 export function hasTraversalSegment(value: string): boolean {
     let candidate = value;
@@ -237,34 +242,43 @@ export function hasTraversalSegment(value: string): boolean {
             return true;
         }
         if (pass === MAX_DECODE_PASSES) break;
-        try {
-            const decoded = decodeURIComponent(candidate);
-            if (decoded === candidate) break;
-            candidate = decoded;
-        } catch {
-            break;
-        }
+        const decoded = decodeAsciiPercentEscapes(candidate);
+        if (decoded === candidate) break;
+        candidate = decoded;
+    }
+    return false;
+}
+
+function hasControlChar(value: string): boolean {
+    for (let i = 0; i < value.length; i += 1) {
+        const code = value.charCodeAt(i);
+        if (code <= 0x1f || code === 0x7f) return true;
     }
     return false;
 }
 
 /**
- * Rejects URLs whose raw path contains backslashes or raw/percent-encoded dot segments
- * before `fetch` / WHATWG URL normalization can collapse them onto a different route.
+ * Rejects URLs whose raw authority/path contains control/edge whitespace, non-standard
+ * scheme syntax, backslashes, or raw/percent-encoded dot segments before `fetch` / WHATWG
+ * URL normalization can strip or collapse them onto a different route.
  */
 export function assertSafeRequestUrl(url: string): void {
-    const schemeEnd = url.indexOf("://");
-    if (schemeEnd === -1) {
+    if (hasControlChar(url) || url !== url.trim()) {
         throw new DoitRequestError("Invalid request URL.");
     }
-    const pathStart = url.indexOf("/", schemeEnd + 3);
-    if (pathStart === -1) return;
-    const queryOrHash = url.search(/[?#]/);
-    const rawPath =
-        queryOrHash === -1 || queryOrHash < pathStart ? url.slice(pathStart) : url.slice(pathStart, queryOrHash);
-    if (rawPath.includes("\\")) {
+    const schemeMatch = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.exec(url);
+    if (!schemeMatch) {
+        throw new DoitRequestError("Invalid request URL.");
+    }
+    const rest = url.slice(schemeMatch[0].length);
+    const queryOrHash = rest.search(/[?#]/);
+    const authorityAndPath = queryOrHash === -1 ? rest : rest.slice(0, queryOrHash);
+    if (authorityAndPath.includes("\\")) {
         throw new DoitRequestError("Invalid request path: backslashes are not allowed.");
     }
+    const pathStart = authorityAndPath.indexOf("/");
+    if (pathStart === -1) return;
+    const rawPath = authorityAndPath.slice(pathStart);
     for (const segment of rawPath.split("/")) {
         if (segment && hasTraversalSegment(segment)) {
             throw new DoitRequestError("Invalid request path: path traversal segments are not allowed.");
@@ -282,8 +296,9 @@ export function resolveCustomerContext(customerContextId?: string): string | und
 
 /**
  * Sets the X-Tenant-Id header from the resolved customer context, mutating and returning
- * `headers`. If a tenant header is already set (any casing), it must match the resolved
- * customer context; conflicting values fail closed instead of sending two different tenants.
+ * `headers`. If a tenant header is already set (any casing), every matching key must match
+ * the resolved customer context; conflicting values fail closed instead of sending two
+ * different tenants.
  */
 export function applyTenantIdHeader(
     headers: Record<string, string>,
@@ -292,12 +307,15 @@ export function applyTenantIdHeader(
     const customerContext = resolveCustomerContext(customerContextId);
     if (!customerContext) return headers;
 
-    const existingKey = Object.keys(headers).find((key) => key.toLowerCase() === TENANT_ID_HEADER.toLowerCase());
-    if (existingKey !== undefined) {
-        if (headers[existingKey] !== customerContext) {
+    const existingKeys = Object.keys(headers).filter((key) => key.toLowerCase() === TENANT_ID_HEADER.toLowerCase());
+    if (existingKeys.length > 0) {
+        if (existingKeys.some((key) => headers[key] !== customerContext)) {
             throw new DoitRequestError(
                 `Conflicting tenant scope: ${TENANT_ID_HEADER} header does not match customerContext.`
             );
+        }
+        for (const key of existingKeys.slice(1)) {
+            delete headers[key];
         }
         return headers;
     }
@@ -384,8 +402,8 @@ export async function makeDoitRequest<T>(
         headers: extraHeaders,
     } = options;
 
+    assertSafeRequestUrl(url);
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
-    assertSafeRequestUrl(resolvedUrl);
     // Demo mode: return canned data without hitting the real API.
     // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
     // If the token is DEMO_TOKEN here, the user already passed that gate.
@@ -615,8 +633,8 @@ export async function* makeDoitSSERequest(
     authToken: string,
     customerContext?: string
 ): AsyncGenerator<{ data: string }> {
+    assertSafeRequestUrl(url);
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
-    assertSafeRequestUrl(resolvedUrl);
     const parsedUrl = new URL(resolvedUrl);
 
     const tracking = getTrackingContext();

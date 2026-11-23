@@ -456,7 +456,7 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
                 method,
                 body,
                 headers,
-                customerContext: args.customerContext,
+                customerContext: typeof args?.customerContext === "string" ? args.customerContext : undefined,
                 readOnly: name === "get_cloud_connect_requirements" || dryRun,
                 timeoutMs: 60_000,
                 onResponseHeaders: (responseHeaders) => {

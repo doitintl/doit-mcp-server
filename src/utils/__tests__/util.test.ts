@@ -2,10 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
     appendUrlParameters,
     applyTenantIdHeader,
+    configureDoiTApiBase,
     DebugLevel,
+    DOIT_API_BASE,
     debugLog,
     formatEnumValues,
     getTrackingContext,
+    makeConsoleRequest,
     makeDoitRequest,
     makeDoitSSERequest,
     runWithTracking,
@@ -348,17 +351,95 @@ describe("makeDoitRequest customer context header", () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
+    it("rejects conflicting duplicate-cased tenant headers and deduplicates matching ones", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        const fetchMock = stubFetchOk();
+
+        await expect(
+            makeDoitRequest("https://api.doit.com/test", "test-token", {
+                customerContext: "cust-1",
+                headers: { "x-tenant-id": "cust-1", "X-Tenant-Id": "other-cust" },
+            })
+        ).rejects.toThrow("Conflicting tenant scope");
+        expect(fetchMock).not.toHaveBeenCalled();
+
+        await makeDoitRequest("https://api.doit.com/test", "test-token", {
+            customerContext: "cust-1",
+            headers: { "x-tenant-id": "cust-1", "X-Tenant-Id": "cust-1" },
+        });
+        const headers = headersOf(fetchMock);
+        expect(Object.keys(headers).filter((key) => key.toLowerCase() === "x-tenant-id")).toHaveLength(1);
+    });
+
     it.each([
         "https://api.doit.com/sharing/v1/reports/..",
         "https://api.doit.com/sharing/v1/reports/.",
         "https://api.doit.com/sharing/v1/reports/%2e%2e",
         "https://api.doit.com/sharing/v1/reports/%252e%252e",
+        "https://api.doit.com/sharing/v1/reports/%25252e%25252e",
         "https://api.doit.com/sharing/v1/reports/a%2f..%2fb",
+        "https://api.doit.com/sharing/v1/reports/a%2f..%2fb%ZZ",
+        "https://api.doit.com/sharing/v1/reports/%2e%2e%2f%",
         "https://api.doit.com/sharing/v1/reports/a\\b",
+        "https://api.doit.com\\..\\admin",
+        "https://api.doit.com\\..\\admin/foo",
     ])("rejects path traversal URL %s before calling fetch", async (badUrl) => {
         const fetchMock = stubFetchOk();
 
         await expect(makeDoitRequest(badUrl, "test-token")).rejects.toThrow("Invalid request path");
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects path traversal URLs even when configureDoiTApiBase overrides the origin", async () => {
+        const fetchMock = stubFetchOk();
+        configureDoiTApiBase("https://staging.api.doit.com");
+        try {
+            await expect(
+                makeDoitRequest("https://api.doit.com/sharing/v1/reports/%2e%2e", "test-token")
+            ).rejects.toThrow("Invalid request path");
+            await expect(makeDoitRequest("https://api.doit.com\\..\\admin", "test-token")).rejects.toThrow(
+                "Invalid request path"
+            );
+            await expect(makeDoitRequest("https://api.doit.com/sharing/v1/reports/.. ", "test-token")).rejects.toThrow(
+                "Invalid request URL"
+            );
+            expect(fetchMock).not.toHaveBeenCalled();
+        } finally {
+            configureDoiTApiBase(DOIT_API_BASE);
+        }
+    });
+
+    it.each([
+        "https://api.doit.com/sharing/v1/reports/.\t.",
+        "https://api.doit.com/sharing/v1/reports/%2e\t%2e",
+        "https://api.doit.com/sharing/v1/reports/%2\te%2e",
+        "https://api.doit.com/sharing/v1/reports/..\r\n",
+        "https://api.doit.com/sharing/v1/reports/.. ",
+        "https:api.doit.com/a/b/..?x=http://example.com",
+        "https:/api.doit.com/a/b/..?x=http://example.com",
+    ])("rejects WHATWG URL parser-differential URL %j before calling fetch", async (badUrl) => {
+        const fetchMock = stubFetchOk();
+
+        await expect(makeDoitRequest(badUrl, "test-token")).rejects.toThrow("Invalid request URL");
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("allows query strings containing dot segments on root-less URLs", async () => {
+        const fetchMock = stubFetchOk();
+
+        await makeDoitRequest("https://api.doit.com?next=https://example.com/../x", "test-token", {
+            appendParams: false,
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects path traversal paths in makeConsoleRequest before calling fetch", async () => {
+        const fetchMock = stubFetchOk();
+
+        await expect(makeConsoleRequest("/api/customers/%2e%2e/secret", "test-token")).rejects.toThrow(
+            "Invalid request path"
+        );
         expect(fetchMock).not.toHaveBeenCalled();
     });
 });
@@ -436,5 +517,18 @@ describe("makeDoitSSERequest customer context header", () => {
 
         const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
         expect(Object.keys(headers).some((key) => key.toLowerCase() === "x-tenant-id")).toBe(false);
+    });
+
+    it("rejects path traversal URLs in makeDoitSSERequest even with a custom runtime API base", async () => {
+        const fetchMock = stubSSEFetch();
+        configureDoiTApiBase("https://staging.api.doit.com");
+        try {
+            await expect(
+                drain(makeDoitSSERequest("https://api.doit.com/stream/%2e%2e", { question: "q" }, "test-token"))
+            ).rejects.toThrow("Invalid request path");
+            expect(fetchMock).not.toHaveBeenCalled();
+        } finally {
+            configureDoiTApiBase(DOIT_API_BASE);
+        }
     });
 });

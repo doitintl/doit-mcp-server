@@ -163,9 +163,10 @@ import {
  * (The MCP-spec `destructiveHint` annotation has a narrower meaning — irreversible
  * updates — is advisory only, and is set per-tool independently of this registry.)
  *
- * Generated tools are not listed here: every generated DELETE operation carries its own
- * `summary` (see src/tools/generated/generateTools.ts) and is gated automatically. To gate
- * a hand-written tool, add a `summary(args)` to its definition and an entry below. No tool
+ * Generated tools are not listed here: every generated DELETE operation and any operation
+ * with `approvalGated: true` in `src/tools/generated/overrides.ts` carries its own `summary`
+ * (see src/tools/generated/generateTools.ts) and is gated automatically. To gate a
+ * hand-written tool, add a `summary(args)` to its definition and an entry below. No tool
  * handler code needs to change.
  *
  * Hand-written creates/updates are currently left ungated: they are reversible, and MCP
@@ -176,6 +177,14 @@ export const WRITE_GATED_SUMMARIES: Partial<Record<string, (args: any) => string
     [removeCloudConnectionTool.name]: summarizeRemoveCloudConnection,
     // [createTicketTool.name]: createTicketTool.summary,
 };
+
+/**
+ * Internal marker stashed into pending approval args when a write-gated action was approved
+ * with no customer scope (default account). Stripped before dispatching to the original tool;
+ * if `CUSTOMER_CONTEXT` becomes set before confirmation, `confirm_action` fails closed rather
+ * than executing against the newly selected tenant.
+ */
+const STAGED_NO_CUSTOMER_CONTEXT_KEY = "__doitStagedNoCustomerContext";
 
 export interface ToolHandlerOptions {
     /** Metadata-only final-response measurements. Defaults to JSON on stderr. */
@@ -319,7 +328,26 @@ export async function executeToolHandler(
                             token,
                             userKey,
                             approvalStore,
-                            runOriginal
+                            async (pendingToolName, pendingArgs, pendingToken) => {
+                                if (
+                                    pendingArgs &&
+                                    typeof pendingArgs === "object" &&
+                                    !Array.isArray(pendingArgs) &&
+                                    STAGED_NO_CUSTOMER_CONTEXT_KEY in pendingArgs
+                                ) {
+                                    const {
+                                        [STAGED_NO_CUSTOMER_CONTEXT_KEY]: stagedWithoutCustomerContext,
+                                        ...cleanArgs
+                                    } = pendingArgs;
+                                    if (stagedWithoutCustomerContext === true && process.env.CUSTOMER_CONTEXT) {
+                                        return createErrorResponse(
+                                            "Active customer context changed since this action was staged without a customer scope. Re-issue the original tool call to review and approve it under the new customer scope."
+                                        );
+                                    }
+                                    return runOriginal(pendingToolName, cleanArgs, pendingToken);
+                                }
+                                return runOriginal(pendingToolName, pendingArgs, pendingToken);
+                            }
                         );
                         return confirmed;
                     }
@@ -329,19 +357,26 @@ export async function executeToolHandler(
                         // param that would resolve to a different endpoint) must not leave a
                         // staged approval behind.
                         const summary = summaryFn(dispatchArgs);
-                        // Snapshot any active customer context into the staged args so confirming
-                        // always executes against the same tenant named in the approved summary.
+                        // Snapshot the active customer scope into staged args so confirming always
+                        // runs against the exact scope named in the approved summary.
                         const resolvedCustomerContext = resolveCustomerContext(
                             typeof dispatchArgs?.customerContext === "string" ? dispatchArgs.customerContext : undefined
                         );
-                        const stagedArgs =
-                            resolvedCustomerContext &&
-                            dispatchArgs &&
-                            typeof dispatchArgs === "object" &&
-                            !Array.isArray(dispatchArgs) &&
-                            !dispatchArgs.customerContext
-                                ? { ...dispatchArgs, customerContext: resolvedCustomerContext }
-                                : dispatchArgs;
+                        let stagedArgs = dispatchArgs;
+                        if (
+                            dispatchArgs == null ||
+                            (typeof dispatchArgs === "object" && !Array.isArray(dispatchArgs))
+                        ) {
+                            const normalized: Record<string, unknown> = dispatchArgs ? { ...dispatchArgs } : {};
+                            delete normalized[STAGED_NO_CUSTOMER_CONTEXT_KEY];
+                            if (resolvedCustomerContext) {
+                                normalized.customerContext = resolvedCustomerContext;
+                            } else {
+                                delete normalized.customerContext;
+                                normalized[STAGED_NO_CUSTOMER_CONTEXT_KEY] = true;
+                            }
+                            stagedArgs = normalized;
+                        }
                         const approvalToken = mintApprovalToken();
                         await approvalStore.stash(approvalToken, {
                             toolName,
