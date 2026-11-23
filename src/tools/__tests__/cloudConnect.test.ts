@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { executeToolHandler } from "../../utils/toolsHandler.js";
 import { CLOUD_CONNECT_TOOLS, handleCloudConnectRequest } from "../cloudConnect.js";
 
-const scope = { provider: "aws", kind: "aws_account", accountId: "111111111111" };
-const identity = { kind: "aws_iam_role", roleArn: "arn:aws:iam::111111111111:role/doitintl-cmp" };
-const registration = {
-    identity,
-    bindings: [{ scope, featureIds: ["core", "quotas"] }],
+const awsScope = { provider: "aws", kind: "aws_account", accountId: "111111111111" } as const;
+const awsRegistration = {
+    provider: "aws",
+    accountId: "111111111111",
+    roleArn: "arn:aws:iam::111111111111:role/doitintl-cmp",
+    featureIds: ["core", "quotas"],
     catalogVersion: "sha256:current",
-};
+} as const;
 const text = (response: any) => response.content.find((block: any) => block.type === "text").text;
 const data = (response: any) => JSON.parse(text(response));
 const problem = (status: number, code: string, extra: Record<string, unknown> = {}) =>
@@ -76,7 +77,8 @@ describe("Cloud Connect transport contract", () => {
         expect(text(result)).toContain("Microsoft Entra tenant ID in UUID format");
         expect(requests).toHaveLength(0);
     });
-    it("uses the complete Azure management-group scope and tenant identity across requirements, discovery and registration", async () => {
+
+    it("routes Azure requirements, discovery and registration to flat management-group endpoints", async () => {
         const tenantId = "11111111-1111-4111-8111-111111111111";
         const scope = {
             provider: "azure",
@@ -84,48 +86,76 @@ describe("Cloud Connect transport contract", () => {
             tenantId,
             managementGroupId: "example-child",
         };
-        const identity = { kind: "azure_service_principal", tenantId };
-        const bindings = [{ scope, featureIds: ["advisor", "attribute"] }];
         await handleCloudConnectRequest(
             "get_cloud_connect_requirements",
             { scope, featureIds: ["attribute"] },
             "fixture-token"
         );
-        expect(requests[0].body).toEqual({ scope, featureIds: ["attribute"] });
+        expect(requests[0].url.pathname).toBe("/onboarding/v2/cloud-connect/azure/requirements");
+        expect(requests[0].body).toEqual({
+            tenantId,
+            managementGroupId: "example-child",
+            featureIds: ["attribute"],
+        });
+
         await handleCloudConnectRequest("list_cloud_connections", { scope }, "fixture-token");
-        expect(requests[1].url.searchParams.get("filter")).toBe(
-            `provider:azure|bindings.scope.kind:azure_management_group|bindings.scope.tenantId:${tenantId}|bindings.scope.managementGroupId:example-child`
+        expect(requests[1].url.pathname).toBe("/onboarding/v2/cloud-connect/azure/management-groups");
+        expect(requests[1].url.searchParams.get("filter")).toBe(`tenantId:${tenantId}|managementGroupId:example-child`);
+
+        await handleCloudConnectRequest(
+            "register_cloud_connection",
+            {
+                provider: "azure",
+                tenantId,
+                managementGroupId: "example-child",
+                featureIds: ["advisor", "attribute"],
+            },
+            "fixture-token"
         );
-        await handleCloudConnectRequest("register_cloud_connection", { identity, bindings }, "fixture-token");
-        expect(requests[2].body).toEqual({ identity, bindings });
+        expect(requests[2].url.pathname).toBe("/onboarding/v2/cloud-connect/azure/management-groups");
+        expect(requests[2].body).toEqual({
+            tenantId,
+            managementGroupId: "example-child",
+            featureIds: ["advisor", "attribute"],
+        });
         expect(requests[2].options.headers).toHaveProperty("Idempotency-Key");
-        const tool = CLOUD_CONNECT_TOOLS.find((tool) => tool.name === "register_cloud_connection");
-        expect(JSON.stringify(tool?.inputSchema)).toContain("azure_service_principal");
+        const tool = CLOUD_CONNECT_TOOLS.find((entry) => entry.name === "register_cloud_connection");
         expect(JSON.stringify(tool?.inputSchema)).toContain("managementGroupId");
+        expect(JSON.stringify(tool?.inputSchema)).toContain("tenantId");
     });
-    it("rejects mismatched Azure identities, foreign identifiers and customer secrets before HTTP", async () => {
+
+    it("rejects Azure foreign identifiers and customer secrets before HTTP", async () => {
         const tenantId = "11111111-1111-4111-8111-111111111111";
-        const scope = {
+        for (const args of [
+            {
+                provider: "azure",
+                tenantId,
+                managementGroupId: "example-child",
+                featureIds: ["advisor"],
+                clientSecret: "forbidden-fixture",
+            },
+            {
+                provider: "azure",
+                tenantId,
+                managementGroupId: "example-child",
+                roleArn: "arn:aws:iam::111111111111:role/example",
+                featureIds: ["advisor"],
+            },
+        ]) {
+            expect((await handleCloudConnectRequest("register_cloud_connection", args, "fixture-token")).isError).toBe(
+                true
+            );
+        }
+        const azureScope = {
             provider: "azure",
             kind: "azure_management_group",
             tenantId,
             managementGroupId: "example-child",
         };
-        const bindings = [{ scope, featureIds: ["advisor"] }];
-        for (const identity of [
-            { kind: "aws_iam_role", roleArn: "arn:aws:iam::111111111111:role/example" },
-            { kind: "azure_service_principal", tenantId: "22222222-2222-4222-8222-222222222222" },
-            { kind: "azure_service_principal", tenantId, clientSecret: "forbidden-fixture" },
-        ]) {
-            expect(
-                (await handleCloudConnectRequest("register_cloud_connection", { identity, bindings }, "fixture-token"))
-                    .isError
-            ).toBe(true);
-        }
         for (const invalid of [
-            { ...scope, accountId: "111111111111" },
-            { ...scope, managementGroupId: "bad/group" },
-            { ...scope, tenantId: "invalid" },
+            { ...azureScope, accountId: "111111111111" },
+            { ...azureScope, managementGroupId: "bad/group" },
+            { ...azureScope, tenantId: "invalid" },
         ]) {
             expect(
                 (await handleCloudConnectRequest("get_cloud_connect_requirements", { scope: invalid }, "fixture-token"))
@@ -134,6 +164,7 @@ describe("Cloud Connect transport contract", () => {
         }
         expect(requests).toHaveLength(0);
     });
+
     it.each(["r-ab12", "ou-ab12-cdef3456"])("resolves organization artifact requirements for %s", async (targetId) => {
         const scope = { provider: "aws", kind: "aws_organization", managementAccountId: "111111111111", targetId };
         const artifact = {
@@ -156,60 +187,82 @@ describe("Cloud Connect transport contract", () => {
                 },
             ],
         };
-        response = () => new Response(JSON.stringify({ scope, artifacts: [artifact] }));
+        response = () =>
+            new Response(
+                JSON.stringify({
+                    scopeKind: "aws_organization",
+                    managementAccountId: "111111111111",
+                    targetId,
+                    artifacts: [artifact],
+                })
+            );
         const result = await executeToolHandler(
             "get_cloud_connect_requirements",
             { scope, featureIds: ["core", "quotas"] },
             "fixture-token"
         );
-        expect(requests[0].url.pathname).toBe("/onboarding/v2/requirements");
-        expect(requests[0].body).toEqual({ scope, featureIds: ["core", "quotas"] });
+        expect(requests[0].url.pathname).toBe("/onboarding/v2/cloud-connect/aws/requirements");
+        expect(requests[0].body).toEqual({
+            scopeKind: "aws_organization",
+            managementAccountId: "111111111111",
+            targetId,
+            featureIds: ["core", "quotas"],
+        });
         expect(data(result).artifacts).toEqual([artifact]);
         expect(requests[0].options.headers).not.toHaveProperty("Idempotency-Key");
     });
-    it("rejects organization bindings and malformed targets before HTTP", async () => {
-        const scope = {
+
+    it("rejects organization registrations, invalid targets, and mismatched requirement inputs before HTTP", async () => {
+        const orgScope = {
             provider: "aws",
             kind: "aws_organization",
             managementAccountId: "111111111111",
             targetId: "r-ab12",
         };
         for (const args of [
-            { scope: { ...scope, targetId: "ou-invalid" } },
-            { scope: { ...scope, targetId: "r-ab12,r-cd34" } },
-            { scope: { ...scope, accountId: "111111111111" } },
-            { scope: { ...scope, managementAccountId: "11111111111o" } },
+            { scope: { ...orgScope, targetId: "ou-invalid" } },
+            { scope: { ...orgScope, targetId: "r-ab12,r-cd34" } },
+            { scope: { ...orgScope, accountId: "111111111111" } },
+            { scope: { ...orgScope, managementAccountId: "11111111111o" } },
+            { scope: orgScope, discoveryInputs: { managementAccountId: "111111111111" } },
+            { scope: awsScope, identityInputs: { projectId: "example-project" } },
         ]) {
             expect(
                 (await handleCloudConnectRequest("get_cloud_connect_requirements", args, "fixture-token")).isError
             ).toBe(true);
         }
         for (const [tool, args] of [
-            ["register_cloud_connection", { ...registration, bindings: [{ scope, featureIds: ["core"] }] }],
-            [
-                "dry_run_cloud_connection_change",
-                { operation: "register", ...registration, bindings: [{ scope, featureIds: ["core"] }] },
-            ],
-            ["list_cloud_connections", { scope }],
+            ["register_cloud_connection", { ...awsRegistration, targetId: "r-ab12" }],
+            ["dry_run_cloud_connection_change", { operation: "register", ...awsRegistration, targetId: "r-ab12" }],
+            ["list_cloud_connections", { scope: orgScope }],
         ] as const) {
             expect((await handleCloudConnectRequest(tool, args, "fixture-token")).isError).toBe(true);
         }
         expect(requests).toHaveLength(0);
     });
-    it("wraps the seven AWS operations plus a read-only dry-run tool", () => {
+
+    it("wraps all 21 per-provider operations plus a read-only dry-run tool", () => {
         expect(CLOUD_CONNECT_TOOLS).toHaveLength(8);
-        expect(new Set(CLOUD_CONNECT_TOOLS.map((tool) => tool.coversEndpoint).filter(Boolean)).size).toBe(7);
-        expect(CLOUD_CONNECT_TOOLS.map((tool) => tool.coversEndpoint)).toContain(
-            "post:/onboarding/v2/connections/{connectionId}/actions/verify"
+        const covered = CLOUD_CONNECT_TOOLS.flatMap((entry) =>
+            entry.coversEndpoint
+                ? Array.isArray(entry.coversEndpoint)
+                    ? entry.coversEndpoint
+                    : [entry.coversEndpoint]
+                : []
         );
+        expect(new Set(covered).size).toBe(21);
+        expect(covered).toContain("post:/onboarding/v2/cloud-connect/aws/accounts/{id}/actions/verify");
+        expect(covered).toContain("post:/onboarding/v2/cloud-connect/gcp/connections/{id}/actions/verify");
+        expect(covered).toContain("post:/onboarding/v2/cloud-connect/azure/management-groups/{id}/actions/verify");
         expect(
-            CLOUD_CONNECT_TOOLS.find((tool) => tool.name === "dry_run_cloud_connection_change")?.annotations
+            CLOUD_CONNECT_TOOLS.find((entry) => entry.name === "dry_run_cloud_connection_change")?.annotations
         ).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     });
+
     it("sends customer context, an Idempotency-Key and returns etag, Request-Id and the key used", async () => {
         const result = await handleCloudConnectRequest(
             "register_cloud_connection",
-            { ...registration, customerContext: "fixture-customer" },
+            { ...awsRegistration, customerContext: "fixture-customer" },
             "fixture-token"
         );
         const headers = requests[0].options.headers as Record<string, string>;
@@ -220,9 +273,15 @@ describe("Cloud Connect transport contract", () => {
             requestId: "req_01FIXTURE",
             idempotencyKey: headers["Idempotency-Key"],
         });
-        expect(requests[0].url.pathname).toBe("/onboarding/v2/connections");
-        expect(requests[0].body).toEqual(registration);
+        expect(requests[0].url.pathname).toBe("/onboarding/v2/cloud-connect/aws/accounts");
+        expect(requests[0].body).toEqual({
+            accountId: "111111111111",
+            roleArn: "arn:aws:iam::111111111111:role/doitintl-cmp",
+            featureIds: ["core", "quotas"],
+            catalogVersion: "sha256:current",
+        });
     });
+
     it.each([
         ['"body"', 'W/"body"', '"body"'],
         ['"body"', '"header"', '"body"'],
@@ -233,18 +292,24 @@ describe("Cloud Connect transport contract", () => {
             new Response(JSON.stringify({ id: "fixture", ...(bodyEtag ? { etag: bodyEtag } : {}) }), {
                 headers: headerEtag ? { etag: headerEtag } : {},
             });
-        const result = await executeToolHandler("get_cloud_connection", { connectionId: "fixture" }, "fixture-token");
+        const result = await executeToolHandler(
+            "get_cloud_connection",
+            { provider: "aws", connectionId: "fixture" },
+            "fixture-token"
+        );
+        expect(requests[0].url.pathname).toBe("/onboarding/v2/cloud-connect/aws/accounts/fixture");
         expect(data(result).etag).toBe(expected);
     });
+
     it("keeps a caller-supplied Idempotency-Key for an identical retry", async () => {
         await handleCloudConnectRequest(
             "register_cloud_connection",
-            { ...registration, idempotencyKey: "retry-key" },
+            { ...awsRegistration, idempotencyKey: "retry-key" },
             "fixture-token"
         );
         await handleCloudConnectRequest(
             "register_cloud_connection",
-            { ...registration, idempotencyKey: "retry-key" },
+            { ...awsRegistration, idempotencyKey: "retry-key" },
             "fixture-token"
         );
         expect(requests.map((request) => (request.options.headers as any)["Idempotency-Key"])).toEqual([
@@ -253,85 +318,94 @@ describe("Cloud Connect transport contract", () => {
         ]);
         expect(requests[0].body.idempotencyKey).toBeUndefined();
     });
-    it("sends PATCH as a merge patch of complete desired state with If-Match", async () => {
+
+    it("sends PATCH as a flat merge patch of desired state with If-Match", async () => {
         await handleCloudConnectRequest(
             "update_cloud_connection",
             {
+                provider: "aws",
                 connectionId: "amazon-web-services-111111111111",
                 expectedEtag: '"1.abc"',
                 catalogVersion: "sha256:current",
-                bindings: [{ bindingId: "binding_aws_account_111111111111", featureIds: ["core", "quotas", "eks"] }],
+                featureIds: ["core", "quotas", "eks"],
             },
             "fixture-token"
         );
         const headers = requests[0].options.headers as Record<string, string>;
         expect(requests[0].options.method).toBe("PATCH");
+        expect(requests[0].url.pathname).toBe(
+            "/onboarding/v2/cloud-connect/aws/accounts/amazon-web-services-111111111111"
+        );
         expect(headers).toMatchObject({ "Content-Type": "application/merge-patch+json", "If-Match": '"1.abc"' });
         expect(headers["Idempotency-Key"]).toBeTruthy();
         expect(requests[0].body).toEqual({
             catalogVersion: "sha256:current",
-            bindings: [{ bindingId: "binding_aws_account_111111111111", featureIds: ["core", "quotas", "eks"] }],
+            featureIds: ["core", "quotas", "eks"],
         });
     });
+
     it("uses read-only dry runs for register, update and remove without leaking control fields", async () => {
         const id = "amazon-web-services-111111111111";
         await handleCloudConnectRequest(
             "dry_run_cloud_connection_change",
-            { operation: "register", ...registration },
+            { operation: "register", ...awsRegistration },
             "fixture-token"
         );
         await handleCloudConnectRequest(
             "dry_run_cloud_connection_change",
             {
                 operation: "update",
+                provider: "aws",
                 connectionId: id,
                 expectedEtag: '"v1"',
-                bindings: [{ bindingId: "b", featureIds: ["core"] }],
+                featureIds: ["core"],
             },
             "fixture-token"
         );
         await handleCloudConnectRequest(
             "dry_run_cloud_connection_change",
-            { operation: "remove", connectionId: id, expectedEtag: '"v1"', cleanupScope: "doit_only" },
+            { operation: "remove", provider: "aws", connectionId: id, expectedEtag: '"v1"', cleanupScope: "doit_only" },
             "fixture-token"
         );
         expect(requests.map((request) => request.options.method)).toEqual(["POST", "PATCH", "DELETE"]);
+        expect(requests.map((request) => request.url.pathname)).toEqual([
+            "/onboarding/v2/cloud-connect/aws/accounts",
+            `/onboarding/v2/cloud-connect/aws/accounts/${id}`,
+            `/onboarding/v2/cloud-connect/aws/accounts/${id}`,
+        ]);
         expect(requests.every((request) => request.url.searchParams.get("dryRun") === "true")).toBe(true);
         expect(requests[1].options.headers).toMatchObject({ "If-Match": '"v1"' });
-        expect(requests[1].body.expectedEtag).toBeUndefined();
-        expect(requests[1].body.idempotencyKey).toBeUndefined();
+        expect(requests[1].body).toEqual({ featureIds: ["core"] });
         expect(requests[2].body).toBeUndefined();
         expect(requests[2].url.searchParams.get("cleanupScope")).toBe("doit_only");
     });
-    it("rejects non-AWS scopes, private keys, bad account IDs and wildcard etags before HTTP", async () => {
+
+    it("rejects bad scopes, private keys, bad account IDs, empty patches and wildcard etags before HTTP", async () => {
         for (const [name, args] of [
             ["get_cloud_connect_requirements", { scope: { provider: "gcp", kind: "gcp_project", projectId: "x" } }],
-            ["get_cloud_connect_requirements", { scope: { ...scope, accountId: "11111111111o" } }],
-            ["register_cloud_connection", { ...registration, identity: { ...identity, private_key: "secret" } }],
-            ["remove_cloud_connection", { connectionId: "c", expectedEtag: "*", cleanupScope: "doit_only" }],
-            ["remove_cloud_connection", { connectionId: "c", expectedEtag: 'W/"1"', cleanupScope: "doit_only" }],
+            ["get_cloud_connect_requirements", { scope: { ...awsScope, accountId: "11111111111o" } }],
+            ["register_cloud_connection", { ...awsRegistration, private_key: "secret" }],
             [
-                "register_cloud_connection",
-                { ...registration, bindings: [registration.bindings[0], registration.bindings[0]] },
+                "remove_cloud_connection",
+                { provider: "aws", connectionId: "c", expectedEtag: "*", cleanupScope: "doit_only" },
             ],
-            ["update_cloud_connection", { connectionId: "c", expectedEtag: '"1"', bindings: [] }],
+            [
+                "remove_cloud_connection",
+                { provider: "aws", connectionId: "c", expectedEtag: 'W/"1"', cleanupScope: "doit_only" },
+            ],
+            ["update_cloud_connection", { provider: "aws", connectionId: "c", expectedEtag: '"1"' }],
+            ["update_cloud_connection", { provider: "aws", connectionId: "c", expectedEtag: '"1"', featureIds: [] }],
             ["explain_cloud_connect_failure", {}],
             ["report_cloud_connect_event", { events: [] }],
         ] as const)
             expect((await handleCloudConnectRequest(name, args, "fixture-token")).isError).toBe(true);
         expect(requests).toHaveLength(0);
     });
+
     it.each([
-        ["get_cloud_connect_requirements", { scope: { ...scope, accountId: "11111111111o" } }, "scope.accountId"],
-        ["list_cloud_connections", { scope: { ...scope, accountId: "11111111111o" } }, "scope.accountId"],
-        [
-            "register_cloud_connection",
-            {
-                ...registration,
-                bindings: [{ ...registration.bindings[0], scope: { ...scope, accountId: "11111111111o" } }],
-            },
-            "bindings.0.scope.accountId",
-        ],
+        ["get_cloud_connect_requirements", { scope: { ...awsScope, accountId: "11111111111o" } }, "scope.accountId"],
+        ["list_cloud_connections", { scope: { ...awsScope, accountId: "11111111111o" } }, "scope.accountId"],
+        ["register_cloud_connection", { ...awsRegistration, accountId: "11111111111o" }, "accountId"],
         [
             "get_cloud_connect_requirements",
             {
@@ -346,7 +420,7 @@ describe("Cloud Connect transport contract", () => {
         ],
         [
             "get_cloud_connect_requirements",
-            { scope, discoveryInputs: { managementAccountId: "11111111111o" } },
+            { scope: awsScope, discoveryInputs: { managementAccountId: "11111111111o" } },
             "discoveryInputs.managementAccountId",
         ],
     ] as const)("explains invalid AWS IDs for %s before HTTP", async (name, args, field) => {
@@ -357,29 +431,41 @@ describe("Cloud Connect transport contract", () => {
         );
         expect(requests).toHaveLength(0);
     });
-    it("sends requirements with discovery inputs and no catalogVersion, without a write key", async () => {
+
+    it("sends requirements with feature inputs and no catalogVersion, without a write key", async () => {
         await handleCloudConnectRequest(
             "get_cloud_connect_requirements",
-            { scope, featureIds: ["real-time-data"], featureInputs: { "real-time-data": { bucketName: "b" } } },
+            {
+                scope: awsScope,
+                featureIds: ["real-time-data"],
+                featureInputs: { "real-time-data": { bucketName: "b" } },
+            },
             "fixture-token"
         );
         expect((requests[0].options.headers as any)["Idempotency-Key"]).toBeUndefined();
-        expect(requests[0].url.pathname).toBe("/onboarding/v2/requirements");
-        expect(requests[0].body.catalogVersion).toBeUndefined();
+        expect(requests[0].url.pathname).toBe("/onboarding/v2/cloud-connect/aws/requirements");
+        expect(requests[0].body).toEqual({
+            scopeKind: "aws_account",
+            accountId: "111111111111",
+            featureIds: ["real-time-data"],
+            featureInputs: { "real-time-data": { bucketName: "b" } },
+        });
     });
-    it("verifies through the connection action with the optional selection as body", async () => {
+
+    it("verifies through the provider connection action with optional featureIds as body", async () => {
         await handleCloudConnectRequest(
             "verify_cloud_connect",
-            { connectionId: "amazon-web-services-111111111111", featureIds: ["core"] },
+            { provider: "aws", connectionId: "amazon-web-services-111111111111", featureIds: ["core"] },
             "fixture-token"
         );
         expect(requests[0].options.method).toBe("POST");
         expect(requests[0].url.pathname).toBe(
-            "/onboarding/v2/connections/amazon-web-services-111111111111/actions/verify"
+            "/onboarding/v2/cloud-connect/aws/accounts/amazon-web-services-111111111111/actions/verify"
         );
         expect(requests[0].body).toEqual({ featureIds: ["core"] });
         expect((requests[0].options.headers as any)["Idempotency-Key"]).toBeUndefined();
     });
+
     it("preserves standards problems, correlates by Request-Id, returns the key and never retries", async () => {
         for (const [status, code, extra] of [
             [
@@ -389,7 +475,7 @@ describe("Cloud Connect transport contract", () => {
                     details: [
                         {
                             issue: "invalid_value",
-                            field: "scope.managementGroupId",
+                            field: "managementGroupId",
                             message: "Use a bare management group ID.",
                         },
                     ],
@@ -401,7 +487,11 @@ describe("Cloud Connect transport contract", () => {
             [422, "onboarding.registration_gate_failed", { retryable: true }],
         ] as const) {
             response = () => problem(status, code, extra);
-            const result = await handleCloudConnectRequest("register_cloud_connection", registration, "fixture-token");
+            const result = await handleCloudConnectRequest(
+                "register_cloud_connection",
+                awsRegistration,
+                "fixture-token"
+            );
             expect(result.isError).toBe(true);
             expect(data(result)).toMatchObject({
                 status,
@@ -413,32 +503,41 @@ describe("Cloud Connect transport contract", () => {
         }
         expect(requests).toHaveLength(5);
     });
+
     it("redacts credentials from problem bodies", async () => {
         response = () =>
             problem(400, "validation_failed", { detail: "Authorization: Bearer fixture-token AKIAABCDEFGHIJKLMNOP" });
-        const result = await handleCloudConnectRequest("get_cloud_connect_requirements", { scope }, "fixture-token");
+        const result = await handleCloudConnectRequest(
+            "get_cloud_connect_requirements",
+            { scope: awsScope },
+            "fixture-token"
+        );
         expect(text(result)).not.toContain("fixture-token");
         expect(text(result)).not.toContain("AKIAABCDEFGHIJKLMNOP");
     });
-    it("builds the list filter from exact scope and feature and passes paging", async () => {
+
+    it("builds flat provider list filters and passes paging", async () => {
         response = () => new Response(JSON.stringify({ items: [], pageToken: "next-page" }));
         const result = await handleCloudConnectRequest(
             "list_cloud_connections",
-            { scope, featureId: "core", maxResults: 2, pageToken: "previous-page" },
+            { scope: awsScope, featureId: "core", maxResults: 2, pageToken: "previous-page" },
             "fixture-token"
         );
         expect(data(result).pageToken).toBe("next-page");
+        expect(requests[0].url.pathname).toBe("/onboarding/v2/cloud-connect/aws/accounts");
         const params = requests[0].url.searchParams;
-        expect(params.get("filter")).toBe(
-            "provider:aws|bindings.scope.kind:aws_account|bindings.scope.accountId:111111111111|bindings.featureIds:core"
-        );
+        expect(params.get("filter")).toBe("accountId:111111111111|featureIds:core");
         expect(params.get("maxResults")).toBe("2");
         expect(params.get("pageToken")).toBe("previous-page");
+
         await handleCloudConnectRequest("list_cloud_connections", {}, "fixture-token");
-        expect(requests[1].url.searchParams.get("filter")).toBe("provider:aws");
+        expect(requests[1].url.pathname).toBe("/onboarding/v2/cloud-connect/aws/accounts");
+        expect(requests[1].url.searchParams.get("filter")).toBeNull();
     });
+
     it("reports a 204 removal as deleted with the key used and keeps the record on cleanup_failed", async () => {
         const remove = {
+            provider: "aws",
             connectionId: "amazon-web-services-111111111111",
             expectedEtag: '"2.abc"',
             cleanupScope: "doit_only",
@@ -450,11 +549,15 @@ describe("Cloud Connect transport contract", () => {
             requestId: "req_01DELETE",
             idempotencyKey: "remove-key",
         });
+        expect(requests[0].url.pathname).toBe(
+            "/onboarding/v2/cloud-connect/aws/accounts/amazon-web-services-111111111111"
+        );
         response = () => problem(409, "onboarding.cleanup_failed", { retryable: true });
         const failed = await handleCloudConnectRequest("remove_cloud_connection", remove, "fixture-token");
         expect(failed.isError).toBe(true);
         expect(data(failed)).toMatchObject({ code: "onboarding.cleanup_failed", retryable: true });
     });
+
     it("bypasses hosted widget conversion so check coverage and follow-ups remain intact", async () => {
         const payload = {
             checks: [
@@ -470,7 +573,7 @@ describe("Cloud Connect transport contract", () => {
         const convert = vi.fn(() => ({ content: [] }));
         const result = await executeToolHandler(
             "verify_cloud_connect",
-            { connectionId: "amazon-web-services-111111111111" },
+            { provider: "aws", connectionId: "amazon-web-services-111111111111" },
             "fixture-token",
             { convertResponse: convert, onResponseMetrics: () => {} }
         );
@@ -485,63 +588,101 @@ describe("Google Cloud scopes", () => {
         uniqueId: "100000000000000000001",
         projectId: "example-project",
     };
+
     it.each([
         { provider: "gcp", kind: "gcp_organization", organizationId: "123456789012" },
         { provider: "gcp", kind: "gcp_project", projectId: "example-project" },
         { provider: "gcp", kind: "gcp_dataset", projectId: "example-project", datasetId: "example_dataset" },
         { provider: "gcp", kind: "gcp_dataset", projectId: "example-project", datasetId: "2026_export" },
-    ])("registers and filters native scope $kind", async (scope) => {
+    ] as const)("registers, fetches requirements and filters native scope $kind", async (scope) => {
+        const { provider: _provider, kind: scopeKind, ...ids } = scope;
+        await executeToolHandler(
+            "get_cloud_connect_requirements",
+            { scope, featureIds: ["core"], identityInputs: { projectId: "example-project" } },
+            "fixture-token"
+        );
+        expect(requests[0].url.pathname).toBe("/onboarding/v2/cloud-connect/gcp/requirements");
+        expect(requests[0].body).toEqual({
+            scopeKind,
+            ...ids,
+            featureIds: ["core"],
+            identityInputs: { projectId: "example-project" },
+        });
+
         await executeToolHandler(
             "register_cloud_connection",
-            { identity: { kind: "gcp_service_account", serviceAccount }, bindings: [{ scope, featureIds: ["core"] }] },
+            { provider: "gcp", scopeKind, ...ids, serviceAccount, featureIds: ["core"] },
             "fixture-token"
         );
-        expect(requests[0].body.identity.serviceAccount).toEqual(serviceAccount);
-        expect(requests[0].body.bindings[0].scope).toEqual(scope);
+        expect(requests[1].url.pathname).toBe("/onboarding/v2/cloud-connect/gcp/connections");
+        expect(requests[1].body).toEqual({
+            scopeKind,
+            ...ids,
+            serviceAccount,
+            featureIds: ["core"],
+        });
+
         await executeToolHandler("list_cloud_connections", { scope }, "fixture-token");
-        const filter = requests[1].url.searchParams.get("filter");
-        expect(filter).toContain("provider:gcp");
-        expect(filter).toContain(`bindings.scope.kind:${scope.kind}`);
-        for (const [key, value] of Object.entries(scope))
-            if (key !== "provider" && key !== "kind") expect(filter).toContain(`bindings.scope.${key}:${value}`);
+        expect(requests[2].url.pathname).toBe("/onboarding/v2/cloud-connect/gcp/connections");
+        const filter = requests[2].url.searchParams.get("filter");
+        expect(filter).toContain(`scopeKind:${scopeKind}`);
+        for (const [key, value] of Object.entries(ids)) expect(filter).toContain(`${key}:${value}`);
     });
-    it("rejects a cross-provider identity before HTTP", async () => {
-        const result = await executeToolHandler(
-            "register_cloud_connection",
+
+    it("rejects mismatched GCP scope fields before HTTP", async () => {
+        for (const args of [
             {
-                identity,
-                bindings: [
-                    {
-                        scope: { provider: "gcp", kind: "gcp_project", projectId: "example-project" },
-                        featureIds: ["core"],
-                    },
-                ],
+                provider: "gcp",
+                scopeKind: "gcp_organization",
+                projectId: "example-project",
+                serviceAccount,
+                featureIds: ["core"],
             },
-            "fixture-token"
-        );
-        expect(result.isError).toBe(true);
+            {
+                provider: "gcp",
+                scopeKind: "gcp_project",
+                organizationId: "123456789012",
+                serviceAccount,
+                featureIds: ["core"],
+            },
+            {
+                provider: "gcp",
+                scopeKind: "gcp_dataset",
+                projectId: "example-project",
+                serviceAccount,
+                featureIds: ["core"],
+            },
+            {
+                provider: "gcp",
+                scopeKind: "gcp_project",
+                projectId: "example-project",
+                roleArn: "arn:aws:iam::111111111111:role/x",
+                serviceAccount,
+                featureIds: ["core"],
+            },
+        ]) {
+            const result = await executeToolHandler("register_cloud_connection", args, "fixture-token");
+            expect(result.isError).toBe(true);
+        }
         expect(requests).toHaveLength(0);
     });
+
     it("rejects service-account private key material", async () => {
         const result = await executeToolHandler(
             "register_cloud_connection",
             {
-                identity: {
-                    kind: "gcp_service_account",
-                    serviceAccount: { ...serviceAccount, private_key: "fixture-forbidden-key" },
-                },
-                bindings: [
-                    {
-                        scope: { provider: "gcp", kind: "gcp_project", projectId: "example-project" },
-                        featureIds: ["core"],
-                    },
-                ],
+                provider: "gcp",
+                scopeKind: "gcp_project",
+                projectId: "example-project",
+                serviceAccount: { ...serviceAccount, private_key: "fixture-forbidden-key" },
+                featureIds: ["core"],
             },
             "fixture-token"
         );
         expect(result.isError).toBe(true);
         expect(requests).toHaveLength(0);
     });
+
     it("rejects provider and scope mismatch on list", async () => {
         const result = await executeToolHandler(
             "list_cloud_connections",
