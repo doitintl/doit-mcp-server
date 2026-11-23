@@ -28,7 +28,11 @@ import {
     handleListBudgetsRequest,
     handleUpdateBudgetRequest,
 } from "../tools/budgets.js";
-import { CLOUD_CONNECT_HANDLERS } from "../tools/cloudConnect.js";
+import {
+    CLOUD_CONNECT_HANDLERS,
+    removeCloudConnectionTool,
+    summarizeRemoveCloudConnection,
+} from "../tools/cloudConnect.js";
 import {
     handleFindCloudDiagramsRequest,
     handleGetCloudDiagramComponentsRequest,
@@ -145,6 +149,7 @@ import {
     createErrorResponse,
     formatZodError,
     handleGeneralError,
+    resolveCustomerContext,
     runWithTracking,
     type TrackingContext,
 } from "./util.js";
@@ -167,7 +172,8 @@ import {
  * clients already prompt on `destructiveHint`. `create_ticket` was gated during the POC
  * and deliberately un-gated to avoid a double confirmation on every ticket.
  */
-const WRITE_GATED_SUMMARIES: Partial<Record<string, (args: any) => string>> = {
+export const WRITE_GATED_SUMMARIES: Partial<Record<string, (args: any) => string>> = {
+    [removeCloudConnectionTool.name]: summarizeRemoveCloudConnection,
     // [createTicketTool.name]: createTicketTool.summary,
 };
 
@@ -323,10 +329,23 @@ export async function executeToolHandler(
                         // param that would resolve to a different endpoint) must not leave a
                         // staged approval behind.
                         const summary = summaryFn(dispatchArgs);
+                        // Snapshot any active customer context into the staged args so confirming
+                        // always executes against the same tenant named in the approved summary.
+                        const resolvedCustomerContext = resolveCustomerContext(
+                            typeof dispatchArgs?.customerContext === "string" ? dispatchArgs.customerContext : undefined
+                        );
+                        const stagedArgs =
+                            resolvedCustomerContext &&
+                            dispatchArgs &&
+                            typeof dispatchArgs === "object" &&
+                            !Array.isArray(dispatchArgs) &&
+                            !dispatchArgs.customerContext
+                                ? { ...dispatchArgs, customerContext: resolvedCustomerContext }
+                                : dispatchArgs;
                         const approvalToken = mintApprovalToken();
                         await approvalStore.stash(approvalToken, {
                             toolName,
-                            args: dispatchArgs,
+                            args: stagedArgs,
                             userKey,
                             expiresAt: Date.now() + APPROVAL_TTL_MS,
                         });

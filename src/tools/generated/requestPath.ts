@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { hasTraversalSegment } from "../../utils/util.js";
 import type { OperationMetadata } from "./types.js";
 
 // Never sent anywhere: only used to run the request path through the same WHATWG URL
@@ -11,13 +12,26 @@ function invalidPathParam(name: string, value: string, message: string): z.ZodEr
 }
 
 /**
+ * Validates that a path parameter value occupies a single non-empty, non-traversal path
+ * segment, rejecting empty strings, raw dot segments (`.`/`..`), slash/backslash dot
+ * segments, and percent-encoded dot segments (`%2e%2e`, `%252e%252e`, `a%2f..%2fb`).
+ */
+export function validatePathSegment(paramName: string, raw: unknown): string {
+    const value = raw === undefined || raw === null ? "" : String(raw);
+    if (value === "" || hasTraversalSegment(value)) {
+        throw invalidPathParam(paramName, value, "must be a non-empty identifier with no '.' or '..' segments");
+    }
+    return value;
+}
+
+/**
  * Substitutes path params into the operation's pathTemplate. Each value must occupy exactly
  * one opaque, non-empty path segment: encodeURIComponent leaves `.` unencoded, so a value of
  * `.` or `..` would become a dot segment that fetch's URL parser resolves away — sending the
  * call to a sibling endpoint (e.g. `/users/../geographic-scope` → the customer-wide scope)
  * while the tool name and approval summary describe the narrower one.
  *
- * Shared by the request executor and the DELETE approval summary, so what the user confirms
+ * Shared by the request executor and the approval summary, so what the user confirms
  * is the path that is sent. Throws a ZodError so both callers report a validation error.
  */
 export function buildRequestPath(
@@ -26,13 +40,7 @@ export function buildRequestPath(
 ): string {
     let requestPath = metadata.pathTemplate;
     for (const paramName of metadata.pathParams) {
-        const raw = values?.[paramName];
-        const value = raw === undefined || raw === null ? "" : String(raw);
-        // `/` and `\` are percent-encoded below, but a proxy or framework that decodes `%2F`
-        // before routing would still see `a/../b` as a traversal — reject dot pieces there too.
-        if (value === "" || value.split(/[/\\]/).some((piece) => piece === "." || piece === "..")) {
-            throw invalidPathParam(paramName, value, "must be a non-empty identifier with no '.' or '..' segments");
-        }
+        const value = validatePathSegment(paramName, values?.[paramName]);
         requestPath = requestPath.replace(`{${paramName}}`, encodeURIComponent(value));
     }
 

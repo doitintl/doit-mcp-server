@@ -313,7 +313,13 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         const preview = await call("dry_run_cloud_connection_change", { operation: "remove", ...remove });
         expect(preview.doitSideEffects).toHaveLength(1);
         expect(records.size).toBe(1);
-        expect(await call("remove_cloud_connection", remove)).toMatchObject({ deleted: true });
+        const stagedRemove = await call("remove_cloud_connection", remove);
+        expect(stagedRemove).toMatchObject({ status: "approval_required", approvalToken: expect.any(String) });
+        expect(stagedRemove.summary).toContain(connection.id);
+        expect(records.size).toBe(1);
+        expect(await call("confirm_action", { approvalToken: stagedRemove.approvalToken })).toMatchObject({
+            deleted: true,
+        });
         expect((await call("list_cloud_connections", { scope })).items).toEqual([]);
     });
     it("serves the Skills extension manifest and prompt with digest-verifiable resources", async () => {

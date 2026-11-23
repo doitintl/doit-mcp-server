@@ -240,12 +240,19 @@ describe("applyTenantIdHeader", () => {
         expect(applyTenantIdHeader({ Accept: "application/json" })).toEqual({ Accept: "application/json" });
     });
 
-    it("keeps an already-set tenant header regardless of casing, so it is never sent twice", () => {
+    it("keeps an already-set matching tenant header regardless of casing, so it is never sent twice", () => {
         delete process.env.CUSTOMER_CONTEXT;
-        const headers = applyTenantIdHeader({ "x-tenant-id": "explicit" }, "cust-1");
+        const headers = applyTenantIdHeader({ "x-tenant-id": "cust-1" }, "cust-1");
 
-        expect(headers).toEqual({ "x-tenant-id": "explicit" });
+        expect(headers).toEqual({ "x-tenant-id": "cust-1" });
         expect(Object.keys(headers).filter((key) => key.toLowerCase() === "x-tenant-id")).toHaveLength(1);
+    });
+
+    it("rejects a conflicting tenant header instead of sending two different tenants", () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        expect(() => applyTenantIdHeader({ "x-tenant-id": "other-cust" }, "cust-1")).toThrow(
+            "Conflicting tenant scope"
+        );
     });
 });
 
@@ -314,18 +321,45 @@ describe("makeDoitRequest customer context header", () => {
         expect(Object.keys(headers).some((key) => key.toLowerCase() === "x-tenant-id")).toBe(false);
     });
 
-    it("does not override an explicit tenant header passed by the caller", async () => {
+    it("keeps a matching explicit tenant header without duplicating it", async () => {
         delete process.env.CUSTOMER_CONTEXT;
         const fetchMock = stubFetchOk();
 
         await makeDoitRequest("https://api.doit.com/test", "test-token", {
             customerContext: "cust-1",
-            headers: { "X-Tenant-Id": "explicit" },
+            headers: { "x-tenant-id": "cust-1" },
         });
 
         const headers = headersOf(fetchMock);
-        expect(headers["X-Tenant-Id"]).toBe("explicit");
+        expect(headers["x-tenant-id"]).toBe("cust-1");
         expect(Object.keys(headers).filter((key) => key.toLowerCase() === "x-tenant-id")).toHaveLength(1);
+    });
+
+    it("rejects a conflicting explicit tenant header without calling fetch", async () => {
+        delete process.env.CUSTOMER_CONTEXT;
+        const fetchMock = stubFetchOk();
+
+        await expect(
+            makeDoitRequest("https://api.doit.com/test", "test-token", {
+                customerContext: "cust-1",
+                headers: { "X-Tenant-Id": "other-cust" },
+            })
+        ).rejects.toThrow("Conflicting tenant scope");
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        "https://api.doit.com/sharing/v1/reports/..",
+        "https://api.doit.com/sharing/v1/reports/.",
+        "https://api.doit.com/sharing/v1/reports/%2e%2e",
+        "https://api.doit.com/sharing/v1/reports/%252e%252e",
+        "https://api.doit.com/sharing/v1/reports/a%2f..%2fb",
+        "https://api.doit.com/sharing/v1/reports/a\\b",
+    ])("rejects path traversal URL %s before calling fetch", async (badUrl) => {
+        const fetchMock = stubFetchOk();
+
+        await expect(makeDoitRequest(badUrl, "test-token")).rejects.toThrow("Invalid request path");
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 });
 

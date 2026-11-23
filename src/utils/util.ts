@@ -223,6 +223,55 @@ export function handleGeneralError(
  */
 export const TENANT_ID_HEADER = "X-Tenant-Id";
 
+const MAX_DECODE_PASSES = 2;
+
+/**
+ * Returns true if `value` contains a dot path segment (`.` or `..`), either directly,
+ * separated by `/` or `\`, or after up to two percent-decoding passes (e.g. `%2e%2e`,
+ * `%252e%252e`, `a%2f..%2fb`). Used to block path traversal before URL normalization.
+ */
+export function hasTraversalSegment(value: string): boolean {
+    let candidate = value;
+    for (let pass = 0; pass <= MAX_DECODE_PASSES; pass += 1) {
+        if (candidate.split(/[/\\]/).some((piece) => piece === "." || piece === "..")) {
+            return true;
+        }
+        if (pass === MAX_DECODE_PASSES) break;
+        try {
+            const decoded = decodeURIComponent(candidate);
+            if (decoded === candidate) break;
+            candidate = decoded;
+        } catch {
+            break;
+        }
+    }
+    return false;
+}
+
+/**
+ * Rejects URLs whose raw path contains backslashes or raw/percent-encoded dot segments
+ * before `fetch` / WHATWG URL normalization can collapse them onto a different route.
+ */
+export function assertSafeRequestUrl(url: string): void {
+    const schemeEnd = url.indexOf("://");
+    if (schemeEnd === -1) {
+        throw new DoitRequestError("Invalid request URL.");
+    }
+    const pathStart = url.indexOf("/", schemeEnd + 3);
+    if (pathStart === -1) return;
+    const queryOrHash = url.search(/[?#]/);
+    const rawPath =
+        queryOrHash === -1 || queryOrHash < pathStart ? url.slice(pathStart) : url.slice(pathStart, queryOrHash);
+    if (rawPath.includes("\\")) {
+        throw new DoitRequestError("Invalid request path: backslashes are not allowed.");
+    }
+    for (const segment of rawPath.split("/")) {
+        if (segment && hasTraversalSegment(segment)) {
+            throw new DoitRequestError("Invalid request path: path traversal segments are not allowed.");
+        }
+    }
+}
+
 /**
  * Resolves the customer context for a request: the explicitly passed value first, then the
  * CUSTOMER_CONTEXT env var (how the stdio server persists a selected customer).
@@ -233,8 +282,8 @@ export function resolveCustomerContext(customerContextId?: string): string | und
 
 /**
  * Sets the X-Tenant-Id header from the resolved customer context, mutating and returning
- * `headers`. An existing tenant header (any casing — e.g. an OpenAPI operation that declares
- * one explicitly) is left untouched so callers keep control and we never send it twice.
+ * `headers`. If a tenant header is already set (any casing), it must match the resolved
+ * customer context; conflicting values fail closed instead of sending two different tenants.
  */
 export function applyTenantIdHeader(
     headers: Record<string, string>,
@@ -243,8 +292,15 @@ export function applyTenantIdHeader(
     const customerContext = resolveCustomerContext(customerContextId);
     if (!customerContext) return headers;
 
-    const alreadySet = Object.keys(headers).some((key) => key.toLowerCase() === TENANT_ID_HEADER.toLowerCase());
-    if (alreadySet) return headers;
+    const existingKey = Object.keys(headers).find((key) => key.toLowerCase() === TENANT_ID_HEADER.toLowerCase());
+    if (existingKey !== undefined) {
+        if (headers[existingKey] !== customerContext) {
+            throw new DoitRequestError(
+                `Conflicting tenant scope: ${TENANT_ID_HEADER} header does not match customerContext.`
+            );
+        }
+        return headers;
+    }
 
     headers[TENANT_ID_HEADER] = customerContext;
     return headers;
@@ -329,6 +385,7 @@ export async function makeDoitRequest<T>(
     } = options;
 
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
+    assertSafeRequestUrl(resolvedUrl);
     // Demo mode: return canned data without hitting the real API.
     // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
     // If the token is DEMO_TOKEN here, the user already passed that gate.
@@ -514,6 +571,7 @@ export async function makeConsoleRequest<T>(
     }
 
     let requestUrl = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+    assertSafeRequestUrl(requestUrl);
 
     requestUrl = appendTrackingParams(requestUrl);
 
@@ -557,7 +615,9 @@ export async function* makeDoitSSERequest(
     authToken: string,
     customerContext?: string
 ): AsyncGenerator<{ data: string }> {
-    const parsedUrl = new URL(applyRuntimeDoiTApiBase(url));
+    const resolvedUrl = applyRuntimeDoiTApiBase(url);
+    assertSafeRequestUrl(resolvedUrl);
+    const parsedUrl = new URL(resolvedUrl);
 
     const tracking = getTrackingContext();
     parsedUrl.searchParams.set("mcp", "true");

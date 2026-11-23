@@ -72,6 +72,39 @@ describe("generateTools", () => {
         expect(tool.zodSchema.shape["Idempotency-Key"]).toBeDefined();
     });
 
+    it("strips X-Tenant-Id header parameters so customerContext is the single tenant selector", () => {
+        const document = buildDocument({
+            paths: {
+                "/analytics/v1/widgets": {
+                    get: {
+                        operationId: "listWidgets",
+                        parameters: [
+                            { name: "X-Tenant-Id", in: "header", required: false, schema: { type: "string" } },
+                            { name: "Idempotency-Key", in: "header", required: false, schema: { type: "string" } },
+                        ],
+                    },
+                },
+            } as unknown as OpenAPIV3.Document["paths"],
+        });
+
+        const [tool] = generateTools(document, new Set());
+        expect(tool.metadata.headerParams).toEqual(["Idempotency-Key"]);
+        expect(tool.zodSchema.shape["X-Tenant-Id"]).toBeUndefined();
+        expect(tool.zodSchema.shape.customerContext).toBeDefined();
+
+        const bundledTools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+        for (const bundled of bundledTools) {
+            expect(
+                bundled.metadata.headerParams.some((name) => name.toLowerCase() === "x-tenant-id"),
+                bundled.name
+            ).toBe(false);
+            expect(
+                Object.keys(bundled.zodSchema.shape).some((name) => name.toLowerCase() === "x-tenant-id"),
+                bundled.name
+            ).toBe(false);
+        }
+    });
+
     it("generates a snake_case tool name from operationId with path/query params", () => {
         const document = buildDocument({
             tags: [{ name: "Widgets", description: "Widget operations." }],
@@ -183,6 +216,7 @@ describe("generateTools", () => {
         expect(tool?.summary).toBeDefined();
 
         expect(() => tool?.summary?.({ targetCustomerId: "T", userId: ".." })).toThrow(z.ZodError);
+        expect(() => tool?.summary?.({ targetCustomerId: "T", userId: "%2e%2e" })).toThrow(z.ZodError);
         expect(() => tool?.summary?.({ targetCustomerId: "T", userId: "" })).toThrow(z.ZodError);
         // Args that fail the tool's own schema get no approval either.
         expect(() => tool?.summary?.({ targetCustomerId: "T", userId: ["..", "x"] })).toThrow(z.ZodError);
@@ -191,14 +225,54 @@ describe("generateTools", () => {
         );
     });
 
-    it("every DELETE operation in the bundled spec is write-gated", () => {
+    it("includes query parameters, request body fields, HTTP method, and CUSTOMER_CONTEXT fallback in approval summaries", () => {
+        const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
+        const byName = new Map(tools.map((tool) => [tool.name, tool]));
+
+        const avaSummary = byName.get("delete_ava_conversation")?.summary?.({ conversationId: "conv-42" });
+        expect(avaSummary).toContain('conversationId="conv-42"');
+        expect(avaSummary).toContain("DELETE /ava/v1/deleteConversation?conversationId=conv-42.");
+
+        const datasetsSummary = byName.get("delete_datahub_datasets")?.summary?.({
+            datasets: ["Datadog", "Snowflake"],
+            customerContext: "cust-7",
+        });
+        expect(datasetsSummary).toContain("for customer cust-7");
+        expect(datasetsSummary).toContain(
+            'DELETE /datahub/v1/datasets with body {"datasets":["Datadog","Snowflake"]}.'
+        );
+
+        const eventsSummary = byName.get("delete_datahub_events_by_filter")?.summary?.({
+            dataset: "Datadog",
+            startTime: "2024-03-10T00:00:00Z",
+            endTime: "2024-03-12T00:00:00Z",
+            customerContext: "cust-7",
+        });
+        expect(eventsSummary).toContain("for customer cust-7");
+        expect(eventsSummary).toContain("POST /datahub/v1/events/delete with body");
+        expect(eventsSummary).toContain('"dataset":"Datadog"');
+
+        const originalCustomerContext = process.env.CUSTOMER_CONTEXT;
+        process.env.CUSTOMER_CONTEXT = "env-cust-1";
+        try {
+            const envSummary = byName.get("delete_alert")?.summary?.({ id: "alert-1" });
+            expect(envSummary).toBe(
+                'Delete an alert (id="alert-1") for customer env-cust-1. This cannot be undone: DELETE /analytics/v1/alerts/alert-1.'
+            );
+        } finally {
+            if (originalCustomerContext === undefined) delete process.env.CUSTOMER_CONTEXT;
+            else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
+        }
+    });
+
+    it("every DELETE operation and approval-gated override in the bundled spec is write-gated", () => {
         const tools = generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS);
         const deletes = tools.filter((tool) => tool.metadata.method === "delete");
         expect(deletes.length).toBeGreaterThan(0);
         for (const tool of deletes) expect(tool.summary, tool.name).toBeDefined();
-        for (const tool of tools.filter((tool) => tool.metadata.method !== "delete")) {
-            expect(tool.summary, tool.name).toBeUndefined();
-        }
+
+        const gatedNonDeletes = tools.filter((tool) => tool.metadata.method !== "delete" && tool.summary !== undefined);
+        expect(gatedNonDeletes.map((tool) => tool.name)).toEqual(["delete_datahub_events_by_filter"]);
     });
 
     it("describes the two-step approval on exactly the write-gated tools", () => {
