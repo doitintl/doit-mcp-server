@@ -1,5 +1,21 @@
 # Changelog
 
+## v6.0.0 (2026-11-24)
+
+**Full diff:** [`v5.1.0...v6.0.0`](../../compare/v5.1.0...v6.0.0)
+
+### Features
+
+- feat(cloud-connect)!: address v2 cutover review findings (`d9d4b0a`)
+- feat(cloud-connect): route Cloud Connect tools to per-provider onboarding v2 endpoints (`13bd9d9`)
+
+### Bug Fixes
+
+- fix(security): harden destructive approvals, path validation, and tenant routing (#424) (`286e6ec`)
+
+### Other Changes
+
+- docs: clarify public-repo rules against internal references in AGENTS.md (`d04d808`)
 ## v5.1.0 (2026-11-18)
 
 **Full diff:** [`v5.0.1...v5.1.0`](../../compare/v5.0.1...v5.1.0)
