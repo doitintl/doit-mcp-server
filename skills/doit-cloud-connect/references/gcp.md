@@ -39,10 +39,10 @@ external domain automatically. See [Google's domain-restricted sharing guidance]
    description to this customer; new registrations verify that marker. If an existing role lacks
    permissions, choose an unused `identityInputs.roleId` or involve its owner; the script never
    extends existing roles. Dataset setup also requires `bq`.
-3. Preview and register with `identity.kind: gcp_service_account` and descriptor `serviceAccount`
-   fields `email`, `uniqueId`, `projectId`; copy the artifact's `roleId` into `identity.roleId`.
+3. Preview and register with `provider: "gcp"`, `scopeKind`, the target scope IDs, descriptor `serviceAccount`
+   fields `email`, `uniqueId`, `projectId`, and optional `roleId` copied from the artifact.
    The setup script grants access but does not register. Never create or submit a private key.
-   Include the chosen scope, features and returned feature inputs.
+   Include the chosen `featureIds` and returned `featureInputs`.
 4. Inspect follow-ups and verification. After IAM changes, allow propagation and recheck the
    existing binding before repeating or broadening grants. Authentication checks identity;
    effective IAM checks are scope-specific. Dataset table samples can yield `partial` or `not_checked`; neither is a pass.

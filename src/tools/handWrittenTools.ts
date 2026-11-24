@@ -89,7 +89,7 @@ import { validateUserTool } from "./validateUser.js";
 
 type HandWrittenTool = {
     name: string;
-    coversEndpoint: string | null;
+    coversEndpoint: string | readonly string[] | null;
     annotations?: { readOnlyHint?: boolean };
     inputSchema?: Record<string, unknown>;
     /** Opts a read-only list tool whose endpoint has no paging into server-side result paging. */
@@ -217,5 +217,9 @@ export const RESULT_PAGED_TOOLS: ReadonlySet<string> = new Set(
 export const HAND_WRITTEN_TOOLS: HandWrittenTool[] = RAW_HAND_WRITTEN_TOOLS.map(withResultPageTokenInputSchema);
 
 export const COVERED_ENDPOINTS: Set<string> = new Set(
-    HAND_WRITTEN_TOOLS.flatMap((tool) => (tool.coversEndpoint ? [tool.coversEndpoint.toLowerCase()] : []))
+    HAND_WRITTEN_TOOLS.flatMap((tool) => {
+        if (!tool.coversEndpoint) return [];
+        const entries = Array.isArray(tool.coversEndpoint) ? tool.coversEndpoint : [tool.coversEndpoint];
+        return entries.map((entry) => entry.toLowerCase());
+    })
 );

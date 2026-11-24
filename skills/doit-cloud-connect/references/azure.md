@@ -11,7 +11,8 @@ Take `tenantId` and `managementGroupId` from the prompt or the user's target sel
 The connection is registered by tenant; this path selects one management-group binding. Inspect the tenant's existing registration even when the requested group differs, and reconcile a scope change through its owner.
 
 Tenant BillingBenefits, Capacity and billing-profile grants are separate. Legacy
-tenant records remain readable; this path does not deploy or verify those grants.
+tenant billing records are excluded from management-group routes; this path does
+not deploy, list or verify those grants.
 
 1. Inspect the signed-in Azure tenant, subscriptions, hierarchy, existing DoiT
    registration and the current IaC owner. Call `list_cloud_connections` with
@@ -45,13 +46,13 @@ tenant records remain readable; this path does not deploy or verify those grants
    If a just-restored role appears in CLI readback but fresh API observations
    still fail or alternate, wait and repeat read-only verification. Do not add
    broader roles or claim success from one cached or transient pass.
-5. Preview API registration with `identity.kind: azure_service_principal` and
-   `identity.tenantId` matching the binding. Register once when no connection exists.
+5. Preview API registration with `provider: "azure"`, `tenantId`,
+   `managementGroupId` and `featureIds`. Register once when no connection exists.
    The Azure script grants access and does not register. Do not combine a legacy
    Console session verification, which can register, with another POST.
-   Take the saved connection `id`, `bindingId`, `tenantId` and `managementGroupId`
+   Take the saved connection `id`, `tenantId` and `managementGroupId`
    from the registration response. Confirm that its scope matches the selected
-   existing target, then use those returned IDs for subsequent operations.
+   existing target, then use those returned IDs with `provider: "azure"` for subsequent operations.
 6. Use `verify_cloud_connect` for a fresh check, then inspect the saved connection.
    Completed legacy Console deployment sessions cache success and are unsuitable
    for permission-loss checks. Fresh verification checks management-group access

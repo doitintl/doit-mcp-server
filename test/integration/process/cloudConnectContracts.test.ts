@@ -11,11 +11,8 @@ import { z } from "zod";
 
 const SERVER_ENTRY = fileURLToPath(new URL("../../../dist/index.js", import.meta.url));
 const text = (result: any) => result.content.find((part: any) => part.type === "text")?.text ?? "";
-const scope = { provider: "aws", kind: "aws_account", accountId: "123456789012" };
-const identity = { kind: "aws_iam_role", roleArn: "arn:aws:iam::123456789012:role/fixture" };
+const awsScope = { provider: "aws", kind: "aws_account", accountId: "123456789012" };
 
-// Real stdio + disposable local API exercise the packaged tool/skill contract.
-// These fixtures do not qualify a real cloud deployment or the hosted Worker.
 describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Connect lifecycle", () => {
     let api: Server;
     let client: Client;
@@ -32,12 +29,13 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             for await (const chunk of req) raw += chunk;
             const body = raw ? JSON.parse(raw) : {};
             const url = new URL(req.url ?? "/", "http://localhost");
-            const reply = (status: number, data: any, etag?: string) => {
+            const reply = (status: number, data: any, etag?: string, extraHeaders: Record<string, string> = {}) => {
                 res.writeHead(status, {
                     "Content-Type": status >= 400 ? "application/problem+json" : "application/json",
                     "Request-Id": requestId,
                     ...(etag ? { ETag: encoding === "identity" ? etag : `W/${etag}` } : {}),
                     ...(status !== 204 && encoding !== "identity" ? { "Content-Encoding": encoding } : {}),
+                    ...extraHeaders,
                 });
                 if (status === 204) return res.end();
                 const payload = Buffer.from(JSON.stringify(data));
@@ -60,21 +58,26 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                 req.headers["x-tenant-id"] !== "fixture-customer"
             )
                 return problem(401, "unauthorized");
-            if (!url.pathname.startsWith("/onboarding/v2/")) return problem(404, "wrong_route");
-            const parts = url.pathname.split("/").slice(3);
-            const family = parts[0];
-            const id = decodeURIComponent(parts[1] ?? "");
+            if (!url.pathname.startsWith("/onboarding/v2/cloud-connect/")) return problem(404, "wrong_route");
+            const parts = url.pathname.split("/").slice(4);
+            const provider = parts[0];
+            const family = parts[1];
+            const id = decodeURIComponent(parts[2] ?? "");
+            if (provider !== "aws") return problem(404, "wrong_provider");
             if (family === "requirements")
                 return reply(200, {
                     catalogVersion: "fixture-current",
-                    scope: body.scope,
-                    features: (body.featureIds ?? ["core"]).map((id: string) => ({
-                        id,
+                    scopeKind: body.scopeKind,
+                    ...(body.accountId ? { accountId: body.accountId } : {}),
+                    ...(body.managementAccountId ? { managementAccountId: body.managementAccountId } : {}),
+                    ...(body.targetId ? { targetId: body.targetId } : {}),
+                    features: (body.featureIds ?? ["core"]).map((featureId: string) => ({
+                        id: featureId,
                         status: "available",
                         requirementsSatisfied: !!body.featureIds,
                     })),
                     artifacts:
-                        body.scope?.kind === "aws_organization"
+                        body.scopeKind === "aws_organization"
                             ? [
                                   {
                                       artifactId: "aws-cloudformation-organization",
@@ -96,7 +99,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                                       ],
                                       parameters: body.featureIds
                                           ? {
-                                                DeploymentTargetID: body.scope.targetId,
+                                                DeploymentTargetID: body.targetId,
                                                 SourceTemplateURL: "https://example.com/member.yml",
                                             }
                                           : {},
@@ -110,14 +113,14 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                                   },
                               ],
                 });
-            if (parts[2] === "actions" && parts[3] === "verify")
+            if (family !== "accounts") return problem(404, "wrong_collection");
+            if (parts[3] === "actions" && parts[4] === "verify")
                 return reply(200, {
                     catalogVersion: "fixture-current",
                     connectionRevision: records.get(id)?.revision,
                     authentication: { status: "passed" },
                     checks: [
                         {
-                            bindingId: "fixture-binding",
                             featureId: "core",
                             kind: "feature_health_check",
                             status: "passed",
@@ -141,14 +144,56 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             }
             if (req.method === "PATCH" && req.headers["content-type"] !== "application/merge-patch+json")
                 return problem(415, "unsupported_media_type");
-            if (url.searchParams.get("dryRun") === "true")
-                return reply(200, {
-                    dryRun: true,
-                    wouldApply: true,
-                    doitSideEffects:
-                        req.method === "DELETE" ? [{ kind: "deconfigure_cloudtrail_bucket", destructive: false }] : [],
-                    resultingBindings: body.bindings,
-                });
+            if (url.searchParams.get("dryRun") === "true") {
+                if (req.method === "PATCH") {
+                    const current = records.get(id);
+                    return reply(
+                        200,
+                        {
+                            ...current,
+                            featureIds: body.featureIds ?? current.featureIds,
+                            featureInputs: body.featureInputs ?? current.featureInputs,
+                        },
+                        current.etag,
+                        { "X-Dry-Run": "true" }
+                    );
+                }
+                return reply(
+                    200,
+                    {
+                        operation: req.method === "DELETE" ? "delete" : "create",
+                        wouldApply: true,
+                        preconditions: [{ kind: "aws_account_associated", status: "satisfied" }],
+                        plannedFollowUps:
+                            req.method === "DELETE"
+                                ? [
+                                      {
+                                          featureId: "real-time-data",
+                                          kind: "deconfigure_cloudtrail_bucket",
+                                          status: "would_run",
+                                      },
+                                  ]
+                                : [],
+                        ...(req.method === "DELETE"
+                            ? {
+                                  cloudCleanup: {
+                                      scope: "doit_only",
+                                      resources: [
+                                          {
+                                              kind: "aws_iam_role",
+                                              disposition: "review_before_remove",
+                                              resource: "arn:aws:iam::123456789012:role/fixture",
+                                          },
+                                      ],
+                                  },
+                              }
+                            : {}),
+                        findings: [],
+                    },
+                    undefined,
+                    { "X-Dry-Run": "true" }
+                );
+            }
             if (req.method === "POST") {
                 const connectionId = "amazon-web-services-fixture";
                 if (records.has(connectionId)) return problem(409, "onboarding.connection_exists");
@@ -156,17 +201,22 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                     id: connectionId,
                     etag: '"1.fixture"',
                     revision: "1",
-                    identity: body.identity,
-                    bindings: body.bindings.map((binding: any) => ({ ...binding, bindingId: "fixture-binding" })),
-                    followUps: [
-                        { bindingId: "fixture-binding", featureId: "core", kind: "fixture", status: "succeeded" },
-                    ],
+                    accountId: body.accountId,
+                    roleArn: body.roleArn,
+                    featureIds: body.featureIds,
+                    followUps: [{ featureId: "core", kind: "fixture", status: "succeeded" }],
                 };
                 records.set(connectionId, record);
                 return reply(201, record, record.etag);
             }
             if (req.method === "PATCH") {
-                const record = { ...records.get(id), revision: "2", etag: '"2.fixture"', bindings: body.bindings };
+                const current = records.get(id);
+                const record = {
+                    ...current,
+                    revision: "2",
+                    etag: '"2.fixture"',
+                    featureIds: body.featureIds ?? current.featureIds,
+                };
                 records.set(id, record);
                 return reply(200, record, record.etag);
             }
@@ -207,13 +257,16 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
     });
 
     it("preserves flat organization artifact files through the packaged MCP server", async () => {
-        const scope = {
+        const orgScope = {
             provider: "aws",
             kind: "aws_organization",
             managementAccountId: "123456789012",
             targetId: "ou-ab12-cdef3456",
         };
-        const discovery = await client.callTool({ name: "get_cloud_connect_requirements", arguments: { scope } });
+        const discovery = await client.callTool({
+            name: "get_cloud_connect_requirements",
+            arguments: { scope: orgScope },
+        });
         expect(discovery.isError, text(discovery)).not.toBe(true);
         expect(JSON.parse(text(discovery)).artifacts[0]).toMatchObject({
             requirementsSatisfied: false,
@@ -221,7 +274,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         });
         const result = await client.callTool({
             name: "get_cloud_connect_requirements",
-            arguments: { scope, featureIds: ["core", "quotas"] },
+            arguments: { scope: orgScope, featureIds: ["core", "quotas"] },
         });
         expect(result.isError, text(result)).not.toBe(true);
         const artifact = JSON.parse(text(result)).artifacts[0];
@@ -244,7 +297,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                 },
             ],
             parameters: {
-                DeploymentTargetID: scope.targetId,
+                DeploymentTargetID: orgScope.targetId,
                 SourceTemplateURL: "https://example.com/member.yml",
             },
         });
@@ -254,7 +307,13 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         const calls = requestCount;
         const rejected = await client.callTool({
             name: "register_cloud_connection",
-            arguments: { identity, bindings: [{ scope, featureIds: ["core"] }] },
+            arguments: {
+                provider: "aws",
+                accountId: "123456789012",
+                roleArn: "arn:aws:iam::123456789012:role/fixture",
+                targetId: orgScope.targetId,
+                featureIds: ["core"],
+            },
         });
         expect(rejected.isError).toBe(true);
         expect(requestCount).toBe(calls);
@@ -273,13 +332,15 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             expect(result.isError).toBe(true);
             return JSON.parse(text(result));
         };
-        const discovery = await call("get_cloud_connect_requirements", { scope });
+        const discovery = await call("get_cloud_connect_requirements", { scope: awsScope });
         expect(discovery.artifacts[0].requirementsSatisfied).toBe(false);
-        const requirements = await call("get_cloud_connect_requirements", { scope, featureIds: ["core"] });
+        const requirements = await call("get_cloud_connect_requirements", { scope: awsScope, featureIds: ["core"] });
         expect(requirements.artifacts[0]).toMatchObject({ registration: "manual", requirementsSatisfied: true });
         const registration = {
-            identity,
-            bindings: [{ scope, featureIds: ["core"] }],
+            provider: "aws",
+            accountId: "123456789012",
+            roleArn: "arn:aws:iam::123456789012:role/fixture",
+            featureIds: ["core"],
             catalogVersion: requirements.catalogVersion,
         };
         await call("dry_run_cloud_connection_change", { operation: "register", ...registration });
@@ -289,29 +350,40 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         const duplicate = await failure("register_cloud_connection", registration);
         expect(duplicate).toMatchObject({ status: 409, code: "onboarding.connection_exists" });
         expect(records.size).toBe(1);
-        const read = await call("get_cloud_connection", { connectionId: connection.id });
+        const read = await call("get_cloud_connection", { provider: "aws", connectionId: connection.id });
         expect(read.etag).toBe('"1.fixture"');
         expect(read.etag).toBe(connection.etag);
-        expect(read.bindings[0]).toEqual(connection.bindings[0]);
-        expect(read.bindings[0].scope).toEqual(scope);
-        const listed = await call("list_cloud_connections", { scope, featureId: "core" });
+        expect(read.accountId).toBe("123456789012");
+        expect(read.featureIds).toEqual(["core"]);
+        const listed = await call("list_cloud_connections", { scope: awsScope, featureId: "core" });
         expect(listed.items).toHaveLength(1);
         const patch = {
+            provider: "aws",
             connectionId: connection.id,
             expectedEtag: read.etag,
             catalogVersion: requirements.catalogVersion,
-            bindings: [{ bindingId: read.bindings[0].bindingId, featureIds: ["core", "quotas"] }],
+            featureIds: ["core", "quotas"],
         };
-        await call("dry_run_cloud_connection_change", { operation: "update", ...patch });
+        const projected = await call("dry_run_cloud_connection_change", { operation: "update", ...patch });
+        expect(projected.dryRun).toBe(true);
+        expect(projected.featureIds).toEqual(["core", "quotas"]);
         const changed = await call("update_cloud_connection", patch);
         expect(changed.etag).toBe('"2.fixture"');
         const stale = await failure("update_cloud_connection", patch);
         expect(stale).toMatchObject({ status: 412, code: "precondition_failed", requestId: expect.any(String) });
-        const verified = await call("verify_cloud_connect", { connectionId: connection.id });
+        const verified = await call("verify_cloud_connect", { provider: "aws", connectionId: connection.id });
         expect(verified.checks[0].coverage.complete).toBe(true);
-        const remove = { connectionId: connection.id, expectedEtag: changed.etag, cleanupScope: "doit_only" };
+        const remove = {
+            provider: "aws",
+            connectionId: connection.id,
+            expectedEtag: changed.etag,
+            cleanupScope: "doit_only",
+        };
         const preview = await call("dry_run_cloud_connection_change", { operation: "remove", ...remove });
-        expect(preview.doitSideEffects).toHaveLength(1);
+        expect(preview.dryRun).toBe(true);
+        expect(preview.operation).toBe("delete");
+        expect(preview.plannedFollowUps).toHaveLength(1);
+        expect(preview.cloudCleanup.resources).toHaveLength(1);
         expect(records.size).toBe(1);
         const stagedRemove = await call("remove_cloud_connection", remove);
         expect(stagedRemove).toMatchObject({ status: "approval_required", approvalToken: expect.any(String) });
@@ -320,8 +392,9 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
         expect(await call("confirm_action", { approvalToken: stagedRemove.approvalToken })).toMatchObject({
             deleted: true,
         });
-        expect((await call("list_cloud_connections", { scope })).items).toEqual([]);
+        expect((await call("list_cloud_connections", { scope: awsScope })).items).toEqual([]);
     });
+
     it("serves the Skills extension manifest and prompt with digest-verifiable resources", async () => {
         const listed = await client.request({ method: "skills/list", params: {} }, z.any());
         const skill = listed.skills.find(

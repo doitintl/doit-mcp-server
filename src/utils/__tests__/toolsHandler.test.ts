@@ -325,6 +325,7 @@ describe("executeToolHandler approval gate", () => {
         vi.mocked(makeDoitRequest).mockClear();
         const approvalStore = new MemoryApprovalStore();
         const removeArgs = {
+            provider: "aws",
             connectionId: "aws-conn-1",
             expectedEtag: '"2.abc"',
             cleanupScope: "doit_only",
@@ -347,10 +348,13 @@ describe("executeToolHandler approval gate", () => {
         });
         const envelope = JSON.parse(staged.content[0].text);
         expect(envelope.status).toBe("approval_required");
+        expect(envelope.summary).toContain('provider="aws"');
         expect(envelope.summary).toContain('connectionId="aws-conn-1"');
         expect(envelope.summary).toContain('cleanupScope="doit_only"');
         expect(envelope.summary).toContain("for customer cust-42");
-        expect(envelope.summary).toContain("DELETE /onboarding/v2/connections/aws-conn-1?cleanupScope=doit_only.");
+        expect(envelope.summary).toContain(
+            "DELETE /onboarding/v2/cloud-connect/aws/accounts/aws-conn-1?cleanupScope=doit_only."
+        );
         expect(makeDoitRequest).not.toHaveBeenCalled();
 
         vi.mocked(makeDoitRequest).mockResolvedValueOnce(null);
@@ -408,6 +412,7 @@ describe("executeToolHandler approval gate", () => {
             const staged = await executeToolHandler(
                 "remove_cloud_connection",
                 {
+                    provider: "aws",
                     connectionId: "aws-conn-1",
                     expectedEtag: '"2.abc"',
                     cleanupScope: "doit_only",
@@ -427,7 +432,7 @@ describe("executeToolHandler approval gate", () => {
             });
 
             expect(makeDoitRequest).toHaveBeenCalledWith(
-                expect.stringContaining("/onboarding/v2/connections/aws-conn-1"),
+                expect.stringContaining("/onboarding/v2/cloud-connect/aws/accounts/aws-conn-1"),
                 apiToken,
                 expect.objectContaining({ customerContext: "cust-env" })
             );
