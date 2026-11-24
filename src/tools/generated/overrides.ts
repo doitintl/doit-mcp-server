@@ -17,6 +17,8 @@ export type ToolOverride = {
      * (src/utils/resultPaging.ts). Only for operations that return a record list.
      */
     resultPaged?: true;
+    /** Require two-step server-side approval for destructive non-DELETE operations (or opt out). */
+    approvalGated?: boolean;
 };
 
 /**
@@ -37,6 +39,8 @@ export const toolOverrides: Record<string, ToolOverride> = {
     },
     // Fetches selected layer components by ID; POST carries the component ID lists.
     get_statussheet_components: { readOnly: true },
+    // Permanently deletes DataHub events via POST instead of DELETE.
+    delete_datahub_events_by_filter: { approvalGated: true },
     // Each recipe carries its manual remediation text; the API's default page of 50 is ~100 KB.
     list_composer_recipes: {
         queryDefaults: { maxResults: 20 },

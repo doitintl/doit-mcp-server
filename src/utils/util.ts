@@ -223,6 +223,69 @@ export function handleGeneralError(
  */
 export const TENANT_ID_HEADER = "X-Tenant-Id";
 
+const MAX_DECODE_PASSES = 10;
+
+function decodeAsciiPercentEscapes(value: string): string {
+    return value.replace(/%[0-7][0-9a-fA-F]/g, (match) => String.fromCharCode(Number.parseInt(match.slice(1), 16)));
+}
+
+/**
+ * Returns true if `value` contains a dot path segment (`.` or `..`), either directly,
+ * separated by `/` or `\`, or after repeated ASCII percent-decoding passes (e.g. `%2e%2e`,
+ * `%252e%252e`, `%25252e%25252e`, `a%2f..%2fb`). Decodes valid ASCII escapes per token so
+ * malformed `%` sequences cannot abort decoding.
+ */
+export function hasTraversalSegment(value: string): boolean {
+    let candidate = value;
+    for (let pass = 0; pass <= MAX_DECODE_PASSES; pass += 1) {
+        if (candidate.split(/[/\\]/).some((piece) => piece === "." || piece === "..")) {
+            return true;
+        }
+        if (pass === MAX_DECODE_PASSES) break;
+        const decoded = decodeAsciiPercentEscapes(candidate);
+        if (decoded === candidate) break;
+        candidate = decoded;
+    }
+    return false;
+}
+
+function hasControlChar(value: string): boolean {
+    for (let i = 0; i < value.length; i += 1) {
+        const code = value.charCodeAt(i);
+        if (code <= 0x1f || code === 0x7f) return true;
+    }
+    return false;
+}
+
+/**
+ * Rejects URLs whose raw authority/path contains control/edge whitespace, non-standard
+ * scheme syntax, backslashes, or raw/percent-encoded dot segments before `fetch` / WHATWG
+ * URL normalization can strip or collapse them onto a different route.
+ */
+export function assertSafeRequestUrl(url: string): void {
+    if (hasControlChar(url) || url !== url.trim()) {
+        throw new DoitRequestError("Invalid request URL.");
+    }
+    const schemeMatch = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.exec(url);
+    if (!schemeMatch) {
+        throw new DoitRequestError("Invalid request URL.");
+    }
+    const rest = url.slice(schemeMatch[0].length);
+    const queryOrHash = rest.search(/[?#]/);
+    const authorityAndPath = queryOrHash === -1 ? rest : rest.slice(0, queryOrHash);
+    if (authorityAndPath.includes("\\")) {
+        throw new DoitRequestError("Invalid request path: backslashes are not allowed.");
+    }
+    const pathStart = authorityAndPath.indexOf("/");
+    if (pathStart === -1) return;
+    const rawPath = authorityAndPath.slice(pathStart);
+    for (const segment of rawPath.split("/")) {
+        if (segment && hasTraversalSegment(segment)) {
+            throw new DoitRequestError("Invalid request path: path traversal segments are not allowed.");
+        }
+    }
+}
+
 /**
  * Resolves the customer context for a request: the explicitly passed value first, then the
  * CUSTOMER_CONTEXT env var (how the stdio server persists a selected customer).
@@ -233,8 +296,9 @@ export function resolveCustomerContext(customerContextId?: string): string | und
 
 /**
  * Sets the X-Tenant-Id header from the resolved customer context, mutating and returning
- * `headers`. An existing tenant header (any casing — e.g. an OpenAPI operation that declares
- * one explicitly) is left untouched so callers keep control and we never send it twice.
+ * `headers`. If a tenant header is already set (any casing), every matching key must match
+ * the resolved customer context; conflicting values fail closed instead of sending two
+ * different tenants.
  */
 export function applyTenantIdHeader(
     headers: Record<string, string>,
@@ -243,8 +307,18 @@ export function applyTenantIdHeader(
     const customerContext = resolveCustomerContext(customerContextId);
     if (!customerContext) return headers;
 
-    const alreadySet = Object.keys(headers).some((key) => key.toLowerCase() === TENANT_ID_HEADER.toLowerCase());
-    if (alreadySet) return headers;
+    const existingKeys = Object.keys(headers).filter((key) => key.toLowerCase() === TENANT_ID_HEADER.toLowerCase());
+    if (existingKeys.length > 0) {
+        if (existingKeys.some((key) => headers[key] !== customerContext)) {
+            throw new DoitRequestError(
+                `Conflicting tenant scope: ${TENANT_ID_HEADER} header does not match customerContext.`
+            );
+        }
+        for (const key of existingKeys.slice(1)) {
+            delete headers[key];
+        }
+        return headers;
+    }
 
     headers[TENANT_ID_HEADER] = customerContext;
     return headers;
@@ -328,6 +402,7 @@ export async function makeDoitRequest<T>(
         headers: extraHeaders,
     } = options;
 
+    assertSafeRequestUrl(url);
     const resolvedUrl = applyRuntimeDoiTApiBase(url);
     // Demo mode: return canned data without hitting the real API.
     // The auth flow in app.ts gates demo_key login behind the DEMO_MODE_ENABLED env var.
@@ -514,6 +589,7 @@ export async function makeConsoleRequest<T>(
     }
 
     let requestUrl = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+    assertSafeRequestUrl(requestUrl);
 
     requestUrl = appendTrackingParams(requestUrl);
 
@@ -557,7 +633,9 @@ export async function* makeDoitSSERequest(
     authToken: string,
     customerContext?: string
 ): AsyncGenerator<{ data: string }> {
-    const parsedUrl = new URL(applyRuntimeDoiTApiBase(url));
+    assertSafeRequestUrl(url);
+    const resolvedUrl = applyRuntimeDoiTApiBase(url);
+    const parsedUrl = new URL(resolvedUrl);
 
     const tracking = getTrackingContext();
     parsedUrl.searchParams.set("mcp", "true");

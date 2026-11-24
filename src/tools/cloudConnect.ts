@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { APPROVAL_GATED_DESCRIPTION } from "../utils/approval.js";
 import { zodToMcpInputSchema } from "../utils/schemaHelpers.js";
 import {
     createErrorResponse,
@@ -8,7 +9,9 @@ import {
     formatZodError,
     handleGeneralError,
     makeDoitRequest,
+    resolveCustomerContext,
 } from "../utils/util.js";
+import { buildRequestPath, validatePathSegment } from "./generated/requestPath.js";
 
 export const CLOUD_CONNECT_BASE_URL = `${DOIT_API_BASE}/onboarding/v2/cloud-connect`;
 
@@ -468,10 +471,24 @@ export const removeCloudConnectionTool = tool(
         `delete:${base}/gcp/connections/{id}`,
         `delete:${base}/azure/management-groups/{id}`,
     ],
-    "Disconnect the DoiT record using `provider`, `connectionId`, its exact `expectedEtag` and `cleanupScope: doit_only`; customer IAM/IaC cleanup remains separate. `dry_run_cloud_connection_change` previews removal effects. 204 means the record is gone; a 409 cleanup_failed keeps it, and another removal attempt requires a fresh etag. A later 404 means already absent.",
+    `Disconnect the DoiT record using \`provider\`, \`connectionId\`, its exact \`expectedEtag\` and \`cleanupScope: doit_only\`; customer IAM/IaC cleanup remains separate. \`dry_run_cloud_connection_change\` previews removal effects. 204 means the record is gone; a 409 cleanup_failed keeps it, and another removal attempt requires a fresh etag. A later 404 means already absent. ${APPROVAL_GATED_DESCRIPTION}`,
     false,
     true
 );
+
+export function summarizeRemoveCloudConnection(args: Record<string, unknown>): string {
+    const { customerContext: rawCustomerContext, ...toolArgs } = (args ?? {}) as Record<string, unknown>;
+    const parsed = RemoveCloudConnectionArgumentsSchema.parse(toolArgs);
+    const requestPath = buildRequestPath(
+        { pathTemplate: `${base}${PROVIDER_COLLECTION[parsed.provider]}/{connectionId}`, pathParams: ["connectionId"] },
+        parsed
+    );
+    const customerContext = resolveCustomerContext(
+        typeof rawCustomerContext === "string" ? rawCustomerContext : undefined
+    );
+    const scope = customerContext ? ` for customer ${customerContext}` : "";
+    return `Remove cloud connection (provider=${JSON.stringify(parsed.provider)}, connectionId=${JSON.stringify(parsed.connectionId)}, cleanupScope=${JSON.stringify(parsed.cleanupScope)}, expectedEtag=${JSON.stringify(parsed.expectedEtag)})${scope}. This cannot be undone: DELETE ${requestPath}?cleanupScope=${encodeURIComponent(parsed.cleanupScope)}.`;
+}
 
 export const dryRunCloudConnectionChangeTool = tool(
     "dry_run_cloud_connection_change",
@@ -648,7 +665,8 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
             body = req.body;
         } else if (action === "verify_cloud_connect") {
             const { provider, connectionId: idValue, ...selection } = fields;
-            path = `${PROVIDER_COLLECTION[provider as CloudConnectProvider]}/${encodeURIComponent(idValue)}/actions/verify`;
+            const safeConnectionId = validatePathSegment("connectionId", idValue);
+            path = `${PROVIDER_COLLECTION[provider as CloudConnectProvider]}/${encodeURIComponent(safeConnectionId)}/actions/verify`;
             method = "POST";
             body = selection;
         } else if (action === "register_cloud_connection") {
@@ -667,7 +685,8 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
             for (const [key, value] of Object.entries(paging)) if (value !== undefined) params.set(key, String(value));
         } else {
             const { provider, connectionId: idValue, expectedEtag: ifMatch, cleanupScope, ...changes } = fields;
-            path = `${PROVIDER_COLLECTION[provider as CloudConnectProvider]}/${encodeURIComponent(idValue)}`;
+            const safeConnectionId = validatePathSegment("connectionId", idValue);
+            path = `${PROVIDER_COLLECTION[provider as CloudConnectProvider]}/${encodeURIComponent(safeConnectionId)}`;
             if (ifMatch) headers["If-Match"] = ifMatch;
             if (action === "update_cloud_connection") {
                 method = "PATCH";

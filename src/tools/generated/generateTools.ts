@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { APPROVAL_GATED_DESCRIPTION } from "../../utils/approval.js";
 import { RESULT_PAGE_TOKEN_SCHEMA } from "../../utils/resultPaging.js";
+import { resolveCustomerContext, TENANT_ID_HEADER } from "../../utils/util.js";
 import { isExcludedOperation } from "./excludedOperations.js";
 import { toolOverrides } from "./overrides.js";
 import { buildRequestPath } from "./requestPath.js";
@@ -66,28 +67,66 @@ function isEventStreamOnlyOperation(operation: OpenAPIV3.OperationObject): boole
     return contentTypes.length > 0 && contentTypes.every((type) => type.split(";")[0].trim() === "text/event-stream");
 }
 
+const MAX_SUMMARY_BODY_CHARS = 500;
+
+function formatSummaryBody(bodyFields: Record<string, unknown>): string {
+    const serialized = JSON.stringify(bodyFields);
+    if (serialized.length <= MAX_SUMMARY_BODY_CHARS) return serialized;
+    return `${serialized.slice(0, MAX_SUMMARY_BODY_CHARS)}... (truncated)`;
+}
+
 /**
- * DELETE operations are irreversible, so they go through the server-side two-phase approval
+ * Destructive operations are irreversible, so they go through the server-side two-phase approval
  * flow (`approval_required` → `confirm_action`) rather than relying on the client honouring
  * `destructiveHint`, which is advisory only. The summary is the text the user confirms, so it
- * names the resolved request path (built by the same function the executor uses) rather than
- * the template — and throws, minting no approval, for args that would not resolve safely.
+ * names the resolved request method, path, query parameters, body targets, and effective customer
+ * scope — and throws, minting no approval, for args that would not resolve safely.
  */
-function buildDeleteSummary(
-    operationSummary: string | undefined,
-    pathTemplate: string,
-    pathParams: string[],
-    zodSchema: z.ZodType
-) {
+function buildApprovalSummary(operationSummary: string | undefined, metadata: OperationMetadata, zodSchema: z.ZodType) {
     return (args: Record<string, unknown>) => {
         // Validated the same way the executor will, so no approval is minted for a call
         // that confirm_action could never run.
-        zodSchema.parse(args ?? {});
-        const requestPath = buildRequestPath({ pathTemplate, pathParams }, args);
-        const target = pathParams.map((name) => `${name}=${JSON.stringify(String(args?.[name] ?? ""))}`).join(", ");
-        const scope = args?.customerContext ? ` for customer ${String(args.customerContext)}` : "";
-        const label = operationSummary ?? `Delete ${pathTemplate}`;
-        return `${label}${target ? ` (${target})` : ""}${scope}. This cannot be undone: DELETE ${requestPath}.`;
+        const parsed = zodSchema.parse(args ?? {}) as Record<string, unknown>;
+        const requestPath = buildRequestPath(metadata, parsed);
+
+        const queryEntries: [string, string][] = [];
+        const queryParams = new URLSearchParams();
+        for (const paramName of metadata.queryParams) {
+            if (paramName === "customerContext") continue;
+            const value = parsed[paramName] ?? metadata.queryDefaults?.[paramName];
+            if (value !== undefined) {
+                const str = String(value);
+                queryParams.set(paramName, str);
+                queryEntries.push([paramName, str]);
+            }
+        }
+        const queryString = queryParams.toString();
+        const requestTarget = `${requestPath}${queryString ? `?${queryString}` : ""}`;
+
+        const bodyFields = Object.fromEntries(
+            Object.entries(parsed).filter(
+                ([key]) =>
+                    !metadata.pathParams.includes(key) &&
+                    !metadata.queryParams.includes(key) &&
+                    !metadata.headerParams.includes(key) &&
+                    !(metadata.resultPaged && key === "pageToken")
+            )
+        );
+        const hasBody = Object.keys(bodyFields).length > 0;
+
+        const targetParts = [
+            ...metadata.pathParams.map((name) => `${name}=${JSON.stringify(String(parsed[name] ?? ""))}`),
+            ...queryEntries.map(([name, value]) => `${name}=${JSON.stringify(value)}`),
+        ];
+        const target = targetParts.join(", ");
+        const customerContext = resolveCustomerContext(
+            typeof args?.customerContext === "string" ? args.customerContext : undefined
+        );
+        const scope = customerContext ? ` for customer ${customerContext}` : "";
+        const methodUpper = metadata.method.toUpperCase();
+        const label = operationSummary ?? `${methodUpper} ${metadata.pathTemplate}`;
+        const bodySuffix = hasBody ? ` with body ${formatSummaryBody(bodyFields)}` : "";
+        return `${label}${target ? ` (${target})` : ""}${scope}. This cannot be undone: ${methodUpper} ${requestTarget}${bodySuffix}.`;
     };
 }
 
@@ -122,7 +161,13 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
             );
             const pathParams = parameters.filter((parameter) => parameter.in === "path");
             const queryParams = parameters.filter((parameter) => parameter.in === "query");
-            const headerParams = parameters.filter((parameter) => parameter.in === "header");
+            // Tenant selection is carried by the single authoritative `customerContext` input
+            // (which makeDoitRequest sends as both X-Tenant-Id and ?customerContext=), so never
+            // expose a separate X-Tenant-Id header parameter that could diverge from it.
+            const headerParams = parameters.filter(
+                (parameter) =>
+                    parameter.in === "header" && parameter.name.toLowerCase() !== TENANT_ID_HEADER.toLowerCase()
+            );
 
             // Built mutably, then frozen into a schema by z.object() below. zod 4's own
             // ZodRawShape is Readonly, so it can't type a shape that's still being filled in.
@@ -216,7 +261,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                 metadata.resultPaged = true;
             }
             const zodSchema = z.object(shape);
-            const isApprovalGated = method === "delete";
+            const isApprovalGated = override?.approvalGated ?? method === "delete";
 
             tools.push({
                 name,
@@ -237,9 +282,7 @@ export function generateTools(document: OpenAPIV3.Document, coveredEndpoints: Se
                         scopes: isReadOnly ? ["read_data"] : ["read_data", "write_data"],
                     },
                 ],
-                ...(isApprovalGated
-                    ? { summary: buildDeleteSummary(operation.summary, pathTemplate, metadata.pathParams, zodSchema) }
-                    : {}),
+                ...(isApprovalGated ? { summary: buildApprovalSummary(operation.summary, metadata, zodSchema) } : {}),
             });
         }
     }

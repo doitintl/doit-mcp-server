@@ -558,6 +558,19 @@ describe("Cloud Connect transport contract", () => {
         expect(data(failed)).toMatchObject({ code: "onboarding.cleanup_failed", retryable: true });
     });
 
+    it.each(["..", ".", "%2e%2e", "a%2f..%2fb"])(
+        "rejects traversal connectionId %j before calling fetch",
+        async (badId) => {
+            const callsBefore = requests.length;
+            const res = await handleCloudConnectRequest(
+                "remove_cloud_connection",
+                { provider: "aws", connectionId: badId, expectedEtag: '"2.abc"', cleanupScope: "doit_only" },
+                "fixture-token"
+            );
+            expect(res.isError).toBe(true);
+            expect(requests.length).toBe(callsBefore);
+        }
+    );
     it("bypasses hosted widget conversion so check coverage and follow-ups remain intact", async () => {
         const payload = {
             checks: [

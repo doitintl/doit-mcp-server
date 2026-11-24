@@ -28,7 +28,11 @@ import {
     handleListBudgetsRequest,
     handleUpdateBudgetRequest,
 } from "../tools/budgets.js";
-import { CLOUD_CONNECT_HANDLERS } from "../tools/cloudConnect.js";
+import {
+    CLOUD_CONNECT_HANDLERS,
+    removeCloudConnectionTool,
+    summarizeRemoveCloudConnection,
+} from "../tools/cloudConnect.js";
 import {
     handleFindCloudDiagramsRequest,
     handleGetCloudDiagramComponentsRequest,
@@ -145,6 +149,7 @@ import {
     createErrorResponse,
     formatZodError,
     handleGeneralError,
+    resolveCustomerContext,
     runWithTracking,
     type TrackingContext,
 } from "./util.js";
@@ -158,16 +163,18 @@ import {
  * (The MCP-spec `destructiveHint` annotation has a narrower meaning — irreversible
  * updates — is advisory only, and is set per-tool independently of this registry.)
  *
- * Generated tools are not listed here: every generated DELETE operation carries its own
- * `summary` (see src/tools/generated/generateTools.ts) and is gated automatically. To gate
- * a hand-written tool, add a `summary(args)` to its definition and an entry below. No tool
+ * Generated tools are not listed here: every generated DELETE operation and any operation
+ * with `approvalGated: true` in `src/tools/generated/overrides.ts` carries its own `summary`
+ * (see src/tools/generated/generateTools.ts) and is gated automatically. To gate a
+ * hand-written tool, add a `summary(args)` to its definition and an entry below. No tool
  * handler code needs to change.
  *
  * Hand-written creates/updates are currently left ungated: they are reversible, and MCP
  * clients already prompt on `destructiveHint`. `create_ticket` was gated during the POC
  * and deliberately un-gated to avoid a double confirmation on every ticket.
  */
-const WRITE_GATED_SUMMARIES: Partial<Record<string, (args: any) => string>> = {
+export const WRITE_GATED_SUMMARIES: Partial<Record<string, (args: any) => string>> = {
+    [removeCloudConnectionTool.name]: summarizeRemoveCloudConnection,
     // [createTicketTool.name]: createTicketTool.summary,
 };
 
@@ -323,10 +330,27 @@ export async function executeToolHandler(
                         // param that would resolve to a different endpoint) must not leave a
                         // staged approval behind.
                         const summary = summaryFn(dispatchArgs);
+                        // Snapshot the active customer scope into staged args so confirming always
+                        // runs against the exact scope named in the approved summary.
+                        const resolvedCustomerContext = resolveCustomerContext(
+                            typeof dispatchArgs?.customerContext === "string" ? dispatchArgs.customerContext : undefined
+                        );
+                        let stagedArgs = dispatchArgs;
+                        if (
+                            dispatchArgs == null ||
+                            (typeof dispatchArgs === "object" && !Array.isArray(dispatchArgs))
+                        ) {
+                            if (resolvedCustomerContext) {
+                                stagedArgs = { ...(dispatchArgs ?? {}), customerContext: resolvedCustomerContext };
+                            } else if (dispatchArgs && "customerContext" in dispatchArgs) {
+                                const { customerContext: _ignored, ...rest } = dispatchArgs;
+                                stagedArgs = rest;
+                            }
+                        }
                         const approvalToken = mintApprovalToken();
                         await approvalStore.stash(approvalToken, {
                             toolName,
-                            args: dispatchArgs,
+                            args: stagedArgs,
                             userKey,
                             expiresAt: Date.now() + APPROVAL_TTL_MS,
                         });

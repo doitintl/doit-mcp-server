@@ -4,6 +4,7 @@ import { generateTools } from "../../../src/tools/generated/generateTools.js";
 import { loadGeneratedToolsSpec } from "../../../src/tools/generated/loadSpec.js";
 import { COVERED_ENDPOINTS } from "../../../src/tools/handWrittenTools.js";
 import { APPROVAL_GATED_DESCRIPTION } from "../../../src/utils/approval.js";
+import { WRITE_GATED_SUMMARIES } from "../../../src/utils/toolsHandler.js";
 import { createTestClient, getTextContent } from "../helpers.js";
 import { mswServer } from "../setup.js";
 
@@ -39,12 +40,15 @@ describe("Write-gated tool approval flow (stdio)", () => {
             const { tools } = await client.listTools();
             const confirm = tools.find((tool) => tool.name === "confirm_action");
             expect(confirm?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
-            const gated = new Set(
-                generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS)
+            const gated = new Set([
+                ...generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS)
                     .filter((tool) => tool.summary)
-                    .map((tool) => tool.name)
-            );
+                    .map((tool) => tool.name),
+                ...Object.keys(WRITE_GATED_SUMMARIES),
+            ]);
             expect(gated).toContain("delete_alert");
+            expect(gated).toContain("delete_datahub_events_by_filter");
+            expect(gated).toContain("remove_cloud_connection");
             for (const tool of tools) {
                 expect(tool.description?.includes(APPROVAL_GATED_DESCRIPTION), tool.name).toBe(gated.has(tool.name));
             }
@@ -141,6 +145,37 @@ describe("Write-gated tool approval flow (stdio)", () => {
         const t2 = JSON.parse(getTextContent(r2)).approvalToken;
         expect(t1).not.toBe(t2);
         expect(deleteCalls).toEqual([]);
+    });
+
+    it("stages destructive POST delete_datahub_events_by_filter with body details and runs only on confirm_action", async () => {
+        let postCalls = 0;
+        mswServer.use(
+            http.post("https://api.doit.com/datahub/v1/events/delete", () => {
+                postCalls += 1;
+                return HttpResponse.json({ deleted: 3 });
+            })
+        );
+
+        const staged = await rawClient.callTool({
+            name: "delete_datahub_events_by_filter",
+            arguments: {
+                dataset: "Datadog",
+                startTime: "2024-03-10T00:00:00Z",
+                endTime: "2024-03-12T00:00:00Z",
+            },
+        });
+        const envelope = JSON.parse(getTextContent(staged));
+        expect(envelope.status).toBe("approval_required");
+        expect(envelope.summary).toContain("POST /datahub/v1/events/delete with body");
+        expect(envelope.summary).toContain('"dataset":"Datadog"');
+        expect(postCalls).toBe(0);
+
+        const confirmed = await rawClient.callTool({
+            name: "confirm_action",
+            arguments: { approvalToken: envelope.approvalToken },
+        });
+        expect(confirmed.isError).not.toBe(true);
+        expect(postCalls).toBe(1);
     });
 
     it("the auto-confirm test helper transparently completes a gated DELETE", async () => {

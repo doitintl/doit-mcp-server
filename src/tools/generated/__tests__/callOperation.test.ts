@@ -211,7 +211,7 @@ describe("handleGeneratedOperationRequest", () => {
         expect(response.isError).toBe(true);
     });
 
-    it.each(["..", ".", "", "x/../..", "..\\x"])(
+    it.each(["..", ".", "", "x/../..", "..\\x", "%2e%2e", "%2E", "%252e%252e", "a%2f..%2fb", "a%5c..%5cb"])(
         "rejects path param %j instead of sending a request",
         async (value) => {
             const tool = buildTool({
@@ -244,14 +244,9 @@ describe("handleGeneratedOperationRequest", () => {
 
         await handleGeneratedOperationRequest(buildTool(), { id: "a..b" }, mockToken);
         await handleGeneratedOperationRequest(buildTool(), { id: "a/b" }, mockToken);
-        await handleGeneratedOperationRequest(buildTool(), { id: "%2e%2e" }, mockToken);
 
         const urls = (makeDoitRequest as vi.Mock).mock.calls.map(([url]) => url);
-        expect(urls).toEqual([
-            `${DOIT_API_BASE}/widgets/a..b`,
-            `${DOIT_API_BASE}/widgets/a%2Fb`,
-            `${DOIT_API_BASE}/widgets/%252e%252e`,
-        ]);
+        expect(urls).toEqual([`${DOIT_API_BASE}/widgets/a..b`, `${DOIT_API_BASE}/widgets/a%2Fb`]);
     });
 
     it("surfaces a failure response when makeDoitRequest returns null", async () => {
