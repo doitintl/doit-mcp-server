@@ -158,12 +158,41 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                         { "X-Dry-Run": "true" }
                     );
                 }
-                return reply(200, {
-                    dryRun: true,
-                    wouldApply: true,
-                    doitSideEffects:
-                        req.method === "DELETE" ? [{ kind: "deconfigure_cloudtrail_bucket", destructive: false }] : [],
-                });
+                return reply(
+                    200,
+                    {
+                        operation: req.method === "DELETE" ? "delete" : "create",
+                        wouldApply: true,
+                        preconditions: [{ kind: "aws_account_associated", status: "satisfied" }],
+                        plannedFollowUps:
+                            req.method === "DELETE"
+                                ? [
+                                      {
+                                          featureId: "real-time-data",
+                                          kind: "deconfigure_cloudtrail_bucket",
+                                          status: "would_run",
+                                      },
+                                  ]
+                                : [],
+                        ...(req.method === "DELETE"
+                            ? {
+                                  cloudCleanup: {
+                                      scope: "doit_only",
+                                      resources: [
+                                          {
+                                              kind: "aws_iam_role",
+                                              disposition: "review_before_remove",
+                                              resource: "arn:aws:iam::123456789012:role/fixture",
+                                          },
+                                      ],
+                                  },
+                              }
+                            : {}),
+                        findings: [],
+                    },
+                    undefined,
+                    { "X-Dry-Run": "true" }
+                );
             }
             if (req.method === "POST") {
                 const connectionId = "amazon-web-services-fixture";
@@ -336,6 +365,7 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             featureIds: ["core", "quotas"],
         };
         const projected = await call("dry_run_cloud_connection_change", { operation: "update", ...patch });
+        expect(projected.dryRun).toBe(true);
         expect(projected.featureIds).toEqual(["core", "quotas"]);
         const changed = await call("update_cloud_connection", patch);
         expect(changed.etag).toBe('"2.fixture"');
@@ -350,7 +380,10 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             cleanupScope: "doit_only",
         };
         const preview = await call("dry_run_cloud_connection_change", { operation: "remove", ...remove });
-        expect(preview.doitSideEffects).toHaveLength(1);
+        expect(preview.dryRun).toBe(true);
+        expect(preview.operation).toBe("delete");
+        expect(preview.plannedFollowUps).toHaveLength(1);
+        expect(preview.cloudCleanup.resources).toHaveLength(1);
         expect(records.size).toBe(1);
         expect(await call("remove_cloud_connection", remove)).toMatchObject({ deleted: true });
         expect((await call("list_cloud_connections", { scope: awsScope })).items).toEqual([]);

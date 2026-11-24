@@ -226,7 +226,6 @@ const azureRegisterShape = {
     tenantId,
     managementGroupId,
     featureIds,
-    featureInputs: inputs.optional(),
     catalogVersion,
     idempotencyKey,
 };
@@ -312,14 +311,27 @@ const updateShape = {
     featureInputs: inputs
         .nullable()
         .optional()
-        .describe("Complete desired inputs for this connection; null clears them."),
+        .describe(
+            "Per-feature inputs merged into existing inputs (AWS and GCP only; deselected features drop their inputs); null clears all inputs."
+        ),
     idempotencyKey,
 };
 
 function validateUpdateBody(
-    value: { featureIds?: string[]; featureInputs?: Record<string, Record<string, string>> | null },
+    value: {
+        provider: CloudConnectProvider;
+        featureIds?: string[];
+        featureInputs?: Record<string, Record<string, string>> | null;
+    },
     ctx: z.RefinementCtx
 ) {
+    if (value.provider === "azure" && value.featureInputs !== undefined) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["featureInputs"],
+            message: "featureInputs is not supported for Azure connections.",
+        });
+    }
     if (value.featureIds === undefined && value.featureInputs === undefined) {
         ctx.addIssue({ code: "custom", message: "Provide featureIds or featureInputs to update." });
     }
@@ -341,18 +353,34 @@ const removeShape = {
 
 export const RemoveCloudConnectionArgumentsSchema = z.object(removeShape).strict();
 
+const dryRunAwsRegisterSchema = z.object({ operation: z.literal("register"), ...awsRegisterShape }).strict();
+const dryRunGcpRegisterSchema = z
+    .object({ operation: z.literal("register"), ...gcpRegisterShape })
+    .strict()
+    .superRefine(validateGcpScopeFields);
+const dryRunAzureRegisterSchema = z.object({ operation: z.literal("register"), ...azureRegisterShape }).strict();
+const dryRunUpdateSchema = z
+    .object({ operation: z.literal("update"), ...updateShape })
+    .strict()
+    .superRefine(validateUpdateBody);
+const dryRunRemoveSchema = z.object({ operation: z.literal("remove"), ...removeShape }).strict();
+
+const dryRunOperationSchemas: Record<string, z.ZodType> = {
+    register: z.discriminatedUnion("provider", [
+        dryRunAwsRegisterSchema,
+        dryRunGcpRegisterSchema,
+        dryRunAzureRegisterSchema,
+    ]),
+    update: dryRunUpdateSchema,
+    remove: dryRunRemoveSchema,
+};
+
 export const DryRunCloudConnectionChangeArgumentsSchema = z.union([
-    z.object({ operation: z.literal("register"), ...awsRegisterShape }).strict(),
-    z
-        .object({ operation: z.literal("register"), ...gcpRegisterShape })
-        .strict()
-        .superRefine(validateGcpScopeFields),
-    z.object({ operation: z.literal("register"), ...azureRegisterShape }).strict(),
-    z
-        .object({ operation: z.literal("update"), ...updateShape })
-        .strict()
-        .superRefine(validateUpdateBody),
-    z.object({ operation: z.literal("remove"), ...removeShape }).strict(),
+    dryRunAwsRegisterSchema,
+    dryRunGcpRegisterSchema,
+    dryRunAzureRegisterSchema,
+    dryRunUpdateSchema,
+    dryRunRemoveSchema,
 ]);
 
 export const VerifyCloudConnectArgumentsSchema = z
@@ -538,12 +566,14 @@ function buildRequirementsRequest(fields: z.infer<typeof GetCloudConnectRequirem
     if (discoveryInputs !== undefined) {
         return { error: "discoveryInputs is only supported for AWS account requirements." };
     }
+    if (featureInputs !== undefined) {
+        return { error: "featureInputs is not supported for Azure requirements." };
+    }
     const body: Record<string, unknown> = {
         tenantId: scope.tenantId,
         managementGroupId: scope.managementGroupId,
     };
     if (selectedFeatures !== undefined) body.featureIds = selectedFeatures;
-    if (featureInputs !== undefined) body.featureInputs = featureInputs;
     return { path: PROVIDER_REQUIREMENTS.azure, body };
 }
 
@@ -581,7 +611,13 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
         const schema = CLOUD_CONNECT_SCHEMAS[name];
         if (!schema) return createErrorResponse("Unknown Cloud Connect tool");
         const { customerContext, ...toolArgs } = (args ?? {}) as Record<string, unknown>;
-        const parsed = schema.parse(toolArgs) as Record<string, any>;
+        const activeSchema =
+            name === "dry_run_cloud_connection_change" &&
+            typeof toolArgs.operation === "string" &&
+            dryRunOperationSchemas[toolArgs.operation]
+                ? dryRunOperationSchemas[toolArgs.operation]
+                : schema;
+        const parsed = activeSchema.parse(toolArgs) as Record<string, any>;
         const params = new URLSearchParams();
         const headers: Record<string, string> = {};
         let method = "GET";
@@ -645,6 +681,7 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
         }
         let etag: string | null = null;
         let requestId: string | null = null;
+        let responseDryRun = false;
         const data = await makeDoitRequest<Record<string, unknown>>(
             `${CLOUD_CONNECT_BASE_URL}${path}${params.size ? `?${params}` : ""}`,
             token,
@@ -658,6 +695,7 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
                 onResponseHeaders: (responseHeaders) => {
                     etag = responseHeaders.get("etag");
                     requestId = responseHeaders.get("request-id");
+                    responseDryRun = responseHeaders.get("x-dry-run") === "true";
                 },
                 onErrorResponse: async (response) => {
                     try {
@@ -705,6 +743,7 @@ export async function handleCloudConnectRequest(name: string, args: any, token: 
         return createSuccessResponse(
             JSON.stringify(
                 {
+                    ...(dryRun || responseDryRun ? { dryRun: true } : {}),
                     ...(etag ? { etag } : {}),
                     ...data,
                     ...(requestId ? { requestId } : {}),

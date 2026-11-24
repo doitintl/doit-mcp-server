@@ -7,7 +7,7 @@ Use this for a new setup or a feature expansion when the user has not already de
 Read-only discovery comes first:
 
 - Existing Cloud Connect records: `list_cloud_connections` and `get_cloud_connection`. For Azure, pass `provider: "azure"` or the selected Azure scope; omitting both defaults to AWS. Inspect the tenant's existing registration even when the requested management group differs.
-- Requirements discovery: once the required scope identifiers are resolved, call `get_cloud_connect_requirements` without `featureIds`. Each feature returns `status` `available`, `not_entitled` or `inputs_required`. AWS responses also return `accountVariant` (`management_account`, `organization_member` or `standalone`).
+- Requirements discovery: once the required scope identifiers are resolved, call `get_cloud_connect_requirements` without `featureIds`. Each feature returns `status` `available`, `not_entitled` or `inputs_required`. AWS responses also return `variant` (`management_account`, `organization_member` or `standalone`).
 - Existing DoiT deployments, roles and service accounts, using the provider walkthrough's ownership checks.
 - The customer's repository and tooling: Terraform, OpenTofu or Terragrunt source and state, CDK or other IaC, CI pipelines, and what you can run here: cloud CLIs, cloud provider tools connected to your client (such as an AWS, Google Cloud or Azure MCP server), or a browser the user lets you control.
 
@@ -27,7 +27,7 @@ Ask the questions together when the needed discovery is available. If scope sele
 
 Skip this question when the prompt or user already selected the scope: for example "connect only this account", a management account with a root or OU target, or an explicit Google Cloud or Azure scope. Use that scope; do not offer a broader one.
 
-- **AWS:** otherwise, ask when `accountVariant` is `management_account`. Recommend an organization root or OU rollout when the user wants the organization covered or other member accounts have no DoiT connection; otherwise recommend the single account. Organization rollouts follow [AWS organizations](aws-organizations.md). For any other variant, connect the single account without asking.
+- **AWS:** otherwise, ask when `variant` is `management_account`. Recommend an organization root or OU rollout when the user wants the organization covered or other member accounts have no DoiT connection; otherwise recommend the single account. Organization rollouts follow [AWS organizations](aws-organizations.md). For any other variant, connect the single account without asking.
 - **Google Cloud:** settle the organization, project or dataset target and required inputs before feature choices. For an organization, resolve `organizationId` and the existing service-account host `identityInputs.projectId`; for a dataset, resolve `projectId`, `datasetId` and `identityInputs.serviceAccountId`. Ask about unresolved scope or required inputs using the [GCP walkthrough](gcp.md).
 - **Azure:** resolve `tenantId` and an existing `managementGroupId`, covering that group and its descendants. Ask when the group is not selected, including when only a tenant or subscription ID was supplied. Recommend an existing group matching the requested subscription coverage; offer the tenant root only for requested tenant-wide coverage, after verifying its actual group ID. Follow the [Azure walkthrough](azure.md); do not create a group, move subscriptions or broaden the scope to complete onboarding.
 

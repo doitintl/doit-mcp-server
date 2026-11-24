@@ -692,4 +692,89 @@ describe("Google Cloud scopes", () => {
         expect(result.isError).toBe(true);
         expect(requests).toHaveLength(0);
     });
+
+    it("rejects featureInputs on Azure requirements, register and update", async () => {
+        const azureTenant = "11111111-1111-4111-8111-111111111111";
+        for (const [toolName, args] of [
+            [
+                "get_cloud_connect_requirements",
+                {
+                    scope: {
+                        provider: "azure",
+                        kind: "azure_management_group",
+                        tenantId: azureTenant,
+                        managementGroupId: "mg-root",
+                    },
+                    featureIds: ["advisor"],
+                    featureInputs: { advisor: { key: "value" } },
+                },
+            ],
+            [
+                "register_cloud_connection",
+                {
+                    provider: "azure",
+                    tenantId: azureTenant,
+                    managementGroupId: "mg-root",
+                    featureIds: ["advisor"],
+                    featureInputs: { advisor: { key: "value" } },
+                },
+            ],
+            [
+                "update_cloud_connection",
+                {
+                    provider: "azure",
+                    connectionId: "microsoft-azure-1",
+                    expectedEtag: '"1.az"',
+                    featureIds: ["advisor"],
+                    featureInputs: { advisor: { key: "value" } },
+                },
+            ],
+        ] as const) {
+            const result = await executeToolHandler(toolName, args, "fixture-token");
+            expect(result.isError).toBe(true);
+        }
+        expect(requests).toHaveLength(0);
+    });
+
+    it("surfaces dryRun: true on projected update previews and names missing provider on dry-run errors", async () => {
+        const preview = await handleCloudConnectRequest(
+            "dry_run_cloud_connection_change",
+            {
+                operation: "update",
+                provider: "aws",
+                connectionId: "amazon-web-services-111111111111",
+                expectedEtag: '"1.abc"',
+                featureIds: ["core"],
+            },
+            "fixture-token"
+        );
+        expect(preview.isError).not.toBe(true);
+        expect(data(preview).dryRun).toBe(true);
+
+        const missingProviderUpdate = await executeToolHandler(
+            "dry_run_cloud_connection_change",
+            {
+                operation: "update",
+                connectionId: "amazon-web-services-111111111111",
+                expectedEtag: '"1.abc"',
+                featureIds: ["core"],
+            },
+            "fixture-token"
+        );
+        expect(missingProviderUpdate.isError).toBe(true);
+        expect(text(missingProviderUpdate)).toContain("provider");
+
+        const missingProviderRemove = await executeToolHandler(
+            "dry_run_cloud_connection_change",
+            {
+                operation: "remove",
+                connectionId: "amazon-web-services-111111111111",
+                expectedEtag: '"1.abc"',
+                cleanupScope: "doit_only",
+            },
+            "fixture-token"
+        );
+        expect(missingProviderRemove.isError).toBe(true);
+        expect(text(missingProviderRemove)).toContain("provider");
+    });
 });

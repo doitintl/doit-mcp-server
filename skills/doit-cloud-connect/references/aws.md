@@ -1,6 +1,6 @@
 # AWS walkthrough
 
-Use this after selecting AWS in the main skill. The current API supports individual AWS accounts through seven operations; it has no diagnostics or event-reporting endpoint. Organization roots and OUs are deployment targets only. Use the response's `accountVariant`, payer association, identity trust and artifact parameters.
+Use this after selecting AWS in the main skill. The current API supports individual AWS accounts through seven operations; it has no diagnostics or event-reporting endpoint. Organization roots and OUs are deployment targets only. Use the response's `variant`, payer association, identity trust and artifact parameters.
 
 For a root/OU rollout or an existing organization controller, follow [AWS organizations](aws-organizations.md) first to obtain the management artifact through organization requirements. The account workflow below supplies per-account requirements, registration reconciliation and verification.
 
@@ -16,7 +16,7 @@ Parameter spelling examples: `real-time-data`, `spot-scaling` and `expert_advice
 
 ## Trust and ownership
 
-`identity.trust` gives the DoiT principal and External ID (the DoiT customer ID, the same value for every account; do not generate a random one). Only the Terraform artifact returns `trustStatements`, its full cross-account `Allow sts:AssumeRole` policy; an omitted `externalId` means that statement is unconditional. The CloudFormation artifact has none: read the role's trust policy in the downloaded template and compare it with `identity.trust`. Compare every statement with the rendered plan or change set and surface unconditional or broader grants. Unexpected differences block deployment.
+`identity.trustedPrincipals` and `identity.externalId` give the DoiT principals and External ID (the DoiT customer ID, the same value for every account; do not generate a random one). Only the Terraform artifact returns `trustStatements`, its full cross-account `Allow sts:AssumeRole` policy; an omitted `externalId` means that statement is unconditional. The CloudFormation artifact has none: read the role's trust policy in the downloaded template and compare it with `identity.trustedPrincipals` and `identity.externalId`. Compare every statement with the rendered plan or change set and surface unconditional or broader grants. Unexpected differences block deployment.
 
 For a fresh AWS installation, prefer `doitintl_dci_cloudconnect` through the current deployment artifact. Keep existing AWS role ARNs and names, including `doitintl-cmp`, when updating or repairing an installation unless the user confirms a role migration under the shared deployment rules.
 
