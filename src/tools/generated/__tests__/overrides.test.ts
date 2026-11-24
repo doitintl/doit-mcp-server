@@ -69,6 +69,13 @@ describe("generated tool overrides", () => {
         expect(description).not.toContain(CLOUDFLOW_BUILDER_HINT);
     });
 
+    it("marks delete_datahub_events_by_filter as approval-gated despite using POST", () => {
+        const tool = byName.get("delete_datahub_events_by_filter");
+        expect(tool?.metadata.method).toBe("post");
+        expect(tool?.summary).toBeDefined();
+        expect(tool?.description).toContain("confirm_action");
+    });
+
     it("appends nothing when a tool has no override", () => {
         const document = {
             openapi: "3.0.1",

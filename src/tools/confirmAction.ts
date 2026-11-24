@@ -8,14 +8,14 @@ export const ConfirmActionArgumentsSchema = z.object({
         .string()
         .min(1, "approvalToken is required and cannot be empty.")
         .describe(
-            "The one-time, user-bound approval token returned by a staged generated DELETE call. Expires after five minutes. Exactly as received, no quoting changes."
+            "The one-time, user-bound approval token returned by a staged write-gated call. Expires after five minutes. Exactly as received, no quoting changes."
         ),
 });
 
 /**
  * The "gate" tool. Annotated `destructiveHint: true` because this is the call that actually
  * performs the staged write: the original tool call only returned `status: "approval_required"`
- * with a summary, and today the gated calls are generated DELETE operations, which cannot be
+ * with a summary, and today the gated calls are destructive operations, which cannot be
  * undone. Directory listings (e.g. the Claude Connectors Directory) also require every tool to
  * set `readOnlyHint` or `destructiveHint` to true, and this tool is not read-only.
  *
@@ -26,7 +26,7 @@ export const confirmActionTool = {
     title: "Confirm pending action",
     coversEndpoint: null,
     description:
-        "Runs a generated DELETE operation that another " +
+        "Runs a destructive operation that another " +
         'tool staged and returned as `status: "approval_required"` with a summary and a ' +
         "one-time approval token. Intended for use after the user approves that summary. It runs " +
         "exactly the saved request, including its customer scope, and returns that operation's own " +

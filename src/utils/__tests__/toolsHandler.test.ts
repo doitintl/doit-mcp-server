@@ -320,4 +320,120 @@ describe("executeToolHandler approval gate", () => {
         expect(makeDoitRequest).toHaveBeenCalledTimes(1);
         expect(response.content[0].text).toContain("budgets");
     });
+
+    it("gates remove_cloud_connection behind approval_required and rejects traversal connectionIds before stashing", async () => {
+        vi.mocked(makeDoitRequest).mockClear();
+        const approvalStore = new MemoryApprovalStore();
+        const removeArgs = {
+            connectionId: "aws-conn-1",
+            expectedEtag: '"2.abc"',
+            cleanupScope: "doit_only",
+            customerContext: "cust-42",
+        };
+
+        const bad = await executeToolHandler(
+            "remove_cloud_connection",
+            { ...removeArgs, connectionId: "%2e%2e" },
+            apiToken,
+            { userKey, approvalStore }
+        );
+        expect(bad.isError).toBe(true);
+        expect(approvalStore.size()).toBe(0);
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+
+        const staged = await executeToolHandler("remove_cloud_connection", removeArgs, apiToken, {
+            userKey,
+            approvalStore,
+        });
+        const envelope = JSON.parse(staged.content[0].text);
+        expect(envelope.status).toBe("approval_required");
+        expect(envelope.summary).toContain('connectionId="aws-conn-1"');
+        expect(envelope.summary).toContain('cleanupScope="doit_only"');
+        expect(envelope.summary).toContain("for customer cust-42");
+        expect(envelope.summary).toContain("DELETE /onboarding/v2/connections/aws-conn-1?cleanupScope=doit_only.");
+        expect(makeDoitRequest).not.toHaveBeenCalled();
+
+        vi.mocked(makeDoitRequest).mockResolvedValueOnce(null);
+        const confirmed = await executeToolHandler(
+            "confirm_action",
+            { approvalToken: envelope.approvalToken },
+            apiToken,
+            { userKey, approvalStore }
+        );
+        expect(confirmed.isError).not.toBe(true);
+        expect(makeDoitRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it("snapshots active CUSTOMER_CONTEXT at stage time so confirm_action runs against the approved customer", async () => {
+        vi.mocked(makeDoitRequest).mockClear();
+        const approvalStore = new MemoryApprovalStore();
+        const realGenerated = new Map(
+            generateTools(loadGeneratedToolsSpec(), COVERED_ENDPOINTS).map((tool) => [tool.name, tool])
+        );
+        const originalCustomerContext = process.env.CUSTOMER_CONTEXT;
+        process.env.CUSTOMER_CONTEXT = "cust-staged";
+        try {
+            const staged = await executeToolHandler("delete_alert", { id: "alert-1" }, apiToken, {
+                userKey,
+                approvalStore,
+                generatedTools: realGenerated,
+            });
+            const envelope = JSON.parse(staged.content[0].text);
+            expect(envelope.summary).toContain("for customer cust-staged");
+
+            process.env.CUSTOMER_CONTEXT = "cust-switched";
+            await executeToolHandler("confirm_action", { approvalToken: envelope.approvalToken }, apiToken, {
+                userKey,
+                approvalStore,
+                generatedTools: realGenerated,
+            });
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                expect.stringContaining("customerContext=cust-staged"),
+                apiToken,
+                expect.objectContaining({ customerContext: "cust-staged" })
+            );
+        } finally {
+            if (originalCustomerContext === undefined) delete process.env.CUSTOMER_CONTEXT;
+            else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
+        }
+    });
+
+    it("normalizes non-string customerContext during remove_cloud_connection staging so confirmed scope matches summary", async () => {
+        vi.mocked(makeDoitRequest).mockClear();
+        const approvalStore = new MemoryApprovalStore();
+        const originalCustomerContext = process.env.CUSTOMER_CONTEXT;
+        process.env.CUSTOMER_CONTEXT = "cust-env";
+        try {
+            const staged = await executeToolHandler(
+                "remove_cloud_connection",
+                {
+                    connectionId: "aws-conn-1",
+                    expectedEtag: '"2.abc"',
+                    cleanupScope: "doit_only",
+                    customerContext: 123,
+                },
+                apiToken,
+                { userKey, approvalStore }
+            );
+            const envelope = JSON.parse(staged.content[0].text);
+            expect(envelope.summary).toContain("for customer cust-env");
+
+            delete process.env.CUSTOMER_CONTEXT;
+            vi.mocked(makeDoitRequest).mockResolvedValueOnce(null);
+            await executeToolHandler("confirm_action", { approvalToken: envelope.approvalToken }, apiToken, {
+                userKey,
+                approvalStore,
+            });
+
+            expect(makeDoitRequest).toHaveBeenCalledWith(
+                expect.stringContaining("/onboarding/v2/connections/aws-conn-1"),
+                apiToken,
+                expect.objectContaining({ customerContext: "cust-env" })
+            );
+        } finally {
+            if (originalCustomerContext === undefined) delete process.env.CUSTOMER_CONTEXT;
+            else process.env.CUSTOMER_CONTEXT = originalCustomerContext;
+        }
+    });
 });
