@@ -178,14 +178,6 @@ export const WRITE_GATED_SUMMARIES: Partial<Record<string, (args: any) => string
     // [createTicketTool.name]: createTicketTool.summary,
 };
 
-/**
- * Internal marker stashed into pending approval args when a write-gated action was approved
- * with no customer scope (default account). Stripped before dispatching to the original tool;
- * if `CUSTOMER_CONTEXT` becomes set before confirmation, `confirm_action` fails closed rather
- * than executing against the newly selected tenant.
- */
-const STAGED_NO_CUSTOMER_CONTEXT_KEY = "__doitStagedNoCustomerContext";
-
 export interface ToolHandlerOptions {
     /** Metadata-only final-response measurements. Defaults to JSON on stderr. */
     onResponseMetrics?: (metrics: ToolResponseMetrics) => void;
@@ -328,26 +320,7 @@ export async function executeToolHandler(
                             token,
                             userKey,
                             approvalStore,
-                            async (pendingToolName, pendingArgs, pendingToken) => {
-                                if (
-                                    pendingArgs &&
-                                    typeof pendingArgs === "object" &&
-                                    !Array.isArray(pendingArgs) &&
-                                    STAGED_NO_CUSTOMER_CONTEXT_KEY in pendingArgs
-                                ) {
-                                    const {
-                                        [STAGED_NO_CUSTOMER_CONTEXT_KEY]: stagedWithoutCustomerContext,
-                                        ...cleanArgs
-                                    } = pendingArgs;
-                                    if (stagedWithoutCustomerContext === true && process.env.CUSTOMER_CONTEXT) {
-                                        return createErrorResponse(
-                                            "Active customer context changed since this action was staged without a customer scope. Re-issue the original tool call to review and approve it under the new customer scope."
-                                        );
-                                    }
-                                    return runOriginal(pendingToolName, cleanArgs, pendingToken);
-                                }
-                                return runOriginal(pendingToolName, pendingArgs, pendingToken);
-                            }
+                            runOriginal
                         );
                         return confirmed;
                     }
@@ -367,15 +340,12 @@ export async function executeToolHandler(
                             dispatchArgs == null ||
                             (typeof dispatchArgs === "object" && !Array.isArray(dispatchArgs))
                         ) {
-                            const normalized: Record<string, unknown> = dispatchArgs ? { ...dispatchArgs } : {};
-                            delete normalized[STAGED_NO_CUSTOMER_CONTEXT_KEY];
                             if (resolvedCustomerContext) {
-                                normalized.customerContext = resolvedCustomerContext;
-                            } else {
-                                delete normalized.customerContext;
-                                normalized[STAGED_NO_CUSTOMER_CONTEXT_KEY] = true;
+                                stagedArgs = { ...(dispatchArgs ?? {}), customerContext: resolvedCustomerContext };
+                            } else if (dispatchArgs && "customerContext" in dispatchArgs) {
+                                const { customerContext: _ignored, ...rest } = dispatchArgs;
+                                stagedArgs = rest;
                             }
-                            stagedArgs = normalized;
                         }
                         const approvalToken = mintApprovalToken();
                         await approvalStore.stash(approvalToken, {
