@@ -2,9 +2,18 @@
 
 ## Public Repo
 
-This repo is public. Do not commit or write into PR titles/descriptions: internal Jira issue keys
-(e.g. `CMP-1234`), names of private/internal repos, or other internal-only details. Keep references
-generic (e.g. "a separate private repo") instead.
+This repository is public. Never include internal references anywhere visible in Git or GitHub:
+**branch names, commit messages, PR titles, PR descriptions, PR comments, code, tests, skills, or docs.**
+
+Do not include:
+- Internal issue-tracker keys or links (e.g. Jira keys like `PROJ-1234` or tracker URLs)
+- Names of private/internal repositories, private GitHub organizations, or links to private PRs/issues
+- Internal staging/dev hostnames, customer names or IDs, internal wiki/chat links, or internal-only rollout notes
+
+Keep cross-repo references generic (e.g. "the backend API" or "a separate private repo").
+Before creating a branch, pushing commits, or opening/editing a PR, verify that the branch name,
+commit messages, diff, PR title, and PR body contain no internal references. If a branch name
+already contains an internal key, recreate the PR from a clean branch name and delete the old branch.
 
 ## Environment Setup
 
