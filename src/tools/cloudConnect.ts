@@ -36,7 +36,28 @@ const featureIds = z
     .min(1)
     .max(100)
     .refine((values) => new Set(values).size === values.length, "Feature IDs must be unique.");
-const inputs = z.record(id, z.record(id, z.string().max(1024)));
+const awsRealTimeDataInputs = z
+    .object({
+        bucketName: z.string().min(1).max(1024),
+        bucketRegion: z.string().min(1).max(1024),
+    })
+    .strict();
+const awsFeatureInputs = z
+    .object({
+        realTimeData: awsRealTimeDataInputs.nullable().optional(),
+    })
+    .strict();
+const gcpBigQueryFinOpsInputs = z
+    .object({
+        location: z.string().min(1).max(1024).nullable().optional(),
+    })
+    .strict();
+const gcpFeatureInputs = z
+    .object({
+        bigqueryFinops: gcpBigQueryFinOpsInputs.nullable().optional(),
+    })
+    .strict();
+const providerFeatureInputs = z.union([awsFeatureInputs, gcpFeatureInputs]);
 const awsAccountId = z
     .string()
     .regex(/^\d{12}$/, "Use the 12-digit AWS account ID (digits only; a letter o is not a zero).");
@@ -148,10 +169,10 @@ export const GetCloudConnectRequirementsArgumentsSchema = z
             .describe(
                 "Omitting this field discovers available features without selecting any. Discovery artifacts are not requirementsSatisfied until features are chosen."
             ),
-        featureInputs: inputs
+        featureInputs: providerFeatureInputs
             .optional()
             .describe(
-                "Only inputs published by the selected features (real-time-data: bucketName and bucketRegion), identifying the customer's actual cloud resources. The API does not prove the bucket exists or that its region is correct."
+                "Typed per-feature deployment inputs for the selected features (AWS: { realTimeData: { bucketName, bucketRegion } }; GCP: { bigqueryFinops: { location } }), identifying the customer's actual cloud resources. The API does not prove the bucket exists or that its region is correct."
             ),
         identityInputs: z
             .object({
@@ -205,7 +226,7 @@ const awsRegisterShape = {
     accountId: awsAccountId,
     roleArn: awsRoleArn,
     featureIds,
-    featureInputs: inputs.optional(),
+    featureInputs: awsFeatureInputs.optional(),
     catalogVersion,
     idempotencyKey,
 };
@@ -219,7 +240,7 @@ const gcpRegisterShape = {
     serviceAccount: gcpServiceAccount,
     roleId: roleId.optional(),
     featureIds,
-    featureInputs: inputs.optional(),
+    featureInputs: gcpFeatureInputs.optional(),
     catalogVersion,
     idempotencyKey,
 };
@@ -311,11 +332,11 @@ const updateShape = {
     expectedEtag,
     catalogVersion,
     featureIds: featureIds.optional().describe("Complete desired feature list for this connection, not a delta."),
-    featureInputs: inputs
+    featureInputs: providerFeatureInputs
         .nullable()
         .optional()
         .describe(
-            "Per-feature inputs merged into existing inputs (AWS and GCP only; deselected features drop their inputs); null clears all inputs."
+            "Typed per-feature inputs merged into existing inputs (AWS: { realTimeData: { bucketName, bucketRegion } | null }; GCP: { bigqueryFinops: { location } | null }; deselected features drop their inputs). Set a feature property or nested optional field to null to clear it, or set featureInputs to null to clear all inputs."
         ),
     idempotencyKey,
 };
@@ -324,7 +345,7 @@ function validateUpdateBody(
     value: {
         provider: CloudConnectProvider;
         featureIds?: string[];
-        featureInputs?: Record<string, Record<string, string>> | null;
+        featureInputs?: z.infer<typeof providerFeatureInputs> | null;
     },
     ctx: z.RefinementCtx
 ) {
@@ -333,6 +354,18 @@ function validateUpdateBody(
             code: "custom",
             path: ["featureInputs"],
             message: "featureInputs is not supported for Azure connections.",
+        });
+    } else if (value.provider === "aws" && value.featureInputs && "bigqueryFinops" in value.featureInputs) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["featureInputs"],
+            message: "AWS connections only accept realTimeData under featureInputs.",
+        });
+    } else if (value.provider === "gcp" && value.featureInputs && "realTimeData" in value.featureInputs) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["featureInputs"],
+            message: "GCP connections only accept bigqueryFinops under featureInputs.",
         });
     }
     if (value.featureIds === undefined && value.featureInputs === undefined) {
@@ -494,7 +527,7 @@ export const dryRunCloudConnectionChangeTool = tool(
     "dry_run_cloud_connection_change",
     DryRunCloudConnectionChangeArgumentsSchema,
     null,
-    "Validate a register, update or remove request and run available live checks without committing (dryRun=true). For register and remove, returns preconditions, DoiT side effects, follow-ups and customer cleanup for review (`wouldApply` is informational, not a reservation or approval). A new unregistered AWS role returns `aws_broker_requires_registration` because the broker cannot probe it before registration. For update, returns the projected connection resource with `X-Dry-Run: true` or a 422 problem if gates fail.",
+    "Validate a register, update or remove request and run available live checks without committing (dryRun=true). For register, returns the projected provider resource preview with `X-Dry-Run: true` (`id`, `etag`, and `revision` are `null`), or a 422 problem if gates fail (a new unregistered AWS role leaves `baselineChecks.status` as `not_checked` because the broker cannot probe it before registration). For update, returns the projected connection resource with `X-Dry-Run: true` or a 422 problem if gates fail. For remove, returns preconditions, DoiT side effects, follow-ups and customer cleanup for review (`wouldApply` is informational, not a reservation or approval).",
     true
 );
 
@@ -552,6 +585,9 @@ function buildRequirementsRequest(fields: z.infer<typeof GetCloudConnectRequirem
         if (scope.kind === "aws_organization" && discoveryInputs !== undefined) {
             return { error: "discoveryInputs is only supported for aws_account requirements." };
         }
+        if (featureInputs !== undefined && "bigqueryFinops" in featureInputs) {
+            return { error: "AWS requirements only accept realTimeData under featureInputs." };
+        }
         const body: Record<string, unknown> =
             scope.kind === "aws_account"
                 ? { scopeKind: scope.kind, accountId: scope.accountId }
@@ -564,6 +600,9 @@ function buildRequirementsRequest(fields: z.infer<typeof GetCloudConnectRequirem
     if (scope.provider === "gcp") {
         if (discoveryInputs !== undefined) {
             return { error: "discoveryInputs is only supported for AWS account requirements." };
+        }
+        if (featureInputs !== undefined && "realTimeData" in featureInputs) {
+            return { error: "GCP requirements only accept bigqueryFinops under featureInputs." };
         }
         const body: Record<string, unknown> = { scopeKind: scope.kind };
         if (scope.kind === "gcp_organization") body.organizationId = scope.organizationId;

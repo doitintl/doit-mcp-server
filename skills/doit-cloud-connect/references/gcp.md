@@ -8,7 +8,8 @@ Use `provider: gcp` and choose the scope. For a new setup or feature expansion, 
 | `gcp_project` | `projectId` | Project features, including projects without an organization. |
 | `gcp_dataset` | `projectId`, `datasetId` | One BigQuery dataset plus returned project prerequisites. |
 
-Use a dedicated service account per customer and scope. Organization access does not replace
+Use a dedicated service account per customer and scope — each GCP service account (`uniqueId`)
+can be registered to at most one GCP connection. Organization access does not replace
 project-specific setup. Legacy connections with several organization bindings reject writes
 with `409 connection_ambiguous` until reconciled.
 
