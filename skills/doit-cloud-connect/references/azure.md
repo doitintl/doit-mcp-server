@@ -50,6 +50,8 @@ not deploy, list or verify those grants.
    `managementGroupId` and `featureIds`. Register once when no connection exists.
    The Azure script grants access and does not register. Do not combine a legacy
    Console session verification, which can register, with another POST.
+   The server normalizes `tenantId` and `managementGroupId` to lowercase on storage,
+   reads, and dry-run previews (so mixed-case inputs such as `Contoso-Prod` read back lowercase).
    Take the saved connection `id`, `tenantId` and `managementGroupId`
    from the registration response. Confirm that its scope matches the selected
    existing target, then use those returned IDs with `provider: "azure"` for subsequent operations.

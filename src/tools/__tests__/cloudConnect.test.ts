@@ -850,4 +850,46 @@ describe("Google Cloud scopes", () => {
         }
         expect(requests).toHaveLength(2);
     });
+
+    it("accepts domain-scoped GCP projectId and serviceAccount.email while keeping serviceAccountId short", async () => {
+        const domainProject = "example.com:my-project";
+        const domainEmail = "doit-cmp@my-project.example.com.iam.gserviceaccount.com";
+
+        const reqResult = await handleCloudConnectRequest(
+            "get_cloud_connect_requirements",
+            {
+                scope: { provider: "gcp", kind: "gcp_project", projectId: domainProject },
+                featureIds: ["core"],
+            },
+            "fixture-token"
+        );
+        expect(reqResult.isError).not.toBe(true);
+
+        const regResult = await handleCloudConnectRequest(
+            "register_cloud_connection",
+            {
+                provider: "gcp",
+                scopeKind: "gcp_project",
+                projectId: domainProject,
+                serviceAccount: {
+                    email: domainEmail,
+                    uniqueId: "100000000000000000001",
+                    projectId: domainProject,
+                },
+                featureIds: ["core"],
+            },
+            "fixture-token"
+        );
+        expect(regResult.isError).not.toBe(true);
+
+        const rejected = await executeToolHandler(
+            "get_cloud_connect_requirements",
+            {
+                scope: { provider: "gcp", kind: "gcp_dataset", projectId: domainProject, datasetId: "my_dataset" },
+                identityInputs: { serviceAccountId: "example.com:doit-cmp" },
+            },
+            "fixture-token"
+        );
+        expect(rejected.isError).toBe(true);
+    });
 });

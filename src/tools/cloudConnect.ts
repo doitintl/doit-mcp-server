@@ -63,17 +63,19 @@ const awsAccountId = z
     .regex(/^\d{12}$/, "Use the 12-digit AWS account ID (digits only; a letter o is not a zero).");
 const awsRoleArn = z.string().regex(/^arn:aws(?:-us-gov|-cn)?:iam::\d{12}:role\/.+$/);
 const gcpIdPattern = "[a-z][a-z0-9-]{4,28}[a-z0-9]";
-const projectId = z.string().regex(new RegExp(`^${gcpIdPattern}$`));
+const projectId = z.string().regex(new RegExp(`^([a-z][a-z0-9.-]{0,61}:)?${gcpIdPattern}$`));
 const organizationId = z.string().regex(/^[1-9][0-9]{0,24}$/);
 const datasetId = z
     .string()
     .min(1)
     .max(1024)
     .regex(/^[A-Za-z0-9_]+$/);
-const serviceAccountId = projectId;
+const serviceAccountId = z.string().regex(new RegExp(`^${gcpIdPattern}$`));
 const gcpServiceAccount = z
     .object({
-        email: z.string().regex(new RegExp(`^${gcpIdPattern}@${gcpIdPattern}\\.iam\\.gserviceaccount\\.com$`)),
+        email: z
+            .string()
+            .regex(new RegExp(`^${gcpIdPattern}@${gcpIdPattern}(\\.[a-z0-9-]+)*\\.iam\\.gserviceaccount\\.com$`)),
         uniqueId: z.string().regex(/^[0-9]{1,32}$/),
         projectId,
     })
@@ -85,7 +87,7 @@ const tenantId = z
     .string()
     .regex(/^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/, "Use the Microsoft Entra tenant ID in UUID format.")
     .describe(
-        "Existing Microsoft Entra tenant UUID supplied in the prompt or selected by the user. Missing identifiers require clarification; onboarding does not create a tenant."
+        "Existing Microsoft Entra tenant UUID supplied in the prompt or selected by the user. Missing identifiers require clarification; onboarding does not create a tenant. Normalized to lowercase on storage and returned lowercase in responses and dry-run previews."
     );
 const managementGroupId = z
     .string()
@@ -94,7 +96,7 @@ const managementGroupId = z
         "Use the bare Azure management group ID (for example, example-group), not a display name or full ARM resource path."
     )
     .describe(
-        "Existing root or child management-group ID selected by the user. Ask when missing; a tenant UUID or CLI default does not select its root group. Setup does not create groups or move subscriptions."
+        "Existing root or child management-group ID selected by the user. Ask when missing; a tenant UUID or CLI default does not select its root group. Setup does not create groups or move subscriptions. Normalized to lowercase on storage and returned lowercase in responses and dry-run previews."
     );
 const roleId = z.string().regex(/^[A-Za-z0-9_.]{3,64}$/);
 const connectionId = id.describe(
@@ -172,7 +174,7 @@ export const GetCloudConnectRequirementsArgumentsSchema = z
         featureInputs: providerFeatureInputs
             .optional()
             .describe(
-                "Typed per-feature deployment inputs for the selected features (AWS: { realTimeData: { bucketName, bucketRegion } }; GCP: { bigqueryFinops: { location } }), identifying the customer's actual cloud resources. The API does not prove the bucket exists or that its region is correct."
+                "Typed per-feature deployment inputs for the selected features (AWS: { realTimeData: { bucketName, bucketRegion } }; GCP: { bigqueryFinops: { location } }), identifying the customer's actual cloud resources. `bigqueryFinops` is only valid for `gcp_organization` (otherwise rejected with 422 validation_failed). The API does not prove the bucket exists or that its region is correct."
             ),
         identityInputs: z
             .object({
@@ -336,7 +338,7 @@ const updateShape = {
         .nullable()
         .optional()
         .describe(
-            "Typed per-feature inputs merged into existing inputs (AWS: { realTimeData: { bucketName, bucketRegion } | null }; GCP: { bigqueryFinops: { location } | null }; deselected features drop their inputs). Set a feature property or nested optional field to null to clear it, or set featureInputs to null to clear all inputs."
+            "Typed per-feature inputs merged into existing inputs (AWS: { realTimeData: { bucketName, bucketRegion } | null }; GCP: { bigqueryFinops: { location } | null }; deselected features drop their inputs). `bigqueryFinops` is only valid for `gcp_organization`, defaults `location` to `US` on create/new enablement, and on PATCH omitting `location` for a legacy org connection with no recorded `projectLocation` leaves it unset without defaulting to `US`. Set a feature property or nested optional field to null to clear it, or set featureInputs to null to clear all inputs."
         ),
     idempotencyKey,
 };

@@ -43,13 +43,16 @@ external domain automatically. See [Google's domain-restricted sharing guidance]
 3. Preview and register with `provider: "gcp"`, `scopeKind`, the target scope IDs, descriptor `serviceAccount`
    fields `email`, `uniqueId`, `projectId`, and optional `roleId` copied from the artifact.
    The setup script grants access but does not register. Never create or submit a private key.
-   Include the chosen `featureIds` and returned `featureInputs`.
+   Include the chosen `featureIds` and returned `featureInputs`. `bigqueryFinops` (`location`,
+   default `US` on create) is only valid for `gcp_organization` (422 on project/dataset).
 4. Inspect follow-ups and verification. After IAM changes, allow propagation and recheck the
    existing binding before repeating or broadening grants. Authentication checks identity;
    effective IAM checks are scope-specific. Dataset table samples can yield `partial` or `not_checked`; neither is a pass.
    IAM results do not prove service-perimeter access, feature readiness or data arrival.
 5. Update with the current strong ETag and complete desired feature selection. Reconcile failed
-   follow-ups through an update. Reuse an idempotency key only for an identical retry; re-read after
+   follow-ups through an update. On `PATCH` for a legacy `gcp_organization` connection with
+   `bigquery-finops` and no recorded `projectLocation`, omitting `location` leaves it unset
+   without defaulting to `US`. Reuse an idempotency key only for an identical retry; re-read after
    a stale ETag or uncertain result.
 6. Preview disconnect with `cleanupScope: doit_only`. Registration and owned DoiT metadata are
    removed; service accounts, IAM, datasets, sinks and pipelines remain. Remove customer resources
