@@ -66,7 +66,7 @@ Use the returned finding, authentication reason or failed check to decide which 
 |---|---|
 | `aws_asset_not_associated` | Check the DoiT account association and payer metadata. This is a DoiT prerequisite; a cloud policy edit cannot satisfy it. |
 | `aws_management_account_unrecognized` / `not_payer_account` | These are DoiT prerequisite findings. Compare the requested management account with the customer's actual organization and DoiT payer context; IAM changes cannot establish the required DoiT relationship. |
-| `aws_broker_requires_registration` in a dry run | The broker cannot probe this new role before registration. Check whether other prerequisites remain, then assess the authorized registration path in the final implementation. This result alone does not verify access. |
+| `baselineChecks.status: not_checked` in a create dry-run preview | The broker cannot probe a new unregistered role before registration. Check whether other prerequisites remain, then assess the authorized registration path in the final implementation. This result alone does not verify access. |
 | Authentication `failed` | Compare the returned reason with the deployed role ARN/identity, account, trust and External ID. Check the reported API operation before proposing a change. Feature checks marked `not_checked` provide no permission evidence. |
 | `required_permission_missing` | Compare `missingPermissions` with fresh requirements, accepted managed-policy alternatives and deployed policies. If the evidence calls for an IAM change, adapt the owning source and review its plan. |
 | `entitlement` / `catalog_preconditions` failed | Compare the selected features with fresh requirements and the customer's DoiT eligibility. Cloud IAM changes do not grant DoiT entitlement. |
