@@ -432,13 +432,13 @@ describe("Cloud Connect transport contract", () => {
         expect(requests).toHaveLength(0);
     });
 
-    it("sends requirements with feature inputs and no catalogVersion, without a write key", async () => {
+    it("sends requirements with typed feature inputs and no catalogVersion, without a write key", async () => {
         await handleCloudConnectRequest(
             "get_cloud_connect_requirements",
             {
                 scope: awsScope,
                 featureIds: ["real-time-data"],
-                featureInputs: { "real-time-data": { bucketName: "b" } },
+                featureInputs: { realTimeData: { bucketName: "b", bucketRegion: "us-east-1" } },
             },
             "fixture-token"
         );
@@ -448,7 +448,7 @@ describe("Cloud Connect transport contract", () => {
             scopeKind: "aws_account",
             accountId: "111111111111",
             featureIds: ["real-time-data"],
-            featureInputs: { "real-time-data": { bucketName: "b" } },
+            featureInputs: { realTimeData: { bucketName: "b", bucketRegion: "us-east-1" } },
         });
     });
 
@@ -789,5 +789,107 @@ describe("Google Cloud scopes", () => {
         );
         expect(missingProviderRemove.isError).toBe(true);
         expect(text(missingProviderRemove)).toContain("provider");
+    });
+
+    it("accepts typed AWS and GCP featureInputs including single-property null clearing and rejects cross-provider or legacy keys", async () => {
+        const awsPatch = await handleCloudConnectRequest(
+            "update_cloud_connection",
+            {
+                provider: "aws",
+                connectionId: "amazon-web-services-111111111111",
+                expectedEtag: '"1.abc"',
+                featureInputs: { realTimeData: null },
+            },
+            "fixture-token"
+        );
+        expect(awsPatch.isError).not.toBe(true);
+        expect(requests[0].body).toEqual({ featureInputs: { realTimeData: null } });
+
+        const gcpPatch = await handleCloudConnectRequest(
+            "update_cloud_connection",
+            {
+                provider: "gcp",
+                connectionId: "google-cloud-1",
+                expectedEtag: '"1.gcp"',
+                featureInputs: { bigqueryFinops: { location: null } },
+            },
+            "fixture-token"
+        );
+        expect(gcpPatch.isError).not.toBe(true);
+        expect(requests[1].body).toEqual({ featureInputs: { bigqueryFinops: { location: null } } });
+
+        for (const [toolName, args] of [
+            [
+                "get_cloud_connect_requirements",
+                {
+                    scope: awsScope,
+                    featureIds: ["real-time-data"],
+                    featureInputs: { "real-time-data": { bucketName: "b", bucketRegion: "us-east-1" } },
+                },
+            ],
+            [
+                "get_cloud_connect_requirements",
+                {
+                    scope: awsScope,
+                    featureIds: ["core"],
+                    featureInputs: { bigqueryFinops: { location: "US" } },
+                },
+            ],
+            [
+                "update_cloud_connection",
+                {
+                    provider: "gcp",
+                    connectionId: "google-cloud-1",
+                    expectedEtag: '"1.gcp"',
+                    featureInputs: { realTimeData: { bucketName: "b", bucketRegion: "us-east-1" } },
+                },
+            ],
+        ] as const) {
+            const rejected = await executeToolHandler(toolName, args, "fixture-token");
+            expect(rejected.isError).toBe(true);
+        }
+        expect(requests).toHaveLength(2);
+    });
+
+    it("accepts domain-scoped GCP projectId and serviceAccount.email while keeping serviceAccountId short", async () => {
+        const domainProject = "example.com:my-project";
+        const domainEmail = "doit-cmp@my-project.example.com.iam.gserviceaccount.com";
+
+        const reqResult = await handleCloudConnectRequest(
+            "get_cloud_connect_requirements",
+            {
+                scope: { provider: "gcp", kind: "gcp_project", projectId: domainProject },
+                featureIds: ["core"],
+            },
+            "fixture-token"
+        );
+        expect(reqResult.isError).not.toBe(true);
+
+        const regResult = await handleCloudConnectRequest(
+            "register_cloud_connection",
+            {
+                provider: "gcp",
+                scopeKind: "gcp_project",
+                projectId: domainProject,
+                serviceAccount: {
+                    email: domainEmail,
+                    uniqueId: "100000000000000000001",
+                    projectId: domainProject,
+                },
+                featureIds: ["core"],
+            },
+            "fixture-token"
+        );
+        expect(regResult.isError).not.toBe(true);
+
+        const rejected = await executeToolHandler(
+            "get_cloud_connect_requirements",
+            {
+                scope: { provider: "gcp", kind: "gcp_dataset", projectId: domainProject, datasetId: "my_dataset" },
+                identityInputs: { serviceAccountId: "example.com:doit-cmp" },
+            },
+            "fixture-token"
+        );
+        expect(rejected.isError).toBe(true);
     });
 });

@@ -145,6 +145,25 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             if (req.method === "PATCH" && req.headers["content-type"] !== "application/merge-patch+json")
                 return problem(415, "unsupported_media_type");
             if (url.searchParams.get("dryRun") === "true") {
+                if (req.method === "POST") {
+                    return reply(
+                        200,
+                        {
+                            id: null,
+                            etag: null,
+                            revision: null,
+                            accountId: body.accountId,
+                            roleArn: body.roleArn,
+                            featureIds: body.featureIds,
+                            ...(body.featureInputs ? { featureInputs: body.featureInputs } : {}),
+                            catalogVersion: body.catalogVersion ?? "fixture-current",
+                            baselineChecks: { status: "not_checked" },
+                            followUps: [],
+                        },
+                        undefined,
+                        { "X-Dry-Run": "true" }
+                    );
+                }
                 if (req.method === "PATCH") {
                     const current = records.get(id);
                     return reply(
@@ -161,33 +180,26 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
                 return reply(
                     200,
                     {
-                        operation: req.method === "DELETE" ? "delete" : "create",
+                        operation: "delete",
                         wouldApply: true,
                         preconditions: [{ kind: "aws_account_associated", status: "satisfied" }],
-                        plannedFollowUps:
-                            req.method === "DELETE"
-                                ? [
-                                      {
-                                          featureId: "real-time-data",
-                                          kind: "deconfigure_cloudtrail_bucket",
-                                          status: "would_run",
-                                      },
-                                  ]
-                                : [],
-                        ...(req.method === "DELETE"
-                            ? {
-                                  cloudCleanup: {
-                                      scope: "doit_only",
-                                      resources: [
-                                          {
-                                              kind: "aws_iam_role",
-                                              disposition: "review_before_remove",
-                                              resource: "arn:aws:iam::123456789012:role/fixture",
-                                          },
-                                      ],
-                                  },
-                              }
-                            : {}),
+                        plannedFollowUps: [
+                            {
+                                featureId: "real-time-data",
+                                kind: "deconfigure_cloudtrail_bucket",
+                                status: "would_run",
+                            },
+                        ],
+                        cloudCleanup: {
+                            scope: "doit_only",
+                            resources: [
+                                {
+                                    kind: "aws_iam_role",
+                                    disposition: "review_before_remove",
+                                    resource: "arn:aws:iam::123456789012:role/fixture",
+                                },
+                            ],
+                        },
                         findings: [],
                     },
                     undefined,
@@ -343,7 +355,15 @@ describe.skipIf(!existsSync(SERVER_ENTRY) && !process.env.CI)("built Cloud Conne
             featureIds: ["core"],
             catalogVersion: requirements.catalogVersion,
         };
-        await call("dry_run_cloud_connection_change", { operation: "register", ...registration });
+        const createPreview = await call("dry_run_cloud_connection_change", { operation: "register", ...registration });
+        expect(createPreview).toMatchObject({
+            dryRun: true,
+            id: null,
+            etag: null,
+            revision: null,
+            accountId: "123456789012",
+            featureIds: ["core"],
+        });
         expect(records.size).toBe(0);
         const connection = await call("register_cloud_connection", registration);
         expect(connection.idempotencyKey).toBeTruthy();
